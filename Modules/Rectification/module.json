@@ -1,0 +1,13 @@
+{
+    "name": "Rectification",
+    "alias": "rectification",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Rectification\\Providers\\RectificationServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

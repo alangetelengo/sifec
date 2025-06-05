@@ -1,0 +1,13 @@
+{
+    "name": "EtatCivilRDC",
+    "alias": "etatcivilrdc",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\EtatCivilRDC\\Providers\\EtatCivilRDCServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

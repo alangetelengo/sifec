@@ -1,0 +1,596 @@
+@extends("layout.app")
+@section("titre")
+    Déclaration naissance
+@endsection
+
+@section("styles")
+<!-- Form step -->
+<link href="{{ asset('tpl/vendor/jquery-smartwizard/dist/css/smart_wizard.min.css') }}" rel="stylesheet">
+<!-- Daterange picker -->
+<link href="{{ asset('tpl/vendor/bootstrap-daterangepicker/daterangepicker.css') }}" rel="stylesheet">
+<!-- Clockpicker -->
+<link href="{{ asset('tpl/vendor/clockpicker/css/bootstrap-clockpicker.min.css') }}" rel="stylesheet">
+<!-- asColorpicker -->
+<link href="{{ asset('tpl/vendor/jquery-asColorPicker/css/asColorPicker.min.css') }}" rel="stylesheet">
+<!-- Material color picker -->
+<link href="{{ asset('tpl/vendor/bootstrap-material-datetimepicker/css/bootstrap-material-datetimepicker.css') }}" rel="stylesheet">
+<!-- Pick date -->
+<link href="{{ asset('tpl/wizard/assets/node_modules/wizard/steps.css') }}" rel="stylesheet">
+<!--alerts CSS -->
+<link href="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.css') }}" rel="stylesheet">
+<!-- Custom CSS -->
+<link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+@endsection
+@section("corps")
+
+        <!-- row -->
+        <div class="row" id="validation">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Créer une déclaration de naissance</h4>
+                    </div>
+                    <div class="card wizard-content">
+                        <div class="card-body">
+                            <form action="#" class="validation-wizard wizard-circle">
+                                <!-- Step 1 -->
+                                <h6>Enfant</h6>
+                                <section>
+                                    <div class="row">
+
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Nom(s) enfant <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control"  placeholder="Nom enfant" id="nom_enfant">
+
+                                        </div>
+
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Prénom(s) enfant</label>
+                                            <input type="text" class="form-control" placeholder="Prénom enfant" id="prenom_enfant">
+
+                                        </div>
+
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Sexe <span class="text-danger">*</span></label>
+                                            <select id="sexe_enfant" class="form-control form-control wide">
+                                                <option value="" disabled selected>Selectionner</option>
+                                                <option value="M">Masculin</option>
+                                                <option value="F">Féminin</option>
+                                            </select>
+                                        </div>
+
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Date de naissance <span class="text-danger">*</span></label>
+                                            <input type="date" max="<?php echo date("Y-m-d"); ?>" min="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 3 month'));?>" class="form-control" id="date_naissance_enfant">
+
+                                        </div>
+
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Lieu de naissance <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="lieu_naissance_enfant">
+
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Heure de naissance <span class="text-danger">*</span></label>
+                                            <input type="time" class="form-control"  id="heure_naissance_enfant">
+
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Situation matrimoniale des parents</label>
+                                            <select id="code_situation_matrimoniale" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($situationMatrimoniales as $item)
+                                                    <option value="{{ $item->code_situation_matrimoniale }}">{{ $item->lib_situation_matrimoniale }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Nombre d'enfants (y compris le sujet)</label>
+                                            <input type="number" min="1" value="1" class="form-control" placeholder="0" id="nombre_enfants">
+
+                                        </div>
+                                    </div>
+                                </section>
+                                <!-- Step 2 -->
+                                <h6>Père</h6>
+                                <section>
+                                    <div class="d-flex justify-content-end align-items-center">
+                                        <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".search-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche du père</button>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <input type="hidden" id="code_pere">
+                                            <label class="form-label">Nom(s) père <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control"lass="form-control"  placeholder="Nom du père" id="nom_pere">
+                                        </div>
+
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Prénom(s) du père </label>
+                                            <input type="text" class="form-control" placeholder="Prénom du père" id="prenom_pere">
+
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Date de naissance du père<span class="text-danger">*</span></label>
+                                            <input type="date" max="<?php echo date('Y-m-d');?>" min="<?php echo date('Y-m-d', strtotime($jour. ' - 100 years')); ?>" onchange="compare()" class="form-control" id="date_naissance_pere">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Lieu de naissance père</label>
+                                            <input type="text" class="form-control" id="lieu_naissance_pere" placeholder="Lieu de naissance">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Domicile du père<span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="domicile_pere" placeholder="Domicile du père">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Nationalité du père<span class="text-danger">*</span></label>
+                                            <select id="code_nationalite_pere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($nationalites as $nationalite)
+                                                    <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Profession du père<span class="text-danger">*</span></label>
+                                            <select id="profession_pere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($professions as $item)
+                                                    <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Téléphone père<span class="text-danger">*</span></label>
+                                            <input type="text" id="telephone_pere" class="form-control form-control wide" placeholder="Téléphone père">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Niveau d'instruction du père</label>
+                                            <select id="niveau_instruction_pere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($instructions as $item)
+                                                    <option value="{{ $item }}">{{ $item }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Type pièce d'identité</label>
+                                            <select id="code_type_document_pere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($typedocuments as $item)
+                                                    <option value="{{ $item->code_type_document }}">{{ $item->lib_type_document  }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Numéro pièce d'identité</label>
+                                            <input type="text" id="numero_document_pere" class="form-control form-control wide" placeholder="Numéro du document">
+                                        </div>
+                                    </div>
+                                </section>
+                                <!-- Step 3 -->
+                                <h6>Mère</h6>
+                                <section>
+                                    <div class="d-flex justify-content-end align-items-center">
+                                        <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".mere-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche de la mère</button>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <input type="hidden" id="code_mere">
+                                            <label class="form-label">Nom(s) mère <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control"  placeholder="Nom de la mère" id="nom_mere" name="nom_mere">
+                                        </div>
+
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Prénom(s) du mère </label>
+                                            <input type="text" class="form-control" placeholder="Prénom de la mère" id="prenom_mere" class="prenom_mere">
+
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Date de naissance de la mère<span class="text-danger">*</span></label>
+                                            <input type="date" max="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 12 years'));?>" min="<?php echo date('Y-m-d', strtotime($jour. ' - 100 years')); ?>" class="form-control" id="date_naissance_mere">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Lieu de naissance mère</label>
+                                            <input type="text" class="form-control" id="lieu_naissance_mere" placeholder="Lieu de naissance">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Domicile de la mère<span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="domicile_mere" name="domicile_mere" placeholder="Domicile mère">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Nationalité de la mère<span class="text-danger">*</span></label>
+                                            <select id="code_nationalite_mere" name="code_nationalite_mere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($nationalites as $nationalite)
+                                                    <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Profession de la mère</label>
+                                            <select id="profession_mere" name="profession_mere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($professions as $item)
+                                                    <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Téléphone mère</label>
+                                            <input type="text" id="telephone_mere" name="telephone_mere" class="form-control form-control wide" placeholder="Téléphone mère">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Niveau d'instruction du mère</label>
+                                            <select id="niveau_instruction_mere" name="niveau_instruction_mere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($instructions as $item)
+                                                    <option value="{{ $item }}">{{ $item }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Type pièce d'identité</label>
+                                            <select id="code_type_document_mere" name="code_type_document_mere" class="form-control form-control wide">
+                                                    <option disabled selected>Choisissez</option>
+                                                @foreach ($typedocuments as $item)
+                                                    <option value="{{ $item->code_type_document }}">{{ $item->lib_type_document  }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Numéro pièce d'identité</label>
+                                            <input type="text" id="numero_document_mere" name="numero_document_mere" class="form-control form-control wide" placeholder="Numéro du document">
+                                        </div>
+                                    </div>
+                                </section>
+                                <!-- Step 4 -->
+                                <h6>Déclarant</h6>
+                                <section>
+                                    <div class="d-flex justify-content-end align-items-center">
+                                        <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".declarant-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche du déclarant</button>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Filiation </label>
+                                            <select id="filiation" name="filiation" class="form-control form-control wide">
+                                                    <option value="" selected>Choisissez</option>
+                                                @foreach ($filiations as $item)
+                                                    <option value="{{ $item->code_filiation }}">{{ $item->lib_filiation }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2 col-md-4">
+                                            <input type="hidden" id="code_declarant">
+                                            <label class="form-label">Nom(s) déclarant <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control"  placeholder="Nom du déclarant" id="nom_declarant" name="nom_declarant">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Prénom(s) du déclarant </label>
+                                            <input type="text" class="form-control" placeholder="Prénom du déclarant" id="prenom_declarant" name="prenom_declarant">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Sexe du déclarant<span class="text-danger">*</span></label>
+                                            <select id="sexe_declarant" name="sexe_declarant" class="form-control form-control wide">
+                                                <option value="">Selectionner</option>
+                                                <option value="M">Masculin</option>
+                                                <option value="F">Féminin</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Date de naissance du déclarant<span class="text-danger">*</span></label>
+                                            <input type="date" name="date_naissance_declarant" max="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 18 years'));?>" min="<?php echo date('Y-m-d', strtotime($jour. ' - 100 years')); ?>" class="form-control"  id="date_naissance_declarant">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Lieu de naissance </label>
+                                            <input type="text" class="form-control" name="lieu_naissance_declarant" id="lieu_naissance_declarant" placeholder="Lieu de naissance">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Nationalité du déclarant<span class="text-danger">*</span></label>
+                                            <select id="code_nationalite_declarant" name="code_nationalite_declarant" class="form-control form-control wide">
+                                                    <option>Choisissez</option>
+                                                @foreach ($nationalites as $nationalite)
+                                                    <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Domicile du déclarant<span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="domicile_declarant" name="domicile_declarant" placeholder="Domicile du déclarant">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Profession du déclarant</label>
+                                            <select id="profession_declarant" name="profession_declarant" class="form-control form-control wide">
+                                                    <option>Choisissez</option>
+                                                @foreach ($professions as $item)
+                                                    <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Téléphone déclarant</label>
+                                            <input type="text" id="telephone_declarant" name="telephone_declarant" class="form-control form-control wide" placeholder="Téléphone déclarant">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" id="email_declarant" name="email_declarant" class="form-control form-control wide" placeholder="Email déclarant">
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Type pièce d'identité</label>
+                                            <select id="code_type_document_declarant" name="code_type_document_declarant" class="form-control form-control wide">
+                                                    <option>Choisissez</option>
+                                                @foreach ($typedocuments as $item)
+                                                    <option value="{{ $item->code_type_document }}">{{ $item->lib_type_document  }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-2 col-md-4">
+                                            <label class="form-label">Numéro pièce d'identité</label>
+                                            <input type="text" id="numero_document_declarant" name="numero_document_declarant" class="form-control form-control wide" placeholder="Numéro du document">
+                                        </div>
+                                    </div>
+                                </section>
+
+                            </form>
+                        </div>
+
+                        {{-- Modal recherche d'un père --}}
+                        <div class="modal fade search-search-modal-lg" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" id="rmodal">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Rechercher père</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Nom(s) père <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control"lass="form-control @error('nom_pere_recherche') is-invalid @enderror" value="{{ old("nom_pere_recherche") }}" placeholder="" id="nom_pere_recherche">
+                                                @error("nom_pere_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Prénom(s) père</label>
+                                                <input type="text" class="form-control @error('prenom_pere_recherche') is-invalid @enderror" value="{{ old("prenom_pere_recherche") }}" placeholder="" id="prenom_pere_recherche">
+                                                @error("prenom_pere_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Sexe</label>
+                                                <select name="sexe_pere_recherche" id="sexe_pere_recherche" class="form-control">
+                                                    <option value="" disabled>Choisir</option>
+                                                    <option value="M" selected>Masculin</option>
+                                                    <option value="F">Féminin</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Téléphone </label>
+                                                <input type="tel" class="form-control @error('telephone_pere_recherche') is-invalid @enderror" value="{{ old("telephone_pere_recherche") }}" id="telephone_pere_recherche">
+                                                @error("telephone_pere_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-info text-white" id="rechercher">Rechercher</button>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">Résultat de la recherche</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="resultatPere"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Modal recherche d'une mère --}}
+                        <div class="modal fade mere-search-modal-lg" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" id="meremodal">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Rechercher mère</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Nom(s) mère <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control"lass="form-control @error('nom_mere_recherche') is-invalid @enderror" value="{{ old("nom_mere_recherche") }}" placeholder="" id="nom_mere_recherche">
+                                                @error("nom_mere_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Prénom(s) mère</label>
+                                                <input type="text" class="form-control @error('prenom_mere_recherche') is-invalid @enderror" value="{{ old("prenom_mere_recherche") }}" placeholder="" id="prenom_mere_recherche">
+                                                @error("prenom_mere_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Sexe</label>
+                                                <select name="sexe_mere_recherche" id="sexe_mere_recherche" class="form-control">
+                                                    <option value="" disabled>Choisir</option>
+                                                    <option value="M">Masculin</option>
+                                                    <option value="F" selected>Féminin</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Téléphone </label>
+                                                <input type="tel" class="form-control @error('telephone_mere_recherche') is-invalid @enderror" value="{{ old("telephone_mere_recherche") }}" id="telephone_mere_recherche">
+                                                @error("telephone_mere_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-info text-white" id="recherchermere">Rechercher</button>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">Résultat de la recherche</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="resultatMere"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Modal recherche d'un déclarant --}}
+                        <div class="modal fade declarant-search-modal-lg" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" id="declarantmodal">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Rechercher déclarant</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Nom(s) déclarant <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control"lass="form-control @error('nom_declarant_recherche') is-invalid @enderror" value="{{ old("nom_declarant_recherche") }}" placeholder="" id="nom_declarant_recherche">
+                                                @error("nom_declarant_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Prénom(s) déclarant</label>
+                                                <input type="text" class="form-control @error('prenom_declarant_recherche') is-invalid @enderror" value="{{ old("prenom_declarant_recherche") }}" placeholder="" id="prenom_declarant_recherche">
+                                                @error("prenom_declarant_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Sexe</label>
+                                                <select name="sexe_declarant_recherche" id="sexe_declarant_recherche" class="form-control">
+                                                    <option value="" disabled>Choisir</option>
+                                                    <option value="M" selected>Masculin</option>
+                                                    <option value="F">Féminin</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2 col-md-6">
+                                                <label class="form-label">Téléphone </label>
+                                                <input type="tel" class="form-control @error('telephone_declarant_recherche') is-invalid @enderror" value="{{ old("telephone_declarant_recherche") }}" id="telephone_declarant_recherche">
+                                                @error("telephone_declarant_recherche")
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                                @enderror
+                                            </div>
+
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-info text-white" id="rechercherdeclarant">Rechercher</button>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">Résultat de la recherche</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="resultatDeclarant"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+@endsection
+@section("scripts")
+@include("naissance::declaration.js.create")
+@endsection

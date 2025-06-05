@@ -1,0 +1,98 @@
+import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:esignature/main.dart';
+import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
+
+class SplashSCreen extends StatelessWidget {
+  const SplashSCreen({super.key});
+
+  get splash => null;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSplashScreen(
+      splash: Column(
+        children: [
+          Center(
+            //child: Image.asset("assets/lotie/Animation - 1743587864996.json"),
+            //child: LottieBuilder.asset("lottie/Animation - 1743587864996.json"),
+            child: Text(
+              'REPUBLIQUE DU CONGO',
+              style: TextStyle(
+                fontSize: 20, //26
+                //fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          // SizedBox(height: 10),
+          Center(
+            //child: Image.asset("assets/lotie/Animation - 1743587864996.json"),
+            //child: LottieBuilder.asset("lottie/Animation - 1743587864996.json"),
+            child: Text(
+              "MMINISTERE DE L'INTERIEUR ET DE LA DECENTRALISATION",
+              style: TextStyle(
+                fontSize: 10, //16
+                //fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.normal,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: 20),
+          Center(
+            //child: Image.asset("assets/lotie/Animation - 1743587864996.json"),
+            //child: LottieBuilder.asset("lottie/Animation - 1743587864996.json"),
+            child: Image.asset('assets/images/arm.png', width: 250), //300
+          ),
+          SizedBox(height: 20),
+          Center(
+            //child: Image.asset("assets/lotie/Animation - 1743587864996.json"),
+            //child: LottieBuilder.asset("lottie/Animation - 1743587864996.json"),
+            child: Text(
+              "SIFEC E-SIGNATURE",
+              style: TextStyle(
+                fontSize: 24, //30
+                //fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: Colors.yellowAccent,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: 10),
+          Center(
+            //child: Image.asset("assets/lotie/Animation - 1743587864996.json"),
+            //child: LottieBuilder.asset("lottie/Animation - 1743587864996.json"),
+            child: Text(
+              "Plateforme de signature électronique d'acte de mariage par les parties prenantes.\n (Epoux ou représentant, Epouse ou représante, temoins époux et témoins épouse).",
+              style: TextStyle(
+                fontSize: 12, //18
+                //fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.normal,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: 10),
+          Center(
+            //child: Image.asset("assets/lotie/Animation - 1743587864996.json"),
+            child: LottieBuilder.asset(
+              "assets/lottie/Animation - 1743587864996.json",
+              width: 100, //160
+            ),
+            //child: Image.asset('assets/images/loader.gif', width: 30),
+          ),
+        ],
+      ),
+      nextScreen: const MyHomePage(title: "COMMUNE DE LUMUMBA"),
+      splashIconSize: 550, //700
+      backgroundColor: const Color.fromRGBO(0, 100, 0, 1),
+      duration: 10000,
+    );
+  }
+}

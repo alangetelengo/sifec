@@ -1,0 +1,13 @@
+{
+    "name": "Naissance",
+    "alias": "naissance",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Naissance\\Providers\\NaissanceServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,0 +1,16 @@
+{
+    "Authentification": true,
+    "Referentiel": true,
+    "Naissance": true,
+    "Deces": true,
+    "Mariage": true,
+    "Reporting": true,
+    "Tribunal": true,
+    "Institution": true,
+    "CEC": true,
+    "Notification": true,
+    "Mobile": true,
+    "Caisse": true,
+    "EtatCivilRDC": true,
+    "Rectification": true
+}

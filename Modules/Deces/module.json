@@ -1,0 +1,13 @@
+{
+    "name": "Deces",
+    "alias": "deces",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Deces\\Providers\\DecesServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

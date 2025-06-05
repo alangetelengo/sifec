@@ -1,0 +1,747 @@
+<script src="{{ asset('tpl/vendor/jquery-smartwizard/dist/js/jquery.smartWizard.js') }}"></script>
+    <script src="{{ asset('tpl/vendor/jquery-validation/jquery.validate.min.js') }}"></script>
+    <!-- Form validate init -->
+    <script src="{{ asset('tpl/js/plugins-init/jquery.validate-init.js') }}"></script>
+
+     <!-- Daterangepicker -->
+     <script src="{{ asset("tpl/js/plugins-init/bs-daterange-picker-init.js") }}"></script>
+     <!-- Clockpicker init -->
+     <script src="{{ asset("tpl/js/plugins-init/clock-picker-init.js") }}"></script>
+     <!-- asColorPicker init -->
+     <script src="{{ asset("tpl/js/plugins-init/jquery-asColorPicker.init.js") }}"></script>
+     <!-- Material color picker init -->
+     <script src="{{ asset("tpl/js/plugins-init/material-date-picker-init.js") }}"></script>
+     <!-- Pickdate -->
+     <script src="{{ asset("tpl/js/plugins-init/pickadate-init.js") }}"></script>
+
+    <!-- This Page JS -->
+    <script src="{{ asset("tpl/wizard/assets/node_modules/wizard/jquery.steps.min.js") }}"></script>
+    <script src="{{ asset("tpl/wizard/assets/node_modules/wizard/jquery.validate.min.js") }}"></script>
+    <script src="{{ asset("tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.js") }}"></script>
+    {{-- <script src="{{ asset("tpl/validation/jquery.validate.min.js") }}"></script> --}}
+    {{-- <script src="{{ asset("tpl/validation/jqBootstrapValidation.js") }}"></script> --}}
+
+ {{--    contrôle de date --}}
+
+ <script>
+     // Rechercher un père
+     $('#rechercher').on("click", function (event) {
+        event.preventDefault();
+        // data = [];
+        var nom = $("#nom_pere_recherche");
+        var prenom = $("#prenom_pere_recherche");
+        var sexe = $("#sexe_pere_recherche");
+        var telephone = $("#telephone_pere_recherche");
+
+        var data = {
+            nom: nom.val(),
+            prenom: prenom.val(),
+            sexe: sexe.val(),
+            telephone: telephone.val()
+        };
+
+        var int = 0;
+
+        var table = '<div class="table-responsive">'+
+                        '<table id="example" class="table table-responsive-md table-hover">'+
+                            '<thead>'+
+                                '<tr>'+
+                                    '<th>#</th>'+
+                                    '<th><strong>Nom et prénom</strong></th>'+
+                                    '<th><strong>Sexe</strong></th>'+
+                                    '<th><strong>Téléphone</strong></th>'+
+                            ' </tr>'+
+                            '</thead>'+
+                            '<tbody>';
+
+        //traitement ajax
+        $.ajax({
+                url: "{{ route('declarationNaissance.recherchePersonne') }}",
+                type: "POST",
+                data: data,
+
+                success: function(response){
+                    console.log(response.personnes);
+
+                    if(response.personnes.length > 0){
+
+                        for( var i=0; i < response.personnes.length ; i++){
+                            int ++;
+                            table +='<tr class="tr" data-choix="'+response.personnes[i].code_personne+'" data-nom="'+response.personnes[i].nom+'" data-prenom="'+response.personnes[i].prenom+'" data-date_naissance="'+response.personnes[i].date_naissance+'" data-sexe="'+response.personnes[i].sexe+'" data-adresse="'+response.personnes[i].adresse+'" data-telephone="'+response.personnes[i].telephone+'" data-code_nationalite="'+response.personnes[i].code_nationalite+'" data-code_profession="'+response.personnes[i].code_profession+'" data-lieu_naissance="'+response.personnes[i].lieu_naissance+'" data-niveau_instruction="'+response.personnes[i].niveau_instruction+'" data-nom="'+response.personnes[i].nom+'" data-code_type_document="'+response.personnes[i].code_type_document+'" data-numero_document="'+response.personnes[i].numero_document+'">'+
+                                        '<td><strong>'+int+'</strong></td>'+
+                                        '<td>'+response.personnes[i].nom+" "+response.personnes[i].prenom+'</td>'+
+                                        '<td>'+response.personnes[i].sexe+'</td>'+
+                                        '<td>'+response.personnes[i].telephone+'</td>'+
+                                        '</tr>';
+                        }
+                    }
+                    table += "</tbody><thead><tr><th>#</th><th>Nom et prénom</th><th>Sexe</th><th>Téléphone</th></tr></thead></table></div>";
+                    $("#resultatPere").html(table);
+
+                    $("tr.tr").on("click", function (){
+                        var choix = $(this).data('choix');
+                        var nom = $(this).data('nom');
+                        var prenom = $(this).data('prenom');
+                        var date_naissance = $(this).data('date_naissance');
+                        var sexe = $(this).data('sexe');
+                        var adresse = $(this).data('adresse');
+                        var telephone = $(this).data('telephone');
+                        var code_nationalite = $(this).data('code_nationalite');
+                        var code_profession = $(this).data('code_profession');
+                        var lieu_naissance = $(this).data('lieu_naissance');
+                        var niveau_instruction = $(this).data('niveau_instruction');
+                        var code_type_document =  $(this).data('code_type_document');
+                        var numero_document =  $(this).data('numero_document');
+
+                        $("#nom_pere").val(nom);
+                        $("#prenom_pere").val(prenom);
+                        $("#date_naissance_pere").val(date_naissance);
+                        $("#sexe_pere").val(sexe);
+                        $("#domicile_pere").val(adresse);
+                        $("#telephone_pere").val(telephone);
+                        $("#code_nationalite_pere").val(code_nationalite);
+                        $("#profession_pere").val(code_profession);
+                        $("#lieu_naissance_pere").val(lieu_naissance);
+                        $("#niveau_instruction_pere").val(niveau_instruction);
+                        $("#code_type_document_pere").val(code_type_document);
+                        $("#numero_document_pere").val(numero_document);
+
+                        $("#rmodal").modal('hide');
+                        // console.log(response.personnes);
+
+                        getdocument(choix);
+
+                    });
+
+                }
+            });
+    });
+
+    // Rechercher une mère
+    $('#recherchermere').on("click", function (event) {
+        event.preventDefault();
+
+        var nom = $("#nom_mere_recherche");
+        var prenom = $("#prenom_mere_recherche");
+        var sexe = $("#sexe_mere_recherche");
+        var telephone = $("#telephone_mere_recherche");
+
+        var data = {
+            nom: nom.val(),
+            prenom: prenom.val(),
+            sexe: sexe.val(),
+            telephone: telephone.val()
+        };
+
+        var int = 0;
+
+        var table = '<div class="table-responsive">'+
+                        '<table class="table table-responsive-md table-hover">'+
+                            '<thead>'+
+                                '<tr>'+
+                                    '<th>#</th>'+
+                                    '<th><strong>Nom et prénom</strong></th>'+
+                                    '<th><strong>Sexe</strong></th>'+
+                                    '<th><strong>Téléphone</strong></th>'+
+                            ' </tr>'+
+                            '</thead>'+
+                            '<tbody>';
+
+        //traitement ajax
+        $.ajax({
+                url: "{{ route('declarationNaissance.recherchePersonne') }}",
+                type: "POST",
+                data: data,
+
+                success: function(response){
+
+                    if(response.personnes.length > 0){
+
+                        for( var i=0; i < response.personnes.length ; i++){
+                            int ++;
+                            table +='<tr class="tr" data-choix="'+response.personnes[i].code_personne+'" data-nom="'+response.personnes[i].nom+'" data-prenom="'+response.personnes[i].prenom+'" data-date_naissance="'+response.personnes[i].date_naissance+'" data-sexe="'+response.personnes[i].sexe+'" data-adresse="'+response.personnes[i].adresse+'" data-telephone="'+response.personnes[i].telephone+'" data-code_nationalite="'+response.personnes[i].code_nationalite+'" data-code_profession="'+response.personnes[i].code_profession+'" data-lieu_naissance="'+response.personnes[i].lieu_naissance+'" data-niveau_instruction="'+response.personnes[i].niveau_instruction+'" data-nom="'+response.personnes[i].nom+'" data-code_type_document="'+response.personnes[i].code_type_document+'" data-numero_document="'+response.personnes[i].numero_document+'">'+
+                                        '<td><strong>'+int+'</strong></td>'+
+                                        '<td>'+response.personnes[i].nom+" "+response.personnes[i].prenom+'</td>'+
+                                        '<td>'+response.personnes[i].sexe+'</td>'+
+                                        '<td>'+response.personnes[i].telephone+'</td>';
+                        }
+                    }
+                    table += "</tr></tbody></table></div>";
+                    $("#resultatMere").html(table);
+
+                    $("tr.tr").on("click", function (){
+                        var choix = $(this).data('choix');
+                        var nom = $(this).data('nom');
+                        var prenom = $(this).data('prenom');
+                        var date_naissance = $(this).data('date_naissance');
+                        var sexe = $(this).data('sexe');
+                        var adresse = $(this).data('adresse');
+                        var telephone = $(this).data('telephone');
+                        var code_nationalite = $(this).data('code_nationalite');
+                        var code_profession = $(this).data('code_profession');
+                        var lieu_naissance = $(this).data('lieu_naissance');
+                        var niveau_instruction = $(this).data('niveau_instruction');
+                        var code_type_document =  $(this).data('code_type_document');
+                        var numero_document =  $(this).data('numero_document');
+
+                        $("#nom_mere").val(nom);
+                        $("#prenom_mere").val(prenom);
+                        $("#date_naissance_mere").val(date_naissance);
+                        $("#sexe_mere").val(sexe);
+                        $("#domicile_mere").val(adresse);
+                        $("#telephone_mere").val(telephone);
+                        $("#code_nationalite_mere").val(code_nationalite);
+                        $("#profession_mere").val(code_profession);
+                        $("#lieu_naissance_mere").val(lieu_naissance);
+                        $("#niveau_instruction_mere").val(niveau_instruction);
+                        $("#code_type_document_mere").val(code_type_document);
+                        $("#numero_document_mere").val(numero_document);
+
+                        $("#meremodal").modal('hide');
+                        getdocumentmere(choix);
+                        // console.log(response.personnes);
+
+                    });
+
+                }
+            });
+    });
+
+    // Rechercher un déclarant
+    $('#rechercherdeclarant').on("click", function (event) {
+        event.preventDefault();
+
+        var nom = $("#nom_declarant_recherche");
+        var prenom = $("#prenom_declarant_recherche");
+        var sexe = $("#sexe_declarant_recherche");
+        var telephone = $("#telephone_declarant_recherche");
+
+        var data = {
+            nom: nom.val(),
+            prenom: prenom.val(),
+            sexe: sexe.val(),
+            telephone: telephone.val()
+        };
+
+        var int = 0;
+
+        var table = '<div class="table-responsive">'+
+                        '<table class="table table-responsive-md table-hover">'+
+                            '<thead>'+
+                                '<tr>'+
+                                    '<th>#</th>'+
+                                    '<th><strong>Nom et prénom</strong></th>'+
+                                    '<th><strong>Sexe</strong></th>'+
+                                    '<th><strong>Téléphone</strong></th>'+
+                            ' </tr>'+
+                            '</thead>'+
+                            '<tbody>';
+
+        //traitement ajax
+        $.ajax({
+                url: "{{ route('declarationNaissance.recherchePersonne') }}",
+                type: "POST",
+                data: data,
+
+                success: function(response){
+
+                    if(response.personnes.length > 0){
+
+                        for( var i=0; i < response.personnes.length ; i++){
+                            int ++;
+                            table +='<tr class="tr" data-choix="'+response.personnes[i].code_personne+'" data-nom="'+response.personnes[i].nom+'" data-prenom="'+response.personnes[i].prenom+'" data-date_naissance="'+response.personnes[i].date_naissance+'" data-sexe="'+response.personnes[i].sexe+'" data-adresse="'+response.personnes[i].adresse+'" data-telephone="'+response.personnes[i].telephone+'" data-code_nationalite="'+response.personnes[i].code_nationalite+'" data-code_profession="'+response.personnes[i].code_profession+'" data-lieu_naissance="'+response.personnes[i].lieu_naissance+'" data-niveau_instruction="'+response.personnes[i].niveau_instruction+'" data-nom="'+response.personnes[i].nom+'" data-code_type_document="'+response.personnes[i].code_type_document+'" data-numero_document="'+response.personnes[i].numero_document+'">'+
+                                        '<td><strong>'+int+'</strong></td>'+
+                                        '<td>'+response.personnes[i].nom+" "+response.personnes[i].prenom+'</td>'+
+                                        '<td>'+response.personnes[i].sexe+'</td>'+
+                                        '<td>'+response.personnes[i].telephone+'</td>';
+                        }
+                    }
+                    table += "</tr></tbody></table></div>";
+                    $("#resultatDeclarant").html(table);
+
+                    $("tr.tr").on("click", function (){
+                        var choix = $(this).data('choix');
+                        var nom = $(this).data('nom');
+                        var prenom = $(this).data('prenom');
+                        var date_naissance = $(this).data('date_naissance');
+                        var sexe = $(this).data('sexe');
+                        var adresse = $(this).data('adresse');
+                        var telephone = $(this).data('telephone');
+                        var code_nationalite = $(this).data('code_nationalite');
+                        var code_profession = $(this).data('code_profession');
+                        var lieu_naissance = $(this).data('lieu_naissance');
+                        var niveau_instruction = $(this).data('niveau_instruction');
+                        var code_type_document =  $(this).data('code_type_document');
+                        var numero_document =  $(this).data('numero_document');
+
+                        $("#nom_declarant").val(nom);
+                        $("#prenom_declarant").val(prenom);
+                        $("#date_naissance_declarant").val(date_naissance);
+                        $("#sexe_declarant").val(sexe);
+                        $("#domicile_declarant").val(adresse);
+                        $("#telephone_declarant").val(telephone);
+                        $("#code_nationalite_declarant").val(code_nationalite);
+                        $("#profession_declarant").val(code_profession);
+                        $("#lieu_naissance_declarant").val(lieu_naissance);
+                        $("#niveau_instruction_declarant").val(niveau_instruction);
+                        $("#code_type_document_mere").val(code_type_document);
+                        $("#numero_document_mere").val(numero_document);
+
+                        $("#declarantmodal").modal('hide');
+                        getdocumentdeclarant(choix);
+                        console.log(response.personnes);
+
+                    });
+
+                }
+            });
+    });
+</script>
+
+
+<script>
+    var form = $(".validation-wizard").show();
+
+    $(".validation-wizard").steps({
+        headerTag: "h6",
+        bodyTag: "section",
+        transitionEffect: "fade",
+        titleTemplate: '<span class="step">#index#</span> #title#',
+        labels: {
+            finish: "Enrégistrer"
+        },
+        onStepChanging: function (event, currentIndex, newIndex) {
+            return currentIndex > newIndex || !(3 === newIndex && Number($("#age-2").val()) < 18) && (currentIndex < newIndex && (form.find(".body:eq(" + newIndex + ") label.error").remove(), form.find(".body:eq(" + newIndex + ") .error").removeClass("error")), form.validate().settings.ignore = ":disabled,:hidden", form.valid())
+        },
+        onFinishing: function (event, currentIndex) {
+            return form.validate().settings.ignore = ":disabled", form.valid()
+        },
+        onFinished: function (event, currentIndex) {
+            soumission();
+
+
+        }
+    }), $(".validation-wizard").validate({
+        ignore: "input[type=hidden]",
+        errorClass: "text-danger",
+        successClass: "text-success",
+        highlight: function (element, errorClass) {
+            $(element).removeClass(errorClass)
+        },
+        unhighlight: function (element, errorClass) {
+            $(element).removeClass(errorClass)
+        },
+        errorPlacement: function (error, element) {
+            error.insertAfter(element)
+        },
+        rules:
+            {
+                // nom_enfant: {
+                //     required: true,
+                //    // minlength: 50
+                // },
+                date_deces: {
+                    required: true,
+                },
+                nom_enfant: {
+                required: true,
+                maxlength: 50
+                },
+                sexe_defunt: {
+                required: true,
+                },
+                date_naissance_defunt: {
+                    required: true,
+                },
+                code_localite: {
+                    required: true,
+                },
+                profession_defunt: {
+                    required: true,
+                },
+                code_situation_matrimoniale_defunt: {
+                    required: true,
+                },
+                nationalite_defunt: {
+                    required: true,
+                },
+                code_religion_defunt: {
+                    required: true,
+                },
+                lieu_survenance_code: {
+                    required: true,
+                },
+                lieu_deces: {
+                    required: true,
+                },
+                domicile_defunt: {
+                required: true,
+                maxlength:300
+                },
+                nom_declarant: {
+                    required: true,
+                    maxlength: 50
+                },
+                date_naissance_declarant: {
+                    required: true,
+                },
+                lieu_naissance_declarant: {
+                    required: true,
+                },
+                domicile_declarant: {
+                    required: true,
+                },
+                code_filiation_declarant: {
+                    required: true,
+                },
+            },
+            messages: {
+            nom_enfant: {
+            required: "Veuillez saisir le nom de l'enfant",
+            //maxlength: "Votre nom ne doit comporter 50 caractères."
+            },
+            date_naissance_enfant: {
+            required: "Veuillez saisir la date du décès",
+            //maxlength: "Votre nom ne doit comporter 50 caractères."
+            },
+            heure_deces: {
+                required: "Veuillez saisir l'heure du décès",
+                //maxlength: "Votre nom ne doit comporter 50 caractères."
+            },
+
+            nom_defunt: {
+            required: "Veuillez saisir le nom du défunt",
+            maxlength: "Le nom ne doit pas dépasser 50 caractères."
+            },
+            sexe_defunt: {
+            required: "Veuillez choisir le sexe du défunt.",
+            },
+            date_naissance_defunt: {
+                required: "Veuillez saisir la date de naissance du défunt.",
+            },
+            code_localite: {
+                required: "Veuillez saisir le lieu de naissance du défunt.",
+            },
+            profession_defunt: {
+                required: "Veuillez choisir la profession du défunt.",
+            },
+            code_situation_matrimoniale_defunt: {
+                required: "Veuillez choisir la situation matrimoniale du défunt.",
+            },
+            nationalite_defunt: {
+                required: "Veuillez choisir la nationalité du défunt.",
+            },
+            code_religion_defunt: {
+                required: "Veuillez choisir la réligion du défunt.",
+            },
+            lieu_survenance_code: {
+                required: "Veuillez choisir le lieu de survenance du décès.",
+            },
+            lieu_deces: {
+                required: "Veuillez choisir le lieu de décés.",
+            },
+            domicile_defunt: {
+            required: "Veuillez entrer l'adresse du défunt",
+            maxlength: "L'adresse ne doit dépasser 300 caractères."
+            },
+            nom_declarant: {
+                required: "Veuillez saisir le nom du déclarant.",
+                maxlength: "Le nom ne doit pas dépasser 50 caractères."
+            },
+            date_naissance_declarant: {
+                required: "Veuillez saisir la date de naissance du déclarant.",
+            },
+            lieu_naissance_declarant: {
+                required: "Veuillez saisir le lieu de naissance du déclarant.",
+            },
+            domicile_declarant: {
+                required: "Veuillez saisir l'adresse du déclarant.",
+            },
+            code_filiation_declarant: {
+                required: "Veuillez choisir la filiation du déclarant.",
+            },
+        },
+    })
+</script>
+
+<script>
+    function soumission(){
+        // informations du père
+        var nom_pere = $("#nom_pere");
+        var prenom_pere = $("#prenom_pere");
+        var date_naissance_pere = $("#date_naissance_pere");
+        var lieu_naissance_pere = $("#lieu_naissance_pere");
+        var domicile_pere = $("#domicile_pere");
+        var telephone_pere = $("#telephone_pere");
+        var profession_pere = $("#profession_pere");
+        var code_nationalite_pere = $("#code_nationalite_pere");
+        var niveau_instruction_pere = $("#niveau_instruction_pere");
+        var code_type_document_pere = $("#code_type_document_pere");
+        var numero_document_pere = $("#numero_document_pere");
+
+        //information mere
+        var nom_mere = $("#nom_mere");
+        var prenom_mere = $("#prenom_mere");
+        var date_naissance_mere = $("#date_naissance_mere");
+        var lieu_naissance_mere = $("#lieu_naissance_mere");
+        var domicile_mere = $("#domicile_mere");
+        var telephone_mere = $("#telephone_mere");
+        var profession_mere = $("#profession_mere");
+        var code_nationalite_mere = $("#code_nationalite_mere");
+        var niveau_instruction_mere = $("#niveau_instruction_mere");
+        var code_type_document_mere = $("#code_type_document_mere");
+        var numero_document_mere = $("#numero_document_mere");
+
+        //déclarant
+        var nom_declarant = $("#nom_declarant");
+        var prenom_declarant = $("#prenom_declarant");
+        var date_naissance_declarant = $("#date_naissance_declarant");
+        var lieu_naissance_declarant = $("#lieu_naissance_declarant");
+        var domicile_declarant = $("#domicile_declarant");
+        var telephone_declarant = $("#telephone_declarant");
+        var profession_declarant = $("#profession_declarant");
+        var code_nationalite_declarant = $("#code_nationalite_declarant");
+        var filiation = $("#filiation");
+        var sexe_declarant = $("#sexe_declarant");
+        var email = $("#email");
+        var code_type_document_declarant = $("#code_type_document_declarant");
+        var numero_document_declarant = $("#numero_document_declarant");
+
+        // enfant
+        var nom_enfant = $("#nom_enfant");
+        var prenom_enfant = $("#prenom_enfant");
+        var date_naissance_enfant = $("#date_naissance_enfant");
+        var lieu_naissance_enfant = $("#lieu_naissance_enfant");
+        var code_situation_matrimoniale = $("#code_situation_matrimoniale");
+        // var lieu_survenance = $("#code_lieu_survenance");
+
+        //var code_nationalite_enfant = $("#code_nationalite_enfant");
+        var sexe_enfant = $("#sexe_enfant");
+        var heure_naissance_enfant = $("#heure_naissance_enfant");
+        var nombre_enfants = $("#nombre_enfants");
+
+        //champs obligatoires
+        var champs = [nom_pere,
+                        date_naissance_pere,
+                        code_nationalite_pere,
+                        domicile_pere,
+                        telephone_pere,
+                        profession_pere,
+                        nom_mere,
+                        date_naissance_mere,
+                        profession_mere,
+                        code_nationalite_mere,
+                        telephone_mere,
+                        domicile_mere,
+                        nom_declarant,
+                        filiation,
+                        code_nationalite_declarant,
+                        telephone_declarant,
+                        date_naissance_declarant,
+                        domicile_declarant,
+                        sexe_declarant,
+                        nom_enfant,
+                        sexe_enfant,
+                        date_naissance_enfant,
+                        lieu_naissance_enfant,
+                        code_situation_matrimoniale,
+                        heure_naissance_enfant,
+                        code_type_document_declarant,
+                        numero_document_declarant];
+
+        // var champsVides = [];
+
+        // for(var i = 0; i < champs.length; i++)
+        // {
+        //     if(champs[i].val() == "" || champs[i].val() == null)
+        //     {
+        //         champsVides.push(champs[i]);
+        //     }
+
+        // }
+
+        //vérification des champs vides
+        // for(var i = 0; i < champsVides.length; i++)
+        // {
+        //     champsVides[i].addClass("is-invalid");
+        // }
+
+        //si un champ obligatoire est null ou vide alors il ne passe pas à l'étape suivante
+        // if(champsVides.length > 0)
+        // {
+        //     return false;
+        // }
+
+        // alert(champs);
+
+        // alert(champsVides.length);
+
+        var data =
+        {
+            // données du père
+            nom_pere:nom_pere.val(),
+            prenom_pere:prenom_pere.val(),
+            date_naissance_pere:date_naissance_pere.val(),
+            lieu_naissance_pere:lieu_naissance_pere.val(),
+            domicile_pere:domicile_pere.val(),
+            profession_pere:profession_pere.val(),
+            code_nationalite_pere:code_nationalite_pere.val(),
+            niveau_instruction_pere:niveau_instruction_pere.val(),
+            telephone_pere:telephone_pere.val(),
+            code_type_document_pere:code_type_document_pere.val(),
+            numero_document_pere:numero_document_pere.val(),
+            // données de la mère
+            nom_mere:nom_mere.val(),
+            prenom_mere:prenom_mere.val(),
+            date_naissance_mere:date_naissance_mere.val(),
+            lieu_naissance_mere:lieu_naissance_mere.val(),
+            domicile_mere:domicile_mere.val(),
+            profession_mere:profession_mere.val(),
+            code_nationalite_mere:code_nationalite_mere.val(),
+            niveau_instruction_mere:niveau_instruction_mere.val(),
+            telephone_mere:telephone_mere.val(),
+            code_type_document_mere:code_type_document_mere.val(),
+            numero_document_mere:numero_document_mere.val(),
+            // données du déclarant
+            nom_declarant:nom_declarant.val(),
+            prenom_declarant:prenom_declarant.val(),
+            date_naissance_declarant:date_naissance_declarant.val(),
+            lieu_naissance_declarant:lieu_naissance_declarant.val(),
+            domicile_declarant:domicile_declarant.val(),
+            profession_declarant:profession_declarant.val(),
+            code_nationalite_declarant:code_nationalite_declarant.val(),
+            filiation:filiation.val(),
+            telephone_declarant:telephone_declarant.val(),
+            email_declarant:email.val(),
+            sexe_declarant:sexe_declarant.val(),
+            code_type_document_declarant:code_type_document_declarant.val(),
+            numero_document_declarant:numero_document_declarant.val(),
+            // données de l'enfant
+            nom_enfant:nom_enfant.val(),
+            prenom_enfant:prenom_enfant.val(),
+            date_naissance_enfant:date_naissance_enfant.val(),
+            lieu_naissance_enfant:lieu_naissance_enfant.val(),
+            code_situation_matrimoniale:code_situation_matrimoniale.val(),
+            // code_nationalite_enfant:code_nationalite_enfant.val(),
+            sexe_enfant:sexe_enfant.val(),
+            heure_naissance_enfant:heure_naissance_enfant.val(),
+            // lieu_survenance:lieu_survenance.val(),
+            nombre_enfant:nombre_enfants.val()
+        };
+
+        //traitement ajax
+        $.post("{{route('declarationNaissance.store')}}",data,function(response){
+            if(response.code == "200"){
+                flashAlert("Opération réussie","success",response.message);
+                var url = "{{ route('declarationNaissance.index') }}";
+                setTimeout(() => {
+                    window.open(url);
+                }, 4000);
+            }else{
+                var outString = "<ul>";
+                    for (const [key, value] of Object.entries(response.message)) {
+                        outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
+                }
+                outString += "</ul>";
+                flashAlert("Une erreur est suvernue","error",outString);
+            }
+        });
+        return false;
+    }
+</script>
+
+<script>
+    $(function(){
+        // informations du père
+        var nom_pere = $("#nom_pere");
+        var prenom_pere = $("#prenom_pere");
+        var date_naissance_pere = $("#date_naissance_pere");
+        var lieu_naissance_pere = $("#lieu_naissance_pere");
+        var domicile_pere = $("#domicile_pere");
+        var telephone_pere = $("#telephone_pere");
+        var profession_pere = $("#profession_pere");
+        var code_nationalite_pere = $("#code_nationalite_pere");
+        var niveau_instruction_pere = $("#niveau_instruction_pere");
+        var code_type_document_pere = $("#code_type_document_pere");
+        var numero_document_pere = $("#numero_document_pere");
+
+        //information mere
+        var nom_mere = $("#nom_mere");
+        var prenom_mere = $("#prenom_mere");
+        var date_naissance_mere = $("#date_naissance_mere");
+        var lieu_naissance_mere = $("#lieu_naissance_mere");
+        var domicile_mere = $("#domicile_mere");
+        var telephone_mere = $("#telephone_mere");
+        var profession_mere = $("#profession_mere");
+        var code_nationalite_mere = $("#code_nationalite_mere");
+        var niveau_instruction_mere = $("#niveau_instruction_mere");
+        var code_type_document_mere = $("#code_type_document_mere");
+        var numero_document_mere = $("#numero_document_mere");
+
+        //déclarant
+        var nom_declarant = $("#nom_declarant");
+        var prenom_declarant = $("#prenom_declarant");
+        var date_naissance_declarant = $("#date_naissance_declarant");
+        var lieu_naissance_declarant = $("#lieu_naissance_declarant");
+        var domicile_declarant = $("#domicile_declarant");
+        var telephone_declarant = $("#telephone_declarant");
+        var profession_declarant = $("#profession_declarant");
+        var code_nationalite_declarant = $("#code_nationalite_declarant");
+        var filiation = $("#filiation");
+        var sexe_declarant = $("#sexe_declarant");
+        var email = $("#email");
+        var code_type_document_declarant = $("#code_type_document_declarant");
+        var numero_document_declarant = $("#numero_document_declarant");
+
+
+        $("#filiation").on("change", function(){
+            var declarant = $("#filiation").val();
+
+            if(declarant != "" || declarant != null){
+                if(declarant == "FIL_0001"){
+                    nom_declarant = nom_declarant.val(nom_pere.val());
+                    prenom_declarant = prenom_declarant.val(prenom_pere.val());
+                    date_naissance_declarant = date_naissance_declarant.val(date_naissance_pere.val());
+                    lieu_naissance_declarant = lieu_naissance_declarant.val(lieu_naissance_pere.val());
+                    domicile_declarant = domicile_declarant.val(domicile_pere.val());
+                    telephone_declarant = telephone_declarant.val(telephone_pere.val());
+                    profession_declarant = profession_declarant.val(profession_pere.val());
+                    code_nationalite_declarant = code_nationalite_declarant.val(code_nationalite_pere.val());
+                    filiation = filiation.val(declarant);
+                    sexe_declarant = sexe_declarant.val("M");
+                    code_type_document_declarant = code_type_document_declarant.val(code_type_document_pere.val());
+                    numero_document_declarant = numero_document_declarant.val(numero_document_pere.val());
+                }else if(declarant == "FIL_0002"){
+                    nom_declarant = nom_declarant.val(nom_mere.val());
+                    prenom_declarant = prenom_declarant.val(prenom_mere.val());
+                    date_naissance_declarant = date_naissance_declarant.val(date_naissance_mere.val());
+                    lieu_naissance_declarant = lieu_naissance_declarant.val(lieu_naissance_mere.val());
+                    domicile_declarant = domicile_declarant.val(domicile_mere.val());
+                    telephone_declarant = telephone_declarant.val(telephone_mere.val());
+                    profession_declarant = profession_declarant.val(profession_mere.val());
+                    code_nationalite_declarant = code_nationalite_declarant.val(code_nationalite_mere.val());
+                    filiation = filiation.val(declarant);
+                    sexe_declarant = sexe_declarant.val("F");
+                    code_type_document_declarant = code_type_document_declarant.val(code_type_document_mere.val());
+                    numero_document_declarant = numero_document_declarant.val(numero_document_mere.val());
+                }else{
+                    nom_declarant = nom_declarant.val("");
+                    prenom_declarant = prenom_declarant.val("");
+                    date_naissance_declarant = date_naissance_declarant.val("");
+                    lieu_naissance_declarant = lieu_naissance_declarant.val("");
+                    domicile_declarant = domicile_declarant.val("");
+                    telephone_declarant = telephone_declarant.val("");
+                    profession_declarant = profession_declarant.val("");
+                    code_nationalite_declarant = code_nationalite_declarant.val("");
+                    filiation = filiation.val(declarant);
+                    sexe_declarant = sexe_declarant.val("");
+                    code_type_document_declarant = code_type_document_declarant.val("");
+                    numero_document_declarant = numero_document_declarant.val("");
+                }
+                //alert(declarant);
+            }
+
+        });
+
+    });
+</script>
