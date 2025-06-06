@@ -156,11 +156,13 @@
                                     <form action="{{ route("utilisateur.assigner.permission",$user->code_user) }}" method="post">
                                         @csrf
                                         <div class="row mt-4 sp4">
-                                            <div class="mb-2 col-md-6">
-                                                <label for="">Permission</label>
-                                                <select name="permission[]" id="" class="form-control select2" multiple>
+                                            <div class="mb-2 col-md-12">
+                                                <label for="">Autorisé à </label>
+                                                {{-- afficher en large --}}
+
+                                                <select name="permission[]" id="" class="form-control" multiple width="100%" style="height: 200px;">
                                                     @foreach ($permissions as $permission)
-                                                        <option value="{{ $permission->id }}">{{ $permission->libelle }}</option>
+                                                        <option value="{{ $permission->code_fonctionnalite }}">{{ $permission->lib_fonctionnalite }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>

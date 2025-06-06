@@ -16,6 +16,7 @@ use Modules\Referentiel\Entities\Fonction;
 use Modules\Referentiel\Entities\Personne;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\Log;
+use Modules\Authentification\Entities\Fonctionnalite;
 use Modules\Referentiel\Entities\Profession;
 use Modules\Referentiel\Entities\Commune;
 use Modules\Referentiel\Entities\Departement;
@@ -275,12 +276,14 @@ class UserController extends Controller
     public function profile($id){
 
         $user = User::find($id);
+        //charger les permissions
+        $permissions = Fonctionnalite::all();
         if($user == null){
             toastr()->error("Impossible d'effectuer cette opération","Gestion des utilisateurs");
             return back();
         }
 
-        return view('authentification::utilisateur.profile',compact('user'));
+        return view('authentification::utilisateur.profile',compact('user','permissions'));
     }
 
     /**
