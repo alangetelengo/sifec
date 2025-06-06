@@ -22,6 +22,7 @@
                             </li>
                             <li class="nav-item"><a href="#signature-settings" data-bs-toggle="tab" class="nav-link">Signature</a>
                             </li>
+                            <li class="nav-item"><a href="#permission-settings" data-bs-toggle="tab" class="nav-link">Ajouter une permission</a>
                         </ul>
                         <div class="tab-content">
 
@@ -149,6 +150,26 @@
                                 </div>
 
                             </div>
+                            <div id="permission-settings" class="tab-pane fade">
+                                <div class="profile-interest">
+                                    <h5 class="text-primary d-inline">Ajouter une permission</h5>
+                                    <form action="{{ route("utilisateur.assigner.permission",$user->code_user) }}" method="post">
+                                        @csrf
+                                        <div class="row mt-4 sp4">
+                                            <div class="mb-2 col-md-6">
+                                                <label for="">Permission</label>
+                                                <select name="permission[]" id="" class="form-control select2" multiple>
+                                                    @foreach ($permissions as $permission)
+                                                        <option value="{{ $permission->id }}">{{ $permission->libelle }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="mb-2 col-md-6">
+                                                <input type="submit" value="Ajouter la permission" class="btn btn-primary btn-sm mt-4">
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
                         </div>
                     </div>
                 </div>
