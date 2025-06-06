@@ -129,7 +129,7 @@ Rectification Acte
                         <div class="row" style="margin-top:30px" id="form_rectification">
                             {{-- <h5> <i class="flaticon-381-layer-1"></i><strong style="font-weight:bolder"> Détails de la rectification </strong></h5><hr> --}}
                             <div class="ligne">
-                                <h4>Détails de la rectification</h4>
+                                <h4>Détail de la rectification</h4>
                             </div>
                             <div class="mb-2 col-md-3">
                                 <label class="form-label">Rubrique </label>
@@ -530,9 +530,6 @@ Rectification Acte
                 }
             });
     }
-    //Fonction
-
-
 
 
 
