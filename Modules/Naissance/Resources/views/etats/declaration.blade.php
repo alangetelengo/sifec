@@ -85,7 +85,7 @@
             </div>
 
             @if($dn->declarant_approuver == "OUI")
-            <div style="margin-top: 60px; text-align: right;">
+            <div style="margin-top: 55px; text-align: right;">
                 @isset($qrCode)
                 <div style="width: 25mm;">
                     <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
