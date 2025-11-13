@@ -14,6 +14,155 @@
     <link rel="stylesheet" type="text/css" href="{{ URL::to('carte/css/demo1.css') }}" />
      <!-- css de la carte -->
      <script src="{{ URL::to('carte/js/modernizr.custom.js') }}"></script>
+
+    <!-- Styles personnalisés pour l'amélioration UX -->
+    <style>
+        .modern-table {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .table-header-custom th {
+            border: none;
+            padding: 15px 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+
+        .table-row-hover:hover {
+            background-color: #f8f9fa;
+        }
+
+        .modern-table tbody tr {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modern-table tbody td {
+            padding: 12px 10px;
+            vertical-align: middle;
+            border: none;
+        }
+
+        .modern-btn {
+            border-radius: 15px;
+            padding: 8px 16px;
+            font-weight: 500;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .modern-btn:hover {
+            background-color: #5a6268;
+            color: white;
+            text-decoration: none;
+        }
+
+        .badge.bg-pink {
+            background-color: #e91e63 !important;
+            color: white;
+        }
+
+        .badge {
+            border-radius: 15px;
+            font-weight: 500;
+        }
+
+        .fw-bold.text-primary {
+            font-size: 1.1rem;
+        }
+
+        .fw-semibold {
+            font-weight: 600;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .table-header-custom th {
+                padding: 10px 5px;
+                font-size: 0.8rem;
+            }
+
+            .modern-table tbody td {
+                padding: 8px 5px;
+            }
+
+            .modern-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            .badge {
+                font-size: 0.75rem;
+                padding: 4px 8px;
+            }
+        }
+
+        /* Styles pour la reliure spirale noire */
+        .spiral-binding {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            height: 670px;
+            width: 25px;
+            background: repeating-linear-gradient(
+                0deg,
+                #333 0px,
+                #333 8px,
+                #666 8px,
+                #666 12px,
+                #333 12px,
+                #333 20px
+            );
+            z-index: 10;
+            transform: translateX(-50%);
+            box-shadow:
+                0 0 10px rgba(0, 0, 0, 0.3),
+                inset 0 0 5px rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .spiral-binding::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                #555 0px,
+                #555 4px,
+                #999 4px,
+                #999 8px
+            );
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        /* Espacement pour éviter le chevauchement */
+        .col-sm-6:first-child {
+            padding-right: 10px;
+        }
+
+        .col-sm-6:last-child {
+            padding-left: 10px;
+        }
+    </style>
 @endsection
 
 @section("corps")
@@ -55,8 +204,11 @@
 
             <!-- page 2 -->
             <div class="bb-item">
-                <div class="row">
-                    <div class="col-sm-5">
+                <div class="row position-relative">
+                    <!-- Reliure spirale noire -->
+                    <div class="spiral-binding"></div>
+
+                    <div class="col-sm-6">
                         <div class="card" style="height: 670px; border: 2px solid">
                             <div class="">
                                 @if ($registre->sceau != null)
@@ -73,7 +225,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-7">
+                    <div class="col-sm-6">
                         <div class="card" style="height: 670px; border: 2px solid">
                             @if (count($actes) > 0 )
 
@@ -82,14 +234,14 @@
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    <table id="example" class="display table table-bordered table-hover table-striped">
-                                        <thead>
+                                    <table id="example" class="display table table-hover table-striped modern-table">
+                                        <thead class="table-header-custom">
                                             <tr class="text-center">
-                                                <th>Page</th>
-                                                <th>Epoux</th>
-                                                <th>Epouse</th>
-                                                <th>En Date</th>
-                                                <th>Voir</th>
+                                                <th><i class="fas fa-file-alt me-2"></i>Page</th>
+                                                <th><i class="fas fa-male me-2"></i>Époux</th>
+                                                <th><i class="fas fa-female me-2"></i>Épouse</th>
+                                                <th><i class="fas fa-calendar me-2"></i>Date</th>
+                                                <th><i class="fas fa-eye me-2"></i>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -97,13 +249,18 @@
                                             $i=1;
                                             @endphp
                                             @foreach ($actes as $act)
-                                            <tr>
-                                                <td>{{ $i++ }}</td>
-                                                <td>{{$act->declaration->epoux->nomcomplet()}}</td>
-                                                <td>{{$act->declaration->epouse->nomcomplet()}}</td>
-                                                <td>{{ date("d/m/Y", strtotime($act->updated_at))}}</td>
+                                            <tr class="table-row-hover">
+                                                <td class="fw-bold text-primary">{{ $i++ }}</td>
+                                                <td class="fw-semibold">{{$act->declaration->epoux->nomcomplet()}}</td>
+                                                <td class="fw-semibold">{{$act->declaration->epouse->nomcomplet()}}</td>
+                                                <td class="fw-semibold">{{ date("d/m/Y", strtotime($act->updated_at))}}</td>
                                                 <td class="text-center">
-                                                    <a href="{{route('registre.feuillet.registre.mariage', $act->code_acte_mariage )}}" title="Consulter" target="_blank"><i class="fas fa-eye"></i></a>
+                                                    <a href="{{route('registre.feuillet.registre.mariage', $act->code_acte_mariage )}}"
+                                                       class="modern-btn"
+                                                       title="Consulter l'acte"
+                                                       target="_blank">
+                                                        <i class="fas fa-eye me-1"></i>Consulter
+                                                    </a>
                                                 </td>
                                             </tr>
                                             @endforeach
@@ -126,7 +283,10 @@
             @php $i=1; @endphp
             @foreach ($actes as $acte)
             <div class="bb-item">
-                <div class="row">
+                <div class="row position-relative">
+                    <!-- Reliure spirale noire -->
+                    <div class="spiral-binding"></div>
+
                     <div class="col-sm-6">
                         <div class="card" style="height: 670px; border: 2px solid">
                             <div class="card-body">
@@ -310,7 +470,10 @@
                    $nomcompletcec = "";
                     $nomcompletcec = $registre->signataireClose->user->personne->nomcomplet();
                @endphp
-               <div class="row">
+               <div class="row position-relative">
+                   <!-- Reliure spirale noire -->
+                   <div class="spiral-binding"></div>
+
                    <div class="col-sm-11">
                        <div class="card" style="height: 670px; border: 2px solid; text-align: left; padding: 20px; font-size: 18px">
                            <br><br><br><br>
@@ -338,7 +501,10 @@
             <a id="bb-nav-next" href="#" class="bb-custom-icon bb-custom-icon-arrow-right">Next</a>
             <a id="bb-nav-last" href="#" class="bb-custom-icon bb-custom-icon-last">Last page</a>
         </nav>
-
+        <a href="{{ route('registre.index') }}" class="btn btn-primary mb-2" style="float: right;">
+            <i class="fas fa-list"></i>
+            Liste des registres
+        </a>
     </div>
 </div><!-- /container -->
 

@@ -16,13 +16,13 @@ use Modules\Deces\Entities\DeclarationDeces;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable; // Notifiable fournit notifications() et unreadNotifications()
 
     protected $table = "tr_user";
     protected $primaryKey = "code_user";
     protected $guarded = [];
     public $incrementing = false;
-
+    protected $keyType = 'string';
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -31,11 +31,16 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'google2fa_secret',
+        'recovery_codes',
     ];
 
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'two_factor_verified_at' => 'datetime',
+        'google2fa_enabled' => 'boolean',
+        'two_factor_required' => 'boolean',
     ];
 
 
@@ -44,8 +49,21 @@ class User extends Authenticatable
         return $this->hasMany(InstitutionUser::class, 'code_user', 'code_user');
     }
 
+    /**
+     * Retourne l'affectation active de l'utilisateur (résultat direct)
+     * @return InstitutionUser|null
+     */
     public function affectationActive(){
         return $this->affectations->where("active",1)->first();
+    }
+
+    /**
+     * Retourne la relation pour l'affectation active (pour les queries)
+     * @return HasMany
+     */
+    public function affectationActiveRelation(): HasMany
+    {
+        return $this->hasMany(InstitutionUser::class, 'code_user', 'code_user')->where("active", 1);
     }
 
     public function fonction(){
@@ -91,5 +109,152 @@ class User extends Authenticatable
        return implode(" , ", $this->affectationActive()->userPompeFunebres->map->localite->flatten()->pluck("lib_localite")->toArray());
     }
 
+    // ==========================================
+    // MÉTHODES 2FA
+    // ==========================================
+
+    /**
+     * Vérifier si l'utilisateur a la 2FA activée
+     *
+     * @return bool
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->google2fa_enabled && !empty($this->google2fa_secret);
+    }
+
+    /**
+     * Vérifier si la 2FA est requise pour cet utilisateur
+     *
+     * @return bool
+     */
+    public function isTwoFactorRequired(): bool
+    {
+        return $this->two_factor_required;
+    }
+
+    /**
+     * Générer des codes de récupération
+     *
+     * @return array
+     */
+    public function generateRecoveryCodes(): array
+    {
+        $codes = [];
+        for ($i = 0; $i < 8; $i++) {
+            $codes[] = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+        }
+
+        $this->recovery_codes = encrypt(json_encode($codes));
+        $this->save();
+
+        return $codes;
+    }
+
+    /**
+     * Obtenir les codes de récupération déchiffrés
+     *
+     * @return array
+     */
+    public function getRecoveryCodes(): array
+    {
+        if (empty($this->recovery_codes)) {
+            return [];
+        }
+
+        try {
+            return json_decode(decrypt($this->recovery_codes), true) ?? [];
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Utiliser un code de récupération
+     *
+     * @param string $code
+     * @return bool
+     */
+    public function useRecoveryCode(string $code): bool
+    {
+        $codes = $this->getRecoveryCodes();
+        $key = array_search(strtoupper($code), $codes);
+
+        if ($key !== false) {
+            unset($codes[$key]);
+            $this->recovery_codes = encrypt(json_encode(array_values($codes)));
+            $this->save();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Compter les codes de récupération restants
+     *
+     * @return int
+     */
+    public function getRemainingRecoveryCodesCount(): int
+    {
+        return count($this->getRecoveryCodes());
+    }
+
+    /**
+     * Marquer la 2FA comme vérifiée
+     *
+     * @return void
+     */
+    public function markTwoFactorAsVerified(): void
+    {
+        $this->two_factor_verified_at = now();
+        $this->save();
+    }
+
+    /**
+     * Activer la 2FA
+     *
+     * @param string $secret
+     * @return void
+     */
+    public function enableTwoFactor(string $secret): void
+    {
+        $this->google2fa_secret = encrypt($secret);
+        $this->google2fa_enabled = true;
+        $this->markTwoFactorAsVerified();
+        $this->generateRecoveryCodes();
+    }
+
+    /**
+     * Désactiver la 2FA
+     *
+     * @return void
+     */
+    public function disableTwoFactor(): void
+    {
+        $this->google2fa_enabled = false;
+        $this->google2fa_secret = null;
+        $this->recovery_codes = null;
+        $this->two_factor_verified_at = null;
+        $this->save();
+    }
+
+    /**
+     * Obtenir le secret déchiffré
+     *
+     * @return string|null
+     */
+    public function getTwoFactorSecret(): ?string
+    {
+        if (empty($this->google2fa_secret)) {
+            return null;
+        }
+
+        try {
+            return decrypt($this->google2fa_secret);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 
 }

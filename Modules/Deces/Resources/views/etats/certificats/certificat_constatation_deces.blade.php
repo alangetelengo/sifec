@@ -61,7 +61,7 @@
             setlocale(LC_TIME, "fr_FR", "French");
             echo "<strong style='margin-right:100px;'>REPUBLIQUE DU CONGO</strong><br/>";
             echo "<strong style='font-size:11px;margin-left:-140px;font-weight:normal'>Unité - Travail - Progr&egrave;s"."</strong><br/>";
-           
+
             ?>
         </div>
 

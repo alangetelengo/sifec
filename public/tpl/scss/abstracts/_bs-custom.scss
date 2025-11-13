@@ -3,8 +3,8 @@ $enable-deprecation-messages: false;
 $ignore-warning             : true;
 
 // Custom class not bootstrap
-$fn:'HelveticaNeue'; // fn = font normal 
-$fm:'HelveticaNeueMed'; // fm = font Medium 
+$fn:'HelveticaNeue'; // fn = font normal
+$fm:'HelveticaNeueMed'; // fm = font Medium
 $border-radius: 1.25rem;
 // Body
 $body-bg   : #f1f1f1;
@@ -50,10 +50,10 @@ $blue  : #5e72e4;
 $indigo: #6610f2 !default;
 $purple: #6f42c1 !default;
 $pink  : #e83e8c !default;
-$red   : #EE3232;
+$red   : #DC241F; // Rouge Congo-Brazzaville
 $orange: #ff9900 !default;
-$yellow: #FFFA6F;
-$green : #297F00;
+$yellow: #FBDE4A; // Jaune Congo-Brazzaville
+$green : #009E49; // Vert Congo-Brazzaville
 $teal  : #20c997 !default;
 $cyan  : #3065D0;
 
@@ -98,14 +98,14 @@ $colors: map-merge((
   $colors);
 
 
-  
-$primary  : #222fb9 !default;
+
+$primary  : #009E49 !default; // Vert Congo-Brazzaville (couleur principale)
 /*$primary  : #7356f1 !default;*/
-$secondary: #ff6175 !default;
-$success  : #21b731 !default;
+$secondary: #FBDE4A !default; // Jaune Congo-Brazzaville
+$success  : #009E49 !default; // Vert Congo-Brazzaville
 $info     : #2781d5 !default;
-$warning  : #ff7a01 !default;
-$danger   : #ff2625 !default;
+$warning  : #FBDE4A !default; // Jaune Congo-Brazzaville
+$danger   : #DC241F !default; // Rouge Congo-Brazzaville
 $light    : #f4f4f4 !default;
 $dark     : #6e6e6e;
 

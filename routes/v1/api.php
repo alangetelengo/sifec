@@ -33,6 +33,10 @@ Route::get('copie/actenaissance/{id}',[AuthentificationActeController::class,"di
 Route::get('extrait/actenaissance/{id}',[AuthentificationActeController::class,"displayExtraitActe"])->name('acteNaissance.displayExtraitActe');
 Route::get("duplicata/actenaissance/{id}", [AuthentificationActeController::class,'displayDuplicata'])->name('duplicataActeNaissance');
 
+Route::get('copie/actenaissance/portail/{id}',[AuthentificationActeController::class,"displayCopiePortail"])->name('copieActeNaissancePortail');
+Route::get('extrait/actenaissance/portail/{id}',[AuthentificationActeController::class,"displayExtraitActePortail"])->name('acteNaissance.displayExtraitActePortail');
+
+
 Route::get('copie/actedeces/{id}',[AuthentificationActeController::class,"displayCopieDeces"])->name('copieActeDeces');
 Route::get('extrait/actedeces/{id}',[AuthentificationActeController::class,"displayExtraitActeDeces"])->name('acteDeces.displayExtrait');
 Route::get("duplicata/actedeces/{id}", [AuthentificationActeController::class,'displayDuplicataDeces'])->name('duplicataActeDeces');

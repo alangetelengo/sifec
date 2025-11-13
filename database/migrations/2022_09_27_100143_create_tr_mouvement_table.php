@@ -14,9 +14,11 @@ class CreateTrMouvementTable extends Migration
     public function up()
     {
         Schema::create('tr_mouvement', function (Blueprint $table) {
-            $table->increments("code_mouvement");
-            $table->string("lib_mouvement",30)->unique();
-            $table->boolean('supprimer')->default(0);
+            $table->primary("code_mouvement");
+            $table->string('code_mouvement',16);
+            $table->string('lib_mouvement', 100)->unique();
+            $table->string('description', 255)->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

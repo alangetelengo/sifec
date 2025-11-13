@@ -306,7 +306,7 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">Téléphone mère</label>
-            <input type="number" min="0" minlength="9" maxlength="15" id="telephone_mere" name="telephone_mere" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="Téléphone père">
+            <input type="number" min="0" minlength="9" maxlength="15" id="telephone_mere" name="telephone_mere" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="066000000">
         </div>
 
         <div class="mb-2 col-md-4">

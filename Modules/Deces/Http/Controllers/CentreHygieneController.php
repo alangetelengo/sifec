@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Modules\Deces\Entities\DDecesCause;
 use Modules\Referentiel\Entities\Regime;
-use Modules\Deces\Entities\MouvementDeces;
 use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Religion;
@@ -40,11 +39,8 @@ class CentreHygieneController extends Controller
     {
 
         $typeDeclaration = "CERTIFICAT DE CONSTATATION DE DECES";
-        // $declarationdeces = DeclarationDeces::where(["supprimer"=>0,"type_declaration"=>$typeDeclaration])->get();
-        $declarationdeces = DeclarationDeces::where("type_declaration",$typeDeclaration)->get();
-
-
-        return view('deces::centre-hygiene.index',compact("declarationdeces"));
+        $declarations = Auth::user()->institution()->declarationsDeces()->where("type_declaration",$typeDeclaration);
+        return view('deces::centre-hygiene.index',compact("declarations"));
     }
 
     /**
@@ -68,38 +64,13 @@ class CentreHygieneController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $typedocuments = TypeDocument::all();
         $arrondissement = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
-        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
+        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
         $codeUserLocalite = Auth::user()->affectationActive()->institution->lieu->localiteParent->code_localite;
 
         $lieuxDeces = Localite::where("code_localite_parent",$codeUserLocalite)->get();
 
         return view('deces::declaration.create',compact("title","type_declaration","quartierVillages","cecMariage", "countries","arrondissement","instructions","typedocuments","causesDeces","regimes","localites","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations","lieuxDeces"));
-
-
-        // $title = "Créer un certificat de constatation de décès";
-        // $type_declaration = "CERTIFICAT DE CONSTATATION DE DECES";
-
-        // $cecMariage = Institution::where("code_type_institution","TPINS_0002")->get();
-        // $instructions = Sifec::niveauInstructions();
-        // $localites = Localite::where('code_type_localite','TPLOC_0002')->Orwhere('code_type_localite','TPLOC_0003')->get();
-        // $professions = Profession::all();
-        // $nationalites = Nationalite::all();
-        // $religions = Religion::all();
-        // $lieusurvenances = LieuSurvenance::all();
-        // $filiations= Filiation::all();
-        // $regimes= Regime::all();
-        // $causesDeces= CauseDeces::all();
-        // $situationMatrimoniales = SituationMatrimoniale::all();
-        // $typedocuments = TypeDocument::all();
-        // $arrondissement = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
-        // $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
-        // $departements = Departement::all();
-        // $codeUserLocalite = Auth::user()->affectationActive()->institution->lieu->localiteParent->code_localite;
-        // $lieuxDeces = Localite::where("code_localite_parent",$codeUserLocalite)->get();
-
-        // // return view('deces::centre-hygiene.create',compact("lieuxDeces","instructions","arrondissement","countries","typedocuments","causesDeces","regimes","localites","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations"));
-
-        // return view('deces::declaration.create',compact("title","lieuxDeces","type_declaration","quartierVillages","cecMariage","departements", "countries","arrondissement","instructions","typedocuments","causesDeces","regimes","localites","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations"));
 
     }
 

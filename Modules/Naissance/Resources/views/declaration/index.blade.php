@@ -1,5 +1,3 @@
-
-
 @extends('layout.app')
 @section('titre')
 Déclaration
@@ -33,6 +31,7 @@ Déclaration
                                         <th>Enfant: Nom</th>
                                         <th>Enfant: Prénom</th>
                                         <th>Enfant: Date naissance</th>
+                                        <th>Enfant: Date déclaration</th>
                                         <th>Enfant: Sexe</th>
                                         <th>Type: Document</th>
                                         <th>Statut: Document</th>
@@ -41,12 +40,73 @@ Déclaration
                                 </thead>
                                 <tbody>
                                     @foreach ($declarations as $dn)
+                                    @php
+                                        $dernierMouvement = null;
+                                        $peutEnvoyer = false;
+                                        $peutModifier = false;
+                                        $peutSupprimer = false;
+                                        $statutBadge = ['class' => 'badge-secondary', 'label' => 'Brouillon'];
+
+                                        if (isset($dn->mouvements) && $dn->mouvements->count()) {
+                                            $dernierMouvement = $dn->mouvements->sortByDesc('created_at')->first();
+                                            switch ($dernierMouvement->code_mouvement) {
+                                                case 'MOUV_0001':
+                                                    $statutBadge = ['class' => 'badge-warning', 'label' => $dernierMouvement->lib_mouvement];
+                                                    $peutEnvoyer = false;
+                                                    $peutModifier = false;
+                                                    $peutSupprimer = false;
+                                                    break;
+                                                case 'MOUV_0004':
+                                                    $statutBadge = ['class' => 'badge-info', 'label' => $dernierMouvement->lib_mouvement];
+                                                    $peutEnvoyer = true;
+                                                    $peutModifier = true;
+                                                    $peutSupprimer = true;
+                                                    break;
+                                                case 'MOUV_0015':
+                                                    $statutBadge = ['class' => 'badge-info', 'label' => $dernierMouvement->lib_mouvement];
+                                                    $peutEnvoyer = false;
+                                                    $peutModifier = false;
+                                                    $peutSupprimer = false;
+                                                    break;
+                                                case 'MOUV_0019':
+                                                    $statutBadge = ['class' => 'badge-success', 'label' => $dernierMouvement->lib_mouvement];
+                                                    $peutEnvoyer = false;
+                                                    $peutModifier = false;
+                                                    $peutSupprimer = false;
+                                                    break;
+                                                case 'MOUV_0024':
+                                                    $statutBadge = ['class' => 'badge-primary', 'label' => $dernierMouvement->lib_mouvement];
+                                                    $peutEnvoyer = true;
+                                                    $peutModifier = true;
+                                                    $peutSupprimer = true;
+                                                    break;
+                                                case 'MOUV_0016':
+                                                    $statutBadge = ['class' => 'badge-dark', 'label' => $dernierMouvement->lib_mouvement];
+                                                    $peutEnvoyer = false;
+                                                    $peutModifier = false;
+                                                    $peutSupprimer = false;
+                                                    break;
+                                                default:
+                                                    $statutBadge = ['class' => 'badge-secondary', 'label' => $dernierMouvement->lib_mouvement ?? 'En cours'];
+                                                    $peutEnvoyer = false;
+                                                    $peutModifier = false;
+                                                    $peutSupprimer = false;
+                                            }
+                                        } else {
+                                            // Jamais envoyé
+                                            $statutBadge = ['class' => 'badge-secondary', 'label' => 'Brouillon'];
+                                            $peutEnvoyer = true;
+                                            $peutModifier = true;
+                                            $peutSupprimer = true;
+                                        }
+                                    @endphp
                                     <tr width="100%">
                                         <td>{{ $dn->code_declaration_naissance }}</td>
-                                        <td>{{ $dn->declarant->nom.' '.$dn->Declarant->prenom }}</td>
+                                        <td>{{ $dn->declarant->nomcomplet() }}</td>
                                         <td>{{ $dn->enfant->nom }}</td>
                                         <td>{{ $dn->enfant->prenom }}</td>
-                                        <td>{{ date("d-m-Y", strtotime($dn->enfant->date_naissance)) }}</td>
+                                        <td>{{ date('d-m-Y', strtotime($dn->enfant->date_naissance)) }}</td>
+                                        <td>{{ $dn->date_heure_declaration ? date('d-m-Y H:i', strtotime($dn->date_heure_declaration)) : '-' }}</td>
                                         <td>{{ $dn->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
                                         @if($dn->type_declaration != "FICHE DE MATERNITE" )
                                             <td>
@@ -57,56 +117,55 @@ Déclaration
                                                 <a href="{{ $dn->code_declaration_naissance }}" telephone="{{ $dn->mere->telephone_parent }}" class="badge badge badge-danger show-send-sms-to-parent" style="font-size: 13px;font-weight:600;">{{ $dn->type_declaration }}</a>
                                             </td>
                                         @endif
-                                        @if($dn->mouvements->last()->statut == "Renvoyée")
-                                        <td><a href="{{ $dn->code_declaration_naissance }}" cmouvtnais="{{ $dn->mouvements->last()->code_mouvement_naissance }}" obs="{{ $dn->mouvements->last()->observation }}" class="show-detail-renvoie" title="{{ $dn->mouvements->last()->motif_renvoi }}">
-                                            <span class="badge light badge-danger" style="font-size: 13px;font-weight:600;">document renvoyé </span></a>
+                                        <td>
+                                            <span class="badge light {{ $statutBadge['class'] }}" style="font-size: 13px;font-weight:600;">
+                                                {{ $statutBadge['label'] }}
+                                            </span>
+                                            @if($dernierMouvement && $dernierMouvement->observation)
+                                                <br><small>Observation : {{ $dernierMouvement->observation }}</small>
+                                            @endif
+                                            @if($dernierMouvement && $dernierMouvement->motif_renvoi)
+                                                <br><small>Motif : {{ $dernierMouvement->motif_renvoi }}</small>
+                                            @endif
                                         </td>
-                                        @endif
-
-                                         @if($dn->mouvements->last()->statut == "En cours")
-                                        <td><span class="badge light badge-warning" style="font-size: 13px;font-weight:600;">
-                                            {{ $dn->mouvements->last()->statut }} de traitement</span>
-                                        </td>
-                                        @endif
-                                        @if($dn->mouvements->last()->statut == "Envoyée")
-                                        <td><span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
-                                            Transféré à l'institution supérieure </span>
-                                        </td>
-                                        @endif
-                                        @if($dn->mouvements->last()->statut == "Envoye au tribunal")
-                                        <td><span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
-                                            Transféré au tribunal </span>
-                                        </td>
-                                        @endif
-                                        <td style="width: 15%">
+                                        <td style="width: 18%">
                                             <div class="btn-group btn-group-xs">
-                                                {{-- cacher ce bouton uniquement pour le ayant la permission --}}
-                                                    {{-- @if($dn->mouvements->last()->statut == "Envoyée")
-                                                        <a href="{{ $dn->code_declaration_naissance }}" class="btn btn-danger show-to-send-back shadow btn-xs sharp me-1" title="Renvoyer" ><i class="fas fa-plane"></i></a>
-                                                    @endif --}}
-                                                {{-- cacher ce bouton uniquement pour le ayant la permission --}}
-                                                @if($dn->mouvements->last()->statut == "En cours" || $dn->mouvements->last()->statut == "Renvoyée")
-                                                    @if($dn->type_declaration != "FICHE DE MATERNITE")
-                                                    <a href="{{ $dn->code_declaration_naissance }}" class="btn btn-warning show-to-send shadow btn-xs sharp me-1" title="Envoyer" ><i class="fas fa-plane"></i></a>
-                                                    @endif
+                                                {{-- Voir le détail --}}
+                                                <a href="{{ route('declarationNaissance.show',$dn->code_declaration_naissance) }}" class="btn btn-primary shadow btn-xs sharp me-1" title="Voir détail">
+                                                    <i class="fas fa-user-check"></i>
+                                                </a>
+                                                {{-- Modifier --}}
+                                                @if($peutModifier)
+                                                    <a href="{{ route('declarationNaissance.edit',$dn->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier">
+                                                        <i class="fas fa-pencil-alt"></i>
+                                                    </a>
                                                 @endif
-
-                                                @if($dn->mouvements->last()->statut == "En cours" || $dn->mouvements->last()->statut == "Renvoyée")
-                                                    <a href="{{ route('declarationNaissance.edit',$dn->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier"><i class="fas fa-pencil-alt"></i></a>
-                                                    <a href="{{ route('declarationNaissance.joindre.document',$dn->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Joindre document"><i class="fa fa-file"></i></a>
-                                                    {{-- <a href="{{ $dn->code_declaration_naissance }}" class="btn btn-info show-piece-parent-modal shadow btn-xs sharp me-1" title="Joindre pièce"><i class="fa fa-file"></i></a> --}}
+                                                {{-- Envoyer --}}
+                                                @if($peutEnvoyer)
+                                                    <button class="btn btn-warning btn-envoyer-centre shadow btn-xs sharp me-1"
+                                                        title="Envoyer la déclaration au centre d'état civil"
+                                                        data-code="{{ $dn->code_declaration_naissance }}"
+                                                        data-piece-declarant="{{ $dn->piece_declarant }}"
+                                                        data-piece-pere="{{ $dn->piece_pere }}"
+                                                        data-piece-mere="{{ $dn->piece_mere }}"
+                                                        data-identiteDeclarant="{{ $dn->declarant->nomcomplet() }}"
+                                                        data-identitePere="{{ $dn->pere->nomcomplet() }}"
+                                                        data-identiteMere="{{ $dn->mere->nomcomplet() }}">
+                                                        <i class="fas fa-paper-plane"></i>
+                                                    </button>
                                                 @endif
-
-                                                <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
-
-                                                @if($dn->acte != null)
-                                                    <a href="{{ route('acteNaissance.display',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir l'acte"><i class="fas fa-eye"></i></a>
+                                                {{-- Supprimer --}}
+                                                @if($peutSupprimer)
+                                                    <form action="{{ route('declarationNaissance.destroy',$dn->code_declaration_naissance) }}" method="POST" style="display: inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette déclaration ?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
+                                                    </form>
                                                 @endif
-                                                <form  action="{{ route('declarationNaissance.destroy',$dn->code_declaration_naissance) }}" method="POST" style="display: inline-block">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    {{-- <button type="submit" class="btn btn-danger shadow btn-xs sharp"><i class="fa fa-trash"></i></button> --}}
-                                                </form>
+                                                {{-- Consulter le PDF pour impression --}}
+                                                <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
+                                                    <i class="fas fa-print"></i>
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
@@ -116,11 +175,10 @@ Déclaration
                                     <tr>
                                         <th>#</th>
                                         <th>Déclarant</th>
-                                       {{--  <th>Père</th>
-                                        <th>Mère</th> --}}
                                         <th>Enfant: Nom</th>
                                         <th>Enfant: Prénom</th>
                                         <th>Enfant: Date naissance</th>
+                                        <th>Enfant: Date déclaration</th>
                                         <th>Enfant: Sexe</th>
                                         <th>Type: Document</th>
                                         <th>Statut: Document</th>
@@ -231,6 +289,77 @@ Déclaration
 </div>
 {{-- FIN ENVOIS NOTIFICATION AU PARENT --}}
 
+{{-- Modal Envoi au centre d'état civil (à placer une seule fois en dehors de la boucle) --}}
+<div class="modal fade" id="modal-envoyer-centre" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="form-envoyer-centre">
+            @csrf
+            <input type="hidden" name="code_declaration_naissance" id="input-code-declaration">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Envoyer la déclaration au centre d'état civil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        Cette action va transmettre la déclaration au centre d'état civil pour la transcription de l'acte de naissance.<br>
+                        <strong>Vérifiez que toutes les pièces d'identité sont jointes avant l'envoi.</strong>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Pièces d'identité requises</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Personne</th>
+                                        <th>Nom</th>
+                                        <th>Pièce jointe</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="piece-declarant">
+                                        <td><strong>Déclarant</strong></td>
+                                        <td id="declarant-nom">-</td>
+                                        <td id="declarant-piece">-</td>
+                                        <td id="declarant-status"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-pere">
+                                        <td><strong>Père</strong></td>
+                                        <td id="pere-nom">-</td>
+                                        <td id="pere-piece">-</td>
+                                        <td id="pere-status"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-mere">
+                                        <td><strong>Mère</strong></td>
+                                        <td id="mere-nom">-</td>
+                                        <td id="mere-piece">-</td>
+                                        <td id="mere-status"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="alert-pieces-manquantes" class="alert alert-warning d-none">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Attention :</strong> Certaines pièces d'identité sont manquantes.
+                        Il est recommandé de les ajouter avant l'envoi au centre d'état civil.
+                    </div>
+                    <div class="mb-2">
+                        <label for="observation-centre" class="form-label">Observation (optionnel)</label>
+                        <textarea id="observation-centre" name="observation" class="form-control" rows="3" placeholder="Ajoutez une observation pour le centre d'état civil..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning" id="btn-envoyer-final">
+                        <i class="fas fa-paper-plane"></i> Envoyer
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 @endsection
 @section("scripts")
@@ -340,6 +469,72 @@ Déclaration
                     }
                 });
                 return false;
+            });
+
+            // Gestion modale envoi au centre d'état civil depuis index
+            let codeDeclaration = null;
+            $('.btn-envoyer-centre').on('click', function(){
+                if ($(this).hasClass('disabled')) {
+                    toastr.warning('Cette déclaration a déjà été envoyée au centre d\'état civil.');
+                    return;
+                }
+                // Récupération des infos de la ligne sélectionnée
+                const declarantNom = $(this).attr('data-identiteDeclarant');
+                const pereNom = $(this).attr('data-identitePere');
+                const mereNom = $(this).attr('data-identiteMere');
+                // Pour les pièces, on va les stocker dans des data-* sur le bouton (à faire côté Blade)
+                const pieceDeclarant = $(this).data('piece-declarant') || '';
+                const piecePere = $(this).data('piece-pere') || '';
+                const pieceMere = $(this).data('piece-mere') || '';
+
+                // Remplir le tableau du modal
+                $('#declarant-nom').text(declarantNom);
+                $('#declarant-piece').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#declarant-status').html(pieceDeclarant ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                $('#pere-nom').text(pereNom);
+                $('#pere-piece').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#pere-status').html(piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                $('#mere-nom').text(mereNom);
+                $('#mere-piece').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#mere-status').html(pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                // Vérification des pièces
+                let piecesManquantes = false;
+                if (!pieceDeclarant || !piecePere || !pieceMere) {
+                    piecesManquantes = true;
+                    $('#alert-pieces-manquantes').removeClass('d-none');
+                } else {
+                    $('#alert-pieces-manquantes').addClass('d-none');
+                }
+                // Désactiver le bouton si pièce manquante
+                $('#btn-envoyer-final').prop('disabled', piecesManquantes);
+
+                codeDeclaration = $(this).data('code');
+                $('#modal-envoyer-centre').modal('show');
+                $('#input-code-declaration').val(codeDeclaration);
+            });
+            $('#form-envoyer-centre').on('submit', function(e){
+                e.preventDefault();
+                let url = "{{ route('declarationNaissance.mouvement') }}";
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(resp){
+                        if(resp.code == "200"){
+                            flashAlert("Réponse","success",resp.message);
+                            $('#modal-envoyer-centre').modal('hide');
+                            setTimeout(()=>location.reload(), 1000);
+                        }else{
+                            flashAlert("Réponse","error",resp.message);
+                        }
+                    },
+                    error: function(xhr){
+                        flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
+                    }
+                });
             });
 
         });

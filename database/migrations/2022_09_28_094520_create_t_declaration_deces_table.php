@@ -36,7 +36,7 @@ class CreateTDeclarationDecesTable extends Migration
             $table->boolean("top_requisition")->default(false);
             $table->string("numero_req",16)->nullable();
             $table->string("numero_certificat",16)->nullable();
-            $table->enum('type_declaration',["DECLARATION DE DECES","DECLARATION TARDIVE","CERTIFICAT DE CONSTATATION DE DECES","CERTIFICAT DE NON INSCRIPTION", "CERTIFICAT DE DESTRUCTION DE L\'ACTE","CERTIFICAT DE TRANSCRIPTION","AUTORISATION DE TRANSFERT DE DEPOUILLE MORTELLE"])->nullable();
+            $table->enum('type_declaration',["DECLARATION DE DECES","DECLARATION TARDIVE","CERTIFICAT DE CONSTATATION DE DECES","CERTIFICAT DE NON INSCRIPTION", "CERTIFICAT DE DESTRUCTION DE L\'ACTE","FICHE DE TRANSCRIPTION"])->nullable();
             $table->enum("fonction_medecin",["Medécin","Infirmier(e)","Autre personne de la santé"])->nullable();
             $table->string('nom_medecin')->nullable();
             $table->string('code_conjoint')->nullable();
@@ -47,6 +47,29 @@ class CreateTDeclarationDecesTable extends Migration
             $table->string('code_pere')->nullable();
             $table->string('code_mere')->nullable();
             $table->enum("approuver", ["OUI","NON"])->nullable()->default("NON")->comment("Permet de savoir si le docuement a été lu et approuvé par le déclarant");
+            $table->enum("cec_approuver", ["OUI","NON"])->default("NON")->comment("permet de savoir si la declaration est prête ou pas pour la transcription de l'acte");
+
+            $table->string("cec_approuve_par")->nullable();
+            $table->enum("tribunal_approuver",["NON","OUI"])->default("NON");
+            $table->string("tribunal_approuve_par")->nullable();
+
+            $table->timestamp("cec_approuve_le")->nullable();
+            $table->timestamp("tribunal_approuve_le")->nullable();
+
+            $table->foreign("cec_approuve_par")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
+            $table->foreign("tribunal_approuve_par")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
+
+
+            $table->string("code_institution", 16)->nullable()->comment("institution à qui appartient cette declaration");
+            $table->string("code_institution_destinataire", 16)->nullable()->comment("institution destinataire de la déclaration");
+            $table->string("numero_ancien_acte", 16)->nullable();
+
+            $table->string('piece_declarant')->nullable();
+            $table->string('piece_defunt')->nullable();
+            $table->string('piece_conjoint')->nullable();
+            $table->string('piece_pere')->nullable();
+            $table->string('piece_mere')->nullable();
+
 
             $table->timestamps();
             $table->softDeletes();
@@ -64,6 +87,9 @@ class CreateTDeclarationDecesTable extends Migration
             $table->foreign("code_conjoint")->references("code_personne")->on("tr_identification_personne")->onDelete('cascade')->onUpdate('cascade');
             $table->foreign("code_pere")->references("code_personne")->on("tr_identification_personne")->onDelete('cascade')->onUpdate('cascade');
             $table->foreign("code_mere")->references("code_personne")->on("tr_identification_personne")->onDelete('cascade')->onUpdate('cascade');
+
+            $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete('cascade')->onUpdate('cascade');
         });
 
          Schema::create("t_ddecescause", function (Blueprint $table) {

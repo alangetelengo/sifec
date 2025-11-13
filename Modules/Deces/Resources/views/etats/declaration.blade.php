@@ -33,32 +33,41 @@
 
 
 
-<page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ asset("tpl/armoirie_congo.png") }}"  backimgw="100%"
+<page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ public_path('tpl/back-border.png') }}" backimgw="100%"
+
 	  backtop="10mm"
 	  backbottom="15mm"
 	  backleft="10mm"
 	  backright="20mm">
 
 	<bookmark title="Lettre" level="0" ></bookmark>
+    @php
+        $commune = "COMMUNE DE ".$ddc->institution->lieu->localiteParent->lib_localite;
+        $dept = "DEPARTEMENT DE ".$ddc->institution->lieu->localiteParent->localiteParent->lib_localite;
+
+    @endphp
 
 	<page_header>
 
 
         <div id="entete_rprt_suite">
-            <?php
-                echo "<strong>".htmlentities("MINISTERE DE LA SANTE ET DE LA POPULATION  ")."</strong>";
-            ?>
+            @if($ddc->type_declaration == "DECLARATION TARDIVE")
+                <strong>{{$dept}}</strong> <BR>
+                <strong>{{$commune}}</strong>
+            @else
+                <strong>{{htmlentities("MINISTERE DE LA SANTE ET DE LA POPULATION  ")}}</strong><br>
+                <strong>************************************************************** </strong>
+            @endif
+
              <BR>
-            <strong style='margin-left:100px'>************************ </strong>   <BR>
-            <strong style="margin-left:30px">{{ $ddc->institutionUser->institution->lib_institution }}</strong>
-            <BR>
+            <strong>{{ $ddc->institutionUser->institution->lib_institution }}</strong>
 
         </div>
 
         <div id="sifec">
             <?php
              setlocale(LC_TIME, "fr_FR", "French");
-             echo "<strong style='margin-right:100px;margin-top:10px'>REPUBLIQUE DU CONGO</strong><br/>";
+             echo "<strong style='margin-right:100px;margin-top:2px'>REPUBLIQUE DU CONGO</strong><br/>";
              echo "<strong style='font-size:11px;margin-left:-140px;font-weight:normal;margin-bottom:15px'>Unité - Travail - Progr&egrave;s"."</strong><br/>";
             ?>
         </div>
@@ -72,7 +81,7 @@
     </page_footer>
 
 
-<br><br>
+<br><br><br>
 	<table cellspacing="0" style="border-collapse: collapse; font-size: 12pt;" >
 		<col style="width: 25%">
 		<col style="width: 25%">
@@ -208,11 +217,11 @@
                 @endif
                 <tr>
                     <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de déc&egrave;s :<span style="font-size: 15px;font-weight:bold;">
-                        @if($ddc->type_declaration == "CERTIFICAT DE CONSTATATION DE DECES")
+                        {{-- @if($ddc->type_declaration == "CERTIFICAT DE CONSTATATION DE DECES")
                             {{ $ddc->lieuDeces->lib_localite }} ( {{ $ddc->lieuDeces->localiteParent->lib_localite }} )
-                            @else
+                            @else --}}
                             {{ $ddc->lieu_deces }}
-                        @endif
+                        {{-- @endif --}}
                          </span>
                     </td>
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
@@ -291,9 +300,11 @@
                 </tr>
             </table>
         </fieldset>
-        <div style="position:absolute; margin-left:570px;top:60px;">
-            <qrcode value="{{env('QRCODE_URL')}}/qrcode/deces/certificat?niupp={{ $ddc->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
-        </div>
+        @if($ddc->mouvements->last()->statut == "Envoyée")
+            <div style="position:absolute; margin-left:570px;top:60px;">
+                <qrcode value="{{env('QRCODE_URL')}}/qrcode/deces/certificat?niupp={{ $ddc->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+            </div>
+        @endif
 
         {{-- <div style="position:absolute; margin-left:570px;">
             <qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/certificat?niupp={{ $dn->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
@@ -311,7 +322,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="text-align: left;"> Lu et approuvé <br><strong>(<span style="color: red;">{{ $ddc->approuver }}</span>)</strong>
+                        <td style="text-align: left;"> Lu et approuvé <br><strong>(<span style="color: red;">{{ $ddc->declarant_approuver }}</span>)</strong>
                             <br> Le déclarant
                          </td>
 

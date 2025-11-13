@@ -13,6 +13,8 @@ class ContactPersonne extends Model
     protected $fillable = [];
 
     protected $table = "t_contact_personne";
+     protected $primaryKey="id";
+     public $incrementing = true;
 
  
     public function personne(): BelongsTo

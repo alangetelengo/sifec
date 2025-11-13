@@ -2,14 +2,15 @@
 
 namespace Modules\Referentiel\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Deces\Entities\DeclarationDeces;
-use Modules\Mariage\Entities\DeclarationMariage;
-use Modules\Naissance\Entities\ActeNaissance;
-use Modules\Naissance\Entities\Declarationnaissance;
+use Illuminate\Support\Facades\Log;
 use Modules\Referentiel\Entities\Personne;
+use Illuminate\Contracts\Support\Renderable;
+use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Naissance\Entities\ActeNaissance;
+use Modules\Mariage\Entities\DeclarationMariage;
+use Modules\Naissance\Entities\Declarationnaissance;
 
 class RetraitActeController extends Controller
 {
@@ -38,6 +39,7 @@ class RetraitActeController extends Controller
      */
     public function searchActeRetire(Request $request)
     {
+
         $request->validate([
             "nom_enfant"=> ["required","string"],
             "sexe_enfant"=> ["required","string"],
@@ -54,7 +56,8 @@ class RetraitActeController extends Controller
         //recherche de la personne
         $personnes = Personne::where("nom",'LIKE',"%{$nom}%")->where("prenom",'LIKE',"%{$prenom}%")->where("sexe",$sexe)->whereYear("date_naissance",$annee)->get();
         //vérification personnes
-        // dd($personnes);
+      
+
         if(count($personnes ) == 0){
             toastr()->error("Aucune information trouvée !");
             return back()->withInput();
@@ -64,8 +67,6 @@ class RetraitActeController extends Controller
 
             //declaration de naissance
             $dn = Declarationnaissance::where("code_enfant",$personne->code_personne)->first();
-            // $dm = DeclarationMariage::where("code_epoux",$personne->code_personne)->orWhere("code_epouse",$personne->code_personne)->first();
-            // $dd = DeclarationDeces::where("code_defunt",$personne->code_personne)->first();
 
             if($dn == null){
                 toastr()->error("Aucune déclaration de naissance trouvée avec ces informations !");

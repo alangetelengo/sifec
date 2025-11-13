@@ -4,7 +4,7 @@
     <div class="d-none">
         <input type="text" value="{{ $typeDeclaration }}" id="type_declaration">
         <input type="text" value="{{ $dn->code_declaration_naissance }}" id="code_declaration_naissance">
-        <input type="text" value="{{ $dn->enfant->code_personne }}" id="code_enfant">
+        <input type="text" value="{{ $dn->enfant->code_personne ?? '' }}" id="code_enfant">
     </div>
     <section>
         {{-- <div class="row">
@@ -17,19 +17,19 @@
         <div class="row">
             <div class="mb-2 col-md-4">
                 <label class="form-label">Nom(s) enfant <span class="text-danger">*</span></label>
-                <input type="text" name="nom_enfant"  class="form-control"  placeholder="Nom enfant" id="nom_enfant" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()" value="{{ $dn->enfant->nom }}">
+                <input type="text" name="nom_enfant"  class="form-control"  placeholder="Nom enfant" id="nom_enfant" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()" value="{{ $dn->enfant->nom ?? '' }}">
             </div>
 
             <div class="mb-2 col-md-4">
                 <label class="form-label">Prénom(s) enfant</label>
-                <input type="text" class="form-control" placeholder="Prénom enfant" id="prenom_enfant" onkeyup="verif_lettre(this);" style="text-transform: capitalize" value="{{ $dn->enfant->prenom }}">
+                <input type="text" class="form-control" placeholder="Prénom enfant" id="prenom_enfant" onkeyup="verif_lettre(this);" style="text-transform: capitalize" value="{{ $dn->enfant->prenom ?? '' }}">
             </div>
 
             <div class="mb-2 col-md-4">
                 <label class="form-label">Sexe <span class="text-danger">*</span></label>
                 <select id="sexe_enfant" name="sexe_enfant" class="form-control  @error('sexe_enfant') is-invalid @enderror">
-                    <option value="M" {{ $dn->enfant->sexe == "M" ? "selected" : "" }}>Masculin</option>
-                    <option value="F" {{ $dn->enfant->sexe == "F" ? "selected" : "" }}>Féminin</option>
+                    <option value="M" {{ (isset($dn->enfant) && $dn->enfant->sexe == "M") ? "selected" : "" }}>Masculin</option>
+                    <option value="F" {{ (isset($dn->enfant) && $dn->enfant->sexe == "F") ? "selected" : "" }}>Féminin</option>
                 </select>
             </div>
         </div>
@@ -39,23 +39,23 @@
         <div class="row">
             <div class="mb-2 col-md-3">
                 <label class="form-label">Date de naissance <span class="text-danger">*</span></label>
-                <input type="date" value="{{ $dn->enfant->date_naissance }}" name="date_naissance_enfant" max="<?php  echo date("Y-m-d"); ?>" required min="<?php  $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 100 year'));?>" class="form-control  @error('date_naissance_enfant') is-invalid @enderror " id="date_naissance_enfant">
+                <input type="date" value="{{ $dn->enfant->date_naissance ?? '' }}" name="date_naissance_enfant" max="<?php  echo date("Y-m-d"); ?>" required min="<?php  $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 100 year'));?>" class="form-control  @error('date_naissance_enfant') is-invalid @enderror " id="date_naissance_enfant">
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Lieu de naissance <span class="text-danger">*</span></label>
                 @if(Auth::user()->affectationactive()->institution->code_institution == "INS_0046")
-                    <input type="text" class="form-control" name="lieu_naissance_enfant" id="lieu_naissance_enfant" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()" value="{{ $dn->enfant->lieu_naissance }}">
+                    <input type="text" class="form-control" name="lieu_naissance_enfant" id="lieu_naissance_enfant" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()" value="{{ $dn->enfant->lieu_naissance ?? '' }}">
                 @else
                     <select id="code_localite_enfant" class="form-control">
                         @foreach ($localites as $localite)
-                            <option value="{{ $localite->code_localite }}" {{ $dn->enfant->code_localite == $localite->code_localite ? "selected" : "" }}>{{ $localite->lib_localite }}</option>
+                            <option value="{{ $localite->code_localite }}" {{ (isset($dn->enfant) && isset($dn->enfant->code_localite) && $dn->enfant->code_localite == $localite->code_localite) ? "selected" : "" }}>{{ $localite->lib_localite }}</option>
                         @endforeach
                     </select>
                 @endif
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Heure de naissance <span class="text-danger">*</span></label>
-                <input type="time" name="heure_naissance_enfant" class="form-control"  id="heure_naissance_enfant" value="{{ date("H:i", strtotime($dn->date_heure_naissance)) }}">
+                <input type="time" name="heure_naissance_enfant" class="form-control"  id="heure_naissance_enfant" value="{{ isset($dn->date_heure_naissance) ? date("H:i", strtotime($dn->date_heure_naissance)) : '' }}">
             </div>
             @php
                 $UserInstitution = Auth::user()->affectationactive()->institution;
@@ -68,7 +68,7 @@
                     {{-- @if($UserInstitution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0001") --}}
                     <option disabled selected>Choisissez</option>
                     @foreach ($lieuSurvenances as $item)
-                        <option value="{{ $item->code_lieu_survenance }}" {{ $dn->lieuSurvenance->code_lieu_survenance == $item->code_lieu_survenance ? "selected" : "" }}>{{ $item->lib_lieu_survenance }}</option>
+                        <option value="{{ $item->code_lieu_survenance }}" {{ (isset($dn->lieuSurvenance) && $dn->lieuSurvenance->code_lieu_survenance == $item->code_lieu_survenance) ? "selected" : "" }}>{{ $item->lib_lieu_survenance }}</option>
                     @endforeach
                     {{-- @endif --}}
                 </select>
@@ -77,14 +77,14 @@
             @if(Auth::user()->affectationactive()->institution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0001")
                <div class="mb-2 col-md-3 formationsanitaire d-none">
                     <label class="form-label">Formation sanitaire de naissance</label>
-                    <input type="text" id="formation_sanitaire_naissance" name="formation_sanitaire_naissance" class="form-control" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()" value="{{ $dn->formation_sanitaire_naissance }}">
+                    <input type="text" id="formation_sanitaire_naissance" name="formation_sanitaire_naissance" class="form-control" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()" value="{{ $dn->formation_sanitaire_naissance ?? '' }}">
                 </div>
             @endif
             <div class="mb-2 col-md-3">
                 <label class="form-label">Nationalité<span class="text-danger">*</span></label>
                 <select id="code_nationalite_enfant" name="code_nationalite_enfant" class="form-control required  @error('code_nationalite_enfant') is-invalid @enderror ">
                         @foreach ($nationalites as $nationalite)
-                        <option value="{{ $nationalite->code_nationalite }}"  {{ $dn->enfant->nationalite->code_nationalite == $nationalite->code_nationalite ? "selected" : "" }}>{{ $nationalite->lib_nationalite }}</option>
+                        <option value="{{ $nationalite->code_nationalite }}"  {{ (isset($dn->enfant->nationalite) && $dn->enfant->nationalite->code_nationalite == $nationalite->code_nationalite) ? "selected" : '' }}>{{ $nationalite->lib_nationalite }}</option>
                     @endforeach
                 </select>
             </div>
@@ -93,7 +93,7 @@
                 <label class="form-label">Profession<span class="text-danger">*</span></label>
                 <select id="profession_enfant" class="form-control form-control wide">
                     @foreach ($professions as $item)
-                        <option value="{{ $item->code_profession }}"  {{ $dn->enfant->profession->code_profession == $item->code_profession ? "selected" : "" }}>{{ $item->lib_profession }}</option>
+                        <option value="{{ $item->code_profession }}"  {{ (isset($dn->enfant->profession) && $dn->enfant->profession->code_profession == $item->code_profession) ? "selected" : '' }}>{{ $item->lib_profession }}</option>
                     @endforeach
                 </select>
             </div>
@@ -101,7 +101,7 @@
                 <label class="form-label">Niveau d'instruction</label>
                 <select id="niveau_instruction_enfant" class="form-control form-control wide">
                     @foreach ($instructions as $item)
-                        <option value="{{ $item }}" {{ $dn->enfant->niveau_instruction == $item ? "selected" : "" }}>{{ $item }}</option>
+                        <option value="{{ $item }}" {{ (isset($dn->enfant) && $dn->enfant->niveau_instruction == $item) ? "selected" : '' }}>{{ $item }}</option>
                     @endforeach
                 </select>
             </div>
@@ -109,7 +109,7 @@
                 <label class="form-label">Type pièce d'identité</label>
                 <select id="code_type_document_enfant" class="form-control form-control wide">
                     @foreach ($typedocuments as $item)
-                        @if($dn->enfant->document == null)
+                        @if(isset($dn->enfant->document) && $dn->enfant->document->code_type_document == $item->code_type_document)
                             <option value="{{ $item->code_type_document }}" {{ $item->code_type_document == "TDOC_0018" ? "selected" : "" }}>{{ $item->lib_type_document  }}</option>
                         @else
                             <option value="{{ $item->code_type_document }}" >{{ $item->lib_type_document  }}</option>
@@ -119,7 +119,7 @@
             </div>
             <div class="mb-2 col-md-4">
                 <label class="form-label">Numéro pièce d'identité</label>
-                <input type="text" id="numero_document_enfant" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->enfant->document->numero_document ?? "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" }}">
+                <input type="text" id="numero_document_enfant" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->enfant->document->numero_document ?? '' }}">
             </div>
         </div>
         @endif
@@ -132,49 +132,48 @@
                 <label class="form-label">Pays<span class="text-danger"></span></label>
                 <select id="domicile_pays_enfant" class="form-control required">
                     @foreach ($countries as $countrie)
-                    @if($dn->enfant->adresses->last() != null)
-                        <option value="{{ $countrie->name }}" {{ $dn->enfant->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
-                    @else
-                    <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
-                    @endif
+                        <option value="{{ $countrie->name }}" {{ (optional($dn->enfant->adresses->last())->lib_pays ?? 'Congo') == $countrie->name ? "selected" : '' }}>{{ $countrie->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="mb-2 col-md-3 domicile_ville_enfant">
                 <label class="form-label">Commune/District<span class="text-danger"></span></label>
+                @php
+                    $selectedVille = optional($dn->enfant->adresses->last())->code_localite ?? '';
+                    $villeExiste = collect($localites)->pluck('code_localite')->contains($selectedVille);
+                @endphp
                 <select class="form-control" id="domicile_ville_enfant">
-                    @if($dn->enfant->adresses->last() != null)
-                        @foreach ($localites as $item)
-                            <option value="{{ $item->code_localite }}" {{  $dn->enfant->adresses->last()->code_localite == $item->code_localite ? "selected" : "" }}>{{ $item->lib_localite }}</option>
-                        @endforeach
-                    @else
-                        <option value="">Selectionnez</option>
-                        @foreach ($localites as $item)
-                            <option value="{{ $item->code_localite }}">{{ $item->lib_localite }}</option>
-                        @endforeach
+                    @if($selectedVille && !$villeExiste)
+                        <option value="{{ $selectedVille }}" selected>{{ optional($dn->enfant->adresses->last())->lib_ville ?? $selectedVille }}</option>
                     @endif
-
+                    @foreach ($localites as $item)
+                        <option value="{{ $item->code_localite }}" {{ $selectedVille == $item->code_localite ? 'selected' : '' }}>{{ $item->lib_localite }}</option>
+                    @endforeach
                 </select>
             </div>
-            @if($dn->enfant->adresses->last() != null)
-                @if($dn->enfant->adresses->last()->lib_pays != "Congo")
-                <div class="mb-2 col-md-3 autredomicile_ville_enfant">
-                    <label class="form-label">Ville<span class="text-danger"></span></label>
-                    <input type="text" id="autredomicile_ville_enfant" class="form-control form-control wide" placeholder="Libellé de la ville" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->enfant->adresses->last()->lib_ville ?? "" }}">
-                </div>
-                @endif
+            @if(optional($dn->enfant->adresses->last())->lib_pays != "Congo")
+            <div class="mb-2 col-md-3 autredomicile_ville_enfant">
+                <label class="form-label">Ville<span class="text-danger"></span></label>
+                <input type="text" id="autredomicile_ville_enfant" class="form-control form-control wide" placeholder="Libellé de la ville" onkeyup="this.value=this.value.toUpperCase()" value="{{ optional($dn->enfant->adresses->last())->lib_ville ?? '' }}">
+            </div>
             @endif
             <div class="mb-2 col-md-3 domicile_arrondissement_enfant">
                 <label class="form-label">Arrondissement/Communauté urbaine<span class="text-danger"></span></label>
+                @php
+                    $selectedArrondissement = optional($dn->enfant->adresses->last())->code_arrondissement_comurbaine ?? '';
+                    $arrondissementExiste = collect($arrondissements ?? [])->pluck('code_localite')->contains($selectedArrondissement);
+                @endphp
                 <select class="form-control" id="domicile_arrondissement_enfant">
-
-                    @if($dn->enfant->adresses->last() != null)
-                        @foreach ($arrondissement as $item)
-                            <option value="{{ $item->code_localite }}" {{  $dn->enfant->adresses->last()->code_arrondissement_comurbaine == $item->code_localite ? "selected" : "" }}>{{ $item->lib_localite }}</option>
+                    @if($selectedArrondissement && !$arrondissementExiste)
+                        <option value="{{ $selectedArrondissement }}" selected>{{ optional($dn->enfant->adresses->last())->lib_localite ?? $selectedArrondissement }}</option>
+                    @endif
+                    @if(optional($dn->enfant->adresses->last())->code_arrondissement_comurbaine ?? '')
+                        @foreach ($arrondissements ?? [] as $item)
+                            <option value="{{ $item->code_localite }}" {{ $selectedArrondissement == $item->code_localite ? "selected" : '' }}>{{ $item->lib_localite }}</option>
                         @endforeach
                     @else
                     <option value="">Selectionnez</option>
-                        @foreach ($arrondissement as $item)
+                        @foreach ($arrondissements ?? [] as $item)
                             <option value="{{ $item->code_localite }}">{{ $item->lib_localite }}</option>
                         @endforeach
                     @endif
@@ -183,10 +182,17 @@
 
             <div class="mb-2 col-md-3 domicile_quartier_enfant">
                 <label class="form-label">Quartier/Village<span class="text-danger"></span></label>
+                @php
+                    $selectedQuartier = optional($dn->enfant->adresses->last())->code_quartier_village ?? '';
+                    $quartierExiste = collect($quartierVillages)->pluck('code_localite')->contains($selectedQuartier);
+                @endphp
                 <select class="form-control" id="domicile_quartier_enfant">
-                    @if($dn->enfant->adresses->last() != null)
+                    @if($selectedQuartier && !$quartierExiste)
+                        <option value="{{ $selectedQuartier }}" selected>{{ optional($dn->enfant->adresses->last())->lib_localite ?? $selectedQuartier }}</option>
+                    @endif
+                    @if(optional($dn->enfant->adresses->last())->code_quartier_village ?? '')
                         @foreach ($quartierVillages as $localite)
-                            <option value="{{ $localite->code_localite }}" {{  $dn->enfant->adresses->last()->code_quartier_village  == $localite->code_localite ? "selected" : "" }}>{{ $localite->lib_localite }}</option>
+                            <option value="{{ $localite->code_localite }}" {{ $selectedQuartier == $localite->code_localite ? "selected" : '' }}>{{ $localite->lib_localite }}</option>
                         @endforeach
                     @else
                         <option value="">Selectionnez</option>
@@ -201,12 +207,12 @@
             <div class="mb-2 col-md-3">
                 <label class="form-label">Type voie<span class="text-danger"></span></label>
                 <select class="form-control" id="domicile_typevoie_enfant">
-                    @if($dn->enfant->adresses->last() != null)
-                    <option value="Avenue" {{ $dn->enfant->adresses->last()->type_voie == "Avenue" ? "selected" : "" }}>Avenue</option>
-                    <option value="Boulevard" {{ $dn->enfant->adresses->last()->type_voie == "Boulevard" ? "selected" : "" }}>Boulevard</option>
-                    <option value="Impasse" {{ $dn->enfant->adresses->last()->type_voie == "Impasse" ? "selected" : "" }}>Impasse</option>
-                    <option value="Rue" {{ $dn->enfant->adresses->last()->type_voie == "Rue" ? "selected" : "" }}>Rue</option>
-                    <option value="Autre" {{ $dn->enfant->adresses->last()->type_voie == "Autre" ? "selected" : "" }}>Autre</option>
+                    @if(optional($dn->enfant->adresses->last())->type_voie ?? '')
+                    <option value="Avenue" {{ (optional($dn->enfant->adresses->last())->type_voie ?? '') == "Avenue" ? "selected" : '' }}>Avenue</option>
+                    <option value="Boulevard" {{ (optional($dn->enfant->adresses->last())->type_voie ?? '') == "Boulevard" ? "selected" : '' }}>Boulevard</option>
+                    <option value="Impasse" {{ (optional($dn->enfant->adresses->last())->type_voie ?? '') == "Impasse" ? "selected" : '' }}>Impasse</option>
+                    <option value="Rue" {{ (optional($dn->enfant->adresses->last())->type_voie ?? '') == "Rue" ? "selected" : '' }}>Rue</option>
+                    <option value="Autre" {{ (optional($dn->enfant->adresses->last())->type_voie ?? '') == "Autre" ? "selected" : '' }}>Autre</option>
                     @else
                     <option value="">Selectionnez</option>
                     <option value="Avenue">Avenue</option>
@@ -220,11 +226,11 @@
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">N° voie<span class="text-danger"></span></label>
-                <input type="text" class="form-control" id="domicile_numero_enfant" placeholder="N° voie" value="{{ $dn->enfant->adresses->last()->numero_rue ?? "" }}">
+                <input type="text" class="form-control" id="domicile_numero_enfant" placeholder="N° voie" value="{{ optional($dn->enfant->adresses->last())->numero_rue ?? '' }}">
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Nom voie<span class="text-danger"></span></label>
-                <input type="text" class="form-control" id="domicile_nomvoie_enfant" placeholder="Nom voie" style="text-transform: capitalize" value="{{ $dn->enfant->adresses->last()->nom_voie ?? "" }}">
+                <input type="text" class="form-control" id="domicile_nomvoie_enfant" placeholder="Nom voie" style="text-transform: capitalize" value="{{ optional($dn->enfant->adresses->last())->nom_voie ?? '' }}">
             </div>
 
             <div class="ligne">
@@ -235,8 +241,8 @@
                     <label class="form-label">Indicatif<span class="text-danger">*</span></label>
                     <select name="code_pays_enfant" id="code_pays_enfant" class="form-control">
                         @foreach ($countries as $code)
-                        @if($dn->enfant->adresses->last() != null)
-                        <option value="{{ $code->dial_code }}" {{ $dn->enfant->adresses->last()->lib_pays == $code->name ? "selected" : "" }}>({{ $code->dial_code }}) {{ $code->name }}</option>
+                        @if(optional($dn->enfant->adresses->last())->lib_pays ?? '')
+                        <option value="{{ $code->dial_code }}" {{ (optional($dn->enfant->adresses->last())->lib_pays ?? '') == $code->name ? "selected" : '' }}>({{ $code->dial_code }}) {{ $code->name }}</option>
                         @else
                         <option value="{{ $code->dial_code }}">({{ $code->dial_code }}) {{ $code->name }}</option>
                         @endif
@@ -245,12 +251,12 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Téléphone</label>
-                    <input type="number" min="0" minlength="9" maxlength="10" id="telephone_enfant" name="telephone_enfant" class="form-control" placeholder="Téléphone père" value="{{ $dn->enfant->telephone ?? "" }}">
+                    <input type="number" min="0" minlength="9" maxlength="10" id="telephone_enfant" name="telephone_enfant" class="form-control" placeholder="Téléphone père" value="{{ $dn->enfant->telephone ?? '' }}">
                 </div>
 
                 <div class="mb-2 col-md-4">
                     <label class="form-label">Email</label>
-                    <input type="email" id="email_enfant" class="form-control" name="email_enfant" placeholder="Email père" value="{{ $dn->enfant->user !='' ? $dn->enfant->user->email : "" }}">
+                    <input type="email" id="email_enfant" class="form-control" name="email_enfant" placeholder="Email père" value="{{ $dn->enfant->user->email ?? '' }}">
                 </div>
             </div>
         </div>
@@ -264,23 +270,20 @@
                 <select id="code_situation_matrimoniale" name="code_situation_matrimoniale" class="form-control">
                     <option disabled selected>Choisissez</option>
                     @foreach ($situationMatrimoniales as $item)
-                        <option value="{{ $item->code_situation_matrimoniale }}" {{ $dn->sitMatParent->code_situation_matrimoniale == $item->code_situation_matrimoniale ? "selected" : "" }}>{{ $item->lib_situation_matrimoniale }}</option>
+                        <option value="{{ $item->code_situation_matrimoniale }}" {{ (isset($dn->sitMatParent) && $dn->sitMatParent->code_situation_matrimoniale == $item->code_situation_matrimoniale) ? "selected" : '' }}>{{ $item->lib_situation_matrimoniale }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="mb-2 col-md-3">
-                <label class="form-label">Nombre d'enfants (y compris le sujet)<span class="text-danger">*</span></label>
-                <input type="number" name="nombre_enfants" min="1" value="1" class="form-control" placeholder="0" id="nombre_enfants" value="{{ $dn->nombre_enfant }}">
-            </div>
+         
             <div class="mb-2 col-md-3">
                 <label class="form-label">Date déclaration</label>
-                <input type="date" id="date_heure_declaration" name="date_heure_declaration" class="form-control" value="{{ date("Y-m-d", strtotime($dn->date_heure_declaration)) }}">
+                <input type="date" id="date_heure_declaration" name="date_heure_declaration" class="form-control" value="{{ isset($dn->date_heure_declaration) ? date("Y-m-d", strtotime($dn->date_heure_declaration)) : '' }}">
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Statut <span class="text-danger">*</span></label>
                 <select id="statut_personne_enfant" name="statut_personne_enfant" class="form-control">
-                    <option value="VIVANT" {{ $dn->enfant->statut_personne == "VIVANT" ? "selected" : "" }}>Vivant</option>
-                    <option value="DECEDE" {{ $dn->enfant->statut_personne == "DECEDE" ? "selected" : "" }}>Décédé</option>
+                    <option value="VIVANT" {{ (isset($dn->enfant) && $dn->enfant->statut_personne == "VIVANT") ? "selected" : '' }}>Vivant</option>
+                    <option value="DECEDE" {{ (isset($dn->enfant) && $dn->enfant->statut_personne == "DECEDE") ? "selected" : '' }}>Décédé</option>
                 </select>
             </div>
         </div>

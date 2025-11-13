@@ -126,9 +126,9 @@
             <div class="col-md-3">
                 <label class="form-label">Nationalité <span class="text-danger">*</span></label>
                 <select id="code_nationalite_defunt" name="code_nationalite_defunt" class="form-select form-control required">
-                    <option disabled selected>Choisissez</option>
+                    {{-- <option disabled selected>Choisissez</option> --}}
                     @foreach ($nationalites as $nationalite)
-                        <option value="{{ $nationalite->code_nationalite }}" >{{ $nationalite->lib_nationalite}}</option>
+                        <option value="{{ $nationalite->code_nationalite  }}" >{{ $nationalite->lib_nationalite}}</option>
                     @endforeach
                 </select>
             </div>
@@ -150,7 +150,7 @@
         <div class="col-md-3">
             <input name="code_defunt" id="code_defunt" type="hidden" readonly>
             <label class="form-label" for="validationCustom07">Date décès <span class="text-danger">*</span></label>
-            <input type="date" class="form-control required  @error('date_defunt') is-invalid @enderror " id="date_deces"  name="date_deces"  max="{{ \Carbon\Carbon::now()->format('Y-m-d'); }}" value="{{ $datedeces ?? "" }}">
+            <input type="date" class="form-control required  @error('date_defunt') is-invalid @enderror " id="date_deces"  name="date_deces"  max="{{ \Carbon\Carbon::now()->format('Y-m-d'); }}" value="{{ $datedeces ?? "" }}" @if(isset($datedeces) && $datedeces) readonly @endif>
             @error("date_deces")
             <div class="invalid-feedback">
                 {{ $message }}
@@ -223,13 +223,13 @@
         <div class="mb-2 col-md-3">
             <label class="form-label">Pays<span class="text-danger"></span></label>
             <select id="domicile_pays_defunt" class="form-control">
-                <option value="">Choisissez</option>
+                {{-- <option value="">Choisissez</option> --}}
                 @foreach ($countries as $countrie)
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div class="mb-2 col-md-3 domicile_ville_defunt d-none">
+        <div class="mb-2 col-md-3 domicile_ville_defunt">
             <label class="form-label">Commune/District<span class="text-danger"></span></label>
             <select class="form-control" id="domicile_ville_defunt">
                 <option value="">Choisir</option>

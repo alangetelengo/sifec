@@ -2,23 +2,23 @@
 
 namespace Modules\Naissance\Entities;
 
-use App\Models\InstitutionUser;
 use App\Models\Jugement;
 use App\Models\Requisition;
+use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Filiation;
+use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\LieuSurvenance;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Modules\Referentiel\Entities\Institution;
-use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 
 class Declarationnaissance extends Model
 {
+//	code_declaration_naissance 	nombre_enfant 	date_heure_declaration 	type_declarant 	personne_morale 	personne_declaree 	cec_naissance 	pays_naissance_enfant 	code_declarant 	code_adoptant 	code_enfant 	code_pere 	code_mere 	code_filiation 	code_user_institution 	code_institution 	code_lieu_survenance 	code_situation_mat 	date_heure_naissance 	top_requisition 	numero_req 	numero_certificat 	type_declaration 	formation_sanitaire_naissance 	code_jugement 	code_requisition 	num_jugement 	date_jugement 	code_tribunal_jugement 	numero_ancien_acte
     use HasFactory;
 
     protected $guarded = [];
@@ -89,28 +89,28 @@ class Declarationnaissance extends Model
     }
 
 
-    //institution du jugement
-
-    public function institutionJugement(): BelongsTo
-    {
-        return $this->belongsTo(Institution::class, 'code_tribunal_jugement', 'code_institution');
-    }
-
     public function adoptant(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'code_adoptant', 'code_personne');
     }
 
-    public function tribunaljugement(): BelongsTo
+    /**
+     * Permet de savoir l'institution dont la déclaration a été envoyée
+     */
+    public function institutionDestinataire(): BelongsTo
     {
-        return $this->belongsTo(Institution::class, 'code_tribunal_jugement', 'code_institution');
+        return $this->belongsTo(Institution::class, 'code_institution_destinataire', 'code_institution');
     }
-
-
-    //pour retracer les jugements venant du tribunal
+    //pour retracer le jugement venant du tribunal
     public function jugement(): HasOne
     {
-        return $this->hasOne(Jugement::class, 'code_jugement', 'code_jugement');
+        return $this->hasOne(Jugement::class, 'code_declaration', 'code_declaration_naissance');
+    }
+
+    //pour retracer la réquisition venant du tribunal
+    public function requisition(): HasOne
+    {
+        return $this->hasOne(Requisition::class, 'code_declaration', 'code_declaration_naissance');
     }
 
     //institution appartement le document
@@ -118,11 +118,5 @@ class Declarationnaissance extends Model
     {
         return $this->belongsTo(Institution::class, 'code_institution','code_institution');
     }
-
-    public function requisition(): BelongsTo
-    {
-        return $this->belongsTo(Requisition::class, 'code_requisition','code_requisition');
-    }
-
 
 }

@@ -3,6 +3,7 @@
 namespace Modules\Authentification\Http\Controllers;
 
 use App\Models\User;
+use App\Models\UserAuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -109,10 +110,14 @@ class AuthentificationController extends Controller
 
         $user = User::whereEmail($email)->first();
         if($user == null){
+            // Audit trail pour tentative de connexion avec email inexistant
+            UserAuditTrail::log('UNKNOWN', 'login_failed', "Tentative de connexion avec email inexistant: {$email}");
             toastr()->error("Cette adresse mail n'est pas reconnue");
             return redirect()->back()->withInput();
         }
         if(! Hash::check($password, $user->password)){
+            // Audit trail pour mot de passe incorrect
+            UserAuditTrail::log($user->code_user, 'login_failed', "Mot de passe incorrect");
             toastr()->error("Le mot de passe est incorrect");
             return redirect()->back()->withInput();
         }
@@ -127,7 +132,30 @@ class AuthentificationController extends Controller
             return back();
         }
 
-        Auth::login($user);
+        // ==========================================
+        // VÉRIFICATION 2FA
+        // ==========================================
+
+        // Si l'utilisateur a la 2FA activée
+        if ($user->hasTwoFactorEnabled()) {
+            // Stocker les informations en session
+            session([
+                '2fa:user:id' => $user->code_user,
+                '2fa:remember' => $request->filled('remember'),
+                '2fa:timestamp' => now()->timestamp
+            ]);
+
+            // Rediriger vers la vérification 2FA
+            toastr()->info("Veuillez entrer votre code de vérification.");
+            return redirect()->route('two-factor.verify');
+        }
+
+        // Connexion normale si pas de 2FA
+        Auth::login($user, $request->filled('remember'));
+
+        // Audit trail pour connexion réussie
+        UserAuditTrail::log($user->code_user, 'login', "Connexion réussie");
+
         toastr()->success("Connexion réussie");
 
         return redirect()->route('dashboard.index');

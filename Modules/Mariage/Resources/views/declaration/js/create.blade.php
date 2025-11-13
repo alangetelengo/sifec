@@ -19,17 +19,55 @@
 
 <script>
 
+    /**
+     * Traite et formate les messages d'erreur reçus du serveur
+     */
+    function traiterMessageErreur(response) {
+        var message = response.message;
+
+        // Si le message est un objet, extraire le premier message
+        if (typeof message === 'object' && message !== null) {
+            var messages = Object.values(message);
+            if (messages.length > 0) {
+                message = messages[0];
+            } else {
+                message = "Une erreur s'est produite";
+            }
+        }
+
+        // Si le message est un tableau, prendre le premier élément
+        if (Array.isArray(message)) {
+            message = message.length > 0 ? message[0] : "Une erreur s'est produite";
+        }
+
+        // Si le message est vide ou undefined, utiliser un message par défaut
+        if (!message || message.trim() === '') {
+            // Vérifier si c'est une erreur de validation
+            if (response.errors) {
+                var errors = Object.values(response.errors);
+                if (errors.length > 0) {
+                    message = errors[0][0] || "Erreur de validation";
+                } else {
+                    message = "Une erreur de validation s'est produite";
+                }
+            } else {
+                message = "Une erreur inattendue s'est produite lors de l'enregistrement";
+            }
+        }
+
+        return message;
+    }
+
     $(document).ready(function(){
         //dissimulation par défaut de la notification épouse mineure
         $("#notificationEpouseMineure").hide();
         $("#notificationEpouxMineure").hide();
         $("#notificationPreMariage").hide();
-    });
-    // var nom_enfant = $("#nom_enfant");
 
-    var form = $(".validation-wizard").show();
+        // Initialisation du wizard
+        var form = $(".validation-wizard").show();
 
-    $(".validation-wizard").steps({
+        $(".validation-wizard").steps({
         headerTag: "h6",
         bodyTag: "section",
         transitionEffect: "fade",
@@ -44,6 +82,20 @@
             return form.validate().settings.ignore = ":disabled", form.valid()
         },
         onFinished: function (event, currentIndex) {
+            // Validation des dates avant soumission
+            var dateNaissanceEpoux = $("#date_naissance_epoux").val();
+            var dateEditionEpoux = $("#date_emission_acte_naissance_epoux").val();
+            var dateNaissanceEpouse = $("#date_naissance_epouse").val();
+            var dateEditionEpouse = $("#date_emission_acte_naissance_epouse").val();
+
+            var validEpoux = validateDateEditionActe(dateNaissanceEpoux, dateEditionEpoux, "notificationDateActeEpoux");
+            var validEpouse = validateDateEditionActe(dateNaissanceEpouse, dateEditionEpouse, "notificationDateActeEpouse");
+
+            if (!validEpoux || !validEpouse) {
+                alert("Veuillez corriger les erreurs de dates avant de continuer.");
+                return false;
+            }
+
             soumission();
             console.log(soumission())
         }
@@ -205,84 +257,12 @@
             }
         });
 
-         // VERIFICATION NOMBRE D'ENFANTS
+         // VERIFICATION NOMBRE D'ENFANTS - VERSION OPTIMISEE
          $("#nombre_enfant").on('change', function(){
-            var nombre = parseInt($(this).val());
+            var nombre = parseInt($(this).val()) || 0;
 
-            hideEnfant();
-            switch (nombre) {
-                case 0:
-                    hideEnfant();
-                    break;
-                case 1:
-                    $('#enfant1').show(true);
-
-                    break;
-                case 2:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    break;
-                case 3:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    break;
-                case 4:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    $('#enfant4').show(true);
-                    break;
-                case 5:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    $('#enfant4').show(true);
-                    $('#enfant5').show(true);
-                    break;
-                case 6:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    $('#enfant4').show(true);
-                    $('#enfant5').show(true);
-                    $('#enfant6').show(true);
-                    break;
-                case 7:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    $('#enfant4').show(true);
-                    $('#enfant5').show(true);
-                    $('#enfant6').show(true);
-                    $('#enfant7').show(true);
-                    break;
-                case 8:
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    $('#enfant4').show(true);
-                    $('#enfant5').show(true);
-                    $('#enfant6').show(true);
-                    $('#enfant7').show(true);
-                    $('#enfant8').show(true);
-                    break;
-                case 9:
-                    // alert('Ok');
-                    $('#enfant1').show(true);
-                    $('#enfant2').show(true);
-                    $('#enfant3').show(true);
-                    $('#enfant4').show(true);
-                    $('#enfant5').show(true);
-                    $('#enfant6').show(true);
-                    $('#enfant7').show(true);
-                    $('#enfant8').show(true);
-                    $('#enfant9').show(true);
-                    break;
-                default:
-                hideEnfant();
-                    break;
-            }
+            // Utiliser la fonction optimisée
+            showEnfants(nombre);
         });
 
         //FIN CAS EPOUX
@@ -397,27 +377,46 @@
     });
 
     var enfants = [];
-    //indertion enfant dans le tableau
-    function insertEnfant(nom,prenom,sexe,dateNais,lieuNais){
+
+    // Fonction optimisée d'insertion d'enfant dans le tableau
+    function insertEnfant(nom, prenom, sexe, dateNais, lieuNais){
+        // Validation des données obligatoires
+        if(!nom || !prenom) {
+            console.warn('Nom et prénom sont obligatoires pour ajouter un enfant');
+            return false;
+        }
+
         enfants.push({
-            nom: nom,
-            prenom: prenom,
-            sexe: sexe,
-            date_naissance: dateNais,
-            lieu_naissance: lieuNais
+            nom: nom.trim(),
+            prenom: prenom.trim(),
+            sexe: sexe || '',
+            date_naissance: dateNais || '',
+            lieu_naissance: lieuNais || ''
         });
+
+        return true;
     }
-    //GESTION IDENTIFICATION ENFANT
+
+    // Fonction utilitaire pour vider la liste des enfants
+    function clearEnfants() {
+        enfants = [];
+    }
+    //GESTION IDENTIFICATION ENFANT - VERSION OPTIMISEE
     function hideEnfant(){
-        $('#enfant1').hide(true);
-        $('#enfant2').hide(true);
-        $('#enfant3').hide(true);
-        $('#enfant4').hide(true);
-        $('#enfant5').hide(true);
-        $('#enfant6').hide(true);
-        $('#enfant7').hide(true);
-        $('#enfant8').hide(true);
-        $('#enfant9').hide(true);
+        // Masquer tous les enfants d'un coup avec un sélecteur
+        for(let i = 1; i <= 9; i++) {
+            $('#enfant' + i).hide();
+        }
+    }
+
+    // Fonction optimisée pour afficher les enfants
+    function showEnfants(nombre) {
+        hideEnfant(); // Masquer tous d'abord
+
+        // Afficher seulement le nombre requis
+        for(let i = 1; i <= nombre; i++) {
+            $('#enfant' + i).show();
+        }
     }
 
     function hideEtrangepoux(){
@@ -469,20 +468,18 @@
 
         enfants = [];
 
-        for (var index = 1; nombre_enfant >= index; index++) {
-            nom = nom+''+index;
-            prenom = prenom+''+index;
-            sexe = sexe+''+index;
-            date_naissance = date_naissance+''+index;
-            lieu_naissance = lieu_naissance+''+index;
+        // Boucle optimisée pour collecter les données des enfants
+        for (var index = 1; index <= nombre_enfant; index++) {
+            var nom = $("#nom" + index).val();
+            var prenom = $("#prenom" + index).val();
+            var sexe = $("#sexe" + index).val();
+            var date_naissance = $("#datenaiss" + index).val();
+            var lieu_naissance = $("#lieunaiss" + index).val();
 
-            nom = $("#nom"+index+"").val();
-            prenom = $("#prenom"+index+"").val();
-            sexe = $("#sexe"+index+"").val();
-            date_naissance = $("#datenaiss"+index+"").val();
-            lieu_naissance = $("#lieunaiss"+index+"").val();
-
-            insertEnfant(nom,prenom,sexe,date_naissance,lieu_naissance);
+            // Insérer seulement si les champs obligatoires sont remplis
+            if(nom && prenom) {
+                insertEnfant(nom, prenom, sexe, date_naissance, lieu_naissance);
+            }
         }
 
 
@@ -545,43 +542,35 @@
         var domicile_nomvoie_epoux = $("#domicile_nomvoie_epoux");
         var domicile_numero_epoux = $("#domicile_numero_epoux");
 
-        var domicile_pays_epouse = "";
-        var domicile_ville_epouse = "";
-        var domicile_arrondissement_epouse = "";
-        var domicile_quartier_epouse = "";
-        var domicile_typevoie_epouse = "";
-        var domicile_nomvoie_epouse = "";
-        var domicile_numero_epouse = "";
+        // Variables pour les adresses épouse (valeurs string, pas objets jQuery)
+        var domicile_pays_epouse_val = "";
+        var domicile_ville_epouse_val = "";
+        var domicile_arrondissement_epouse_val = "";
+        var domicile_quartier_epouse_val = "";
+        var domicile_typevoie_epouse_val = "";
+        var domicile_nomvoie_epouse_val = "";
+        var domicile_numero_epouse_val = "";
 
         //fin epoux
-        //POUR LES MEMES ADRESSES
-        var sameadress = $("#sameadress").val();
-        var otheradress = $("#otheradress").val();
-
-
-        if(sameadress == 1){
-             //adresse épouse
-           domicile_pays_epouse = $("#domicile_pays_epoux");
-           domicile_pays_epouse = $("#domicile_pays_epoux");
-           domicile_ville_epouse = $("#domicile_ville_epoux");
-           domicile_arrondissement_epouse = $("#domicile_arrondissement_epoux");
-           domicile_quartier_epouse = $("#domicile_quartier_epoux");
-           domicile_typevoie_epouse = $("#domicile_typevoie_epoux");
-           domicile_nomvoie_epouse = $("#domicile_nomvoie_epoux");
-           domicile_numero_epouse = $("#domicile_numero_epoux");
-            //fin adresse epouse
-        }
-        if(otheradress == 1){
-           //adresse épouse
-           domicile_pays_epouse = $("#domicile_pays_epouse");
-           domicile_pays_epouse = $("#domicile_pays_epouse");
-           domicile_ville_epouse = $("#domicile_ville_epouse");
-           domicile_arrondissement_epouse = $("#domicile_arrondissement_epouse");
-           domicile_quartier_epouse = $("#domicile_quartier_epouse");
-           domicile_typevoie_epouse = $("#domicile_typevoie_epouse");
-           domicile_nomvoie_epouse = $("#domicile_nomvoie_epouse");
-           domicile_numero_epouse = $("#domicile_numero_epouse");
-            //fin adresse epouse
+        // GESTION DES ADRESSES ÉPOUSE
+        if($("#sameadress").is(':checked')){
+            // Si même adresse que l'époux, copier les valeurs de l'époux
+            domicile_pays_epouse_val = $("#domicile_pays_epoux").val();
+            domicile_ville_epouse_val = $("#domicile_ville_epoux").val();
+            domicile_arrondissement_epouse_val = $("#domicile_arrondissement_epoux").val();
+            domicile_quartier_epouse_val = $("#domicile_quartier_epoux").val();
+            domicile_typevoie_epouse_val = $("#domicile_typevoie_epoux").val();
+            domicile_nomvoie_epouse_val = $("#domicile_nomvoie_epoux").val();
+            domicile_numero_epouse_val = $("#domicile_numero_epoux").val();
+        } else {
+            // Si adresse différente, prendre les valeurs des champs épouse
+            domicile_pays_epouse_val = $("#domicile_pays_epouse").val();
+            domicile_ville_epouse_val = $("#domicile_ville_epouse").val();
+            domicile_arrondissement_epouse_val = $("#domicile_arrondissement_epouse").val();
+            domicile_quartier_epouse_val = $("#domicile_quartier_epouse").val();
+            domicile_typevoie_epouse_val = $("#domicile_typevoie_epouse").val();
+            domicile_nomvoie_epouse_val = $("#domicile_nomvoie_epouse").val();
+            domicile_numero_epouse_val = $("#domicile_numero_epouse").val();
         }
 
         var nom_pere_epouse = $("#nom_pere_epouse");
@@ -609,7 +598,6 @@
         var numero_document_t_epouse_1 = $("#numero_document_t_epouse_1");
 
          //adresse témoins épouse
-        var domicile_pays_temoins_epouse = $("#domicile_pays_temoins_epouse");
         var domicile_pays_temoins_epouse = $("#domicile_pays_temoins_epouse");
         var domicile_ville_temoins_epouse = $("#domicile_ville_temoins_epouse");
         var domicile_arrondissement_temoins_epouse = $("#domicile_arrondissement_temoins_epouse");
@@ -648,11 +636,13 @@
         var date_ceremonie_mariage = $("#date_ceremonie_mariage");
         var lieu_ceremonie_mariage = $("#lieu_ceremonie_mariage");
 
-        var lib_quartier_ceremonie = $("#lib_quartier_ceremonie");
-        var lib_village_ceremonie = $("#lib_village_ceremonie");
+        // Variables pour l'adresse de cérémonie
+        var domicile_pays_ceremonie = $("#domicile_pays_ceremonie");
         var domicile_ville_ceremonie = $("#domicile_ville_ceremonie");
+        var autredomicile_ville_ceremonie = $("#autredomicile_ville_ceremonie");
         var domicile_arrondissement_ceremonie = $("#domicile_arrondissement_ceremonie");
-        var domicile_ceremonie = $("#domicile_ceremonie");
+        var domicile_quartier_ceremonie = $("#domicile_quartier_ceremonie");
+        var domicile_typevoie_ceremonie = $("#domicile_typevoie_ceremonie");
         var domicile_numero_ceremonie = $("#domicile_numero_ceremonie");
         var domicile_nomvoie_ceremonie = $("#domicile_nomvoie_ceremonie");
         var numero_jugement_divorce_epouse = $("#numero_jugement_divorce_epouse");
@@ -703,13 +693,13 @@
                 code_type_document_epoux :code_type_document_epoux.val(),
                 numero_document_epoux :numero_document_epoux.val(),
                  //adresse epouse
-                domicile_pays_epouse :domicile_pays_epouse.val(),
-                domicile_ville_epouse :domicile_ville_epouse.val(),
-                domicile_quartier_epouse :domicile_quartier_epouse.val(),
-                domicile_arrondissement_epouse :domicile_arrondissement_epouse.val(),
-                domicile_typevoie_epouse :domicile_typevoie_epouse.val(),
-                domicile_nomvoie_epouse :domicile_nomvoie_epouse.val(),
-                domicile_numero_epouse :domicile_numero_epouse.val(),
+                domicile_pays_epouse :domicile_pays_epouse_val,
+                domicile_ville_epouse :domicile_ville_epouse_val,
+                domicile_quartier_epouse :domicile_quartier_epouse_val,
+                domicile_arrondissement_epouse :domicile_arrondissement_epouse_val,
+                domicile_typevoie_epouse :domicile_typevoie_epouse_val,
+                domicile_nomvoie_epouse :domicile_nomvoie_epouse_val,
+                domicile_numero_epouse :domicile_numero_epouse_val,
                 //fin adresse epouse
                 // informations de l'épouse
                 nom_epouse :nom_epouse.val(),
@@ -810,11 +800,14 @@
                 date_declaration_mariage :date_declaration_mariage.val(),
                 date_ceremonie_mariage :date_ceremonie_mariage.val(),
                 lieu_ceremonie_mariage :lieu_ceremonie_mariage.val(),
-                lib_quartier_ceremonie :lib_quartier_ceremonie.val(),
-                lib_village_ceremonie :lib_village_ceremonie.val(),
+
+                // Adresse de cérémonie
+                domicile_pays_ceremonie :domicile_pays_ceremonie.val(),
                 domicile_ville_ceremonie :domicile_ville_ceremonie.val(),
+                autredomicile_ville_ceremonie :autredomicile_ville_ceremonie.val(),
                 domicile_arrondissement_ceremonie :domicile_arrondissement_ceremonie.val(),
-                domicile_ceremonie :domicile_ceremonie.val(),
+                domicile_quartier_ceremonie :domicile_quartier_ceremonie.val(),
+                domicile_typevoie_ceremonie :domicile_typevoie_ceremonie.val(),
                 domicile_numero_ceremonie :domicile_numero_ceremonie.val(),
                 domicile_nomvoie_ceremonie :domicile_nomvoie_ceremonie.val(),
                 numero_jugement_divorce_epoux :numero_jugement_divorce_epoux.val(),
@@ -832,21 +825,45 @@
 
         //Traitement formulaire
         $.post("{{ route('declarationMariage.store') }}", data, function(response){
+            console.log('Réponse du serveur:', response); // Debug
 
-            if(response.code == "200"){
-                flashAlert("Opération réussie","success",response.message);
+            // Vérifier si la réponse est valide
+            // if (!response) {
+            //     flashAlert("Opération échouée","error","Aucune réponse du serveur");
+            //     return;
+            // }
+
+            // Vérifier le code de réponse (string ou number)
+            var codeResponse = response.code;
+            if (codeResponse == "200" || codeResponse == 200) {
+                flashAlert("Opération réussie","success",response.message || "La déclaration de mariage a été enregistrée avec succès");
                 var url = "{{ route('declarationMariage.index') }}";
                 setTimeout(() => {
-                    window.open(url);
-                }, 4000);
-            }else{
-                var outString = "<ul>";
-                    for (const [key, value] of Object.entries(response.message)) {
-                        outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                }
-                outString += "</ul>";
-                flashAlert("Une erreur est suvernue","error",outString);
+                    window.location.href = url; // Utiliser window.location.href au lieu de window.open
+                }, 2000);
+            } else {
+                // Gestion améliorée des messages d'erreur
+                var messageErreur = traiterMessageErreur(response);
+                flashAlert("Opération échouée","error",messageErreur);
             }
+        }).fail(function(xhr) {
+            console.log('Erreur AJAX:', xhr); // Debug
+            // Gestion des erreurs de connexion
+            var messageErreur = "Erreur de connexion. Veuillez vérifier votre connexion internet et réessayer.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                messageErreur = traiterMessageErreur(xhr.responseJSON);
+            } else if (xhr.responseText) {
+                try {
+                    var responseData = JSON.parse(xhr.responseText);
+                    if (responseData.message) {
+                        messageErreur = traiterMessageErreur(responseData);
+                    }
+                } catch (e) {
+                    // Si ce n'est pas du JSON, utiliser le texte brut
+                    messageErreur = xhr.responseText || messageErreur;
+                }
+            }
+            flashAlert("Erreur de connexion","error",messageErreur);
         });
         return false;
 
@@ -866,17 +883,17 @@
             $("#notificationEpouseMineure").show(300);
         }else{
             $("#notificationEpouseMineure").hide(300);
-        }   
+        }
 
     });
 
 
      //contrôle de la maturité de l"épouse
      $("#date_naissance_epoux").blur(function(){
-       
+
         //réucpération de l'année couranrt
         var dateCourante = new Date();
-        
+
         var anneeCourante = dateCourante.getFullYear();
        // alert(anneeCourante);
         var anneeNaissanceEpouse = new Date($(this).val()).getFullYear();
@@ -887,7 +904,7 @@
             $("#notificationEpouxMineure").show(300);
         }else{
             $("#notificationEpouxMineure").hide(300);
-        }  
+        }
         return false;
     });
 
@@ -905,7 +922,7 @@
        //var diff = dateMariage - anneeNaissanceEpouse;
        //affichage de la notification
        if(dateMariage<=datePre){
-            //affichage de la barre de notification 
+            //affichage de la barre de notification
            $("#notificationPreMariage").show(300);
            //dissimulation du bouton enregistrer
            $("a[href='#finish']").attr("style", 'display:none;');
@@ -914,7 +931,7 @@
            $("#notificationPreMariage").hide(300);
            $("a[href='#finish']").attr("style", 'display:block;');
         //    $("a[href='#finish']").attr("href", '#finish');
-       }  
+       }
        return false;
    });
 
@@ -931,14 +948,406 @@
        //affichage de la notification
        alert(dateMariage);
        if(dateMariage<=datePre){
-            //affichage de la barre de notification 
+            //affichage de la barre de notification
            $("#notificationPreMariage").show(300);
            //dissimulation du bouton enregistrer
            $("a[href='#next']").attr("style", 'background:silver;');
            $("a[href='#next']").attr("href", '#');
        }else{
            $("#notificationPreMariage").hide(300);
-       }  
+       }
        return false;
    });*/
+
+    // ========== GESTION DES ADRESSES ==========
+
+    // Fonctions utilitaires pour récupérer les données d'adresse
+    function getArrComUrbaine(codeLocalite, selectId) {
+        var route = "{{ route('declarationNaissance.search.arrond') }}";
+        var option = "<option value=''>Choisir</option>";
+
+        $.ajax({
+            url: route,
+            data: 'id=' + codeLocalite,
+            dataType: 'json',
+            success: function(json) {
+                $.each(json, function (index, value) {
+                    option += '<option value="'+value.code_localite+'">'+value.lib_localite+'</option>';
+                });
+                $("#"+selectId).html(option);
+            },
+            error: function() {
+                console.log('Erreur lors du chargement des arrondissements');
+            }
+        });
+    }
+
+    function getQuartierVillage(codeLocalite, selectId) {
+        var route = "{{ route('declarationNaissance.search.quartier') }}";
+        var option = "<option value=''>Choisir</option>";
+
+        $.ajax({
+            url: route,
+            data: 'id=' + codeLocalite,
+            dataType: 'json',
+            success: function(json) {
+                $.each(json, function (index, value) {
+                    option += '<option value="'+value.code_localite+'">'+value.lib_localite+'</option>';
+                });
+                $("#"+selectId).html(option);
+            },
+            error: function() {
+                console.log('Erreur lors du chargement des quartiers');
+            }
+        });
+    }
+
+    // ========== ADRESSE ÉPOUX ==========
+    $('#domicile_pays_epoux').on('change', function () {
+        var pays = $('#domicile_pays_epoux').val();
+        if (pays == 'Congo') {
+            $('div.domicile_ville_epoux').removeClass('d-none');
+            $('div.autredomicile_ville_epoux').addClass('d-none');
+            $('div.domicile_arrondissement_epoux').addClass('d-none');
+            $('div.domicile_quartier_epoux').addClass('d-none');
+
+            $('#domicile_ville_epoux').prop('disabled', false);
+            $('#domicile_arrondissement_epoux').prop('disabled', true);
+            $('#domicile_quartier_epoux').prop('disabled', true);
+            $('#autredomicile_ville_epoux').prop('disabled', true);
+
+        } else {
+            $("div.domicile_ville_epoux").addClass("d-none");
+            $("div.domicile_arrondissement_epoux").addClass("d-none");
+            $("div.domicile_quartier_epoux").addClass('d-none');
+            $('#domicile_ville_epoux').prop('disabled', true);
+            $('#domicile_arrondissement_epoux').prop('disabled', true);
+            $('#domicile_quartier_epoux').prop('disabled', true);
+
+            $('div.autredomicile_ville_epoux').removeClass('d-none');
+            $('#autredomicile_ville_epoux').prop('disabled', false);
+        }
+    });
+
+    $("#domicile_ville_epoux").on("change", function(){
+        var localiteParent = $(this).val();
+
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_arrondissement_epoux").removeClass("d-none");
+            $('#domicile_arrondissement_epoux').prop('disabled', false);
+
+            getArrComUrbaine(localiteParent, 'domicile_arrondissement_epoux');
+        }
+    });
+
+    $("#domicile_arrondissement_epoux").on("change", function(){
+        var localiteParent = $(this).val();
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_quartier_epoux").removeClass('d-none');
+            $('#domicile_quartier_epoux').prop('disabled', false);
+
+            getQuartierVillage(localiteParent, 'domicile_quartier_epoux');
+        }
+    });
+
+    // ========== ADRESSE ÉPOUSE ==========
+    // Initialisation par défaut : champs désactivés
+    $(document).ready(function(){
+        $(".adresseepouse select, .adresseepouse input").prop('disabled', true);
+        $("#otheradress").prop('checked', true); // Par défaut "NON" sélectionné
+        $(".adresseepouse select, .adresseepouse input").prop('disabled', false);
+    });
+
+    // Gestion du radio "Même adresse que l'époux"
+    $("input[name='adressepouse']").on("change", function(){
+        if($("#sameadress").is(':checked')){
+            // OUI - Même adresse que l'époux
+            // Copier les valeurs de l'époux vers l'épouse
+            $("#domicile_pays_epouse").val($("#domicile_pays_epoux").val());
+            $("#domicile_ville_epouse").val($("#domicile_ville_epoux").val());
+            $("#domicile_arrondissement_epouse").val($("#domicile_arrondissement_epoux").val());
+            $("#domicile_quartier_epouse").val($("#domicile_quartier_epoux").val());
+            $("#domicile_typevoie_epouse").val($("#domicile_typevoie_epoux").val());
+            $("#domicile_numero_epouse").val($("#domicile_numero_epoux").val());
+            $("#domicile_nomvoie_epouse").val($("#domicile_nomvoie_epoux").val());
+
+            // Désactiver tous les champs d'adresse de l'épouse
+            $(".adresseepouse select, .adresseepouse input").prop('disabled', true);
+
+            // Masquer les divs de cascade géographique
+            $('div.autredomicile_ville_epouse').addClass('d-none');
+            $('div.domicile_arrondissement_epouse').addClass('d-none');
+            $('div.domicile_quartier_epouse').addClass('d-none');
+
+        } else if($("#otheradress").is(':checked')) {
+            // NON - Adresse différente
+            // Activer tous les champs d'adresse de l'épouse
+            $(".adresseepouse select, .adresseepouse input").prop('disabled', false);
+
+            // Réinitialiser les valeurs
+            $("#domicile_pays_epouse").val("");
+            $("#domicile_ville_epouse").val("");
+            $("#domicile_arrondissement_epouse").html('<option value="">Choisir</option>');
+            $("#domicile_quartier_epouse").html('<option value="">Choisir</option>');
+            $("#domicile_typevoie_epouse").val("");
+            $("#domicile_numero_epouse").val("");
+            $("#domicile_nomvoie_epouse").val("");
+
+            // Masquer les divs de cascade géographique
+            $('div.autredomicile_ville_epouse').addClass('d-none');
+            $('div.domicile_arrondissement_epouse').addClass('d-none');
+            $('div.domicile_quartier_epouse').addClass('d-none');
+        }
+    });
+
+    $('#domicile_pays_epouse').on('change', function () {
+        if($("#otheradress").is(':checked')) {
+            var pays = $('#domicile_pays_epouse').val();
+            if (pays == 'Congo') {
+                $('div.domicile_ville_epouse').removeClass('d-none');
+                $('div.autredomicile_ville_epouse').addClass('d-none');
+                $('div.domicile_arrondissement_epouse').addClass('d-none');
+                $('div.domicile_quartier_epouse').addClass('d-none');
+
+                $('#domicile_ville_epouse').prop('disabled', false);
+                $('#domicile_arrondissement_epouse').prop('disabled', true);
+                $('#domicile_quartier_epouse').prop('disabled', true);
+                $('#autredomicile_ville_epouse').prop('disabled', true);
+
+            } else {
+                $("div.domicile_ville_epouse").addClass("d-none");
+                $("div.domicile_arrondissement_epouse").addClass("d-none");
+                $("div.domicile_quartier_epouse").addClass('d-none');
+                $('#domicile_ville_epouse').prop('disabled', true);
+                $('#domicile_arrondissement_epouse').prop('disabled', true);
+                $('#domicile_quartier_epouse').prop('disabled', true);
+
+                $('div.autredomicile_ville_epouse').removeClass('d-none');
+                $('#autredomicile_ville_epouse').prop('disabled', false);
+            }
+        }
+    });
+
+    $("#domicile_ville_epouse").on("change", function(){
+        if($("#otheradress").is(':checked')) {
+            var localiteParent = $(this).val();
+
+            if(localiteParent != "" && localiteParent != null){
+                $("div.domicile_arrondissement_epouse").removeClass("d-none");
+                $('#domicile_arrondissement_epouse').prop('disabled', false);
+
+                getArrComUrbaine(localiteParent, 'domicile_arrondissement_epouse');
+            }
+        }
+    });
+
+    $("#domicile_arrondissement_epouse").on("change", function(){
+        if($("#otheradress").is(':checked')) {
+            var localiteParent = $(this).val();
+            if(localiteParent != "" && localiteParent != null){
+                $("div.domicile_quartier_epouse").removeClass('d-none');
+                $('#domicile_quartier_epouse').prop('disabled', false);
+
+                getQuartierVillage(localiteParent, 'domicile_quartier_epouse');
+            }
+        }
+    });
+
+    // ========== ADRESSE TÉMOINS ÉPOUX ==========
+    $('#domicile_pays_temoins_epoux').on('change', function () {
+        var pays = $('#domicile_pays_temoins_epoux').val();
+        if (pays == 'Congo') {
+            $('div.domicile_ville_temoins_epoux').removeClass('d-none');
+            $('div.autredomicile_ville_temoins_epoux').addClass('d-none');
+            $('div.domicile_arrondissement_temoins_epoux').addClass('d-none');
+            $('div.domicile_quartier_temoins_epoux').addClass('d-none');
+
+            $('#domicile_ville_temoins_epoux').prop('disabled', false);
+            $('#domicile_arrondissement_temoins_epoux').prop('disabled', true);
+            $('#domicile_quartier_temoins_epoux').prop('disabled', true);
+            $('#autredomicile_ville_temoins_epoux').prop('disabled', true);
+
+        } else {
+            $("div.domicile_ville_temoins_epoux").addClass("d-none");
+            $("div.domicile_arrondissement_temoins_epoux").addClass("d-none");
+            $("div.domicile_quartier_temoins_epoux").addClass('d-none');
+            $('#domicile_ville_temoins_epoux').prop('disabled', true);
+            $('#domicile_arrondissement_temoins_epoux').prop('disabled', true);
+            $('#domicile_quartier_temoins_epoux').prop('disabled', true);
+
+            $('div.autredomicile_ville_temoins_epoux').removeClass('d-none');
+            $('#autredomicile_ville_temoins_epoux').prop('disabled', false);
+        }
+    });
+
+    $("#domicile_ville_temoins_epoux").on("change", function(){
+        var localiteParent = $(this).val();
+
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_arrondissement_temoins_epoux").removeClass("d-none");
+            $('#domicile_arrondissement_temoins_epoux').prop('disabled', false);
+
+            getArrComUrbaine(localiteParent, 'domicile_arrondissement_temoins_epoux');
+        }
+    });
+
+    $("#domicile_arrondissement_temoins_epoux").on("change", function(){
+        var localiteParent = $(this).val();
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_quartier_temoins_epoux").removeClass('d-none');
+            $('#domicile_quartier_temoins_epoux').prop('disabled', false);
+
+            getQuartierVillage(localiteParent, 'domicile_quartier_temoins_epoux');
+        }
+    });
+
+    // ========== ADRESSE TÉMOINS ÉPOUSE ==========
+    $('#domicile_pays_temoins_epouse').on('change', function () {
+        var pays = $('#domicile_pays_temoins_epouse').val();
+        if (pays == 'Congo') {
+            $('div.domicile_ville_temoins_epouse').removeClass('d-none');
+            $('div.autredomicile_ville_temoins_epouse').addClass('d-none');
+            $('div.domicile_arrondissement_temoins_epouse').addClass('d-none');
+            $('div.domicile_quartier_temoins_epouse').addClass('d-none');
+
+            $('#domicile_ville_temoins_epouse').prop('disabled', false);
+            $('#domicile_arrondissement_temoins_epouse').prop('disabled', true);
+            $('#domicile_quartier_temoins_epouse').prop('disabled', true);
+            $('#autredomicile_ville_temoins_epouse').prop('disabled', true);
+
+        } else {
+            $("div.domicile_ville_temoins_epouse").addClass("d-none");
+            $("div.domicile_arrondissement_temoins_epouse").addClass("d-none");
+            $("div.domicile_quartier_temoins_epouse").addClass('d-none');
+            $('#domicile_ville_temoins_epouse').prop('disabled', true);
+            $('#domicile_arrondissement_temoins_epouse').prop('disabled', true);
+            $('#domicile_quartier_temoins_epouse').prop('disabled', true);
+
+            $('div.autredomicile_ville_temoins_epouse').removeClass('d-none');
+            $('#autredomicile_ville_temoins_epouse').prop('disabled', false);
+        }
+    });
+
+    $("#domicile_ville_temoins_epouse").on("change", function(){
+        var localiteParent = $(this).val();
+
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_arrondissement_temoins_epouse").removeClass("d-none");
+            $('#domicile_arrondissement_temoins_epouse').prop('disabled', false);
+
+            getArrComUrbaine(localiteParent, 'domicile_arrondissement_temoins_epouse');
+        }
+    });
+
+    $("#domicile_arrondissement_temoins_epouse").on("change", function(){
+        var localiteParent = $(this).val();
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_quartier_temoins_epouse").removeClass('d-none');
+            $('#domicile_quartier_temoins_epouse').prop('disabled', false);
+
+            getQuartierVillage(localiteParent, 'domicile_quartier_temoins_epouse');
+        }
+    });
+
+    // ========== VALIDATION DES DATES D'ACTES DE NAISSANCE ==========
+
+    // Fonction pour valider que la date d'édition >= date de naissance
+    function validateDateEditionActe(dateNaissance, dateEdition, notificationId) {
+        if (dateNaissance && dateEdition) {
+            var naissance = new Date(dateNaissance);
+            var edition = new Date(dateEdition);
+
+            if (edition < naissance) {
+                $("#" + notificationId).show();
+                return false;
+            } else {
+                $("#" + notificationId).hide();
+                return true;
+            }
+        }
+        return true;
+    }
+
+    // Validation pour l'époux
+    $("#date_naissance_epoux, #date_emission_acte_naissance_epoux").on("change blur", function(){
+        var dateNaissance = $("#date_naissance_epoux").val();
+        var dateEdition = $("#date_emission_acte_naissance_epoux").val();
+        validateDateEditionActe(dateNaissance, dateEdition, "notificationDateActeEpoux");
+    });
+
+    // Validation pour l'épouse
+    $("#date_naissance_epouse, #date_emission_acte_naissance_epouse").on("change blur", function(){
+        var dateNaissance = $("#date_naissance_epouse").val();
+        var dateEdition = $("#date_emission_acte_naissance_epouse").val();
+        validateDateEditionActe(dateNaissance, dateEdition, "notificationDateActeEpouse");
+    });
+
+    // ========== ADRESSE CÉRÉMONIE ==========
+    // Gestion de l'affichage de l'adresse détaillée selon le lieu de cérémonie
+    $("#lieu_ceremonie_mariage").on("change", function(){
+        var lieuCeremonie = $(this).val();
+
+        // Si le lieu nécessite une adresse détaillée (domicile privé par exemple)
+        if(lieuCeremonie == "Domicile" || lieuCeremonie == "Autre lieu privé") {
+            $(".adresse_ceremonie_details").removeClass("d-none");
+            $("#domicile_pays_ceremonie").val("Congo").trigger('change'); // Par défaut Congo
+        } else {
+            $(".adresse_ceremonie_details").addClass("d-none");
+            // Réinitialiser les champs
+            $("#domicile_pays_ceremonie").val("");
+            $("#domicile_ville_ceremonie").val("");
+            $("#domicile_arrondissement_ceremonie").html('<option value="">Choisir</option>');
+            $("#domicile_quartier_ceremonie").html('<option value="">Choisir</option>');
+        }
+    });
+
+    $('#domicile_pays_ceremonie').on('change', function () {
+        var pays = $('#domicile_pays_ceremonie').val();
+        if (pays == 'Congo') {
+            $('div.domicile_ville_ceremonie').removeClass('d-none');
+            $('div.autredomicile_ville_ceremonie').addClass('d-none');
+            $('div.domicile_arrondissement_ceremonie').addClass('d-none');
+            $('div.domicile_quartier_ceremonie').addClass('d-none');
+
+            $('#domicile_ville_ceremonie').prop('disabled', false);
+            $('#domicile_arrondissement_ceremonie').prop('disabled', true);
+            $('#domicile_quartier_ceremonie').prop('disabled', true);
+            $('#autredomicile_ville_ceremonie').prop('disabled', true);
+
+        } else {
+            $("div.domicile_ville_ceremonie").addClass("d-none");
+            $("div.domicile_arrondissement_ceremonie").addClass("d-none");
+            $("div.domicile_quartier_ceremonie").addClass('d-none');
+            $('#domicile_ville_ceremonie').prop('disabled', true);
+            $('#domicile_arrondissement_ceremonie').prop('disabled', true);
+            $('#domicile_quartier_ceremonie').prop('disabled', true);
+
+            $('div.autredomicile_ville_ceremonie').removeClass('d-none');
+            $('#autredomicile_ville_ceremonie').prop('disabled', false);
+        }
+    });
+
+    $("#domicile_ville_ceremonie").on("change", function(){
+        var localiteParent = $(this).val();
+
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_arrondissement_ceremonie").removeClass("d-none");
+            $('#domicile_arrondissement_ceremonie').prop('disabled', false);
+
+            getArrComUrbaine(localiteParent, 'domicile_arrondissement_ceremonie');
+        }
+    });
+
+    $("#domicile_arrondissement_ceremonie").on("change", function(){
+        var localiteParent = $(this).val();
+        if(localiteParent != "" && localiteParent != null){
+            $("div.domicile_quartier_ceremonie").removeClass('d-none');
+            $('#domicile_quartier_ceremonie').prop('disabled', false);
+
+            getQuartierVillage(localiteParent, 'domicile_quartier_ceremonie');
+        }
+    });
+
+    }); // Fermeture du $(document).ready()
+
 </script>

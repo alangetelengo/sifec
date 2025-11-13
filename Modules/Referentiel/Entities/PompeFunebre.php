@@ -1,4 +1,4 @@
-<?php
+&&²<?php
 
 namespace Modules\Referentiel\Entities;
 
@@ -32,6 +32,6 @@ class PompeFunebre extends Model
 
 
 
-    
+
 
 }

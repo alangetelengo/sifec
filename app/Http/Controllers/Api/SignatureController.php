@@ -21,6 +21,11 @@ class SignatureController extends Controller
         $numeroActe = $request->numero_acte;
         $etat = $request->etat;
         $am = ActeMariage::find($numeroActe);
+        // return response()->json([
+        //     "message"=> $numeroActe
+        //     //"traitement réussi"
+        // ]);
+
         //verification de l'acte
         if($etat == 1){
 
@@ -56,33 +61,19 @@ class SignatureController extends Controller
 
             $msg = "";
 
-            if(isset($request->signature_epoux)){
-                $signatureEpoux =  $request->signature_epoux;
+            if($request->signature_epoux){
+                //recuperation de la signature courante
+                $lastSign = Signature::where("code_declaration_mariage",$am->code_declaration_mariage)->first();
+                //update signature epouse
+                $lastSign->signature_epoux = $request->signature_epoux;
+                if($lastSign->save()){
 
-                 //vérification des signatures
-                $signExist = Signature::where('code_declaration_mariage',$am->code_declaration_mariage)->first();
-                //vérification de la signature de l'époux
-                if($signExist == null){
-                    //enregistre de la premiere signature donc epoux
-                    $signature = new Signature;
-                    $signature->code_signature_mariage = Sifec::genererCodeUniqueReferentiel(new Signature(),"code_signature_mariage",4,"CSM_");
-                    $signature->code_declaration_mariage = $am->code_declaration_mariage;
-                    $signature->signature_epoux = $signatureEpoux;
-                    if($signature->save()){
-
-                        $msg = "traitement réussi";
-                    }else{
-                        $msg = "traitement échoué";
-                    }
-                }else{
-                    //update de la signature de l'époux
-                    $signExist->signature_epoux = $signatureEpoux;
-                    $signExist->save();
                     $msg = "traitement réussi";
+                }else{
+                    $msg = "traitement échoué";
                 }
-
-
             }
+
             if(isset($request->signature_epouse)){
                 //recuperation de la signature courante
                 $lastSign = Signature::where("code_declaration_mariage",$am->code_declaration_mariage)->first();

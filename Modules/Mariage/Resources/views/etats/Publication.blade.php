@@ -13,47 +13,18 @@
 </style>
  <page orientation="portrait" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
    @php
-        $localite = "";
-        $localiteParent = "";
-        $inst = "";
-        $institution = $dm->institutionUser->institution;
-        $localisation = "";
-
-        if ($institution->code_arrondissement != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-            $localisation = $institution->arrondissement->commune->lib_commune;
-        }
-
-        if ($institution->code_commune != NULL) {
-            $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-            $localite  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-            $localisation = $institution->commune->lib_commune;
-        }
-
-        if ($institution->code_communaute_urbaine != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-
-        if ($institution->code_district != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "DISTRICT DE ".$institution->district->lib_district;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
+        $commune = "COMMUNE DE ".$dm->institution->lieu->localiteParent->lib_localite;
+        $dpt  = "DEPARTEMENT DE ". $dm->institution->lieu->localiteParent->localiteParent->lib_localite;
+        $cec = $dm->institution->lib_institution;
    @endphp
 
    <table cellspacing="0" style="width: 100%; font-size: 12pt; margin-left: 20px;">
        <tr>
            <td style="width:33%; text-align: center;">
                <p>
-                <strong>{{ "DEPARTEMENT DE LA ".$dm->institutionUser->institution->lieu->localiteParent->localiteParent->lib_localite }}</strong><br>
-                {{-- <strong>{{ $localite}}</strong><br> --}}
-                <strong>{{ $dm->institutionUser->institution->lib_institution }}</strong>
+                <strong>{{ $dpt }}</strong><br>
+                <strong>{{ $commune}}</strong><br>
+                <strong>{{ $cec }}</strong>
             </p>
            </td>
            <td style="width:33%; text-align: center;">
@@ -176,7 +147,7 @@
                             </td>
                             <td style="font-size: 12px;">
                                 {{-- Fait à {{ $dm->institutionUser->institution->arrondissement->commune->lib_commune }}, le {{ date("d/m/Y", strtotime($dm->date_declaration_mariage)) }}<br> --}}
-                                Fait à Owando, le {{ date("d/m/Y", strtotime($dm->date_declaration_mariage)) }}<br>
+                                Fait à <span style="text-transform:capitalize">{{ $dm->institution->lieu->localiteParent->lib_localite }}</span>, le  {{ date("d/m/Y", strtotime($dm->date_declaration_mariage)) }}<br>
                             </td>
                         </tr>
                         <tr>
@@ -191,7 +162,7 @@
                             <td>
                             </td>
                             <td style="text-align: left;padding-top: 30px;">
-                                Officier d'état civil
+                                l'Officier de l'état civil
                             </td>
                         </tr>
                 </tbody>

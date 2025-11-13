@@ -6,6 +6,7 @@ use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Modules\Referentiel\Entities\Mouvement;
 
 class MouvementNaissance extends Model
 {
@@ -20,6 +21,10 @@ class MouvementNaissance extends Model
     public function declarationNaissance(): BelongsTo
     {
         return $this->belongsTo(Declarationnaissance::class, 'code_declaration_naissance', 'code_declaration_naissance');
+    }
+    public function mouvement(): BelongsTo
+    {
+        return $this->belongsTo(Mouvement::class, 'code_mouvement', 'code_mouvement');
     }
     public function userInstitution(): BelongsTo
     {

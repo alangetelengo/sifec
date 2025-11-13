@@ -33,7 +33,7 @@
                         <h4>
                             {{ $title }} N° <strong class="btn btn-sm btn-warning">{{ $dn->code_declaration_naissance }}</strong>
 
-                            <input type="text" class="d-none" id="codepere" value="{{ $dn->pere->code_personne }}">
+                            {{-- <input type="text" class="d-none" id="codepere" value="{{ $dn->pere->code_personne }}">
                             <input type="text" class="d-none" id="typedocumentpere" value="{{ $dn->pere->document->code_type_document }}">
                             <input type="text" class="d-none" id="numerodocumentpere" value="{{ $dn->pere->document->numero_document }}">
                             <input type="tex" id="imagepere" class="d-none" value="{{ $dn->pere->document->image_document }}">
@@ -58,8 +58,18 @@
                             <button type="button" class="btn btn-primary choix" data-bs-toggle="modal" parent="declarant" data-bs-target="#pieceparent">
                                 Joindre la pièce du déclarant
                             </button>
-                            @endif
+                            @endif --}}
                         </h4>
+
+                        @if($dn->type_declaration == "DECLARATION DE NAISSANCE" || $dn->type_declaration == "FICHE DE MATERNITE")
+                            <a href="{{ route('declarationNaissance.index') }}" class="btn btn-primary float-end">
+                                <i class="fa fa-list"></i> Liste des déclarations
+                            </a>
+                            @else
+                            <a href="{{ route('certificatNonInscription.index') }}" class="btn btn-primary float-end">
+                                <i class="fa fa-list"></i> Liste des certificats
+                            </a>
+                        @endif
                     </div>
                     <div class="card wizard-content">
                         <div class="card-body">

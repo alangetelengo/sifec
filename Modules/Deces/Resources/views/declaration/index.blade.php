@@ -38,55 +38,132 @@ Actes Décès
                                 </thead>
                                 <tbody>
                                     <?php $i = 1; ?>
-
                                     @foreach ($declarations as $dd)
-                                        @if($dd->type_declaration != "AUTORISATION DE TRANSFERT DE DEPOUILLE")
-                                            <tr width="100%">
-                                                <td>{{ $i++ }}</td>
-                                                <td>{{ $dd->defunt->nom.' '.$dd->defunt->prenom }}</td>
-                                                <td>{{ $dd->defunt->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-                                                <td>{{ date("d-m-Y", strtotime($dd->date_heure_deces)) }}</td>
-                                                <td>{{$dd->lieu_deces}}</td>
-                                                <td>{{ $dd->declarant->nom.' '.$dd->declarant->prenom }}</td>
-                                                @if($dd->mouvements()->get("statut")->last()->statut == "En cours")
-                                                <td><span class="badge light badge-danger" style="font-size: 13px;font-weight:600;">{{ $dd->mouvements()->get("statut")->last()->statut }} de traitement</span></td>
-                                                @endif
-                                                @if($dd->mouvements->last()->statut == "Renvoyée")
-                                                <td><a href="{{ $dd->code_declaration_deces }}" cmouvtdeces="{{ $dd->mouvements->last()->code_mouvement_deces }}" obs="{{ $dd->mouvements->last()->observation }}" class="show-detail-renvoie" title="{{ $dd->mouvements->last()->motif_renvoi }}">
-                                                    <span class="badge light badge-danger" style="font-size: 13px;font-weight:600;">document renvoyé </span></a>
-                                                </td>
-                                                @endif
+                                        @php
+                                            $dernierMouvement = null;
+                                            $peutEnvoyer = false;
+                                            $peutModifier = false;
+                                            $peutSupprimer = false;
+                                            $statutBadge = ['class' => 'badge-secondary', 'label' => 'Brouillon'];
 
-                                                @if($dd->mouvements()->get("statut")->last()->statut == "Envoyée")
-                                                <td><span class="badge light badge-success" style="font-size: 13px;font-weight:600;">Transférée à l'institution supérieure </span></td>
+                                            if (isset($dd->mouvements) && $dd->mouvements->count()) {
+                                                $dernierMouvement = $dd->mouvements->sortByDesc('created_at')->first();
+                                                switch ($dernierMouvement->code_mouvement) {
+                                                    case 'MOUV_0002':
+                                                        $statutBadge = ['class' => 'badge-warning', 'label' => $dernierMouvement->lib_mouvement];
+                                                        $peutEnvoyer = false;
+                                                        $peutModifier = false;
+                                                        $peutSupprimer = false;
+                                                        break;
+                                                    case 'MOUV_0004':
+                                                        $statutBadge = ['class' => 'badge-info', 'label' => $dernierMouvement->lib_mouvement];
+                                                        $peutEnvoyer = true;
+                                                        $peutModifier = true;
+                                                        $peutSupprimer = true;
+                                                        break;
+                                                    case 'MOUV_0015':
+                                                        $statutBadge = ['class' => 'badge-info', 'label' => $dernierMouvement->lib_mouvement];
+                                                        $peutEnvoyer = false;
+                                                        $peutModifier = false;
+                                                        $peutSupprimer = false;
+                                                        break;
+                                                    case 'MOUV_0019':
+                                                        $statutBadge = ['class' => 'badge-success', 'label' => $dernierMouvement->lib_mouvement];
+                                                        $peutEnvoyer = false;
+                                                        $peutModifier = false;
+                                                        $peutSupprimer = false;
+                                                        break;
+                                                    case 'MOUV_0032':
+                                                        $statutBadge = ['class' => 'badge-primary', 'label' => $dernierMouvement->lib_mouvement];
+                                                        $peutEnvoyer = true;
+                                                        $peutModifier = true;
+                                                        $peutSupprimer = true;
+                                                        break;
+                                                    case 'MOUV_0016':
+                                                        $statutBadge = ['class' => 'badge-dark', 'label' => $dernierMouvement->lib_mouvement];
+                                                        $peutEnvoyer = false;
+                                                        $peutModifier = false;
+                                                        $peutSupprimer = false;
+                                                        break;
+                                                    default:
+                                                        $statutBadge = ['class' => 'badge-secondary', 'label' => $dernierMouvement->lib_mouvement ?? 'En cours'];
+                                                        $peutEnvoyer = false;
+                                                        $peutModifier = false;
+                                                        $peutSupprimer = false;
+                                                }
+                                            } else {
+                                                // Jamais envoyé
+                                                $statutBadge = ['class' => 'badge-secondary', 'label' => 'Brouillon'];
+                                                $peutEnvoyer = true;
+                                                $peutModifier = true;
+                                                $peutSupprimer = true;
+                                            }
+                                        @endphp
+                                        <tr width="100%">
+                                            <td>{{ $i++ }}</td>
+                                            <td>{{ $dd->defunt->nom.' '.$dd->defunt->prenom }}</td>
+                                            <td>{{ $dd->defunt->sexe == "M" ? "Masculin" : "Féminin" }}</td>
+                                            <td>{{ date("d-m-Y", strtotime($dd->date_heure_deces)) }}</td>
+                                            <td>{{$dd->lieu_deces}}</td>
+                                            <td>{{ $dd->declarant->nom.' '.$dd->declarant->prenom }}</td>
+
+                                            <td>
+                                                <span class="badge light {{ $statutBadge['class'] }}" style="font-size: 13px;font-weight:600;">
+                                                    {{ $statutBadge['label'] }}
+                                                </span>
+                                                @if($dernierMouvement && $dernierMouvement->observation)
+                                                    <br><small>Observation : {{ $dernierMouvement->observation }}</small>
                                                 @endif
-                                                <td>
-                                                    @if($dd->mouvements()->get("statut")->last()->statut == "En cours" || $dd->mouvements()->get("statut")->last()->statut == "Renvoyée" && $dd->acte == null)
-                                                    <div class="btn-group btn-group-xs">
-                                                        <a href="{{ $dd->code_declaration_deces }}" class="btn btn-warning show-to-send shadow btn-xs sharp me-1" title="Envoyer" ><i class="fas fa-plane"></i></a>
-                                                    </div>
+                                                @if($dernierMouvement && $dernierMouvement->motif_renvoi)
+                                                    <br><small>Motif : {{ $dernierMouvement->motif_renvoi }}</small>
+                                                @endif
+                                            </td>
+
+
+
+                                            <td style="width: 18%">
+                                                <div class="btn-group btn-group-xs">
+                                                    {{-- Voir le détail --}}
+                                                    <a href="{{ route('declarationDeces.show',$dd->code_declaration_deces) }}" class="btn btn-primary shadow btn-xs sharp me-1" title="Voir détail">
+                                                        <i class="fas fa-user-check"></i>
+                                                    </a>
+                                                    {{-- Modifier --}}
+                                                    @if($peutModifier)
+                                                        <a href="{{ route('declarationDeces.edit',$dd->code_declaration_deces) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier">
+                                                            <i class="fas fa-pencil-alt"></i>
+                                                        </a>
                                                     @endif
-
-
-                                                    <div class="btn-group btn-group-xs">
-                                                        <a href="{{ route('declarationDeces.etat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
-
-                                                        @if($dd->acte !== null)
-                                                        <a href="{{ route('acteDeces.display',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir l'acte"><i class="fas fa-eye"></i></a>
-                                                        @endif
-                                                        @if($dd->mouvements->last()->statut == "En cours" || $dd->mouvements->last()->statut == "Renvoyée")
-                                                        <a href="{{ route('declarationDeces.edit',$dd->code_declaration_deces) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier"><i class="fas fa-pencil-alt"></i></a>
-                                                        <a href="{{ $dd->code_declaration_deces }}" class="btn btn-info show-piece-parent-modal shadow btn-xs sharp me-1" title="Joindre pièce"><i class="fa fa-file"></i></a>
-                                                        @endif
-                                                        {{-- <form  action="{{ route('declarationDeces.destroy',$dd->code_declaration_deces) }}" method="POST" style="display: inline-block">
+                                                    {{-- Envoyer --}}
+                                                    @if($peutEnvoyer)
+                                                        <button class="btn btn-warning btn-envoyer-centre shadow btn-xs sharp me-1"
+                                                            title="Envoyer la déclaration au centre d'état civil"
+                                                            data-code="{{ $dd->code_declaration_deces }}"
+                                                            data-piece-defunt="{{ $dd->piece_defunt }}"
+                                                            data-piece-declarant="{{ $dd->piece_declarant }}"
+                                                            data-piece-pere="{{ $dd->piece_pere }}"
+                                                            data-piece-mere="{{ $dd->piece_mere }}"
+                                                            data-identitedefunt="{{ $dd->defunt->nomcomplet() }}"
+                                                            data-identitedeclarant="{{ $dd->declarant->nomcomplet() }}"
+                                                            data-identitepere="{{ $dd->pere->nomcomplet() }}"
+                                                            data-identitemere="{{ $dd->mere->nomcomplet() }}">
+                                                            <i class="fas fa-paper-plane"></i>
+                                                        </button>
+                                                    @endif
+                                                    {{-- Supprimer --}}
+                                                    @if($peutSupprimer)
+                                                        <form action="{{ route('declarationDeces.destroy',$dd->code_declaration_deces) }}" method="POST" style="display: inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette déclaration ?');">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="btn btn-danger shadow btn-xs sharp"><i class="fa fa-trash"></i></button>
-                                                        </form> --}}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endif
+                                                            <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
+                                                        </form>
+                                                    @endif
+                                                    {{-- Consulter le PDF pour impression --}}
+                                                    <a href="{{ route('declarationDeces.etat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document (PDF)">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     @endforeach
                                 </tbody>
                                 <tfoot>
@@ -111,28 +188,83 @@ Actes Décès
 </div>
 {{-- DEBUT ENVOIS DECLARATION --}}
 <div class="modal fade" id="modal-declaration-send" data-bs-backdrop="static">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><span class="module-title"> </span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="mb-2 col-md-12">
-                        {{-- <input type="hidden" id="code_declaration_deces"> --}}
-                        <label class="form-label">Transmission de la déclaration N°</label>
-                        <input type="text" readonly class="form-control"  placeholder="" id="codedeclaration">
+    <div class="modal-dialog modal-lg" role="document">
+        <form id="form-envoyer-centre">
+            @csrf
+            <input type="hidden" name="code_declaration_deces" id="codedeclaration">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Envoyer la déclaration au centre d'état civil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        Cette action va transmettre la déclaration au centre d'état civil pour traitement.<br>
+                        <strong>Êtes-vous sûr de vouloir continuer ?</strong>
                     </div>
-
+                    <div class="mb-3">
+                        <label class="form-label">Transmission de la déclaration N°</label>
+                        <input type="text" readonly class="form-control" id="code-declaration-display">
+                    </div>
+                    <div class="mb-3">
+                        <h6>Pièces d'identité requises</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Personne</th>
+                                        <th>Nom</th>
+                                        <th>Pièce jointe</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="piece-defunt-centre">
+                                        <td><strong>Défunt</strong></td>
+                                        <td id="defunt-nom-centre">-</td>
+                                        <td id="defunt-piece-centre">-</td>
+                                        <td id="defunt-status-centre"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-declarant-centre">
+                                        <td><strong>Déclarant</strong></td>
+                                        <td id="declarant-nom-centre">-</td>
+                                        <td id="declarant-piece-centre">-</td>
+                                        <td id="declarant-status-centre"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-pere-centre">
+                                        <td><strong>Père</strong></td>
+                                        <td id="pere-nom-centre">-</td>
+                                        <td id="pere-piece-centre">-</td>
+                                        <td id="pere-status-centre"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-mere-centre">
+                                        <td><strong>Mère</strong></td>
+                                        <td id="mere-nom-centre">-</td>
+                                        <td id="mere-piece-centre">-</td>
+                                        <td id="mere-status-centre"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="alert-pieces-manquantes-centre" class="alert alert-warning d-none">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Attention :</strong> Certaines pièces d'identité sont manquantes.
+                        Il est recommandé de les ajouter avant l'envoi au centre d'état civil.
+                    </div>
+                    <div class="mb-2">
+                        <label for="observation-centre" class="form-label">Observation (optionnel)</label>
+                        <textarea id="observation-centre" name="observation" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-info" id="btn-send">
+                        <i class="fas fa-paper-plane"></i> Envoyer
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-info btn-sm text-white" id="btn-send">Envoyer</button>
-                <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 {{-- FIN ENVOIS DECLARATION --}}
@@ -188,42 +320,89 @@ Actes Décès
 
     <script>
         $(function(){
-            $("a.show-to-send").on("click", function(){
+            // Événement pour les boutons d'envoi au centre d'état civil
+            $(".btn-envoyer-centre").on("click", function(){
+                var codeDeclaration = $(this).data('code');
 
-                var codeDeclaration = $(this).attr('href');
+                // Récupération des données du bouton
+                const defuntNom = $(this).data('identitedefunt') || '-';
+                const declarantNom = $(this).data('identitedeclarant') || '-';
+                const pereNom = $(this).data('identitepere') || '-';
+                const mereNom = $(this).data('identitemere') || '-';
 
-                $("#code_declaration_deces").val(codeDeclaration);
+                const pieceDefunt = $(this).data('piece-defunt') || '';
+                const pieceDeclarant = $(this).data('piece-declarant') || '';
+                const piecePere = $(this).data('piece-pere') || '';
+                const pieceMere = $(this).data('piece-mere') || '';
+
+                // Remplir les champs du modal
                 $("#codedeclaration").val(codeDeclaration);
+                $("#code-declaration-display").val(codeDeclaration);
+
+                // Remplir le tableau des pièces
+                $('#defunt-nom-centre').text(defuntNom);
+                $('#defunt-piece-centre').html(pieceDefunt ? `<a href="/${pieceDefunt}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#defunt-status-centre').html(pieceDefunt ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                $('#declarant-nom-centre').text(declarantNom);
+                $('#declarant-piece-centre').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#declarant-status-centre').html(pieceDeclarant ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                $('#pere-nom-centre').text(pereNom);
+                $('#pere-piece-centre').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#pere-status-centre').html(piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                $('#mere-nom-centre').text(mereNom);
+                $('#mere-piece-centre').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+                $('#mere-status-centre').html(pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+                // Vérification des pièces manquantes
+                let piecesManquantes = false;
+                if (!pieceDefunt || !pieceDeclarant || !piecePere || !pieceMere) {
+                    piecesManquantes = true;
+                    $('#alert-pieces-manquantes-centre').removeClass('d-none');
+                } else {
+                    $('#alert-pieces-manquantes-centre').addClass('d-none');
+                }
+
+                // Désactiver le bouton si pièces manquantes (optionnel - on peut permettre l'envoi avec avertissement)
+                // $('#btn-send').prop('disabled', piecesManquantes);
 
                 $("#modal-declaration-send").modal("show");
                 return false;
             });
 
-            $("#btn-send").on("click",function(){
-                var cdd = $("#codedeclaration").val();
-                var route = "{{ route('declarationDeces.mouvement') }}";
-                var data = {
-                    code_declaration_deces:cdd
-                };
+            // Gestion du formulaire d'envoi
+            $('#form-envoyer-centre').on('submit', function(e){
+                e.preventDefault();
 
-                // $(this).attr("disabled",true);
-                // $(this).html("Traitement en cours ...");
-                $.post(route, data, function(response){
+                let url = "{{ route('declarationDeces.mouvement') }}";
+                let $btnSend = $('#btn-send');
 
-                    if(response.code == "200"){
-                        // notification("success",response.message);
-                        flashAlert("Réponse","success",response.message);
-                        $("#modal-declaration-send").modal('hide');
-                        setTimeout(() => {
-                            location.reload();
-                        }, 2000);
-                    }else{
-                        // notification("error",response.message);
-                        flashAlert("Réponse","error",response.message);
+                $btnSend.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Traitement en cours...');
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response){
+                        $btnSend.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Envoyer');
+
+                        if(response.code == "200"){
+                            flashAlert("Réponse","success",response.message);
+                            $("#modal-declaration-send").modal('hide');
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                        }else{
+                            flashAlert("Réponse","error",response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $btnSend.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Envoyer');
+                        flashAlert("Erreur","error", xhr.responseJSON?.message || "Erreur lors de l'envoi: " + error);
                     }
                 });
-
-                return false;
             });
 
             $("a.show-detail-renvoie").on("click", function(){

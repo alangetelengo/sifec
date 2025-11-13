@@ -12,9 +12,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class AdressePersonne extends Model
 {
     use HasFactory;
-
+//id 	lib_pays 	lib_ville 	type_voie 	nom_voie 	numero_rue 	code_localite 	code_personne
     protected $guarded = [];
     protected $table = "t_residence_personne";
+    protected $primaryKey="id";
+    public $incrementing = true;
 
 
     public function personne(): BelongsTo
@@ -22,26 +24,14 @@ class AdressePersonne extends Model
         return $this->belongsTo(Personne::class, 'code_personne', 'code_personne');
     }
 
-
     public function quertierVillage(): BelongsTo
+    {
+        return $this->belongsTo(Localite::class, 'code_quartier_localite', 'code_localite');
+    }
+
+    public function communeDistrict(): BelongsTo
     {
         return $this->belongsTo(Localite::class, 'code_localite', 'code_localite');
     }
-
-    // public function arrondissement(): BelongsTo
-    // {
-    //     return $this->belongsTo(Arrondissement::class, 'code_arrondissement', 'code_arrondissement');
-    // }
-
-
-    // public function quartier(): BelongsTo
-    // {
-    //     return $this->belongsTo(Quartier::class, 'code_quartier', 'code_quartier');
-    // }
-
-    // public function village(): BelongsTo
-    // {
-    //     return $this->belongsTo(Village::class, 'code_village', 'code_village');
-    // }
 
 }

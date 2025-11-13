@@ -20,7 +20,7 @@ class MouvementMariage extends Model
 
     public function declarationMariage(): BelongsTo
     {
-        return $this->belongsTo(Declarationmariage::class, 'code_declaration_mariage', 'code_declaration_mariage');
+        return $this->belongsTo(DeclarationMariage::class, 'code_declaration_mariage', 'code_declaration_mariage');
     }
 
     public function userInstitution(): BelongsTo

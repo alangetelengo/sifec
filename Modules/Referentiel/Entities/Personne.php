@@ -4,8 +4,6 @@ namespace Modules\Referentiel\Entities;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-use Modules\Referentiel\Entities\Commune;
-use Modules\Referentiel\Entities\District;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Mariage\Entities\DeclarationMariage;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Personne extends Model
 {
     use HasFactory;
+    //ode_personne 	nom 	prenom 	sexe 	date_naissance 	lieu_naissance 	code_localite 	photo 	telephone 	telephone_parent 	adresse 	niveau_instruction 	code_nationalite 	code_profession 	signature 	personne_string 	type_adoption 	statut_personne 	type_date_naissance
     protected $guarded = [];
     protected $table = "tr_identification_personne";
     protected $primaryKey = "code_personne";
@@ -33,21 +32,6 @@ class Personne extends Model
         return $this->belongsTo(Localite::class, 'code_localite', 'code_localite');
     }
 
-    public function commune(): BelongsTo
-    {
-        return $this->belongsTo(Commune::class, 'code_commune', 'code_commune');
-    }
-
-    public function district(): BelongsTo
-    {
-        return $this->belongsTo(District::class, 'code_district', 'code_district');
-    }
-
-    /**
-     * Get the nationalite that owns the Personne
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
     public function nationalite(): BelongsTo
     {
         return $this->belongsTo(Nationalite::class, 'code_nationalite', 'code_nationalite');
@@ -103,7 +87,7 @@ class Personne extends Model
         return $this->contacts->first()->indicatif.$this->contacts->first()->telephone;
     }
 
-   
+
     public function dernierAdresse()
     {
         if ($this->adresses->last()->quartier != null) {

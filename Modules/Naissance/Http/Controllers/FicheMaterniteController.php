@@ -285,7 +285,7 @@ class FicheMaterniteController extends Controller
 
             $temp = config("sifec.sms.templates.actions.notification_fiche_maternite");
             $temp = str_replace(":mere",$fm->mere->nomcomplet(),$temp);
-            $temp = str_replace(":formation_sanitaire",$fm->institutionUser->institution->lib_institution,$temp);
+            $temp = str_replace(":formation_sanitaire",$fm->institution()->institution->lib_institution,$temp);
             $temp = str_replace(":date_naissance",date('d-m-Y', strtotime($fm->enfant->date_naissance)),$temp);
 
             // dispatch(new SendSmsJob("+242".$fm->mere->telephone_parent,$temp));

@@ -92,7 +92,7 @@
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
-                    <td>Né le : <strong>{{strftime("%d %B %Y", strtotime( $certificat->pere->date_naissance))}}</strong>, à <strong>{{$certificat->pere->lieu_naissance}}</strong></td>
+                    <td>Né le : <strong>{{utf8_encode(strftime("%d %B %Y", strtotime( $certificat->pere->date_naissance)))}}</strong>, à <strong>{{$certificat->pere->lieu_naissance}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Profession: <strong>{{ $certificat->pere->code_profession != NULL ? $certificat->pere->profession->lib_profession :"" }}</strong>, Nationalité: <strong>{{ $certificat->pere->nationalite->lib_nationalite }}</strong></td>
@@ -105,7 +105,8 @@
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
-                    <td>Né le : <strong>{{strftime("%d %B %Y", strtotime( $certificat->mere->date_naissance))}}</strong>, à <strong>{{$certificat->mere->lieu_naissance}}</strong></td>
+                    {{-- <td>Né le : <strong>{{strftime("%d %B %Y", strtotime( $certificat->mere->date_naissance))}}</strong>, à <strong>{{$certificat->mere->lieu_naissance}}</strong></td> --}}
+                    <td>Né le : <strong>{{utf8_encode(strftime("%d %B %Y", strtotime( $certificat->mere->date_naissance)))}}</strong>, à <strong>{{$certificat->mere->lieu_naissance}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Profession: <strong>{{$certificat->mere->code_profession != NULL ? $certificat->mere->profession->lib_profession :""}}</strong>, Nationalité: <strong>{{ $certificat->mere->nationalite->lib_nationalite }}</strong></td>
@@ -135,15 +136,21 @@
                 <tr>
                     <td style="text-align: center;"></td>
                     <td style="text-align: left;">
-                        <div style="margin-bottom:0;"><qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/certificat?niupp={{ $certificat->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
+                        @isset($qrCode)
+                        <div style="margin-bottom:0; width: 30mm;">
+                            <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                        </div>
+                        @endisset
                     </td>
                     <td style="text-align: left;">
                         <p>Fait à {{$localisation}}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $certificat->date_heure_declaration)))}}<br>L'Officier de l'Etat Civil</p>
-
                     </td>
                   </tr>
             </tbody>
         </table>
+        <br><br><br>
+        <p style="text-align: left; font-style:italic; font-size:11px"><span style="color:red">(*)</span> Ce document requiert une réquisition aux fins de reconstitution de l'acte</p>
+
     </div>
 
 </page>

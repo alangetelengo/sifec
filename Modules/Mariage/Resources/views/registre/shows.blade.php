@@ -286,7 +286,7 @@
                                             @endif --}}
 
                                             @if ($acte->approbation_mairie != "")
-                                                <img src='{{ asset("app/".$acte->signature_mairie) }}'><br>
+                                                <img src='{{ asset("app/".$acte->signature_maire) }}'><br>
                                                 {{ $acte->signataire->user->personne->nomcomplet() }}
                                             @endif
 

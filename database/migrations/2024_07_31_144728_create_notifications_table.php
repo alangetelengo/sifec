@@ -13,10 +13,16 @@ class CreateNotificationsTable extends Migration
      */
     public function up()
     {
+       
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('type'); //type de notification
-            $table->morphs('notifiable'); //user notifié
+
+            // Correction ici :
+            $table->string('notifiable_id');
+            $table->string('notifiable_type');
+            $table->index(['notifiable_id', 'notifiable_type']);
+
             $table->string("cui",16)->nullable();
 
             $table->text('data'); //l'élément que l'on a notifié
@@ -24,7 +30,6 @@ class CreateNotificationsTable extends Migration
             $table->timestamps();
 
             $table->foreign("cui")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
-
         });
     }
 

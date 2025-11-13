@@ -7,6 +7,73 @@
     <hr>
     <div class="ligne">
         <h4>INFORMATIONS SUR L'IDENTITE DU PERE</h4>
+        @if($dd->pere)
+            <!--div class="text-muted mb-2">
+                <small><i>Personne existante dans la base de données</i></small>
+                <button type="button" id="edit_pere" class="btn btn-warning btn-xs">Modifier</button>
+            </div-->
+            <script>
+                $(document).ready(function() {
+                    $('#code_pere').val('{{ $dd->pere->code_personne }}');
+                    $('#nom_pere').val('{{ $dd->pere->nom }}');
+                    $('#prenom_pere').val('{{ $dd->pere->prenom }}');
+                    $('#date_naissance_pere').val('{{ $dd->pere->date_naissance }}');
+                    $('#type_date_naissance_pere').prop('checked', {{ $dd->pere->type_date_naissance == 'ESTIME' ? 'true' : 'false' }});
+                    $('#lieu_naissance_pere').val('{{ $dd->pere->lieu_naissance }}');
+                    $('#code_localite_pere').val('{{ $dd->pere->code_localite }}');
+                    $('#code_nationalite_pere').val('{{ $dd->pere->code_nationalite }}');
+                    $('#profession_pere').val('{{ $dd->pere->profession->code_profession }}');
+                    $('#niveau_instruction_pere').val('{{ $dd->pere->niveau_instruction }}');
+                    $('#code_type_document_pere').val('{{ $dd->pere->document->typeDocument->code_type_document }}');
+                    $('#numero_document_pere').val('{{ $dd->pere->document->numero_document }}');
+                    $('#domicile_pays_pere').val('{{ $dd->pere->adresses->last()->lib_pays }}');
+                    $('#domicile_ville_pere').val('{{ $dd->pere->adresses->last()->code_localite }}');
+                    //alert("Code localité père: " + '{{ $dd->pere->adresses->last()->code_localite }}');
+                    $('#domicile_arrondissement_pere').val('{{ $dd->pere->adresses->last()->code_arrondissement_comurbaine }}');
+                    $('#domicile_quartier_pere').val('{{ $dd->pere->adresses->last()->code_quartier_village }}');
+                    $('#domicile_typevoie_pere').val('{{ $dd->pere->adresses->last()->type_voie }}');
+                    $('#domicile_numero_pere').val('{{ $dd->pere->adresses->last()->numero_rue }}');
+                    $('#domicile_nomvoie_pere').val('{{ $dd->pere->adresses->last()->nom_voie }}');
+                    $('#code_pays_pere').val('{{ $dd->pere->contacts->last()->indicatif }}');
+                   
+                    $('#telephone_pere').val('{{ $dd->pere->telephone }}');
+                    $('#email_pere').val('{{ $dd->pere->contacts->last()->email_personnelle }}');
+                    $('#statut_personne_pere').val('{{ $dd->pere->statut_personne }}');
+                });
+            </script>
+
+            @if($dd->mere)
+                <script>
+                    $(document).ready(function() {
+                        $('#code_mere').val('{{ $dd->mere->code_personne }}');
+                        $('#nom_mere').val('{{ $dd->mere->nom }}');
+                        $('#prenom_mere').val('{{ $dd->mere->prenom }}');
+                        $('#date_naissance_mere').val('{{ $dd->mere->date_naissance }}');
+                        $('#type_date_naissance_mere').prop('checked', {{ $dd->mere->type_date_naissance == 'ESTIME' ? 'true' : 'false' }});
+                        $('#lieu_naissance_mere').val('{{ $dd->mere->lieu_naissance }}');
+                        $('#code_localite_mere').val('{{ $dd->mere->code_localite }}');
+                        $('#code_nationalite_mere').val('{{ $dd->mere->code_nationalite }}');
+                        $('#profession_mere').val('{{ $dd->mere->profession->code_profession }}');
+                        $('#niveau_instruction_mere').val('{{ $dd->mere->niveau_instruction }}');
+                        $('#code_type_document_mere').val('{{ $dd->mere->document->typeDocument->code_type_document }}');
+                        $('#numero_document_mere').val('{{ $dd->mere->document->numero_document }}');
+                        $('#domicile_pays_mere').val('{{ $dd->mere->adresses->last()->lib_pays }}');
+                        $('#domicile_ville_mere').val('{{ $dd->mere->adresses->last()->code_localite }}');
+                        //alert("Code localité père: " + '{{ $dd->pere->adresses->last()->code_localite }}');
+                        $('#domicile_arrondissement_mere').val('{{ $dd->mere->adresses->last()->code_arrondissement_comurbaine }}');
+                        $('#domicile_quartier_mere').val('{{ $dd->mere->adresses->last()->code_quartier_village }}');
+                        $('#domicile_typevoie_mere').val('{{ $dd->mere->adresses->last()->type_voie }}');
+                        $('#domicile_numero_mere').val('{{ $dd->mere->adresses->last()->numero_rue }}');
+                        $('#domicile_nomvoie_mere').val('{{ $dd->mere->adresses->last()->nom_voie }}');
+                        $('#code_pays_mere').val('{{ $dd->mere->contacts->last()->indicatif }}');
+                   
+                    $('#telephone_mere').val('{{ $dd->mere->telephone }}');
+                    $('#email_mere').val('{{ $dd->mere->contacts->last()->email_personnelle}}');
+                        $('#statut_personne_mere').val('{{ $dd->mere->statut_personne }}');
+                    });
+                </script>
+            @endif
+        @endif
     </div>
     <div class="row">
         <div class="mb-2 col-md-4">
@@ -104,13 +171,21 @@
             <div class="mb-2 col-md-3">
                 <label class="form-label">Pays<span class="text-danger"></span></label>
                 <select id="domicile_pays_pere" class="form-control required">
-                    <option value="">Choisissez</option>
-                    @foreach ($countries as $countrie)
-                        <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
-                    @endforeach
-                </select>
+                   @foreach ($countries as $countrie)
+                    
+                    {{-- @if($dd->pere->adresses->last() != null)
+                        <option value="{{ $countrie->name }}" {{ $dd->pere->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
+                    @else --}}
+                    <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
+                    {{-- @endif --}}
+                
+                {{-- <option value="">Choisissez</option>
+             
+                    <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>--}}
+                @endforeach
+            </select>
             </div>
-            <div class="mb-2 col-md-3 domicile_ville_pere d-none">
+            <div class="mb-2 col-md-3 domicile_ville_pere">
                 <label class="form-label">Commune/District<span class="text-danger"></span></label>
                 <select class="form-control" id="domicile_ville_pere">
                     <option value="">Choisir</option>
@@ -124,7 +199,7 @@
                 <input type="text" id="autredomicile_ville_pere" class="form-control form-control wide" placeholder="Libellé de la ville" onkeyup="this.value=this.value.toUpperCase()">
             </div>
 
-            <div class="mb-2 col-md-3 domicile_arrondissement_pere d-none">
+            <div class="mb-2 col-md-3 domicile_arrondissement_pere">
                 <label class="form-label">Arr/Com. Urb<span class="text-danger"></span></label>
                 <select class="form-control" id="domicile_arrondissement_pere">
                     <option value="">Choisir</option>
@@ -134,7 +209,7 @@
                 </select>
             </div>
 
-            <div class="mb-2 col-md-3 domicile_quartier_pere d-none">
+            <div class="mb-2 col-md-3 domicile_quartier_pere">
                 <label class="form-label">Quartier/Village<span class="text-danger"></span></label>
                 <select class="form-control" id="domicile_quartier_pere">
                     <option value="">Choisir</option>
@@ -169,6 +244,7 @@
             <div class="row">
                 <div class="col-md-4">
                     <label class="form-label">Indicatif<span class="text-danger">*</span></label>
+                    
                     <select name="code_pays_pere" id="code_pays_pere" class="form-control">
                         <option value="">Selectionnez</option>
                         @forelse ($countries as $code)
@@ -211,7 +287,7 @@
     </div>
     <hr>
     <div class="ligne">
-            <h4>INFORMATIONS SUR L'IDENTITE DU MERE</h4>
+            <h4>INFORMATIONS SUR L'IDENTITE DE LA MERE</h4>
         </div>
     <div class="row">
         <div class="mb-2 col-md-4">
@@ -317,10 +393,18 @@
     <div class="row adressemere">
         <div class="mb-2 col-md-3">
             <label class="form-label">Pays<span class="text-danger"></span></label>
-            <select id="domicile_pays_mere" class="form-control required" disabled>
-                <option value="">Choisissez</option>
+             <select id="domicile_pays_mere" class="form-control required" disabled>
                 @foreach ($countries as $countrie)
+           
+                    {{-- @if($dd->mere->adresses->last() != null)
+                        <option value="{{ $countrie->name }}" {{ $dd->mere->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
+                    @else --}}
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
+                    {{-- @endif --}}
+                
+                {{-- <option value="">Choisissez</option>
+                @foreach ($countries as $countrie)
+                    <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>--}}
                 @endforeach
             </select>
         </div>

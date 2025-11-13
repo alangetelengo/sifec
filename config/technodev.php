@@ -88,7 +88,8 @@ return [
         ],
     "sms_global"=>[
         "infobip"=>[
-            "api_key"=> "App 59bef508c0696345e7529a63d9b255aa-a047a4b5-ede8-4d94-ae49-caea9276beed",
+            // "api_key"=> "App 59bef508c0696345e7529a63d9b255aa-a047a4b5-ede8-4d94-ae49-caea9276beed",
+            "api_key"=> "App a2043505dcdd39e006f55548ed6dfb7b-7e21851f-b4e6-434c-aec4-c5238be02cd9",
             "actions"=>[
                 "send_sms"=>[
                     "send_url" => "https://mpn66j.api.infobip.com/sms/2/text/advanced"

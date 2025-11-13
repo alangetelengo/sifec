@@ -210,19 +210,6 @@ $(function(){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     // var ageEnfant = parseInt(age());
 
     $("#code_lieu_survenance").on("change", function(){
@@ -236,250 +223,6 @@ $(function(){
         }
     });
 
-    //TRAITEMENT DES TEMOINS
-    $("#nombre_temoin").on("change", function() {
-        var nombre = parseInt($(this).val());
-
-        switch (nombre) {
-            case 0:
-                hideTemoin();
-                break;
-            case 1:
-                $("#temoin1").show();
-                $("#temoin2").hide();
-                $("#temoin3").hide();
-                break;
-            case 2:
-                $("#temoin1").show();
-                $("#temoin2").show();
-                $("#temoin3").hide();
-                break;
-            case 3:
-                $("#temoin1").show();
-                $("#temoin2").show();
-                $("#temoin3").show();
-                break;
-
-            default:
-                hideTemoin();
-                break;
-        }
-    });
-    //info temoin 1
-    $("#code_localite_temoin1").change(function (e) {
-        e.preventDefault();
-        var code_localite_temoin1 = $(this).val();
-        var lieunaistemoin1 = $("#code_localite_temoin1 option:selected").text();
-
-        if(lieunaistemoin1 != null || lieunaistemoin1 != ''){
-            $("#lieu_naissance_temoin1").val(lieunaistemoin1);
-        }
-    });
-    $('#domicile_pays_temoin1').on('change', function () {
-        var pays = $('#domicile_pays_temoin1').val();
-        if (pays == 'Congo') {
-            $('div.domicile_ville_temoin1').removeClass('d-none');
-            $('div.autredomicile_ville_temoin1').addClass('d-none');
-
-            $('#domicile_ville_temoin1').prop('disabled', false);
-            $('#domicile_arrondissement1').prop('disabled', false);
-            $('#domicile_quartier_temoin1').prop('disabled', false);
-
-        }else{
-            $("div.domicile_ville_temoin1").addClass("d-none");
-            $("div.domicile_arrondissement1").addClass("d-none");
-            $("div.domicile_quartier_temoin1").addClass('d-none');
-            $('#domicile_ville_temoin1').prop('disabled', true);
-            $('#domicile_arrondissement1').prop('disabled', true);
-            $('#domicile_quartier_temoin1').prop('disabled', true);
-
-            $('div.autredomicile_ville_temoin1').removeClass('d-none');
-            $('#autredomicile_ville_temoin1').prop('disabled',false);
-        }
-    });
-
-    $("#domicile_ville_temoin1").on("change", function(){
-        var localiteParent = $(this).val();
-
-        if(localiteParent != "" || localiteParent !=null){
-            $("div.domicile_arrondissement_temoin1").removeClass("d-none");
-            $('#domicile_arrondissement_temoin1').prop('disabled',false);
-
-            var domicilevilletemoin_1 = $("#domicile_ville_temoin1 option:selected").text();
-            var ville = '<option>'+domicilevilletemoin_1+'</option>';
-            getArrComUrbaine(localiteParent,'domicile_arrondissement_temoin1');
-        }
-    });
-
-    $("#domicile_arrondissement_temoin1").on("change", function(){
-        var localiteParent = $(this).val();
-        if(localiteParent != "" || localiteParent !=null){
-            $("div.domicile_quartier_temoin1").removeClass('d-none');
-            $('#domicile_quartier_temoin1').prop('disabled',false);
-
-            var domicilearrondetemoin_1 = $("#domicile_arrondissement_temoin1 option:selected").text();
-            getQuartierVillage(localiteParent,'domicile_quartier_temoin1');
-
-        }
-    });
-
-    $("#domicile_quartier_temoin1").on('change', function(){
-        var q = $(this).val();
-        if(q != "" || q !=null){
-            var quartier = '<option>'+$("#domicile_quartier_temoin1 option:selected").text()+'</option>';
-        }
-    });
-
-    $("#domicile_typevoie_temoin1").on('change', function(){
-        var typevoie = $(this).val();
-        if(typevoie != "" || typevoie !=null){
-            var tvoie = '<option>'+typevoie+'</option>';
-        }
-    });
-    //info temoin 2
-    $("#code_localite_temoin2").change(function (e) {
-        e.preventDefault();
-        var code_localite_temoin2 = $(this).val();
-        var lieunaistemoin1 = $("#code_localite_temoin2 option:selected").text();
-
-        if(lieunaistemoin1 != null || lieunaistemoin1 != ''){
-            $("#lieu_naissance_temoin2").val(lieunaistemoin1);
-        }
-    });
-
-    $('#domicile_pays_temoin2').on('change', function () {
-        var pays = $('#domicile_pays_temoin2').val();
-        if (pays == 'Congo') {
-            $('div.domicile_ville_temoin2').removeClass('d-none');
-            $('div.autredomicile_ville_temoin2').addClass('d-none');
-
-            $('#domicile_ville_temoin2').prop('disabled', false);
-            $('#domicile_arrondissement_temoin2').prop('disabled', false);
-            $('#domicile_quartier_temoin2').prop('disabled', false);
-
-        }else{
-            $("div.domicile_ville_temoin2").addClass("d-none");
-            $("div.domicile_arrondissement_temoin2").addClass("d-none");
-            $("div.domicile_quartier_temoin2").addClass('d-none');
-            $('#domicile_ville_temoin2').prop('disabled', true);
-            $('#domicile_arrondissement_temoin2').prop('disabled', true);
-            $('#domicile_quartier_temoin2').prop('disabled', true);
-
-            $('div.autredomicile_ville_temoin2').removeClass('d-none');
-            $('#autredomicile_ville_temoin2').prop('disabled',false);
-        }
-    });
-
-    $("#domicile_ville_temoin2").on("change", function(){
-        var localiteParent = $(this).val();
-
-        if(localiteParent != "" || localiteParent !=null){
-            $("div.domicile_arrondissement_temoin2").removeClass("d-none");
-            $('#domicile_arrondissement_temoin2').prop('disabled',false);
-
-            var domicilevilletemoin_2 = $("#domicile_ville_temoin2 option:selected").text();
-            var ville = '<option>'+domicilevilletemoin_2+'</option>';
-            getArrComUrbaine(localiteParent,'domicile_arrondissement_temoin2');
-        }
-    });
-
-    $("#domicile_arrondissement_temoin2").on("change", function(){
-        var localiteParent = $(this).val();
-        if(localiteParent != "" || localiteParent !=null){
-            $("div.domicile_quartier_temoin2").removeClass('d-none');
-            $('#domicile_quartier_temoin2').prop('disabled',false);
-
-            var domicilearrondetemoin_2 = $("#domicile_arrondissement_temoin2 option:selected").text();
-            getQuartierVillage(localiteParent,'domicile_quartier_temoin2');
-
-        }
-    });
-
-    $("#domicile_quartier_temoin2").on('change', function(){
-        var q = $(this).val();
-        if(q != "" || q !=null){
-            var quartier = '<option>'+$("#domicile_quartier_temoin2 option:selected").text()+'</option>';
-        }
-    });
-
-    $("#domicile_typevoie_temoin2").on('change', function(){
-        var typevoie = $(this).val();
-        if(typevoie != "" || typevoie !=null){
-            var tvoie = '<option>'+typevoie+'</option>';
-        }
-    });
-    //info temoin 3
-    $("#code_localite_temoin3").change(function (e) {
-        e.preventDefault();
-        var code_localite1 = $(this).val();
-        var lieunaistemoin1 = $("#code_localite_temoin3 option:selected").text();
-
-        if(lieunaistemoin1 != null || lieunaistemoin1 != ''){
-            $("#lieu_naissance_temoin3").val(lieunaistemoin1);
-        }
-    });
-    $('#domicile_pays_temoin3').on('change', function () {
-        var pays = $('#domicile_pays_temoin3').val();
-        if (pays == 'Congo') {
-            $('div.domicile_ville_temoin3').removeClass('d-none');
-            $('div.autredomicile_ville_temoin3').addClass('d-none');
-
-            $('#domicile_ville_temoin3').prop('disabled', false);
-            $('#domicile_arrondissement_temoin3').prop('disabled', false);
-            $('#domicile_quartier_temoin3').prop('disabled', false);
-
-        }else{
-            $("div.domicile_ville_temoin3").addClass("d-none");
-            $("div.domicile_arrondissement_temoin3").addClass("d-none");
-            $("div.domicile_quartier_temoin3").addClass('d-none');
-            $('#domicile_ville_temoin3').prop('disabled', true);
-            $('#domicile_arrondissement_temoin3').prop('disabled', true);
-            $('#domicile_quartier_temoin3').prop('disabled', true);
-
-            $('div.autredomicile_ville_temoin3').removeClass('d-none');
-            $('#autredomicile_ville_temoin3').prop('disabled',false);
-        }
-    });
-
-    $("#domicile_ville_temoin3").on("change", function(){
-        var localiteParent = $(this).val();
-
-        if(localiteParent != "" || localiteParent !=null){
-            $("div.domicile_arrondissement_temoin3").removeClass("d-none");
-            $('#domicile_arrondissement_temoin3').prop('disabled',false);
-
-            var domicilevilletemoin_1 = $("#domicile_ville_temoin1 option:selected").text();
-            var ville = '<option>'+domicilevilletemoin_1+'</option>';
-            getArrComUrbaine(localiteParent,'domicile_arrondissement_temoin3');
-        }
-    });
-
-    $("#domicile_arrondissement_temoin3").on("change", function(){
-        var localiteParent = $(this).val();
-        if(localiteParent != "" || localiteParent !=null){
-            $("div.domicile_quartier_temoin3").removeClass('d-none');
-            $('#domicile_quartier_temoin3').prop('disabled',false);
-
-            var domicilearrondetemoin_1 = $("#domicile_arrondissement_temoin3 option:selected").text();
-            getQuartierVillage(localiteParent,'domicile_quartier_temoin3');
-
-        }
-    });
-
-    $("#domicile_quartier_temoin3").on('change', function(){
-        var q = $(this).val();
-        if(q != "" || q !=null){
-            var quartier = '<option>'+$("#domicile_quartier_temoin3 option:selected").text()+'</option>';
-        }
-    });
-
-    $("#domicile_typevoie_temoin3").on('change', function(){
-        var typevoie = $(this).val();
-        if(typevoie != "" || typevoie !=null){
-            var tvoie = '<option>'+typevoie+'</option>';
-        }
-    });
-    //FIN TRAITEMENT DES TEMOINS
     $("#cec_naissance_enfant").change(function (e) {
         e.preventDefault();
 
@@ -542,9 +285,9 @@ $(function(){
             $('div.domicile_ville_pere').removeClass('d-none');
             $('div.autredomicile_ville_pere').addClass('d-none');
 
-            $('#domicile_ville_pere').prop('disabled', false);
-            $('#domicile_arrondissement_pere').prop('disabled', false);
-            $('#domicile_quartier_pere').prop('disabled', false);
+            $('#domicile_ville_pere').prop('readonly', true);
+            $('#domicile_arrondissement_pere').prop('readonly', true);
+            $('#domicile_quartier_pere').prop('readonly', true);
 
         }else{
             $("div.domicile_ville_pere").addClass("d-none");
@@ -604,9 +347,9 @@ $(function(){
             $('div.domicile_ville_mere').removeClass('d-none');
             $('div.autredomicile_ville_mere').addClass('d-none');
 
-            $('#domicile_ville_mere').prop('disabled', false);
-            $('#domicile_arrondissement_mere').prop('disabled', false);
-            $('#domicile_quartier_mere').prop('disabled', false);
+            $('#domicile_ville_mere').prop('readonly', true);
+            $('#domicile_arrondissement_mere').prop('readonly', true);
+            $('#domicile_quartier_mere').prop('readonly', true);
 
         }else{
             $("div.domicile_ville_mere").addClass("d-none");
@@ -663,9 +406,9 @@ $(function(){
             $('div.domicile_ville_declarant').removeClass('d-none');
             $('div.autredomicile_ville_declarant').addClass('d-none');
 
-            $('#domicile_ville_declarant').prop('disabled', false);
-            $('#domicile_arrondissement_declarant').prop('disabled', false);
-            $('#domicile_quartier_declarant').prop('disabled', false);
+            $('#domicile_ville_declarant').prop('readonly', true);
+            $('#domicile_arrondissement_declarant').prop('readonly', true);
+            $('#domicile_quartier_declarant').prop('readonly', true);
 
         }else{
             $("div.domicile_ville_declarant").addClass("d-none");
@@ -719,9 +462,9 @@ $(function(){
             $('div.domicile_ville_enfant').removeClass('d-none');
             $('div.autredomicile_ville_enfant').addClass('d-none');
 
-            $('#domicile_ville_enfant').prop('disabled', false);
-            $('#domicile_arrondissement_enfant').prop('disabled', false);
-            $('#domicile_quartier_enfant').prop('disabled', false);
+            $('#domicile_ville_enfant').prop('readonly', true);
+            $('#domicile_arrondissement_enfant').prop('readonly', true);
+            $('#domicile_quartier_enfant').prop('readonly', true);
 
         }else{
             $("div.domicile_ville_enfant").addClass("d-none");
@@ -1383,42 +1126,14 @@ $(function(){
 
 });
 
-    var temoinsEnfant = [];
-    //insertion témoin dans un tableau
-    function insertTemoin(code_temoin, nom,prenom,sexe,date_naissance,
-    code_nationalite,lieu_naissance,code_type_document,numero_document,code_localite,
-    domicile_pays,domicile_ville,
-    domicile_arrondissement,domicile_quartier,
-    domicile_typevoie,domicile_numero,domicile_nomvoie)
-    {
-        temoinsEnfant.push({
-            code_temoin: code_temoin,
-            nom_temoin: nom,
-            prenom_temoin: prenom,
-            sexe_temoin: sexe,
-            date_naissance_temoin: date_naissance,
-            code_nationalite_temoin: code_nationalite,
-            lieu_naissance_temoin: lieu_naissance,
-            code_type_document_temoin: code_type_document,
-            numero_document_temoin: numero_document,
-            code_localite_temoin: code_localite,
-            domicile_pays_temoin: domicile_pays,
-            domicile_ville_temoin: domicile_ville,
-            domicile_arrondissement_temoin: domicile_arrondissement,
-            domicile_quartier_temoin: domicile_quartier,
-            domicile_typevoie_temoin: domicile_typevoie,
-            domicile_numero_temoin:  domicile_numero,
-            domicile_nomvoie_temoin: domicile_nomvoie
-        });
-    }
+
 
     //VERIFICATION FORMULAIRE
     var form = $(".validation-wizard").show();
 
     function soumission()
     {
-        // console.log(insertTemoin())
-        console.log(temoinsEnfant);
+
          // informations du père
          var code_declaration_naissance = $("#code_declaration_naissance");
          var code_pere = $("#code_pere");
@@ -1437,56 +1152,6 @@ $(function(){
          var code_type_document_pere = $("#code_type_document_pere");
          var numero_document_pere = $("#numero_document_pere");
 
-           //Informations témoins
-        var nombre_temoin = $("#nombre_temoin").val();
-        var code_temoin,nom_temoin,prenom_temoin,sexe_temoin,date_naissance_temoin,code_nationalite_temoin,
-        lieu_naissance_temoin,
-        code_type_document_temoin,numero_document_temoin,code_localite_temoin,domicile_pays_temoin,
-        autredomicile_ville_temoin,domicile_arrondissement_temoin,
-        domicile_quartier_temoin,domicile_typevoie_temoin,domicile_numero_temoin,
-        domicile_nomvoie_temoin;
-
-        temoinsEnfant = [];
-        for (var index = 1;  nombre_temoin >= index; index++) {
-
-            code_temoin = code_temoin+''+index;
-            nom_temoin = nom_temoin+''+index;
-            prenom_temoin = prenom_temoin+''+index;
-            sexe_temoin = sexe_temoin+''+index;
-            date_naissance_temoin = date_naissance_temoin+''+index;
-            code_nationalite_temoin = code_nationalite_temoin+''+index;
-            lieu_naissance_temoin = lieu_naissance_temoin+''+index;
-            code_type_document_temoin = code_type_document_temoin+''+index;
-            numero_document_temoin =  numero_document_temoin+''+index,
-            code_localite_temoin = code_localite_temoin+''+index;
-            domicile_pays_temoin = domicile_pays_temoin+''+index;
-            domicile_ville_temoin = autredomicile_ville_temoin+''+index;
-            domicile_arrondissement_temoin = domicile_arrondissement_temoin+''+index;
-            domicile_quartier_temoin = domicile_quartier_temoin+''+index;
-            domicile_typevoie_temoin = domicile_typevoie_temoin+''+index;
-            domicile_numero_temoin =  domicile_numero_temoin+''+index;
-            domicile_nomvoie_temoin = domicile_nomvoie_temoin+''+index;
-
-            nom_temoin = $("#nom_temoin"+index+"").val();
-            prenom_temoin = $("#prenom_temoin"+index+"").val();
-            sexe_temoin = $("#sexe_temoin"+index+"").val();
-            date_naissance_temoin = $("#datenais_temoin"+index+"").val();
-            code_nationalite_temoin = $("#code_nationalite_temoin"+index+"").val();
-            lieu_naissance_temoin = $("#lieu_naissance_temoin"+index+"").val();
-            code_type_document_temoin = $("#code_type_document_temoin"+index+"").val();
-            numero_document_temoin =  $("#numero_document_temoin"+index+"").val();
-            code_localite_temoin =  $("#code_localite_temoin"+index+"").val();
-            domicile_pays_temoin =  $("#domicile_pays_temoin"+index+"").val();
-            domicile_ville_temoin = $("#autredomicile_ville_temoin"+index+"").val();
-            domicile_arrondissement_temoin =  $("#domicile_arrondissement_temoin"+index+"").val();
-            domicile_quartier_temoin =  $("#domicile_quartier_temoin"+index+"").val();
-            domicile_typevoie_temoin =  $("#domicile_typevoie_temoin"+index+"").val();
-            domicile_numero_temoin =   $("#domicile_numero_temoin"+index+"").val();
-            domicile_nomvoie_temoin =  $("#domicile_nomvoie_temoin"+index+"").val();
-
-            insertTemoin(nom_temoin,prenom_temoin,sexe_temoin,date_naissance_temoin,code_nationalite_temoin,lieu_naissance_temoin,code_type_document_temoin,numero_document_temoin,code_localite_temoin,domicile_pays_temoin,autredomicile_ville_temoin,domicile_arrondissement_temoin,domicile_quartier_temoin,domicile_typevoie_temoin,domicile_numero_temoin,domicile_nomvoie_temoin);
-
-        }
 
          //information mere
          var code_mere = $("#code_mere");
@@ -1546,10 +1211,11 @@ $(function(){
          var numero_document_enfant = $("#numero_document_enfant");
          var sexe_enfant = $("#sexe_enfant");
          var heure_naissance_enfant = $("#heure_naissance_enfant");
-         var nombre_enfants = $("#nombre_enfants");
+         var nombre_enfant = $("#nombre_enfant");
 
          var domicile_pays_enfant = $("#domicile_pays_enfant");
          var domicile_ville_enfant = $("#domicile_ville_enfant");
+         var autredomicile_ville_enfant = $("#autredomicile_ville_enfant");
          var domicile_arrondissement_enfant = $("#domicile_arrondissement_enfant");
          var domicile_quartier_enfant = $("#domicile_quartier_enfant");
          var domicile_typevoie_enfant = $("#domicile_typevoie_enfant");
@@ -1572,6 +1238,7 @@ $(function(){
 
          var domicile_pays_pere = $("#domicile_pays_pere");
          var domicile_ville_pere = $("#domicile_ville_pere");
+         var autredomicile_ville_pere = $("#autredomicile_ville_pere");
          var domicile_arrondissement_pere = $("#domicile_arrondissement_pere");
          var domicile_quartier_pere = $("#domicile_quartier_pere");
          var domicile_typevoie_pere = $("#domicile_typevoie_pere");
@@ -1580,6 +1247,7 @@ $(function(){
 
          var domicile_pays_mere = $("#domicile_pays_mere");
          var domicile_ville_mere = $("#domicile_ville_mere");
+         var autredomicile_ville_mere = $("#autredomicile_ville_mere");
          var domicile_arrondissement_mere = $("#domicile_arrondissement_mere");
          var domicile_quartier_mere = $("#domicile_quartier_mere");
          var domicile_typevoie_mere = $("#domicile_typevoie_mere");
@@ -1593,6 +1261,7 @@ $(function(){
 
         var domicile_pays_declarant = $("#domicile_pays_declarant");
         var domicile_ville_declarant = $("#domicile_ville_declarant");
+        var autredomicile_ville_declarant = $("#autredomicile_ville_declarant");
         var domicile_arrondissement_declarant = $("#domicile_arrondissement_declarant");
         var domicile_quartier_declarant = $("#domicile_quartier_declarant");
         var domicile_typevoie_declarant = $("#domicile_typevoie_declarant");
@@ -1602,6 +1271,12 @@ $(function(){
         var date_heure_declaration = $("#date_heure_declaration");
         var type_declaration = $("#type_declaration");
         var formation_sanitaire_naissance = $("#formation_sanitaire_naissance");
+
+        // Choix de la ville selon le pays
+        let ville_pere = domicile_pays_pere.val() === 'Congo' ? domicile_ville_pere.val() : autredomicile_ville_pere.val();
+        let ville_mere = domicile_pays_mere.val() === 'Congo' ? domicile_ville_mere.val() : autredomicile_ville_mere.val();
+        let ville_enfant = domicile_pays_enfant.val() === 'Congo' ? domicile_ville_enfant.val() : autredomicile_ville_enfant.val();
+        let ville_declarant = domicile_pays_declarant.val() === 'Congo' ? domicile_ville_declarant.val() : autredomicile_ville_declarant.val();
 
         var data =
         {
@@ -1621,7 +1296,6 @@ $(function(){
             numero_document_enfant: numero_document_enfant.val(),
 
             domicile_pays_enfant: domicile_pays_enfant.val(),
-            domicile_ville_enfant: domicile_ville_enfant.val(),
             domicile_arrondissement_enfant: domicile_arrondissement_enfant.val(),
             domicile_quartier_enfant: domicile_quartier_enfant.val(),
             domicile_typevoie_enfant: domicile_typevoie_enfant.val(),
@@ -1633,8 +1307,6 @@ $(function(){
 
             //fin uniquement pour le update de l'objet
 
-            temoins: temoinsEnfant,
-            nombre_temoin: nombre_temoin,
              // données du père
             nom_pere:nom_pere.val(),
             prenom_pere:prenom_pere.val(),
@@ -1689,7 +1361,7 @@ $(function(){
             sexe_enfant:sexe_enfant.val(),
             heure_naissance_enfant:heure_naissance_enfant.val(),
             lieu_survenance:lieu_survenance.val(),
-            nombre_enfant:nombre_enfants.val(),
+            nombre_enfant:nombre_enfant.val(),
             type_date_naissance_declarant:type_date_naissance_declarant.val(),
             statut_personne_declarant:statut_personne_declarant.val(),
             type_date_naissance_mere:type_date_naissance_mere.val(),
@@ -1700,21 +1372,18 @@ $(function(){
             email_mere:email_mere.val(),
             email_declarant:email_declarant.val(),
             domicile_pays_pere:domicile_pays_pere.val(),
-            domicile_ville_pere:domicile_ville_pere.val(),
             domicile_arrondissement_pere:domicile_arrondissement_pere.val(),
             domicile_quartier_pere:domicile_quartier_pere.val(),
             domicile_typevoie_pere:domicile_typevoie_pere.val(),
             domicile_numero_pere:domicile_numero_pere.val(),
             domicile_nomvoie_pere:domicile_nomvoie_pere.val(),
             domicile_pays_mere:domicile_pays_mere.val(),
-            domicile_ville_mere:domicile_ville_mere.val(),
             domicile_arrondissement_mere:domicile_arrondissement_mere.val(),
             domicile_quartier_mere:domicile_quartier_mere.val(),
             domicile_typevoie_mere:domicile_typevoie_mere.val(),
             domicile_numero_mere:domicile_numero_mere.val(),
             domicile_nomvoie_mere:domicile_nomvoie_mere.val(),
             domicile_pays_declarant:domicile_pays_declarant.val(),
-            domicile_ville_declarant:domicile_ville_declarant.val(),
             domicile_arrondissement_declarant:domicile_arrondissement_declarant.val(),
             domicile_quartier_declarant:domicile_quartier_declarant.val(),
             domicile_typevoie_declarant:domicile_typevoie_declarant.val(),
@@ -1722,7 +1391,11 @@ $(function(){
             domicile_nomvoie_declarant:domicile_nomvoie_declarant.val(),
             date_heure_declaration:date_heure_declaration.val(),
             type_declaration:type_declaration.val(),
-            formation_sanitaire_naissance:formation_sanitaire_naissance.val()
+            formation_sanitaire_naissance:formation_sanitaire_naissance.val(),
+            domicile_ville_pere: ville_pere,
+            domicile_ville_mere: ville_mere,
+            domicile_ville_enfant: ville_enfant,
+            domicile_ville_declarant: ville_declarant,
         };
 
         //traitement ajax
@@ -1746,7 +1419,7 @@ $(function(){
 +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:2px'>2)MERE </td><td style='padding:2px'>Nom<br><span style='font-weight:bold;'>"+ nom_mere.val() +" </span></td><td style='padding:2px'>Prenom<br><span style='font-weight:bold;'> "+prenom_mere.val()+"</span></td><td style='padding:2px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(date_naissance_mere.val())+"</span></td><td style='padding:2px'>Adresse<br><span style='font-weight:bold;'>"+domicile_numero_mere.val()+" "+domicile_nomvoie_mere.val()+" "+$("#domicile_ville_pere option:selected").text()+" "+$("#domicile_arrondissement_pere option:selected").text()+" "+$("#domicile_quartier_pere option:selected").text()+"</span></td><td style='padding:2px'>Niveau <br><span style='font-weight:bold;'>"+document.getElementById( "niveau_instruction_mere" ).options[ document.getElementById( "niveau_instruction_mere" ).selectedIndex ].text +"</span></td></tr>"
 +"<tr><td style='font-weight:bold; padding:2px'></td><td style='padding:2px'>Document<br><span style='font-weight:bold;'>"+numero_document_mere.val()+"</span></td><td style='padding:2px'>Lieu naissance<br><span style='font-weight:bold;'>"+lieu_naissance_mere.val()+"</span></td><td style='padding:2px'>Nationalité<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_mere" ).options[ document.getElementById( "code_nationalite_mere" ).selectedIndex ].text+"</span></td><td style='padding:2px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "profession_mere" ).options[ document.getElementById( "profession_mere" ).selectedIndex ].text+"</span></td><td style='padding:2px'>Telephone<br><span style='font-weight:bold;'>"+telephone_mere.val()+"</span></td></tr>"
 
-+"<tr><td style='font-weight:bold; padding:2px'></td><td style='padding:2px'>Nombre enfant <br><span style='font-weight:bold;'>"+nombre_enfants.val()+"</span></td></tr>"
++"<tr><td style='font-weight:bold; padding:2px'></td><td style='padding:2px'>Nombre enfant <br><span style='font-weight:bold;'>"+nombre_enfant.val()+"</span></td></tr>"
 
 //DECLARANT
 +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:2px'>3)DECLARANT</td><td style='padding:2px'>Nom<br><span style='font-weight:bold;'>"+ nom_declarant.val() +" </span></td><td style='padding:2px'>Prenom<br><span style='font-weight:bold;'> "+prenom_declarant.val()+"</span></td><td style='padding:2px'>Sexe<br><span style='font-weight:bold;'>"+document.getElementById( "sexe_declarant" ).options[ document.getElementById( "sexe_declarant" ).selectedIndex ].text+"</span></td><td style='padding:2px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(date_naissance_declarant.val())+"</span></td><td style='padding:2px'>Lieu<br><span style='font-weight:bold;'>"+ lieu_naissance_declarant.val()+"</span></td>"
@@ -1782,21 +1455,24 @@ $(function(){
                     success: function(response){
                         if(response.code == "200")
                         {
-                            flashAlert("Opération réussie","success",response.message);
-                            if(typeDeclaration == "DECLARATION DE NAISSANCE"){
-                                setTimeout(() => {
-                                    window.open(url);
-                                }, 2000);
+                            var type_declaration = $("#type_declaration").val();
+                            var url = "";
+                            if(type_declaration == "DECLARATION DE NAISSANCE" || type_declaration == "FICHE DE MATERNITE"){
+                                url = "{{ route('declarationNaissance.index') }}";
+                            }else if(type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+                                url = "{{ route('certificatDestruction.index') }}";
                             }else{
-                                setTimeout(() => {
-                                    window.open(url2);
-                                }, 2000);
+                                url = "{{ route('certificatNonInscription.index') }}";
                             }
 
+                            flashAlert("Opération réussie","success",response.message);
 
+                            setTimeout(() => {
+                                window.open(url);
+                            }, 2000);
 
                         }else{
-                            swal.fire("Opération échouée!", response.message, "error");
+                            flashAlert("Opération échouée","error",response.message);
                         }
                     }
 
@@ -1966,7 +1642,7 @@ $(function(){
               code_situation_matrimoniale:{
                  required:true,
               },
-              nombre_enfants:{
+              nombre_enfant:{
                  required:true,
               },
               nombre_temoin:{
@@ -2016,7 +1692,7 @@ $(function(){
              code_situation_matrimoniale:{
              required: "Veuillez selectionner un element",
              },
-             nombre_enfants:{
+             nombre_enfant:{
                  required: "Veuillez choisir le nombre des enfants",
              },
              nombre_temoin:{
@@ -2748,3 +2424,7 @@ $(function(){
 
 </script>
 @endsection
+
+$(document).ready(function() {
+    $('#domicile_pays_enfant').trigger('change');
+});

@@ -12,6 +12,10 @@ class Localite extends Model
 {
     use HasFactory;
     use HasRecursiveRelationships;
+/*
+	code_localite,	lib_localite,code_officel( Codification officiel de département),code_type_localite, 	pompes_funebres, 	code_localite_parent*/
+
+
 
     protected $guarded = [];
     protected $table = 'tr_localite';
@@ -54,6 +58,6 @@ class Localite extends Model
         return $this->institutions->map->institutionsUsers->flatten()->map->declarationDeces->flatten();
     }
 
-   
+
 
 }

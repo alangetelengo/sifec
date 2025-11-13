@@ -80,6 +80,7 @@
                     <li>
                         <a href="{{ route('declarationNaissance.index') }}">Déclaration naissance</a>
                     </li>
+
                     @endcan
                     @can("module.acteDeces.declarationacteDeces.create")
                     <li>
@@ -115,7 +116,8 @@
                     <li><a href="{{ route('acteDeces.index') }}">Production acte</a></li>
                     <li><a href="{{ route('statistiquesDeces.listedece') }}">Repertoire alphabétique</a></li>
                     <li>
-                        <a href="{{route('certificatTranscriptionDeces.index')}}">Certificat de non inscription</a>
+                        <a href="{{route('certificatTranscriptionDeces.index')}}">Certificat de transcription</a>
+                        <a href="{{route('certificatNonInscriptionDeces.index')}}">Certificat de non inscription de décès</a>
                     </li>
                     <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                         <span class="nav-text">Réquisition </span>
@@ -125,7 +127,7 @@
                             <li><a href="{{route('RequisitionTranscriptionDeces.index')}}">Aux fins de transcription</a></li>
                         </ul>
                     </li>
-                    <li><a href="{{route("declarationDeces.verification")}}">Déclaration tardive</a></li>
+                    <li><a href="{{route("declarationTardiveDeces.index")}}">Déclaration tardive</a></li>
                 </ul>
             </li>
             @endcan
@@ -142,7 +144,7 @@
                         <span class="nav-text">Naissance</span>
                         </a>
                         <ul aria-expanded="false">
-                            <li><a href="{{ route('declarationNaissance.index') }}">Fiche de transcription de l'acte</a></li>
+                            <li><a href="{{ route('certificatTranscription.index') }}">Fiche de transcription de l'acte</a></li>
                             <li><a href="{{ route('acteNaissance.index') }}">Production acte</a></li>
                         </ul>
                     </li>
@@ -190,17 +192,12 @@
                             <li><a href="#">Certificat de célibat</a></li>
                         </ul>
                     </li>
-                    <li><a href="{{ route('requisition.index') }}">Liste des réquisitions</a></li>
-                    <li><a href="{{ route('jugement.index') }}">Liste des jugements</a></li>
                     <li><a href="{{ route('retrait.index') }}">Consultation acte retiré</a></li>
                     <li><a href="{{ route('rectification.index') }}">Rectification d'acte </a></li>
-
-                    
-
                 </ul>
             </li>
             @endcan
-            
+
 
             @can("module.menus.cec")
             <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
@@ -208,7 +205,7 @@
                 <span class="nav-text"> ETAT CIVIL</span>
                 </a>
                 <ul aria-expanded="false">
-                    @if(Auth::user()->affectationActive()->fonction->code_fonction != "FONC_0017")
+                    @if(Auth::check() && Auth::user()->affectationActive() && Auth::user()->affectationActive()->fonction->code_fonction != "FONC_0017")
                     <li>
                         <a href="{{ route('registre.index') }}">Registre</a>
                     </li>
@@ -224,7 +221,7 @@
                                 </a>
                                 <ul aria-expanded="false">
                                     <li>
-                                        <a href="{{route("certificatNonInscription.index")}}">Déclaration de naissance</a>
+                                        <a href="{{route("declarationNaissance.index")}}">Déclaration de naissance</a>
                                     </li>
                                 </ul>
                             </li>
@@ -237,12 +234,9 @@
                                 <ul aria-expanded="false">
                                     <li><a href="{{route("certificatNonInscription.index")}}">Certificat de non inscription</a></li>
                                     <li><a href="{{ route('certificatDestruction.index') }}">Certificat de destruction</a></li>
-                                    <li><a href="#">Fiche de correction des erreurs matérielles</a></li>
-                                    
+                                    {{-- <li><a href="#">Fiche de correction des erreurs matérielles</a></li> --}}
                                 </ul>
                             </li>
-                           
-
                         </ul>
                     </li>
                     @endcan
@@ -271,12 +265,12 @@
                         </ul>
                     </li>
                     @endcan
-                    @if( Auth::user()->affectationActive()->institution->lieu->pompes_funebres == 0)
+                    {{-- @if( Auth::user()->affectationActive()->institution->lieu->pompes_funebres == 0)
                         @can("module.menus.deces")
                         <li>
                             <a href="#">Décès</a>
                             <ul aria-expanded="false">
-                                <li><a href="{{route("declarationDeces.verification")}}">Déclaration tardive</a></li>
+                                <li><a href="{{route("certificatNonInscription.index")}}">Déclaration tardive</a></li>
                                 <li><a href="{{ route('acteDeces.index') }}">Production acte</a></li>
                                 <li><a href="{{ route('statistiquesDeces.listedece') }}">Repertoire alphabétique</a></li>
 
@@ -285,15 +279,14 @@
                                     </a>
                                     <ul aria-expanded="false">
                                         <li><a href="{{route('RequisitionTardiveDeces.index')}}">Aux fins de déclaration tardive décès</a></li>
-                                        {{-- <li><a href="{{route('RequisitionTranscriptionDeces.index')}}">Aux fins de transcription</a></li> --}}
                                     </ul>
                                 </li>
                             </ul>
                         </li>
                         @endcan
-                    @endif
+                    @endif --}}
 
-                    @if( Auth::user()->affectationActive()->fonction->code_fonction != "FONC_0017")
+                    @if(Auth::check() && Auth::user()->affectationActive() && Auth::user()->affectationActive()->fonction->code_fonction != "FONC_0017")
                         {{-- <li>
                             <a href="#">Divorce</a>
                             <ul aria-expanded="false">
@@ -315,11 +308,11 @@
                             </ul>
                         </li>
 
-                        <li><a href="{{ route('requisition.index') }}">Liste des réquisitions</a></li>
-                        <li><a href="{{ route('jugement.index') }}">Liste des jugements</a></li>
+                        <li><a href="{{ route('documents.requisitions') }}">Liste des réquisitions importées</a></li>
+                        <li><a href="{{ route('documents.jugements') }}">Liste des jugements importés</a></li>
                         <li><a href="{{ route('retrait.index') }}">Consultation acte retiré</a></li>
                         <li><a href="{{ route('rectification.index') }}">Rectification d'acte </a></li>
-                           
+
                     @endif
                 </ul>
             </li>
@@ -352,66 +345,46 @@
             </li>
             @endcan
             @can("module.menus.tribunal")
-            <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+            <li><a class="has-arrow ai-icon" href="javascript:void(0)" aria-expanded="false">
                 <i class="flaticon-381-layer-1"></i>
                 <span class="nav-text">TRIBUNAL</span>
                 </a>
                 <ul aria-expanded="false">
-                    @can("module.fonctionnalites.requisitions")
-                        <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                            <span class="nav-text">Réquisitions </span>
-                            </a>
-                            <ul aria-expanded="false">
-                                <li><a href="{{ route('requisition.index') }}">Liste</a></li>
-                                {{-- <li><a href="{{route('etatMariage.requisition')}}">Liste</a></li> --}}
-                                {{-- <li><a href="{{ route('requisition.create',"requisition aux fins de reconstitution de l'acte") }}">Aux fins de reconstitution de l'acte</a></li> --}}
-                                        {{--
-                                        <li><a href="/">Aux fins de déclaration tardive</a></li>
-                                        <li><a href="/">Aux fins de transcription de l'acte</a></li> --}}
 
-                                {{-- <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                                    <span class="nav-text">Mariage </span>
-                                    </a>
-                                    <ul aria-expanded="false">
-                                        <li><a href="{{route('etatMariage.requisition')}}">Réquisition</a></li>
-                                    </ul>
-                                </li>
-                                <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                                    <span class="nav-text">Décès </span>
-                                    </a>
-                                    <ul aria-expanded="false">
-                                        <li><a href="{{route('RequisitionTardiveDeces.index')}}">Aux fins de déclaration tardive décès</a></li>
-                                        <li><a href="{{route('RequisitionTranscriptionDeces.index')}}">Aux fins de transcription</a></li>
-                                    </ul>
-                                </li> --}}
-                            </ul>
-                        </li>
-                        <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                            <span class="nav-text">Jugements </span>
-                            </a>
-                            <ul aria-expanded="false">
-                                 {{-- <li><a href="{{ route('requisition.jugement') }}">Aux fins de reconstitution de l'acte</a></li> --}}
-                                    {{-- <li><a href="{{ route('RequisitionTardive.jugement') }}">Aux fins de déclaration tardive</a></li>
-                                    <li><a href="{{route('RequisitionTranscription.jugement')}}">Aux fins de transcription de l'acte</a></li> --}}
-                                    <li><a href="{{ route('jugement.index') }}">Liste</a></li>
-                                    <li><a href="{{ route('jugement.create', "suppletif") }}">Supplétif</a></li>
-                                    <li><a href="{{ route('jugement.create', "D'homologation") }}">D'homologation</a></li>
-                                    <li><a href="{{ route('jugement.create', "D'adoption") }}">D'adoption</a></li>
-                                    <li><a href="{{ route('jugement.create', "D'annulation d'acte") }}">D'annulation d'acte</a></li>
-                            </ul>
-                        </li>
-                    @endcan
-                    @can("module.fonctionnalites.parapher")
-                    <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                        <span class="nav-text">Registre </span>
+                    <li>
+                        <a class="has-arrow ai-icon" href="javascript:void(0)" aria-expanded="false">
+                            <i class="flaticon-381-layer-1"></i>
+                            <span class="nav-text">Dossiers reçus</span>
                         </a>
                         <ul aria-expanded="false">
-                            {{-- <li><a href="{{ route("tribunal.registre") }}">Consultation registre</a></li> --}}
-                            <li><a href="{{ route("registre.tribunal") }}">Consultation registre</a></li>
+                            <li>
+                                <a href="{{ route('tribunal.document.index') }}">
+                                    <span class="nav-text">Certificats</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('tribunal.document.rectification') }}">
+                                    <span class="nav-text">Rectifications</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
+
+                    <li><a href="{{ route('tribunal.document.historique') }}">
+                        <span class="nav-text">Historique des imports</span>
+                    </a></li>
+                    <li><a href="{{ route('tribunal.document.envoyes') }}">
+                        <span class="nav-text">Documents envoyés</span>
+                    </a></li>
+                    <li><a href="{{ route('tribunal.document.stats') }}">
+                        <span class="nav-text">Statistiques</span>
+                    </a></li>
+                    @can("module.fonctionnalites.parapher")
+                    <li><a href="{{ route('registre.tribunal') }}">
+                        <span class="nav-text">Registre</span>
+                    </a></li>
                     @endcan
-                    @if(Auth::user()->affectationActive()->code_fonction == "FONC_0018")
+                    @if(Auth::check() && Auth::user()->affectationActive() && Auth::user()->affectationActive()->fonction->code_fonction == "FONC_0018")
                         <li><a href="{{ route('declarationDeces.index') }}">Déclaration décès</a></li>
                     @endif
                 </ul>
@@ -450,10 +423,7 @@
                         </a>
                         <ul aria-expanded="false">
                             <li><a href="{{ route('statistiquesNaissance.sexeDeclaration') }}">Déclaration de naissance</a></li>
-                            <li><a href="{{route('statistiquesNaissance.sexeNaissance')}}">Par genre</a></li>
-                            <li>
-                                <a href="{{ route('ActeNaissance.repertoire') }}">Répertoire alphabétique</a>
-                             </li>
+                            <li><a href="{{route('statistiquesNaissance.sexeNaissance')}}">Acte de naissance</a></li>
                             <li><a href="{{route('dashboard.statgenredep')}}">Naissances par genre et département</a></li>
                         </ul>
                     </li>
@@ -465,16 +435,6 @@
                             <li><a href="{{route("statistiquesDeces.age")}}">Décès par tranches d'âges</a></li>
                         </ul>
                     </li>
-                </ul>
-            </li>
-            <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                <i class="flaticon-381-notepad"></i>
-                <span class="nav-text">TABLEAU DE BORD</span>
-                </a>
-                <ul aria-expanded="false">
-                    <li><a href="{{ route('dashboard_gouv.fait.stats') }}">Suivi des faits</a></li>
-                    {{-- <li><a href="{{ route('dashboard_gouv.index') }}">Suivi des recettes (RDC)</a></li> --}}
-                    <li><a href="{{ route('paiement_document.index') }}"> Payer document </a></li>
                 </ul>
             </li>
 

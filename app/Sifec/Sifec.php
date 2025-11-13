@@ -31,14 +31,52 @@ use Modules\Naissance\Entities\Declarationnaissance;
 class Sifec {
 
     public static function  genererCodeUniqueReferentiel(Model $model, string $code_field, int $tailleString,$prefix ){
+        $maxTries = 10;
+        $attempt = 0;
 
-        $obj = $model::orderBy($code_field,"DESC")->first();
-        // $obj = $model::orderBy("created_at","DESC")->first();
-        $max = $obj == null ? 1 : (int) substr($obj->$code_field,strlen($prefix)) + 1;
-        $strNumber = str_pad($max,$tailleString,"0",STR_PAD_LEFT);
-        $code = $prefix.$strNumber;
+        while ($attempt < $maxTries) {
+            DB::beginTransaction();
+            try {
+                // Utiliser une requête avec verrou pour éviter les problèmes de concurrence
+                $obj = $model::lockForUpdate()->orderBy($code_field,"DESC")->first();
+                $max = $obj == null ? 1 : (int) substr($obj->$code_field,strlen($prefix)) + 1;
 
-        return $code;
+                // Générer le code et vérifier s'il existe déjà
+                do {
+                    $strNumber = str_pad($max,$tailleString,"0",STR_PAD_LEFT);
+                    $code = $prefix.$strNumber;
+                    $exists = $model::where($code_field, $code)->exists();
+                    if ($exists) {
+                        $max++;
+                    }
+                } while ($exists && $max < 99999999); // Éviter une boucle infinie
+
+                DB::commit();
+
+                if (!$exists) {
+                    return $code;
+                }
+
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::channel('sifec')->warning('Erreur génération code unique', [
+                    'attempt' => $attempt,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            $attempt++;
+            // Attendre un peu avant de réessayer
+            usleep(rand(10000, 50000)); // 10-50ms
+        }
+
+        // Si on n'arrive pas à générer un code unique après plusieurs tentatives,
+        // utiliser un timestamp avec microsecondes pour garantir l'unicité
+        $timestamp = time();
+        $micro = substr(microtime(), 2, 6); // Prendre 6 chiffres des microsecondes
+        $combined = $timestamp . $micro;
+        $strNumber = substr($combined, -$tailleString);
+        return $prefix.str_pad($strNumber, $tailleString, "0", STR_PAD_LEFT);
     }
 
     public static function niveauInstructions(){
@@ -186,138 +224,178 @@ class Sifec {
         DB::beginTransaction();
 
         try {
+            $maxRetries = 3;
+            $retryCount = 0;
+            $personne = null;
 
-            $personne = new Personne;
-            $codedeclarant = Sifec::genererCodeUniqueReferentiel($personne,"code_personne",8,"PRS_");
+            while ($retryCount < $maxRetries) {
+                try {
+                    $personne = new Personne;
+                    $codedeclarant = Sifec::genererCodeUniqueReferentiel($personne,"code_personne",8,"PRS_");
 
-            $personne->code_personne = $codedeclarant;
-            $personne->nom = $request->input("nom".$sufix);
-            $personne->prenom = ucfirst($request->input("prenom".$sufix)) ;
-            $personne->date_naissance = $request->input("date_naissance".$sufix);
-            $personne->code_localite  = $request->input("code_localite".$sufix) ?? "LOC_4247";
-            $personne->lieu_naissance = $request->input("lieu_naissance".$sufix) ?? Localite::find($request->input("code_localite".$sufix))->lib_localite ?? "NON DECLARE";
+                    $personne->code_personne = $codedeclarant;
+                    $personne->nom = strtoupper($request->input("nom" . $sufix));
+                    $personne->prenom = ucfirst($request->input("prenom".$sufix)) ;
+                    $personne->date_naissance = $request->input("date_naissance".$sufix);
+                    $personne->code_localite  = $request->input("code_localite".$sufix) ?? "LOC_4247";
+                    $personne->lieu_naissance = $request->input("lieu_naissance".$sufix) ?? Localite::find($request->input("code_localite".$sufix))->lib_localite ?? "NON DECLARE";
 
-            $personne->code_profession = $request->input("profession".$sufix) ?? $request->input("code_profession".$sufix) ?? "PROF_0010";
-            $personne->code_nationalite = $request->input("code_nationalite".$sufix) ?? "NAT_0001";
-            $personne->niveau_instruction = $request->input("niveau_instruction".$sufix) ?? "NON DECLARE";
-            $personne->telephone = $request->input("telephone".$sufix);
-            $personne->telephone_parent = $request->input("telephone_parent");
-            $personne->sexe = $sexe;
-            // $personne->type_date_naissance = $request->input("type_date_naissance".$sufix);
-            $personne->statut_personne = $request->input("statut_personne".$sufix) ? $request->input("statut_personne".$sufix) : "VIVANT" ;
-            $personne->personne_string = $uniqueString;
-            $personne->type_adoption = $adoption;
+                    $personne->code_profession = $request->input("profession".$sufix) ?? $request->input("code_profession".$sufix) ?? "PROF_0010";
+                    // $personne->code_nationalite = $request->input("code_nationalite".$sufix) ?? "NAT_0001";
+                    $personne->code_nationalite = "NAT_0001";
+                    $personne->niveau_instruction = $request->input("niveau_instruction".$sufix) ?? "NON DECLARE";
+                    $personne->telephone = $request->input("telephone".$sufix);
+                    $personne->telephone_parent = $request->input("telephone_parent");
+                    $personne->sexe = $sexe;
+                    // $personne->type_date_naissance = $request->input("type_date_naissance".$sufix);
+                    $personne->statut_personne = $request->input("statut_personne".$sufix) ? $request->input("statut_personne".$sufix) : "VIVANT" ;
+                    $personne->personne_string = $uniqueString;
+                    $personne->type_adoption = $adoption;
 
 
-            if($sufix == "_enfant")
-            {
-                $personne->type_date_naissance = "EXACTE";
-                $personne->niveau_instruction = "NON DECLARE";
-                $personne->code_profession=="PROF_0010";
-                $personne->code_nationalite=="NAT_0001";
-            }
-            else
-            {
-                $personne->type_date_naissance = $request->input("type_date_naissance".$sufix);
-                if(empty($request->input("type_date_naissance".$sufix)))
-                {
-                    $personne->type_date_naissance = "EXACTE";
+                    if($sufix == "_enfant")
+                    {
+                        $personne->type_date_naissance = "EXACTE";
+                        $personne->niveau_instruction = "NON DECLARE";
+                        $personne->code_profession=="PROF_0010";
+                        $personne->code_nationalite=="NAT_0001";
+                    }
+                    else
+                    {
+                        $personne->type_date_naissance = $request->input("type_date_naissance".$sufix);
+                        if(empty($request->input("type_date_naissance".$sufix)))
+                        {
+                            $personne->type_date_naissance = "EXACTE";
+                        }
+                    }
+
+                    $personne->save();
+
+
+                    //Ajouter le document
+                    if($personne->statut_personne == "VIVANT")
+                    {
+                        $addocument = new Document();
+                        $code = Sifec::genererCodeUniqueReferentiel($addocument,"code_document",8,"DOC_");
+                        $addocument->code_document = $code;
+
+                        if($sufix == "_enfant")
+                        {
+                            $addocument->numero_document = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+                            $addocument->code_type_document = "TDOC_0018";
+                        }else{
+                            $addocument->numero_document = $request->input("numero_document".$sufix) ? $request->input("numero_document".$sufix) : "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+                            $addocument->code_type_document = $request->input("code_type_document".$sufix) ? $request->input("code_type_document".$sufix) : "TDOC_0018";
+                        }
+                        $addocument->code_personne = $personne->code_personne;
+                        $addocument->save();
+                    }
+
+
+                    // if($sufix != "_enfant" && $personne->statut_personne == "VIVANT")
+                    // if($sufix != "_enfant")
+                    // {
+                        $num = $request->input("domicile_numero".$sufix);
+                        $num = $num ? $num : null;
+                        $typeVoie = $request->input("domicile_typevoie".$sufix);
+                        $typeVoie = $typeVoie ? strtolower($typeVoie) : null;
+                        $libVoie = $request->input("domicile_nomvoie".$sufix);
+                        $libVoie = $libVoie ? ucfirst($libVoie) : null;
+                        $comDist = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_ville".$sufix));
+                        $comDist = $comDist ? $comDist->lib_localite : null;
+                        $arrondissement = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_arrondissement".$sufix));
+                        $arrondissement = $arrondissement ? $arrondissement->lib_localite : null;
+                        $quartier = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_quartier".$sufix));
+                        $quartier = $quartier ? $quartier->lib_localite : null;
+
+                        $adressePers = $num.','.$typeVoie.' '.$libVoie.' '.$quartier.' '.$arrondissement.' '.$comDist;
+
+
+                        $contact = new ContactPersonne;
+                        $contact->indicatif = $request->input("code_pays" . $sufix);
+                        $contact->telephone = $request->input("telephone" . $sufix);
+                        $contact->email_personnelle = $request->input("email" . $sufix);
+                        $contact->code_personne = $personne->code_personne;
+                        $contact->save();
+
+                        $adresse = new AdressePersonne();
+                        $adresse->lib_pays  = $request->input("domicile_pays". $sufix) ?? "Congo";
+                        $adresse->lib_ville = $comDist;
+                        $adresse->type_voie = $typeVoie;
+                        $adresse->nom_voie = $libVoie;
+                        $adresse->numero_rue = $num;
+
+                        if($request->input("domicile_quartier".$sufix) != ""){
+                            $adresse->code_quartier_village = $request->input("domicile_quartier".$sufix);
+                        }
+                        if($request->input("domicile_quartier".$sufix) == "XXXXXXXXXXXXXXXX"){
+
+                            $adresse->code_quartier_village = "LOC_4250";
+                        }
+                        // else{
+                        //     $adresse->code_quartier_village = NULL;
+                        // }
+
+                        if($request->input("domicile_arrondissement".$sufix) != ""){
+                            $adresse->code_arrondissement_comurbaine = $request->input("domicile_arrondissement".$sufix);
+                        }
+                        if($request->input("domicile_arrondissement".$sufix) == "XXXXXXXXXXXXXXXX"){
+
+                            $adresse->code_arrondissement_comurbaine = "LOC_4250";
+                        }
+                        // else{
+                        //     $adresse->code_arrondissement_comurbaine = NULL;
+                        // }
+
+
+                        if($request->input("domicile_ville".$sufix) != ""){
+                            $adresse->code_localite = $request->input("domicile_ville".$sufix);
+                        }
+                        if($request->input("domicile_ville".$sufix) == "XXXXXXXXXXXXXXXX"){
+
+                            $adresse->code_localite = "LOC_4250";
+                        }
+                        // else{
+                        //     $adresse->code_localite = NULL;
+                        // }
+
+
+                        // $adresse->code_localite  = $request->input("domicile_ville" . $sufix) ?? NULL;
+                        $adresse->code_personne = $personne->code_personne;
+                        $adresse->save();
+
+
+                    //update adresse
+                    $updateAdresse = Personne::find($personne->code_personne);
+                    $updateAdresse->adresse = $adressePers;
+                    $updateAdresse->save();
+
+                    // Si nous arrivons ici, l'insertion a réussi, sortir de la boucle
+                    break;
+
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Vérifier si c'est une erreur de duplication de clé primaire
+                    if ($e->getCode() == 23000 && strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                        $retryCount++;
+                        if ($retryCount >= $maxRetries) {
+                            Log::channel("sifec")->error("Impossible de générer un code unique après {$maxRetries} tentatives", [
+                                'error' => $e->getMessage(),
+                                'uniqueString' => $uniqueString
+                            ]);
+                            throw new Exception("Impossible de créer la personne : code en doublon après plusieurs tentatives");
+                        }
+                        // Attendre un peu avant de réessayer pour éviter les collisions
+                        usleep(rand(100000, 500000)); // 0.1 à 0.5 secondes
+                        continue;
+                    } else {
+                        // Si c'est une autre erreur, la relancer
+                        throw $e;
+                    }
                 }
             }
 
-            $personne->save();
-
-
-            //Ajouter le document
-            if($personne->statut_personne == "VIVANT")
-            {
-                $addocument = new Document();
-                $code = Sifec::genererCodeUniqueReferentiel($addocument,"code_document",8,"DOC_");
-                $addocument->code_document = $code;
-
-                if($sufix == "_enfant")
-                {
-                    $addocument->numero_document = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-                    $addocument->code_type_document = "TDOC_0018";
-                }else{
-                    $addocument->numero_document = $request->input("numero_document".$sufix) ? $request->input("numero_document".$sufix) : "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-                    $addocument->code_type_document = $request->input("code_type_document".$sufix) ? $request->input("code_type_document".$sufix) : "TDOC_0018";
-                }
-                $addocument->code_personne = $personne->code_personne;
-                $addocument->save();
-            }
-
-
-            // if($sufix != "_enfant" && $personne->statut_personne == "VIVANT")
-            if($sufix != "_enfant")
-            {
-                $num = $request->input("domicile_numero".$sufix);
-                $typeVoie = strtolower($request->input("domicile_typevoie".$sufix));
-                $libVoie = ucfirst($request->input("domicile_nomvoie".$sufix));
-                $qv =  Localite::find($request->input("domicile_quartier".$sufix))->lib_localite ?? NULL;
-                $arComUrb = Localite::find($request->input("domicile_arrondissement".$sufix))->lib_localite ?? NULL;
-                $comDist = Localite::find($request->input("domicile_ville".$sufix))->lib_localite ?? NULL;
-                $adressePers = $num.','.$typeVoie.' '.$libVoie.' '.$qv.' '.$arComUrb.' '.$comDist;
-
-
-                $contact = new ContactPersonne;
-                $contact->indicatif = $request->input("code_pays" . $sufix);
-                $contact->telephone = $request->input("telephone" . $sufix);
-                $contact->email_personnelle = $request->input("email" . $sufix);
-                $contact->code_personne = $personne->code_personne;
-                $contact->save();
-
-                $adresse = new AdressePersonne();
-                $adresse->lib_pays  = $request->input("domicile_pays". $sufix) ?? "Congo";
-                $adresse->lib_ville = $comDist;
-                if($request->input("domicile_arrondissement".$sufix) != ""){
-                    $adresse->code_arrondissement_comurbaine = $request->input("domicile_arrondissement".$sufix);
-                }
-                if($request->input("domicile_arrondissement".$sufix) == "XXXXXXXXXXXXXXXX"){
-
-                    $adresse->code_arrondissement_comurbaine = "LOC_4250";
-                }else{
-                    $adresse->code_arrondissement_comurbaine = NULL;
-                }
-
-
-
-                if($request->input("domicile_quartier".$sufix) != ""){
-                    $adresse->code_quartier_village = $request->input("domicile_quartier".$sufix);
-                }
-                if($request->input("domicile_quartier".$sufix) == "XXXXXXXXXXXXXXXX"){
-
-                    $adresse->code_quartier_village = "LOC_4250";
-                }else{
-                    $adresse->code_quartier_village = NULL;
-                }
-
-
-                if($request->input("domicile_ville".$sufix) != ""){
-                    $adresse->code_localite = $request->input("domicile_ville".$sufix);
-                }
-                if($request->input("domicile_ville".$sufix) == "XXXXXXXXXXXXXXXX"){
-
-                    $adresse->code_localite = "LOC_4250";
-                }else{
-                    $adresse->code_localite = NULL;
-                }
-
-                $adresse->type_voie = $typeVoie;
-                $adresse->nom_voie = $libVoie;
-                $adresse->numero_rue = $num;
-                // $adresse->code_localite  = $request->input("domicile_ville" . $sufix) ?? NULL;
-                $adresse->code_personne = $personne->code_personne;
-                $adresse->save();
-
-
-                //update adresse
-                $updateAdresse = Personne::find($personne->code_personne);
-                $updateAdresse->adresse = $adressePers;
-                $updateAdresse->save();
-                // $personne->adresse = $adressePers;
-                // $personne->save();
-
+            if (!$personne) {
+                throw new Exception("Impossible de créer la personne après plusieurs tentatives");
             }
 
             DB::commit();
@@ -326,7 +404,7 @@ class Sifec {
         } catch (Exception $e) {
             DB::rollBack();
             Log::channel("sifec")->error($e->getMessage());
-            return null;
+            throw $e;
         }
 
     }
@@ -408,22 +486,21 @@ class Sifec {
         return true;
     }
 
-    public static function updatePersonne(Request $request,$sufix,$sexe,$code,$uniqueString="")
+
+
+    //New updatePersonne
+    public static function updatePersonne(Request $request,$sufix,$sexe,$code)
     {
+
         DB::beginTransaction();
         try {
 
-            $personne = Personne::find($code);
+             $personne = Personne::find($code);
             $personne->nom = $request->input("nom".$sufix);
             $personne->prenom = ucfirst($request->input("prenom".$sufix)) ;
             $personne->date_naissance = $request->input("date_naissance".$sufix);
             $personne->lieu_naissance = $request->input("lieu_naissance".$sufix) ?? Localite::find($request->input("code_localite".$sufix))->lib_localite;
             $personne->code_localite = $request->input("code_localite".$sufix);
-            $personne->telephone_parent = $request->input("telephone_parent");
-            $personne->statut_personne = $request->input("statut_personne".$sufix);
-            if($uniqueString != ""){
-                $personne->personne_string = $uniqueString;
-            }
 
             $prof = "";
             $nat = "";
@@ -468,21 +545,38 @@ class Sifec {
                 $personne->type_date_naissance = "EXACTE";
             }
 
-            if(empty($request->input("statut_personne".$sufix)))
+            if((empty($request->input("statut_personne".$sufix))) && ($sufix != "_defunt"))
             {
                 $personne->statut_personne = "VIVANT";
             }
+            //mise à jour de la chaine unique
+            $uniqueString = Sifec::uniqueString($request,$sufix,$sexe);
+            $personne->personne_string = $uniqueString;
 
             $personne->save();
 
 
-
+            if($sufix!="_defunt" && $sufix!="_enfant" && $request->input("statut_personne".$sufix) == "VIVANT"){
             //modifier le document
-            $dop = Document::where('code_personne',$personne->code_personne)->first();
+                $dop = Document::where('code_personne',$personne->code_personne)->first();
+
+                if($dop == null){
+                    $dop = new Document();
+                    $code = Sifec::genererCodeUniqueReferentiel($dop,"code_document",8,"DOC_");
+                    $dop->numero_document = $request->input("numero_document".$sufix);
+                    $dop->code_type_document = $request->input("code_type_document".$sufix);
+                    $dop->code_document = $code;
+                    $dop->code_personne = $personne->code_personne;
+                    $dop->save();
+
+                }else{
+                    $dop->numero_document = $request->input("numero_document".$sufix);
+                    $dop->code_type_document = $request->input("code_type_document".$sufix);
+                    $dop->save();
+                }
+            }
             // Log::channel("sifec")->error(["document"=>$dop]);
-            $dop->numero_document = $request->input("numero_document".$sufix) ? $request->input("numero_document".$sufix) : "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-            $dop->code_type_document = $request->input("code_type_document".$sufix) ? $request->input("code_type_document".$sufix) : "TDOC_0018";
-            $dop->save();
+
 
 
             //modifier contacts
@@ -507,7 +601,7 @@ class Sifec {
                 $addAdresse->code_quartier_village = $request->input("domicile_quartier".$sufix);
                 $addAdresse->code_localite = $request->input("domicile_ville".$sufix);
                 $addAdresse->code_arrondissement_comurbaine  = $request->input("domicile_arrondissement".$sufix);
-                $addAdresse->code_personne = $request->input("code".$sufix);
+                $addAdresse->code_personne = $personne->code_personne;
                 $addAdresse->save();
 
                 $personne->telephone = $addContact->telephone;
@@ -516,10 +610,11 @@ class Sifec {
 
             }
 
+
             if($sufix != "_enfant" && $request->input("statut_personne".$sufix) == "VIVANT")
             {
                 $contact = ContactPersonne::where('code_personne',$personne->code_personne)->first();
-                // Log::channel("sifec")->error(['contact'=>$contact]);
+                Log::channel("sifec")->error(['contact'=>$contact]);
 
                 $contact->indicatif = $request->input("code_pays".$sufix);
                 $contact->telephone = $request->input("telephone".$sufix);
@@ -539,13 +634,28 @@ class Sifec {
                 $adresse->save();
             }
 
-            DB::commit();
+            $adresseResidence = \Modules\Referentiel\Entities\AdressePersonne::where('code_personne', $personne->code_personne)->first();
+            if (!$adresseResidence) {
+                $adresseResidence = new \Modules\Referentiel\Entities\AdressePersonne();
+                $adresseResidence->code_personne = $personne->code_personne;
+            }
+            $adresseResidence->lib_pays  = $request->input("domicile_pays" . $sufix) ?? "Congo";
+            $adresseResidence->lib_ville = $request->input("domicile_ville" . $sufix);
+            $adresseResidence->type_voie = $request->input("domicile_typevoie" . $sufix);
+            $adresseResidence->nom_voie = $request->input("domicile_nomvoie" . $sufix);
+            $adresseResidence->numero_rue = $request->input("domicile_numero" . $sufix);
+            $adresseResidence->code_localite = $request->input("domicile_ville" . $sufix);
+            $adresseResidence->code_quartier_village = $request->input("domicile_quartier" . $sufix);
+            $adresseResidence->code_arrondissement_comurbaine  = $request->input("domicile_arrondissement" . $sufix);
+            $adresseResidence->save();
+
+           DB::commit();
             return $personne;
 
         } catch (Exception $e) {
             DB::rollBack();
             Log::channel("sifec")->error($e->getMessage());
-            return null;
+            throw $e;
         }
     }
 
@@ -627,7 +737,7 @@ class Sifec {
     }
 
     public static function rechercherPersonne($niupp){
-        return ActeNaissance::with(['declaration.enfant.nationalite','declaration.enfant.profession','declaration.pere','declaration.mere','institutionUser.institution'])->where("niupp",$niupp)->first();
+        return ActeNaissance::with(['declaration.enfant.nationalite','declaration.enfant.profession','declaration.enfant.localite','declaration.pere','declaration.mere','institutionUser.institution'])->where("niupp",$niupp)->first();
     }
 
     //update adresse enfant en cas d'eventuels evenements (Mariage,Décès,etc...)
@@ -635,9 +745,17 @@ class Sifec {
     {
         $personne = Personne::where("personne_string",$uniqueString)->first();
         $num = $request->input("domicile_numero".$sufix);
+        $num = $num ? $num : null;
         $typeVoie = $request->input("domicile_typevoie".$sufix);
+        $typeVoie = $typeVoie ? strtolower($typeVoie) : null;
         $libVoie = $request->input("domicile_nomvoie".$sufix);
-        $comDist = Localite::find($request->input("domicile_ville".$sufix))->lib_localite;
+        $libVoie = $libVoie ? ucfirst($libVoie) : null;
+        $comDist = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_ville".$sufix));
+        $comDist = $comDist ? $comDist->lib_localite : null;
+        $arrondissement = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_arrondissement".$sufix));
+        $arrondissement = $arrondissement ? $arrondissement->lib_localite : null;
+        $quartier = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_quartier".$sufix));
+        $quartier = $quartier ? $quartier->lib_localite : null;
 
         DB::beginTransaction();
         try{
@@ -666,38 +784,9 @@ class Sifec {
         } catch (Exception $e) {
             DB::rollBack();
             Log::channel("sifec")->error($e->getMessage());
-            return null;
+            throw $e;
         }
     }
-
-    public static function genererNiupp(string $codeDn)
-    {
-        // $cec =
-        $dn = Declarationnaissance::find($codeDn);
-
-        if($dn == null) return "Aucune déclaration naissance trouvée";
-
-
-
-            $dept = $dn->institutionUser->institution->lieu->localiteParent->localiteParent ?? $dn->institutionUser->institution->lieu->localiteParent;
-            $codeDept = $dept->code_officel;
-            $institution = $dn->institution;
-            $codeCec = $institution->lieu->localiteParent->typeLocalite->type_cec;
-            $codeLoc = $institution->lieu->localiteParent->code_officel;
-
-            $sexe = $dn->enfant->sexe == 'M' ? "1" : "2";
-            $anneeNais = new Carbon($dn->enfant->date_naissance);
-            $annee = $anneeNais->year;
-            $mois = $anneeNais->format('m');
-            $position = substr($dn->code_declaration_naissance,7);
-            $numOrdre = SifecFacade::format_nombre($position,4);
-            // $niupp = $sexe.$annee.$mois.$dpt.$subdpt.$numOrdre;
-            $niupp = $sexe.$annee.$mois.$codeDept.$codeLoc.$codeCec.$numOrdre;
-
-            return $niupp;
-
-    }
-
 
 
     public function format_nombre(int $nombre,int $taille):string{
@@ -783,9 +872,18 @@ class Sifec {
         ];
 
         $response = Http::asJson()->withHeaders($headers)->post($endpoint, $body);
+
+        // Log pour diagnostic
+        Log::channel("sifec")->info("Infobip SMS - Status: " . $response->status());
+        Log::channel("sifec")->info("Infobip SMS - Response: " . $response->body());
+        Log::channel("sifec")->info("Infobip SMS - Request: " . json_encode($body));
+
         if ($response->status() == 200) {
             return $response->body();
         }
+
+        // Retourner la réponse même en cas d'erreur pour diagnostic
+        return $response->body();
     }
 
 
@@ -1573,9 +1671,11 @@ class Sifec {
             "code_situation_matrimoniale" => $declaration->sitMatParent->code_situation_matrimoniale ?? null,
             "numero_ancien_acte" => $niupp,
             "lieu_naissance" => $enfant->code_localite ?? null,
-            "code_nationalite" => $enfant->nationalite->lib_nationalite ?? null,
+            "lib_lieu_naissance" => $enfant->localite->lib_localite ?? null,
+            "code_nationalite" => $enfant->code_nationalite ?? null,
             "dateEmisAN" => $enfant->date_naissance ?? null,
             "cec_naissance" => $institution->lib_institution ?? null,
+            "code_cec_naissance" => $institution->code_institution ?? null,
             "code_profession" => $enfant->profession->code_profession ?? null,
             "pere" => $pere ? $pere->nomcomplet() : null,
             "mere" => $mere ? $mere->nomcomplet() : null,
@@ -1592,55 +1692,7 @@ class Sifec {
             "code_profession_mere" => $mere->profession->code_profession ?? null
         ]);
     }
-    // public function rechercheIdentite($niupp)
-    // {
-    //      $personne = self::rechercherPersonne($niupp);
 
-    //     if($personne ==null){
-    //         return response()->json([
-    //             "code"=>"99",
-    //             "message"=>"Aucun numéro d'acte trouvé"
-    //         ]);
-    //     }
-
-    //     return response()->json([
-    //         "code"=>"200",
-    //         //identité de l'enfant
-    //         "nom"=>$personne->declaration->enfant->nom,
-    //         "prenom"=>$personne->declaration->enfant->prenom,
-    //         "sexe"=>$personne->declaration->enfant->sexe,
-    //         "date_heure_naissance"=> date("H:i", strtotime($personne->declaration->date_heure_naissance)),
-    //         "date_heure_declaration"=> date("Y-m-d", strtotime($personne->declaration->date_heure_declaration)),
-    //         "date_naissance"=>$personne->declaration->enfant->date_naissance,
-    //         "code_lieu_survenance"=>$personne->declaration->lieuSurvenance->code_lieu_survenance,
-    //         "code_situation_matrimoniale"=>$personne->declaration->sitMatParent->code_situation_matrimoniale,
-    //         "numero_ancien_acte"=>$niupp,
-    //         // "lieu_naissance"=>$personne->declaration->enfant->localite->code_localite,
-    //         // "lieu_naissance"=>$lieuNaiss->code_localite,
-    //         "lieu_naissance"=>$personne->declaration->enfant->code_localite,
-    //         "code_nationalite"=>$personne->declaration->enfant->nationalite->lib_nationalite,
-    //         // "dateEmisAN"=>$date_emis_acte_nais,
-    //         "dateEmisAN"=>$personne->declaration->enfant->date_naissance,
-    //         "cec_naissance"=>$personne->institutionUser->institution->lib_institution,
-    //         "code_profession"=>$personne->declaration->enfant->profession->code_profession,
-    //         "pere"=>$personne->declaration->pere->nomcomplet(),
-    //         "mere"=>$personne->declaration->mere->nomcomplet(),
-    //         //identité de la mere
-
-    //         "nom_mere"=>$personne->declaration->mere->nom,
-    //         "prenom_mere"=>$personne->declaration->mere->prenom,
-    //         "nombre_enfant"=>$personne->declaration->nombre_enfant,
-    //         "date_heure_naissance_mere"=> date("H:i", strtotime($personne->declaration->date_heure_naissance)),
-    //         "date_heure_declaration_mere"=> date("Y-m-d", strtotime($personne->declaration->date_heure_declaration)),
-    //         "date_naissance_mere"=>$personne->declaration->mere->date_naissance,
-    //         "code_lieu_survenance_mere"=>$personne->declaration->lieuSurvenance->code_lieu_survenance,
-    //         "code_situation_matrimoniale_mere"=>$personne->declaration->sitMatParent->code_situation_matrimoniale,
-    //         "lieu_naissance_mere"=>$personne->declaration->mere->code_localite,
-    //         "code_nationalite_mere"=>$personne->declaration->mere->nationalite->lib_nationalite,
-    //         "code_profession_mere"=>$personne->declaration->mere->profession->code_profession
-
-    //     ]);
-    // }
 
     //rechercher un acte à partier de son code d'acte codeActe et le type d'acte typeActe
     public function rechercherActe($typeActe, $numeroActe)
@@ -1678,5 +1730,34 @@ class Sifec {
         }
         return $codeDeclaration;
     }
+
+    public static function genererNiupp(string $codeDn)
+    {
+        // $cec =
+        $dn = Declarationnaissance::find($codeDn);
+
+        if($dn == null) return "Aucune déclaration naissance trouvée";
+
+
+
+            $dept = $dn->institutionUser->institution->lieu->localiteParent->localiteParent ?? $dn->institutionUser->institution->lieu->localiteParent;
+            $codeDept = $dept->code_officel;
+            $institution = $dn->institution;
+            $codeCec = $institution->lieu->localiteParent->typeLocalite->type_cec;
+            $codeLoc = $institution->lieu->localiteParent->code_officel;
+
+            $sexe = $dn->enfant->sexe == 'M' ? "1" : "2";
+            $anneeNais = new Carbon($dn->enfant->date_naissance);
+            $annee = $anneeNais->year;
+            $mois = $anneeNais->format('m');
+            $position = substr($dn->code_declaration_naissance,7);
+            $numOrdre = SifecFacade::format_nombre($position,4);
+            // $niupp = $sexe.$annee.$mois.$dpt.$subdpt.$numOrdre;
+            $niupp = $sexe.$annee.$mois.$codeDept.$codeLoc.$codeCec.$numOrdre;
+
+            return $niupp;
+
+    }
+
 
 }

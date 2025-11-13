@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Modules\Mariage\Entities\ActeMariage;
+use Modules\Mariage\Services\ActeMariageService;
 use Modules\Referentiel\Entities\Registre;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Carbon;
@@ -43,7 +44,7 @@ class EtatsMariageController extends Controller
         $html2pdf->setDefaultFont('Arial');
 
         $html2pdf->writeHTML(view('mariage::etats.declarationMariage', compact("dm","mention"))->render());
-        return $html2pdf->output($dm->code_declaration_naissance.".pdf");
+        return $html2pdf->output($dm->code_declaration_mariage.".pdf");
     }
 
    public function reqDelaiLieu()
@@ -121,93 +122,44 @@ class EtatsMariageController extends Controller
    public function generateActe(Request $request)
    {
         $regle = [
-            "code_declaration_mariage"=> ["required","string","unique:t_acte_mariage"]
+            "code_declaration_mariage" => ["required", "string", "unique:t_acte_mariage"]
         ];
 
-        $validator = Validator::make($request->all(),$regle);
+        $validator = Validator::make($request->all(), $regle);
 
-        if($validator->failed()){
+        if ($validator->fails()) {
             return response()->json([
-                "code"=>"180",
-                "message"=>["error"=>$validator->errors()]
+                "code" => "180",
+                "message" => $validator->errors()
             ]);
         }
-        $dm = Declarationmariage::find($request->code_declaration_mariage);
-        $rn = Registre::where("statut",1)->where("code_type_registre","TPRG_0002")->first();
-
-        if($dm == null){
-
-            return response()->json([
-                "code"=>"180",
-                "message"=>["error"=>"Cette déclaration de mariage n'est pas reconnue"]
-            ]);
-        }
-
-        if($rn == null){
-            return response()->json([
-                "code"=>"181",
-                "message"=>["error"=>"Aucun registre disponible"]
-            ]);
-        }
-
-        if($rn->statut == 0){
-            return response()->json([
-                "code"=>"182",
-                "message"=>["error"=>"Ce registre est déjà clôturé"]
-            ]);
-        }
-
-        if($rn->nombre_acte_prevu == $rn->nombre_acte_transcrit){
-            return response()->json([
-                "code"=>"183",
-                "message"=>["error"=>"Ce registre a déjà atteint le nombre d'actes prévu"]
-            ]);
-        }
-
-        if( ! Gate::allows("module.acteMariage.generate")){
-
-            return response()->json([
-                "code"=>"180",
-                "message"=>["error"=>"Vous n'êtes pas autorisé à effectuer cette opération"]
-            ]);
-        }
-
-        DB::beginTransaction();
 
         try {
-            $acte = new ActeMariage;
-            $acte->code_acte_mariage = Sifec::genererCodeUniqueReferentiel($acte,'code_acte_mariage',8,"AM_");
-            $acte->date_emission = now();
-            $acte->code_declaration_mariage = $request->code_declaration_mariage;
-            $acte->code_registre = $rn->code_registre;
-            $acte->cui = Auth::user()->affectationActive()->cui;
-            $acte->approbation_tribunal = 1;
-            $acte->sceau_tribunal = Auth::user()->affectationActive()->institution->institutionParent->sceau;
-            $acte->save();
+            $acteMariageService = new ActeMariageService();
 
-            if(($rn->nombre_acte_transcrit + 1) == $rn->nombre_acte_prevu){
-                $rn->statut = 0;
-            }
-            $rn->nombre_acte_transcrit = $rn->nombre_acte_transcrit + 1;
+            // Validation de la déclaration
+            $declaration = $acteMariageService->validerDeclarationPourActe($request->code_declaration_mariage);
 
-            $rn->save();
+            // Récupération du registre actif
+            $registre = $acteMariageService->obtenirRegistreActif();
 
-            DB::commit();
+            // Génération de l'acte
+            $acte = $acteMariageService->genererActe($declaration, $registre, Auth::user());
 
             return response()->json([
-                "code"=>"200",
-                "message"=>["reponse"=>"Acte de mariage généré avec succès"]
+                "code" => "200",
+                "message" => "Acte de mariage généré avec succès",
+                "data" => [
+                    "code_acte" => $acte->code_acte_mariage
+                ]
             ]);
 
-
-        }catch(Exception $e){
-            DB::rollBack();
+        } catch (Exception $e) {
             return response()->json([
-                "code"=>"201",
-                "message"=>["error"=> $e->getMessage()]
+                "code" => "201",
+                "message" => $e->getMessage()
             ]);
         }
-
    }
 
    public function displayActe($id)

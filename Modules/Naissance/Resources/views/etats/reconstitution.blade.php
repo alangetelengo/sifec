@@ -151,7 +151,11 @@
                     <td style="text-align: center;"></td>
                     <td style="text-align: left;">
                         {{-- <div style="margin-bottom:0;"> --}}
-                            <qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/requisition?niupp={{ $requisition->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+                            @isset($qrCode)
+                            <div style="width: 30mm;">
+                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                            </div>
+                            @endisset
                         {{-- </div> --}}
                     </td>
                     <td style="text-align: left;margin-bottom:0;">

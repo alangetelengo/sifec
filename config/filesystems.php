@@ -37,8 +37,8 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => public_path('app'),
-            'url' => env('APP_URL').'/public',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
         ],
 
@@ -70,7 +70,8 @@ return [
         //public_path('storage') => storage_path('app/public/'),
         public_path('signatures') => storage_path('app/signatures'),
         public_path('document') => storage_path('app/document'),
-        public_path('requisition') => storage_path('app/requisition'),
+        public_path('tribunal') => storage_path('app/tribunal'),
+        public_path('pieces') => storage_path('app/pieces'),
     ],
 
 ];

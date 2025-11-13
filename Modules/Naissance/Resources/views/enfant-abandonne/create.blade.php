@@ -13,6 +13,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h4>Créer une déclaration de naissance (enfant abandonné)</h4>
+                        <a href="{{ route('declarationNaissance.index') }}" class="btn btn-info float-end"><i class="fa fa-list"></i> Retour à la liste</a>
                     </div>
                     <div class="card wizard-content">
                         <div class="card-body">

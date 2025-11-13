@@ -6,6 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^7.3|^8.1",
+        "bacon/bacon-qr-code": "^2.0",
         "barryvdh/laravel-dompdf": "^2.2",
         "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^7.0.1",
@@ -16,6 +17,8 @@
         "laravel/tinker": "^2.5",
         "laravel/ui": "^3.4",
         "nwidart/laravel-modules": "^8.3",
+        "pragmarx/google2fa": "^8.0",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "spipu/html2pdf": "^5.2",
         "staudenmeir/laravel-adjacency-list": "^1.0",
         "webpatser/laravel-uuid": "^4.0",
@@ -24,7 +27,6 @@
     "require-dev": {
         "facade/ignition": "^2.5",
         "fakerphp/faker": "^1.9.1",
-        "kitloong/laravel-migrations-generator": "^6.4",
         "laravel/sail": "^1.0.1",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^5.10",

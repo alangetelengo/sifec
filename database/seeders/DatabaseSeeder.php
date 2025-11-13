@@ -30,7 +30,8 @@ class DatabaseSeeder extends Seeder
             ProfessionSeeder::class,
             TypeExtraitSeeder::class,
             ReligionSeeder::class,
-            OptionMariageSeeder::class
+            OptionMariageSeeder::class,
+            \Database\Seeders\Naissance\FonctionnaliteNaissanceSeeder::class,
         ]);
     }
 }

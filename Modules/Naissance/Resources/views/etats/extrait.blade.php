@@ -11,7 +11,8 @@
    }
 
 </style>
- <page orientation="landscape" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+ <page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="30mm" style="font-size: 12pt">
+
    @php
    $infos = "";
    $tribunal = $acte->declaration->institutionUser->institution->institutionParent->lib_institution;
@@ -29,46 +30,27 @@
     <tr>
         <td style="width:40%; text-align: center;">
             @php
-                $localite = "";
-                $localiteParent = "";
-                $inst = "";
                 $institution = $acte->institutionUser->institution;
-                $localisation = "";
-
-                $inst = $institution->lib_institution;
-                // $localite = " COMMUNE DE ".$institution->lieu->localiteParent->lib_localite;
-                $localite = " DISTRICT D'".$institution->lieu->lib_localite;
-
-                // $localiteParent  = "DEPARTEMENT DE LA CUVETTE";
-                $localisation = $institution->lieu->localiteParent->lib_localite;
+                $departement = $institution->lieu->localiteParent->localiteParent;
+                $communeDistrict = $institution->lieu->localiteParent;
             @endphp
             @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
             <p>
-                @php
-                    $localiteParent  = "DEPARTEMENT DE LA ". $institution->lieu->localiteParent->localiteParent->lib_localite;
-                @endphp
                 <span>
-                    <strong>{{ $localiteParent }}</strong>
+                {{ "DEPARTEMENT DE ".$departement->lib_localite }}
+                    <br>
+                    {{ "COMMUNE DE ".$communeDistrict->lib_localite }}
                 </span> <br>
-                <span>
-                    <strong>{{ $localite }}</strong>
-                </span> <br>
-                <span>{{ $inst }}</span>
+                <span><strong>{{ $institution->lib_institution }}</strong></span>
             </p>
             @else
             <p>
                 <span>
-                    <strong>DEPARTEMENT DE BRAZZAVILLE</strong>
-                </span> <br>
-                <span>
-                    <strong>{{ $localite ?? "COMMUNE DE BRAZZAVILLE" }}</strong>
-                </span> <br>
-                <span>
                     <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
                 </span> <br>
-                {{-- <span>Service Consulaire</span> <br> --}}
+                <span>Service Consulaire</span> <br>
             </p>
-             @endif
+            @endif
         </td>
         <td style="width:34%; text-align: center;">
         </td>
@@ -130,7 +112,7 @@
                 <div style="position:absolute; right:60px; top:250px">
                             @if ($acte->approbation_mairie != "")
 
-                                <img src='{{ asset("app/".$acte->signature_mairie)}}' style="">
+                               <img src='{{ public_path('app/'.$acte->signature_mairie)}}' style="">
                                 <p style="font-weight:bold;"> {{ $acte->signataire->user->personne->nomcomplet() }}</p>
                             @endif
 

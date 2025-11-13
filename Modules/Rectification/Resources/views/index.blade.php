@@ -26,8 +26,8 @@ Fiche de rectification
                                         <tr>
                                             <th>#</th>
                                             <th>Numéro</th>
-                                            <th>Type acte</th>
                                             <th>Numéro d'acte à rectifier</th>
+                                            <th>Type acte</th>
                                             <th>Réquisition</th>
                                             <th>Réquerant</th>
                                             <th>Statut</th>
@@ -41,7 +41,7 @@ Fiche de rectification
                                                 <td>{{ $rectification->numero_rectification }}</td>
                                                 <td>{{ $rectification->numero_acte }}</td>
                                                 <td>{{ $rectification->typeActe->lib_type_acte}}</td>
-                                                <td>{{ $rectification->requisition->document_requisition != "" ? "En attente du tribunal" : "En cours de traitement" }}</td>
+                                                <td>{{ $rectification->requisition != null ? "En attente du tribunal" : "En cours de traitement" }}</td>
                                                 <td>{{ $rectification->nom_prenom_requerant ?? "-" }}</td>
                                                  <td>
                                                     @if($rectification->statut == "En cours de traitement")
@@ -54,7 +54,7 @@ Fiche de rectification
                                                     <a href="{{ route('rectification.etat',$rectification->numero_acte) }}" target="_blank" class="btn btn-sm btn-primary" title="Voir la fiche de rectification"><i class="fas fa-eye"></i></a>
                                                     {{-- envoyer la rectification --}}
                                                     @if ($rectification->statut == 'En cours de traitement')
-                                                    <a href="{{ route('rectification.send', $rectification->code_rectification) }}" numeFiche={{ $rectification->numero_rectification }} class="btn btn-sm btn-info show-to-send" title="Envoyer la fiche de rectification au tribunal"><i class="fas fa-plane"></i></a>
+                                                    <a href="{{ $rectification->code_rectification }}" numerefiche="{{ $rectification->numero_rectification }}" requerant={{$rectification->nom_prenom_requerant }} class="btn btn-sm btn-info show-to-send" title="Envoyer la fiche de rectification au tribunal"><i class="fas fa-plane"></i></a>
                                                     <a href="{{ route('rectification.edit', $rectification->code_rectification) }}" class="btn btn-sm btn-success" title="Modifier la fiche de rectification"><i class="fas fa-pencil-alt"></i></a>
                                                     <form action="{{ route('rectification.destroy', $rectification->code_rectification) }}" method="POST" style="display:inline;">
                                                         @csrf
@@ -68,13 +68,13 @@ Fiche de rectification
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                           <th>#</th>
+                                            <th>#</th>
                                             <th>Numéro</th>
-                                            <th>Type acte</th>
                                             <th>Numéro d'acte à rectifier</th>
+                                            <th>Type acte</th>
                                             <th>Réquisition</th>
                                             <th>Réquerant</th>
-                                             <th>Statut</th>
+                                            <th>Statut</th>
                                             <th>Action</th>
                                         </tr>
                                     </tfoot>
@@ -86,40 +86,55 @@ Fiche de rectification
             </div>
         </div>
     </div>
-    <div class="modal fade" id="modal-to-send" data-bs-backdrop="static">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><span id="numerefiche"></span></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal">
-                        </button>
+    <div class="modal fade" id="modal-to-send" tabindex="-1" aria-labelledby="modalSendLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalSendLabel">
+                        <i class="fas fa-paper-plane"></i> Confirmation d’envoi
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3" role="alert">
+                        Êtes-vous sûr de vouloir envoyer la fiche de rectification&nbsp;?
                     </div>
-                    <div class="modal-body">
-
-                        <div class="row">
-                            <input type="hidden" id="coderec">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-info btn-sm text-white" id="btn-send">Envoyer</button>
-                        <button type="button" class="btn btn-sm btn-danger light" data-bs-dismiss="modal">Fermer</button>
-                    </div>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item">
+                            <strong>Numéro de la fiche:</strong>
+                            <span id="numerefiche" class="text-primary"></span>
+                        </li>
+                        <!-- Ajoute ici d'autres infos si besoin, par exemple : -->
+                        <li class="list-group-item"><strong>Requérant :</strong> <span id="nomrequerant"></span></li>
+                    </ul>
+                    <input type="hidden" id="coderec">
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-info btn-sm text-white" id="btn-send">
+                        <i class="fas fa-paper-plane"></i> Envoyer
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
 @endsection
 @section('scripts')
-      <!-- Datatable -->
-      <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
-      <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+    <!-- Datatable -->
+    <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
 
-        <script>
+    <script>
         $(function(){
             $("a.show-to-send").on("click", function(){
                 var coderectification = $(this).attr("href");
-                var numFiche = $(this).attr("numeFiche");
+                var numerefiche = $(this).attr("numerefiche");
+                var nomrequerant = $(this).attr("requerant");
 
-                $("#numerefiche").html("Transmission de la fiche de rectification N° "+numFiche);
+                $("#numerefiche").html(numerefiche);
+                $("#nomrequerant").html(nomrequerant);
                 $("#coderec").val(coderectification);
                 $("#modal-to-send").modal("show");
                 return false;

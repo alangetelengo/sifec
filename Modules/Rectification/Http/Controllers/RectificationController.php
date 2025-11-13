@@ -8,7 +8,6 @@ use App\Sifec\Sifec;
 use App\Sifec\SifecFacade;
 use Illuminate\Http\Request;
 use Spipu\Html2Pdf\Html2Pdf;
-use Spipu\Html2Pdf\Tag\Svg\Rect;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +24,10 @@ use Modules\Rectification\Entities\Rectification;
 use Modules\Rectification\Entities\DetailRectification;
 use Modules\Referentiel\Entities\Filiation;
 use Modules\Referentiel\Entities\Localite;
+use Modules\Rectification\Services\MouvementService;
+use Modules\Notification\Services\NotificationService;
+use Modules\Notification\Notifications\RectificationEnvoyeeTribunalNotification;
+use Modules\Referentiel\Entities\Mouvement;
 
 class RectificationController extends Controller
 {
@@ -34,7 +37,9 @@ class RectificationController extends Controller
      */
     public function index()
     {
-        $rectifications = Rectification::orderBy('created_at', 'desc')->paginate(10);
+        $rectifications = Rectification::orderBy('created_at', 'desc')->get();
+
+        // dd($rectifications);
         return view('rectification::index', compact('rectifications'));
     }
 
@@ -182,6 +187,13 @@ class RectificationController extends Controller
                 $rectification->code_filiation = $filiationRequerant;
                 $rectification->save();
 
+                // Enregistrement du mouvement de création
+                $trmouvement = Mouvement::where('code_mouvement', 'MOUV_2004')->first();
+                if ($trmouvement) {
+                    $d = auth()->user();
+                    app(MouvementService::class)->enregistrerMouvementRectification($rectification, $trmouvement,  Auth::user(), 'Fiche de rectification créée');
+                }
+
                 //insertion des détails
                 $detailsRectification = new DetailRectification;
                 $detailsRectification->code_detail_rectification = Sifec::genererCodeUniqueReferentiel($detailsRectification, "code_detail_rectification",8,"DRE_");
@@ -195,16 +207,16 @@ class RectificationController extends Controller
                 $detailsRectification->save();
 
                 //creation de la réquisition pour la rectification
-                $requisition = new Requisition;
-                $requisition->code_requisition = Sifec::genererCodeUniqueReferentiel($requisition, "code_requisition", 4, "CREQ_");
-                $requisition->code_institution =  $rectification->code_institution;
-                $requisition->type_requisition = "requisition aux fins de rectification de l'acte";
-                $requisition->save();
+                // $requisition = new Requisition;
+                // $requisition->code_requisition = Sifec::genererCodeUniqueReferentiel($requisition, "code_requisition", 4, "CREQ_");
+                // $requisition->code_institution =  $rectification->code_institution;
+                // $requisition->type_requisition = "requisition aux fins de rectification de l'acte";
+                // $requisition->save();
 
 
                 //update le code_requisition dans la rectification
-                $rectification->code_requisition = $requisition->code_requisition;
-                $rectification->save();
+                // $rectification->code_requisition = $requisition->code_requisition;
+                // $rectification->save();
 
                 DB::commit();
 
@@ -318,7 +330,7 @@ class RectificationController extends Controller
 
         try {
 
-            view()->share("tester", "Vincent");
+            view()->share("tester", "Alange");
             $html2pdf = new Html2Pdf('L', 'A4', 'fr');
             $html2pdf->setDefaultFont('Arial');
             $html2pdf->writeHTML(view('rectification::etats.fiche-rectification', compact("acte", "rectification", "detailsRectification"))->render());
@@ -447,10 +459,12 @@ class RectificationController extends Controller
 
     }
 
-    public function send($id)
+    public function send($id, MouvementService $mouvementService)
     {
         //récupération de la fiche de rectification
         $rectification = Rectification::find($id);
+
+        // dd($rectification->institution->institutionParent);
 
         //vérification de l'existence de la fiche
         if($rectification == null){
@@ -460,9 +474,21 @@ class RectificationController extends Controller
             ]);
         }
 
-        //mise à jour du statut de la fiche
-        $rectification->statut = "Envoyé au tribunal";
-        $rectification->save();
+        // Récupération dynamique du mouvement référentiel
+        $trmouvement = Mouvement::where('code_mouvement', 'MOUV_2001')->first();
+        if (!$trmouvement) {
+            Log::channel('sifec')->error('Mouvement référentiel MOUV_2001 introuvable pour la rectification');
+        } else {
+            $user = auth()->user();
+            $mouvementService->enregistrerMouvementRectification($rectification, $trmouvement, $user, 'Fiche envoyée au tribunal');
+        }
+
+        // Notification aux agents du tribunal
+        $tribunalInstitution = $rectification->institution->institutionParent;
+        NotificationService::notifierAgentsInstitution(
+            $tribunalInstitution,
+            new RectificationEnvoyeeTribunalNotification($rectification)
+        );
 
         return response()->json([
             "code"=>"200",

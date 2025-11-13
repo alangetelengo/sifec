@@ -12,26 +12,24 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Modules\Deces\Entities\ActeDeces;
-use Modules\Deces\Entities\DDecesCause;
 use Modules\Referentiel\Entities\Regime;
-use Illuminate\Support\Facades\Validator;
 use Modules\Deces\Entities\MouvementDeces;
-use Modules\Deces\Entities\PersonneSitMat;
 use Modules\Referentiel\Entities\Localite;
-use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Religion;
 use Modules\Referentiel\Entities\Filiation;
 use Illuminate\Contracts\Support\Renderable;
 use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Deces\Services\MouvementService;
 use Modules\Referentiel\Entities\CauseDeces;
 use Modules\Referentiel\Entities\Profession;
 use Modules\Referentiel\Entities\Departement;
 use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\Nationalite;
 use Modules\Referentiel\Entities\TypeDocument;
-use Modules\Referentiel\Entities\Arrondissement;
 use Modules\Referentiel\Entities\LieuSurvenance;
+use Modules\Deces\Services\MouvementDecesService;
+use Modules\Deces\Services\DeclarationDecesService;
+use Modules\Notification\Services\NotificationService;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 
 class DecesController extends Controller
@@ -42,6 +40,7 @@ class DecesController extends Controller
      */
     public function index()
     {
+
          $instructions = Sifec::niveauInstructions();
          $declarations = Auth::user()->institution()->declarationsDeces();
 
@@ -123,8 +122,6 @@ class DecesController extends Controller
         $departements = Departement::all();
 
         return view('deces::declaration.create',compact("title","type_declaration","quartierVillages","cecMariage","departements", "countries","arrondissement","instructions","typedocuments","causesDeces","regimes","localites","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations"));
-
-
     }
     //creer une autorisation de transfert de dépouille
     public function createTransfertDepouille()
@@ -153,9 +150,9 @@ class DecesController extends Controller
 
     public function certificatNonIscription()
     {
-        $title = "Créer un certificat de non inscription de décès";
+        $title = "Créer un certificat de non inscription";
 
-        $type_declaration = "CERTIFICAT DE NON INSCRIPTION DE DECES";
+        $type_declaration = "CERTIFICAT DE NON INSCRIPTION";
         $cecMariage = Institution::where("code_type_institution","TPINS_0002")->get();
         $instructions = Sifec::niveauInstructions();
         $localites = Localite::where('code_type_localite','TPLOC_0002')->Orwhere('code_type_localite','TPLOC_0003')->get();
@@ -169,7 +166,8 @@ class DecesController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $typedocuments = TypeDocument::all();
         $arrondissement = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
-        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
+        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
         $departements = Departement::all();
 
         return view('deces::declaration.create',compact("title","type_declaration","quartierVillages","cecMariage","departements", "countries","arrondissement","instructions","typedocuments","causesDeces","regimes","localites","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations"));
@@ -202,171 +200,77 @@ class DecesController extends Controller
 
     }
 
-    public function store(Request $request)
+    public function store(Request $request, DeclarationDecesService $service)
     {
-        // Log::channel("sifec")->info($request->all());
-        // dd("ok");
+        try {
+            // Enregistrement de la déclaration
+            $resultatEnregistrement = $service->enregistrer($request, Auth::user());
 
-        $dateNaissancePere = Carbon::create($request->date_naissance_pere);
-        $dateNaissanceEnfant = Carbon::create($request->date_naissance_defunt);
-        $dateNaissanceMere = Carbon::create($request->date_naissance_mere);
-        $differenceAgeEnfantPere = $dateNaissancePere->diffInYears($dateNaissanceEnfant);
-        $differenceAgeEnfantMere = $dateNaissanceMere->diffInYears($dateNaissanceEnfant);
+            // Si le service retourne une réponse JSON (erreur), on la retourne directement
+            if ($resultatEnregistrement instanceof \Illuminate\Http\JsonResponse) {
+                return $resultatEnregistrement;
+            }
 
-        if($differenceAgeEnfantPere < 14){
+            $declaration = $resultatEnregistrement;
+
+            // Gestion du mouvement après enregistrement réussi
+            $resultatMouvement = $this->gererMouvementDeclaration($request, $declaration);
+            if ($resultatMouvement !== true) {
+                return $resultatMouvement;
+            }
+
             return response()->json([
+                "code" => "200",
+                "message" => "La déclaration de décès a été enregistrée avec succès"
+            ]);
 
-                "message"=>"La différence d'age entre père et enfant doit être supérieure ou égale à 14 ans"
+        } catch (Exception $e) {
+            Log::channel("sifec")->error("Erreur dans le contrôleur de déclaration de décès: " . $e->getMessage());
+            return response()->json([
+                "code" => "90",
+                "message" => "Une erreur inattendue s'est produite lors de l'enregistrement"
             ]);
         }
-
-        if($differenceAgeEnfantMere < 12){
-            return response()->json([
-
-                "message"=>"La différence d'age entre mère et enfant doit être supérieure ou égale à 12 ans"
-            ]);
-        }
-
-        DB::beginTransaction();
-        try{
-
-                //Traitements d'enregistrement du defunt
-                $defuntUniqueString = Sifec::uniqueString($request,"_defunt",$request->sexe_defunt);
-                $defunt = Personne::where("personne_string",$defuntUniqueString)->first();
-                if($defunt==null)
-                {
-                  $defunt = sifec::savePersonne($request,"_defunt",$request->sexe_defunt,$defuntUniqueString);
-                }
-                else
-                {
-                      $defunt->statut_personne = "DECEDE";
-                      $defunt->save();
-                }
-                //Traitement d'enregistrement du pere
-                $pereUniqueString = Sifec::uniqueString($request,"_pere","M");
-                $pere = Personne::where("personne_string",$pereUniqueString)->first();
-                if($pere==null)
-                 {
-                   $pere = sifec::savePersonne($request,"_pere","M",$pereUniqueString);
-                 }
-
-
-
-                //Traitement d'enregistrement de la mere
-                $mereUniqueString = Sifec::uniqueString($request,"_mere","F");
-                $mere = Personne::where("personne_string",$mereUniqueString)->first();
-                if($mere==null)
-                {
-                 $mere = sifec::savePersonne($request,"_mere","F",$mereUniqueString);
-                }
-
-                //Traitementt du conjoint
-                $codeconjoint="";
-
-                $conjointUniqueString = Sifec::uniqueString($request,"_conjoint",$request->sexe_conjoint);
-                $conjoint = Personne::where("personne_string",$conjointUniqueString)->first();
-
-                if(($conjoint==null))
-                {
-                  if($request->nom_conjoint!=null)
-                  {
-                    $conjoint = sifec::savePersonne($request,"_conjoint",$request->sexe_conjoint,$conjointUniqueString);
-                    $codeconjoint=$conjoint->code_personne;
-                  }
-                }
-                else
-                {
-                    $codeconjoint=$conjoint->code_personne;
-                }
-
-                //Traitement du declarant
-                $declarantUniqueString = Sifec::uniqueString($request,"_declarant",$request->sexe_declarant);
-                $declarant = Personne::where("personne_string",$declarantUniqueString)->first();
-                 if($declarant==null)
-                  {
-                    $declarant = sifec::savePersonne($request,"_declarant",$request->sexe_declarant,$declarantUniqueString);
-                  }
-
-
-                // déclaration de décès
-                $ddeces = new DeclarationDeces;
-                $codeddeces = Sifec::genererCodeUniqueReferentiel($ddeces,"code_declaration_deces",8,"CDD_");
-
-                $ddeces->code_declaration_deces = $codeddeces;
-                $ddeces->date_heure_declaration=now();
-                $ddeces->date_heure_deces = $request->date_deces." ".$request->heure_deces.":00" ;
-                $ddeces->code_lieu_survenance = $request->lieu_survenance_code;
-                $ddeces->date_mariage = $request->date_mariage;
-                $ddeces->code_regime  = $request->code_regime;
-                $ddeces->domicile_defunt = $request->domicile_defunt;
-                $ddeces->cec_mariage= $request->cec_mariage;
-                $ddeces->cec_naissance= $request->cec_naissance;
-                $ddeces->lieu_deces= $request->lieu_deces;
-                $ddeces->num_acte_mariage=$request->num_acte_mariage;
-                $ddeces->num_acte_naissance=$request->num_acte_naissance;
-                $ddeces->type_declarant = "Personne physique";
-                $ddeces->type_declaration = $request->type_declaration;
-                $ddeces->code_religion =$request->code_religion_defunt;
-                $ddeces->code_pere = $pere->code_personne;
-                $ddeces->code_mere = $mere->code_personne;
-                $ddeces->code_user_institution  = Auth::user()->affectationActive()->cui;
-
-                if ($codeconjoint != "") {
-                    $ddeces->code_conjoint = $codeconjoint;
-                }
-                $ddeces->code_filiation = $request->filiation;
-                $ddeces->code_declarant = $declarant->code_personne;
-                $ddeces->code_defunt = $defunt->code_personne;
-                $ddeces->code_situation_matrimoniale = $request->code_situation_matrimoniale_defunt;
-
-                $deces_existant = DeclarationDeces::where("code_defunt",$defunt->code_personne)->first();
-
-                if($deces_existant==null)
-                {
-                    $ddeces->save();
-
-                    $causes = $request->code_cause_deces;
-                    if($causes !=null){
-                        foreach($causes as $cause){
-                            DDecesCause::create([
-                                'code_declaration_deces' => $ddeces->code_declaration_deces,
-                                'code_cause_deces' => $cause
-                            ]);
-                        }
-
-                    }
-
-                    $transaction = new MouvementDeces;
-                    $transaction->code_mouvement_deces = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_deces",4,"MDD_");
-                    $transaction->statut = "En cours";
-                    $transaction->code_declaration_deces = $ddeces->code_declaration_deces;
-                    $transaction->cui = Auth::user()->affectationActive()->cui;
-                    $transaction->save();
-
-                }else{
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Document déjà enregistré',
-                    ]);
-                }
-
-                DB::commit();
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Document enregistré avec succès',
-                ]);
-
-        }catch(Exception $e){
-                DB::rollBack();
-                Log::channel("sifec")->info($e->getMessage());
-                return response()->json([
-                    "message"=>$e->getMessage()
-                ]);
-        }
-
     }
 
+    /**
+     * Gère le mouvement de la déclaration
+     */
+    private function gererMouvementDeclaration($request, $declaration)
+    {
+        $mappingTypeEvenement = [
+            'DECLARATION DE DECES' => 'declaration_deces',
+            'DECLARATION TARDIVE' => 'declaration_tardive',
+            'CERTIFICAT DE CONSTATATION DE DECES' => 'certificat_constatation_deces',
+            'CERTIFICAT DE NON INSCRIPTION' => 'certificat_non_inscription',
+            "CERTIFICAT DE DESTRUCTION DE L'ACTE" => 'certificat_destruction',
+            'FICHE DE TRANSCRIPTION' => 'fiche_transcription',
+        ];
 
+        $typeDeclaration = $request->input('type_declaration', 'DECLARATION DE DECES');
+        $typeEvenement = $mappingTypeEvenement[$typeDeclaration] ?? 'declaration_deces';
+
+        try {
+            $mouvementService = app(MouvementService::class);
+            $result = $mouvementService->ajouterEvenementDeclaration(Auth::user(), $declaration, $typeEvenement);
+
+            if (!$result[0]) {
+                return response()->json([
+                    "code" => "91",
+                    "message" => "Erreur lors de l'enregistrement du mouvement: " . $result[1]
+                ]);
+            }
+
+            return true;
+
+        } catch (Exception $e) {
+            Log::channel("sifec")->error("Erreur lors de la gestion du mouvement: " . $e->getMessage());
+            return response()->json([
+                "code" => "91",
+                "message" => "Erreur lors de l'enregistrement du mouvement"
+            ]);
+        }
+    }
     /**
      * Show the specified resource.
      * @param int $id
@@ -374,7 +278,12 @@ class DecesController extends Controller
      */
     public function show($id)
     {
-        return view('deces::declaration.show');
+        $declaration = DeclarationDeces::where("code_declaration_deces",$id)->first();
+        if($declaration == null){
+            toastr()->error("Déclaration de décès non trouvée");
+            return redirect()->route('declarationDeces.index');
+        }
+        return view('deces::declaration.show',compact('declaration'));
     }
 
     /**
@@ -401,6 +310,8 @@ class DecesController extends Controller
         $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
         $departements = Departement::all();
 
+
+
         // return view('deces::declaration.edit',compact("departements", "causesDeces","regimes","typedocuments","arrondissement","countries","localites","instructions","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations","declaration"));
 
 
@@ -414,87 +325,23 @@ class DecesController extends Controller
      * @param int $id
      * @return Renderable
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, DeclarationDecesService $service)
     {
-        // return response()->json([
-        //     "code"=>"200",
-        //     "message"=>"Déclaration modifié avec succès",
-        //     "data"=>$request->all()
-        // ]);
-
-        $ddc = DeclarationDeces::find($id);
-        // Log::channel("sifec")->info($request->all());
-
-
-
-       if($ddc==null){
-        toastr()->error("Impossible de charger cette page");
-        return back();
-       }
-
-        DB::beginTransaction();
-
-        try{
-
-           $pere = Sifec::updatePersonne($request,"_pere","M",$ddc->code_pere);
-
-           $mere = Sifec::updatePersonne($request,"_mere","F",$ddc->code_mere);
-
-           $declarant = Sifec::updatePersonne($request,"_declarant",$request->sexe_declarant,$ddc->code_declarant);
-
-           $defunt = Sifec::updatePersonne($request,"_defunt",$request->sexe_defunt, $ddc->code_defunt);
-
-
-        //    $code_ins = DB::table("tr_user")
-        //    ->join('tr_ins_user','tr_user.code_user',"=",'tr_ins_user.code_user')
-        //    ->select("tr_ins_user.cui")
-        //    ->where('tr_user.code_user', auth()->user()->code_user)
-        //    ->first();
-
-            // $ddc->date_heure_declaration=now();
-            $ddc->date_heure_deces = $request->date_deces." ".$request->heure_deces ;
-            $ddc->code_lieu_survenance = $request->lieu_survenance_code;
-            $ddc->date_mariage = $request->date_mariage;
-            $ddc->code_regime  = $request->code_regime;
-            $ddc->domicile_defunt = $request->domicile_defunt;
-            $ddc->cec_mariage= $request->cec_mariage;
-            $ddc->cec_naissance= $request->cec_naissance;
-            $ddc->lieu_deces= $request->lieu_deces;
-            $ddc->num_acte_mariage=$request->num_acte_mariage;
-            $ddc->num_acte_naissance=$request->num_acte_naissance;
-            $ddc->type_declarant = "Personne physique";
-            $ddc->type_declaration = "DECLARATION DE DECES";
-            $ddc->code_religion =$request->code_religion_defunt;
-            $ddc->code_pere = $pere->code_personne;
-            $ddc->code_mere = $mere->code_personne;
-            // $ddc->code_user_institution  = Auth::user()->affectationActive()->cui;
-
-            // if ($codeconjoint != "") {
-            //     $ddc->code_conjoint = $codeconjoint;
-            // }
-            $ddc->code_filiation = $request->filiation;
-            $ddc->code_declarant = $declarant->code_personne;
-            $ddc->code_defunt = $defunt->code_personne;
-            $ddc->code_situation_matrimoniale = $request->code_situation_matrimoniale_defunt;
-            $ddc->save();
-
-            DB::commit();
-
-            return response()->json([
-                "code"=>"200",
-                "message"=>"Déclaration modifié avec succès",
-                "data"=>$request->all()
+        try {
+            $declaration = $service->update($request, $id, Auth::user());
+        return response()->json([
+                "code" => "200",
+                "message" => "Document modifié avec succès"
             ]);
-
-
-            }catch(Exception $e){
-                    DB::rollBack();
-                    return response()->json([
-                        "code"=>"200",
-                        "message"=>$e->getMessage()
-                    ]);
-            }
+        } catch (Exception $e) {
+        return response()->json([
+                "code" => "150",
+                "message" => $e->getMessage()
+            ]);
+        }
     }
+
+
 
     /**
      * Remove the specified resource from storage.
@@ -512,11 +359,7 @@ class DecesController extends Controller
         ]);
     }
 
-    public function verification()
-    {
-        $certificats = DeclarationDeces::where('type_declaration','DECLARATION TARDIVE')->get();
-        return view('deces::declaration.verification', compact('certificats'));
-    }
+
 
     public function statParCause()
     {
@@ -677,62 +520,82 @@ class DecesController extends Controller
         return $html2pdf->output("statParAge.pdf");
     }
 
-    public function mouvement(Request $request)
+    public function mouvement(MouvementService $mouvement ,Request $request)
     {
-
-        $rules = [
-            "code_declaration_deces"=>["required"]
-        ];
-        $validator = Validator::make($request->all(),$rules);
-        $dd = DeclarationDeces::find($request->code_declaration_deces);
-
-        if($validator->fails()){
+        $dn = Declarationdeces::find($request->code_declaration_deces);
+        if($dn == null){
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucune déclaration trouvée pour ce code"
+                "code"=>"183",
+                "message"=>["error" => "Aucun document trouvé pour ce code"],
+                "flashAlert" => [
+                    "type" => "error",
+                    "title" => "Erreur",
+                    "message" => "Aucun document trouvé pour ce code"
+                ]
             ]);
         }
 
-        DB::beginTransaction();
-        try{
+        // Mapping entre le libellé du type de déclaration et le type d'événement attendu
+        $mappingTypeEvenement = [
+            'DECLARATION DE DECES' => 'declaration_deces',
+            'DECLARATION TARDIVE' => 'declaration_tardive',
+            'CERTIFICAT DE CONSTATATION DE DECES' => 'certificat_constatation_deces',
+            'CERTIFICAT DE NON INSCRIPTION' => 'certificat_non_inscription',
+            "CERTIFICAT DE DESTRUCTION DE L'ACTE" => 'certificat_destruction',
+            'FICHE DE TRANSCRIPTION' => 'fiche_transcription',
+        ];
+        $typeDeclaration = $dn->type_declaration;
+        $typeEvenement = $mappingTypeEvenement[$typeDeclaration] ?? 'declaration_deces';
 
-            $lastMouvement = $dd->mouvements->last();
 
-            $transaction = new MouvementDeces;
-            $transaction->code_mouvement_deces = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_deces",4,"MDD_");
+        $statut = 'Envoyée';
+        $observation = $request->observation;
 
-            if($lastMouvement->statut == "En cours"){
-                $transaction->statut = "Envoyée";
-                $dd->approuver = "OUI";
-            }
-            if($lastMouvement->statut == "Envoyée"){
-                $transaction->statut = "Renvoyée";
-                $dd->approuver = "NON";
-            }
-            if($lastMouvement->statut == "Renvoyée"){
-                $transaction->statut = "Envoyée";
-                $dd->approuver = "OUI";
-            }
+        try {
+            DB::transaction(function () use ($mouvement, $dn, $observation, $request, $typeEvenement) {
 
-            $transaction->code_declaration_deces = $dd->code_declaration_deces;
-            $transaction->cui = Auth::user()->affectationActive()->cui;
-            $transaction->motif_renvoi = $request->motif_renvoi;
-            $transaction->observation = trim($request->observation);
-            $transaction->save();
+                [$ok, $statutResult] =  $mouvement->envoyerDeclaration(Auth::user(), $dn, $typeEvenement, 'Envoyée', $observation);
 
-            $dd->save();
+                if(!$ok){
+                    Log::channel('sifec')->info($statutResult);
+                    throw new Exception($statutResult ?: "Opération a échouée");
+                }
 
-            DB::commit();
+                //recuperer le code_institution_destinataire pour la notification de l'envoi de la déclaration
+                $codeInstitutionDestinataire = $dn->code_institution_destinataire;
+                $institutionDestinataire = Institution::find($codeInstitutionDestinataire);
+
+                // Notification centralisée via le module Notification
+                NotificationService::notifierAgentsInstitution(
+                    $institutionDestinataire,
+                    new \Modules\Notification\Notifications\DeclarationEnvoyeeCentreNotification(
+                        $dn,
+                        $institutionDestinataire,
+                        'envoyée'
+                    )
+                );
+
+            });
+
             return response()->json([
                 "code"=>"200",
-                "message"=>"Cette déclaration a été $transaction->statut avec succès"
+                "message"=>"Cette déclaration a été $statut avec succès",
+                "flashAlert" => [
+                    "type" => "success",
+                    "title" => "Succès",
+                    "message" => "Cette déclaration a été $statut avec succès"
+                ]
             ]);
-
         } catch (Exception $e) {
-            DB::rollBack();
+            Log::channel('sifec')->error('Erreur transaction mouvement : ' . $e->getMessage());
             return response()->json([
-                "code"=>"183",
-                "message"=>["error"=>$e->getMessage()]
+                "code"=>"500",
+                "message"=>"Erreur lors de l'envoi au centre d'état civil : " . $e->getMessage(),
+                "flashAlert" => [
+                    "type" => "error",
+                    "title" => "Erreur",
+                    "message" => "Erreur lors de l'envoi au centre d'état civil : " . $e->getMessage()
+                ]
             ]);
         }
     }
@@ -851,6 +714,52 @@ class DecesController extends Controller
         $html2pdf->writeHTML(view('deces::etats.transfertetatdepouille', compact('ddc'))->render());
 
         return $html2pdf->output("Autorisation.pdf");
+    }
+
+    public function storePiece(Request $request, $code, $type)
+    {
+        $request->validate([
+            'piece' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ]);
+
+        $declaration = DeclarationDeces::where('code_declaration_deces', $code)->firstOrFail();
+        $uploadPath = public_path('app/pieces');
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+        try {
+            if ($request->hasFile('piece') && $request->file('piece')->isValid()) {
+                $file = $request->file('piece');
+                $extension = $file->getClientOriginalExtension();
+                $imageName = $declaration->code_declaration_deces . '_' . $type . '_' . time() . '.' . $extension;
+
+                // Supprimer l'ancienne pièce si elle existe
+                $oldPath = $declaration->{'piece_' . $type};
+                if ($oldPath && file_exists(public_path($oldPath))) {
+                    @unlink(public_path($oldPath));
+                }
+
+                $file->move($uploadPath, $imageName);
+                $declaration->{'piece_' . $type} = 'app/pieces/' . $imageName;
+                $declaration->save();
+                return response()->json([
+                    'code' => '200',
+                    'message' => 'Pièce enregistrée avec succès.',
+                    'file_path' => 'app/pieces/' . $imageName
+                ]);
+            } else {
+                return response()->json([
+                    'code' => '400',
+                    'message' => 'Erreur lors de l\'upload du fichier.'
+                ], 400);
+            }
+        } catch (Exception $e) {
+            Log::error('Erreur upload pièce: ' . $e->getMessage());
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de l\'enregistrement de la pièce: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 }

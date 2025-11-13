@@ -1,5 +1,5 @@
 //common mega-menu styles
-[data-sidebar-style="full"][data-layout="vertical"] .menu-toggle, 
+[data-sidebar-style="full"][data-layout="vertical"] .menu-toggle,
 [data-sidebar-style="mini"][data-layout="vertical"] {
 
     .deznav {
@@ -67,7 +67,7 @@
                     &-md {
                         &:hover {
                             &>a {
-                                width: calc(45vw + 3);
+                                width: calc(45vw + 3rem);
                             }
                             &>ul {
                                 max-height: 18.75rem;
@@ -83,7 +83,7 @@
                     &-sm {
                         &:hover {
                             &>a {
-                                width: calc(30vw + 3);
+                                width: calc(30vw + 3rem);
                             }
                             &>ul {
                                 max-height: 18.125rem;
@@ -199,46 +199,46 @@
                     ul {
                         left: 0;
                         right: 0;
-						
+
 
                         li {
-                            
+
                             @at-root [data-theme-version="dark"]#{&} {
                                 border-color: $d-border;
                             }
-                            
+
                             @at-root [data-sibebarbg="color_2"]#{&} {
                                 border-color: darken($color_pallate_2, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_3"]#{&} {
                                 border-color: darken($color_pallate_3, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_4"]#{&} {
                                 border-color: darken($color_pallate_4, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_5"]#{&} {
                                 border-color: darken($color_pallate_5, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_6"]#{&} {
                                 border-color: darken($color_pallate_6, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_7"]#{&} {
                                 border-color: darken($color_pallate_7, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_8"]#{&} {
                                 border-color: darken($color_pallate_8, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_9"]#{&} {
                                 border-color: darken($color_pallate_9, 20%);
                             }
-                            
+
                             @at-root [data-sibebarbg="color_10"]#{&} {
                                 border-color: darken($color_pallate_10, 20%);
                             }
@@ -274,39 +274,39 @@
                                 @at-root [data-theme-version="dark"]#{&} {
                                     background-color: lighten($color: $d-bg, $amount: 3.2%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_2"]#{&} {
                                     background-color: darken($color_pallate_2, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_3"]#{&} {
                                     background-color: darken($color_pallate_3, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_4"]#{&} {
                                     background-color: darken($color_pallate_4, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_5"]#{&} {
                                     background-color: darken($color_pallate_5, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_6"]#{&} {
                                     background-color: darken($color_pallate_6, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_7"]#{&} {
                                     background-color: darken($color_pallate_7, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_8"]#{&} {
                                     background-color: darken($color_pallate_8, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_9"]#{&} {
                                     background-color: darken($color_pallate_9, 10%);
                                 }
-                                
+
                                 @at-root [data-sibebarbg="color_10"]#{&} {
                                     background-color: darken($color_pallate_10, 10%);
                                 }
@@ -335,7 +335,7 @@
 								max-height: 210px;
 								width: 700px;
 								height: 210px !important;
-								
+
                                 @include custommq($min: 1200px, $max: 1500px) {
                                     width: 700px;
                                 }

@@ -67,7 +67,7 @@
             <td style="width:50%; text-align: center;">
                 <p style="color: red">{{ $infos != "" ? $infos : "" }}</p>
                 @if ($acte->approbation_tribunal == 1)
-                    <img src='{{ asset("app/".$acte->sceau_tribunal) }}' alt="" width="100" height="100">
+                    <img src='{{ public_path('app/'.$acte->sceau_tribunal) }}' alt="" width="100" height="100">
                 @endif
 
             </td>
@@ -233,7 +233,7 @@
 
                         @if ($acte->approbation_pompe_funebre == 1)
 
-                            <img src='{{ asset("app/".$acte->signature_pompe_funebre) }}'>
+                            <img src='{{ public_path('app/'.$acte->signature_pompe_funebre) }}'>
                             {{ $nomcomplet }}
                         @endif <br>
 

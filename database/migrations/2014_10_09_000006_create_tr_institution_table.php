@@ -34,7 +34,7 @@ class CreateTrInstitutionTable extends Migration
             $table->softDeletes();
 
             $table->foreign('code_institution_parent')->references('code_institution')->on('tr_institution')->onDelete('cascade')->onUpdate("cascade");
-            $table->foreign("code_pompe_funebre")->references("code_pompes_funebres")->on("tr_pompes_funebres")->onDelete('cascade')->onUpdate("cascade");
+            $table->foreign('code_pompe_funebre')->references('code_institution')->on('tr_institution')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('code_type_institution')->references('code_type_institution')->on('tr_type_institution')->onDelete('cascade')->onUpdate("cascade");
             $table->foreign("code_commune")->references("code_commune")->on("tr_commune")->onDelete('cascade')->onUpdate("cascade");
             $table->foreign("code_district")->references("code_district")->on("tr_district")->onDelete('cascade')->onUpdate("cascade");

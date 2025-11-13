@@ -13,7 +13,7 @@ return [
 
                         "declaration_deces"=>"M.(Mme) :declarant, une declaration de deces de :defunt, dont vous etes declarant a ete emis avec succes, le numero de la declaration est :code_declaration",
                         "acte_deces"=>"M.(Mme) :declarant, l'acte de la declaration de deces :code_acte_deces de :defunt,  dont vous etes declarant est disponible,priere de vous rapprocher du centre d'etat civil :libCec",
-                        "validation_acte_deces"=>"M (Mme) :pompe_funebre, votre code pour valider l'acte de deces :code_declaration_deces est :code_otp",
+                        "validation_acte_deces"=>"M (Mme) :pompe_funebre, votre code pour valider l'acte de deces :code_acte_deces est :code_otp",
                         "validation_acte_mariages"=>"M (Mme) :maire, votre code pour valider l'acte de mariage :code_declaration_mariages est :code_otp",
                         "acte_mariage"=>"M.(Mme) :declarant, l'acte de la declaration de mariage :code_acte_mariage dont vous etes declarant est disponible",
 

@@ -118,6 +118,12 @@
 <script>
 
     (function($) {
+        // Vérifier si Chartist est chargé
+        if (typeof Chartist === 'undefined') {
+            console.warn('Chartist library is not loaded');
+            return;
+        }
+
         var dzChartlist = function(){
 
         var screenWidth = $(window).width();
@@ -140,6 +146,12 @@
 
         // Acte de naissance
         var lineAnimatedChart = function(){
+            // Vérifier si l'élément existe
+            if ($('#smil-animations').length === 0) {
+                console.warn('Element #smil-animations not found');
+                return;
+            }
+
             var una = $('#pra').val();
             var dxa = $('#dxa').val();
             var tra = $('#tra').val();
@@ -294,6 +306,12 @@
 
         // Acte de décès
         var lineAnimatedDeces = function(){
+            // Vérifier si l'élément existe
+            if ($('#smil-decesanimations').length === 0) {
+                console.warn('Element #smil-decesanimations not found');
+                return;
+            }
+
             var unb = $('#prb').val();
             var dxb = $('#dxb').val();
             var trb = $('#trb').val();
@@ -436,6 +454,12 @@
 
     //   Déclaration naissance
         var svgAnimationChart = function(){
+            // Vérifier si l'élément existe
+            if ($('#svg-animation').length === 0) {
+                console.warn('Element #svg-animation not found');
+                return;
+            }
+
             //SVG Path animation
             var un = $('#pr').val();
             var dx = $('#dx').val();
@@ -487,6 +511,12 @@
 
         // déclaration décès
         var svgDeces = function(){
+            // Vérifier si l'élément existe
+            if ($('#svg-decesanimation').length === 0) {
+                console.warn('Element #svg-decesanimation not found');
+                return;
+            }
+
             //SVG Path animation
             var und = $('#prd').val();
             var dxd = $('#dxd').val();

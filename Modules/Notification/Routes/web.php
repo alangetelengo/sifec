@@ -12,5 +12,7 @@
 */
 
 Route::prefix('notification')->group(function() {
-    Route::get('/', 'NotificationController@index');
+    Route::get('/', 'NotificationController@index')->name('notifications.index');
+    Route::get('{id}/read', 'NotificationController@read')->name('notifications.read');
+    Route::get('mark-all-read', 'NotificationController@markAllAsRead')->name('notifications.markAllAsRead');
 });

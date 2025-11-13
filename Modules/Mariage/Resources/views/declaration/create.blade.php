@@ -22,6 +22,30 @@
 <!-- Custom CSS -->
 <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('app/script-sifec/form.js') }}">
+
+<style>
+    /* Style pour les champs en mode lecture seule */
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+    }
+
+    .readonly-field:focus {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        box-shadow: none !important;
+    }
+
+    /* Style spécial pour les select en mode disabled */
+    select.readonly-field:disabled {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #6c757d !important;
+        opacity: 1 !important;
+    }
+</style>
 @endsection
 @section("corps")
         <!-- row -->
@@ -30,10 +54,12 @@
                 <div class="card">
                     <div class="card-header">
                         <h4>Créer un formulaire type</h4>
+
+
                         <div class="d-flex justify-content-end">
                             <!--label class="form-label col-md-3">Type de mariage</label-->
                             <select id="type_mariage"  class="form-control" style="width:200px">
-                                 <option value="" selected>Type de mariage</option>
+                                 {{-- <option value="" selected>Type de mariage</option> --}}
                                 <option value="NORMAL">Mariage normal</option>
                                 <option value="PROCURATION">Mariage par procuration</option>
                                 <!-- <option value="posthume">Mariage à titre posthume</option> -->
@@ -45,11 +71,12 @@
                                 <!-- <option value="posthume">Mariage à titre posthume</option> -->
                             </select>
                             <br>
+                            <a href="{{ route('declarationMariage.index') }}" class="btn btn-primary me-2">Liste des formulaires types</a>
 
                         </div>
-
                     </div>
-                    <p id="notificationMsgProcuration"  style="background:red; color:white; padding:10px; font-size:15px;font-weight:bold"> <i class="fa fa-warning"></i> Ce type de mariage requiert la présence du mandant  conformément à l'article 152 du code de la famille.</p>
+                    <p id="notificationMsgProcuration"  style="background:red; color:white; padding:10px; font-size:15px;font-weight:bold"> <i class="fa fa-warning"></i> Ce type de mariage requiert la présence du mandant  conformément à l'article 152 du code de la famille.
+                    </p>
                     <div class="card wizard-content">
                         <div class="card-body">
                            @include('mariage::declaration.form')
@@ -117,7 +144,6 @@
                 'json',
             success: function(json) {
                 $.each(json, function (index, value) {
-                    console.log(value.lib_localite);
                     option += '<option value="'+value.code_localite+'">'+value.lib_localite+'</option>';
                 });
                 $("#"+cle).html(option);
@@ -136,7 +162,6 @@
                 'json',
             success: function(json) {
                 $.each(json, function (index, value) {
-                    console.log(value.lib_localite);
                     option += '<option value="'+value.code_localite+'">'+value.lib_localite+'</option>';
                 });
                 $("#"+cle).html(option);
@@ -145,7 +170,8 @@
     }
     function getCentreEtatCivil(codelocalite,key){
         var route = "{{ route('declarationNaissance.search.institution') }}";
-        var option = "<option>Selectionnez</option>";
+        var option = "";
+        // var option = "<option>Selectionnez</option>";
 
         $.ajax({
             url: route,
@@ -154,11 +180,9 @@
                 'json',
             success: function(json) {
                 $.each(json, function (index, value) {
-                    console.log(value.lib_institution);
                     option += '<option value="'+value.code_institution+'">'+value.lib_institution+'</option>';
                 });
                 $("#"+key).html(option);
-                console.log(json); cec_epoux
             }
         });
 
@@ -877,70 +901,540 @@
         });
 
 
+        // Variable globale pour stocker les données de recherche
+        var donneesEpouxTrouvees = null;
+
         $("#rechercherEpoux").on("click", function(event){
             event.preventDefault();
-            numero_acte_naissance = $("#numero_acte_naissance_epoux").val();
-            var data = {
-                numero_acte_naissance:numero_acte_naissance
-            };
-            $.post("{{ route('declarationMariage.recherchePersonne') }}", data,function (response) {
 
-            if(response.code == "200"){
+            var numero_acte_naissance = $("#numero_acte_naissance_epoux").val().trim();
 
-                console.log(response.lieu_naissance);
-
-                $(".epoux-search-modal-lg").modal("hide");
-                $("#nom_epoux").val(response.nom);
-                $("#prenom_epoux").val(response.prenom);
-                $("#date_naissance_epoux").val(response.date_naissance);
-                $("#lieu_naissance_epoux").val(response.lieu_naissance);
-                $("#num_acte_naissance_epoux").val(numero_acte_naissance);
-                $("#code_nationalite_epoux").val(response.lib_nationalite);
-                $("#date_emission_acte_naissance_epoux").val(response.dateEmisAN);
-                // $("#cec_epoux").val(response.cec_naissance);
-                $("#code_profession_epoux").val(response.code_profession);
-                $("#cec_epoux").val(response.cec_naissance);
-                $("#nom_pere_epoux").val(response.pere);
-                $("#nom_mere_epoux").val(response.mere);
-
-            }else{
-                flashAlert("Opération échouée","error",response.message);
+            if(!numero_acte_naissance) {
+                alert("Veuillez saisir un numéro d'acte de naissance");
+                return;
             }
+
+            // Afficher un loader
+            $(this).html('<i class="fa fa-spinner fa-spin"></i> Recherche...');
+            $(this).prop('disabled', true);
+
+            var data = {
+                numero_acte_naissance: numero_acte_naissance,
+                type_personne: 'epoux'  // Ajouter le type de personne
+            };
+
+            $.post("{{ route('declarationMariage.recherchePersonne') }}", data, function (response) {
+
+                // Restaurer le bouton
+                $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpoux").prop('disabled', false);
+
+                if(response.code == "200"){
+
+                    // Stocker les données pour utilisation ultérieure
+                    donneesEpouxTrouvees = response;
+
+                    // Afficher les résultats dans la modal
+                    $("#identite_epoux").text((response.nom || '') + ' ' + (response.prenom || ''));
+
+                    // Formater la date de naissance
+                    var dateNaissanceFormatee = 'Non spécifiée';
+                    if(response.date_naissance) {
+                        var date = new Date(response.date_naissance);
+                        var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                        dateNaissanceFormatee = date.toLocaleDateString('fr-FR', options);
+                    }
+                    $("#date_naissance_result_epoux").text(dateNaissanceFormatee);
+
+                    $("#sexe_result_epoux").text(response.sexe == 'M' ? 'Masculin' : (response.sexe == 'F' ? 'Féminin' : 'Non spécifié'));
+                    $("#lieu_naissance_result_epoux").text(response.lib_lieu_naissance || 'Non spécifié');
+                    $("#parents_result_epoux").text((response.pere || 'Père non spécifié') + ' / ' + (response.mere || 'Mère non spécifiée'));
+
+                    // Gestion de la situation matrimoniale
+                    if(response.situation_matrimoniale) {
+                        // Afficher la situation matrimoniale dans la modal
+                        var situationHtml = '<div class="mt-3"><h6><i class="fa fa-heart"></i> Situation matrimoniale :</h6>';
+
+                        // Déterminer la couleur de l'alerte selon le statut
+                        var alertClass = 'info';
+                        if(response.situation_matrimoniale.statut === 'celibataire') {
+                            alertClass = 'success';
+                        } else if(response.situation_matrimoniale.statut === 'marie_monogamie') {
+                            alertClass = 'warning';
+                        } else if(response.situation_matrimoniale.statut === 'decede') {
+                            alertClass = 'danger';
+                        }
+
+                        situationHtml += '<div class="alert alert-' + alertClass + '">';
+                        situationHtml += '<strong>' + response.situation_matrimoniale.message + '</strong>';
+
+                        // Afficher les informations du mariage existant si disponible
+                        if(response.situation_matrimoniale.acte_mariage_actuel) {
+                            var acte = response.situation_matrimoniale.acte_mariage_actuel;
+                            situationHtml += '<div class="mt-2">';
+                            situationHtml += '<strong>Informations du mariage actuel :</strong><br>';
+                            situationHtml += '<strong>Numéro d\'acte :</strong> ' + acte.code_acte + '<br>';
+                            situationHtml += '<strong>Date d\'émission :</strong> ' + acte.date_emission + '<br>';
+                            situationHtml += '<strong>Option de mariage :</strong> ' + acte.option_mariage + '<br>';
+                            if(response.situation_matrimoniale.conjoint) {
+                                situationHtml += '<strong>Épouse actuelle :</strong> ' + response.situation_matrimoniale.conjoint + '<br>';
+                            }
+                            situationHtml += '</div>';
+                        }
+
+                        situationHtml += '</div></div>';
+
+                        // Ajouter la situation matrimoniale aux résultats
+                        $("#resultats_epoux .card-body").append(situationHtml);
+                    }
+
+                    // Afficher la zone de résultats et le bouton de confirmation
+                    $("#resultats_epoux").show();
+                    $("#confirmer_epoux").show();
+
+                    // Masquer le champ de recherche
+                    $("#numero_acte_naissance_epoux").prop('readonly', true);
+                    $("#rechercherEpoux").hide();
+
+                } else {
+                    // Masquer les résultats en cas d'erreur
+                    $("#resultats_epoux").hide();
+                    $("#confirmer_epoux").hide();
+                    flashAlert("Recherche échouée", "error", response.message);
+                }
+            }).fail(function() {
+                $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpoux").prop('disabled', false);
+                flashAlert("Erreur", "error", "Erreur de connexion lors de la recherche");
             });
+
             return false;
         });
 
+        // Bouton de confirmation pour l'époux
+        $("#confirmer_epoux").on("click", function(){
+            if(donneesEpouxTrouvees) {
+
+                // Vérifier si la personne peut se marier
+                var peutSeMarier = true;
+                var messageBlocage = '';
+
+                if(donneesEpouxTrouvees.situation_matrimoniale) {
+                    var situation = donneesEpouxTrouvees.situation_matrimoniale;
+
+                    // Vérifier les conditions qui empêchent le mariage
+                    if(situation.statut === 'decede') {
+                        peutSeMarier = false;
+                        messageBlocage = 'Cette personne est décédée. Un mariage posthume n\'est pas autorisé.';
+                    } else if(situation.statut === 'marie_monogamie') {
+                        peutSeMarier = false;
+                        messageBlocage = 'Cette personne est déjà mariée en monogamie. Un nouveau mariage nécessite un divorce ou un décès de l\'époux/épouse actuel(le).';
+                    } else if(situation.statut === 'erreur') {
+                        peutSeMarier = false;
+                        messageBlocage = 'Erreur lors de la vérification de la situation matrimoniale. Impossible de procéder au mariage.';
+                    }
+                }
+
+                if(!peutSeMarier) {
+                    // Afficher un message d'erreur et empêcher l'avancement
+                    alert('❌ MARIAGE IMPOSSIBLE\n\n' + messageBlocage + '\n\nVeuillez résoudre cette situation avant de continuer.');
+                    return false; // Empêcher l'avancement
+                }
+
+                // Remplir le formulaire avec les données trouvées
+                $("#nom_epoux").val(donneesEpouxTrouvees.nom || '');
+                $("#prenom_epoux").val(donneesEpouxTrouvees.prenom || '');
+                $("#date_naissance_epoux").val(donneesEpouxTrouvees.date_naissance || '');
+                $("#num_acte_naissance_epoux").val(donneesEpouxTrouvees.numero_ancien_acte || '');
+                $("#date_emission_acte_naissance_epoux").val(donneesEpouxTrouvees.dateEmisAN || '');
+                $("#nom_pere_epoux").val(donneesEpouxTrouvees.pere || '');
+                $("#nom_mere_epoux").val(donneesEpouxTrouvees.mere || '');
+
+                // Gestion de la situation matrimoniale
+                // NE PAS utiliser code_situation_matrimoniale de rechercheIdentite()
+                // car il provient de la déclaration de naissance (statut des parents)
+                if(donneesEpouxTrouvees.situation_matrimoniale) {
+                    // Déterminer le code de situation matrimoniale
+                    var situationCode = determinerCodeSituationMatrimoniale(donneesEpouxTrouvees.situation_matrimoniale);
+                    if(situationCode) {
+                        $("#sit_matrimoniale_epoux").val(situationCode).trigger('change');
+                    }
+                }
+
+                // Gérer la nationalité et la profession
+                if(donneesEpouxTrouvees.code_nationalite) {
+                    $("#code_nationalite_epoux").val(donneesEpouxTrouvees.code_nationalite).trigger('change');
+                }
+                if(donneesEpouxTrouvees.code_profession) {
+                    $("#code_profession_epoux").val(donneesEpouxTrouvees.code_profession);
+                }
+
+                // Remplir le lieu de naissance et le centre d'état civil selon la nationalité
+                // Pour les Congolais (nationalité locale), utiliser les champs normaux
+                if(donneesEpouxTrouvees.lieu_naissance && donneesEpouxTrouvees.lieu_naissance !== 'LOC_4247') {
+                    // Localité congolaise - utiliser le dropdown de localité
+                    $("#code_localite_epoux").val(donneesEpouxTrouvees.lieu_naissance).trigger('change');
+
+                    // Remplir le centre d'état civil une fois que les CEC sont chargés
+                    if(donneesEpouxTrouvees.code_cec_naissance) {
+                        // Attendre que les CEC se chargent puis sélectionner le bon
+                        setTimeout(function() {
+                            $("#code_cec_epoux").val(donneesEpouxTrouvees.code_cec_naissance).trigger('change');
+
+                            // Si la sélection n'a pas fonctionné, essayer avec le libellé
+                            if($("#code_cec_epoux").val() === null || $("#code_cec_epoux").val() === '') {
+                                // Chercher l'option par son texte
+                                $("#code_cec_epoux option").each(function() {
+                                    if($(this).text().toLowerCase().includes(donneesEpouxTrouvees.cec_naissance.toLowerCase())) {
+                                        $(this).prop('selected', true);
+                                        $("#code_cec_epoux").trigger('change');
+                                        return false; // Break the loop
+                                    }
+                                });
+                            }
+                        }, 1000); // Augmenter le délai à 1 seconde
+                    }
+                } else if(donneesEpouxTrouvees.lieu_naissance === 'LOC_4247') {
+                    // Étranger - utiliser les champs texte spéciaux
+                    $("#lieu_naissance_epoux").val(donneesEpouxTrouvees.lib_lieu_naissance || '');
+                    $("#cec_naissance_epoux").val(donneesEpouxTrouvees.cec_naissance || '');
+                }
+
+                // Mettre tous les champs identifiés en mode lecture seule
+                $("#nom_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#prenom_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#date_naissance_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#num_acte_naissance_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#date_emission_acte_naissance_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#nom_pere_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#nom_mere_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#code_nationalite_epoux").prop('disabled', true).addClass('readonly-field');
+                $("#code_profession_epoux").prop('disabled', true).addClass('readonly-field');
+                $("#code_localite_epoux").prop('disabled', true).addClass('readonly-field');
+                $("#code_cec_epoux").prop('disabled', true).addClass('readonly-field');
+
+                // Afficher l'identité dans le formulaire principal
+                $("#nom_prenom_epoux_trouve").text((donneesEpouxTrouvees.nom || '') + ' ' + (donneesEpouxTrouvees.prenom || ''));
+
+                // Formater la date de naissance pour l'affichage principal
+                var dateNaissanceEpouxFormatee = 'Non spécifiée';
+                if(donneesEpouxTrouvees.date_naissance) {
+                    var date = new Date(donneesEpouxTrouvees.date_naissance);
+                    var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    dateNaissanceEpouxFormatee = date.toLocaleDateString('fr-FR', options);
+                }
+                $("#date_naissance_epoux_trouve").text(dateNaissanceEpouxFormatee);
+
+                $("#numero_acte_epoux_trouve").text(donneesEpouxTrouvees.numero_ancien_acte || '');
+                $("#identite_trouvee_epoux").show();
+
+                // Fermer la modal
+                $(".epoux-search-modal-lg").modal("hide");
+
+                // Afficher un message de succès
+                flashAlert("Succès", "success", "Informations de l'époux remplies automatiquement");
+
+                // Réinitialiser la modal pour une prochaine recherche
+                resetModalEpoux();
+            }
+        });
+
+        // Fonction pour réinitialiser la modal époux
+        function resetModalEpoux() {
+            $("#numero_acte_naissance_epoux").val('').prop('readonly', false);
+            $("#rechercherEpoux").show().html('<i class="fa fa-search"></i> Rechercher');
+            $("#resultats_epoux").hide();
+            $("#confirmer_epoux").hide();
+            donneesEpouxTrouvees = null;
+        }
+
+        // Réinitialiser la modal quand elle se ferme
+        $('.epoux-search-modal-lg').on('hidden.bs.modal', function () {
+            resetModalEpoux();
+        });
+
+        // Variable globale pour stocker les données de recherche épouse
+        var donneesEpouseTrouvees = null;
+
         $("#rechercherEpouse").on("click", function(event){
             event.preventDefault();
-            numero_acte_naissance = $("#numero_acte_naissance_epouse").val();
-            var data = {
-                numero_acte_naissance:numero_acte_naissance
-            };
-            $.post("{{ route('declarationMariage.recherchePersonne') }}", data,function (response) {
 
-            if(response.code == "200"){
-
-                console.log(response.dateEmisAN);
-
-                $(".epouse-search-modal-lg").modal("hide");
-                $("#nom_epouse").val(response.nom);
-                $("#prenom_epouse").val(response.prenom);
-                $("#date_naissance_epouse").val(response.date_naissance);
-                $("#code_localite_epouse").val(response.lieu_naissance);
-                $("#num_acte_naissance_epouse").val(numero_acte_naissance);
-                $("#code_nationalite_epouse").val(response.lib_nationalite);
-                $("#date_emission_acte_naissance_epouse").val(response.dateEmisAN);
-                // $("#cec_epouse").val(response.cec_naissance);
-                $("#code_profession_epouse").val(response.code_profession);
-                $("#cec_epouse").val(response.cec_naissance);
-                $("#nom_pere_epouse").val(response.pere);
-                $("#nom_mere_epouse").val(response.mere);
-
-            }else{
-                flashAlert("Opération échouée","error",response.message);
+            var numero_acte_naissance = $("#numero_acte_naissance_epouse").val().trim();
+            if(!numero_acte_naissance) {
+                alert("Veuillez saisir un numéro d'acte de naissance");
+                return;
             }
+
+            // Afficher un loader
+            $(this).html('<i class="fa fa-spinner fa-spin"></i> Recherche...');
+            $(this).prop('disabled', true);
+
+            var data = {
+                numero_acte_naissance: numero_acte_naissance
+            };
+
+            $.post("{{ route('declarationMariage.recherchePersonne') }}", data, function (response) {
+                // Restaurer le bouton
+                $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpouse").prop('disabled', false);
+
+                if(response.code == "200"){
+                    // Stocker les données pour utilisation ultérieure
+                    donneesEpouseTrouvees = response;
+
+                    // Afficher les résultats dans la modal
+                    $("#identite_epouse").text((response.nom || '') + ' ' + (response.prenom || ''));
+
+                    // Formater la date de naissance
+                    var dateNaissanceFormatee = 'Non spécifiée';
+                    if(response.date_naissance) {
+                        var date = new Date(response.date_naissance);
+                        var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                        dateNaissanceFormatee = date.toLocaleDateString('fr-FR', options);
+                    }
+                    $("#date_naissance_result_epouse").text(dateNaissanceFormatee);
+
+                    $("#sexe_result_epouse").text(response.sexe == 'M' ? 'Masculin' : (response.sexe == 'F' ? 'Féminin' : 'Non spécifié'));
+                    $("#lieu_naissance_result_epouse").text(response.lib_lieu_naissance || 'Non spécifié');
+                    $("#parents_result_epouse").text((response.pere || 'Père non spécifié') + ' / ' + (response.mere || 'Mère non spécifiée'));
+
+                    // Afficher la zone de résultats et le bouton de confirmation
+                    $("#resultats_epouse").show();
+                    $("#confirmer_epouse").show();
+
+                    // Masquer le champ de recherche
+                    $("#numero_acte_naissance_epouse").prop('readonly', true);
+                    $("#rechercherEpouse").hide();
+
+                } else {
+                    // Masquer les résultats en cas d'erreur
+                    $("#resultats_epouse").hide();
+                    $("#confirmer_epouse").hide();
+                    flashAlert("Recherche échouée", "error", response.message);
+                }
+            }).fail(function() {
+                $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpouse").prop('disabled', false);
+                flashAlert("Erreur", "error", "Erreur de connexion lors de la recherche");
             });
+
             return false;
+        });
+
+        // Bouton de confirmation pour l'épouse
+        $("#confirmer_epouse").on("click", function(){
+            if(donneesEpouseTrouvees) {
+
+                // Vérifier si la personne peut se marier
+                var peutSeMarier = true;
+                var messageBlocage = '';
+
+                if(donneesEpouseTrouvees.situation_matrimoniale) {
+                    var situation = donneesEpouseTrouvees.situation_matrimoniale;
+
+                    // Vérifier les conditions qui empêchent le mariage
+                    if(situation.statut === 'decede') {
+                        peutSeMarier = false;
+                        messageBlocage = 'Cette personne est décédée. Un mariage posthume n\'est pas autorisé.';
+                    } else if(situation.statut === 'marie_monogamie') {
+                        peutSeMarier = false;
+                        messageBlocage = 'Cette personne est déjà mariée en monogamie. Un nouveau mariage nécessite un divorce ou un décès de l\'époux/épouse actuel(le).';
+                    } else if(situation.statut === 'erreur') {
+                        peutSeMarier = false;
+                        messageBlocage = 'Erreur lors de la vérification de la situation matrimoniale. Impossible de procéder au mariage.';
+                    }
+                }
+
+                if(!peutSeMarier) {
+                    // Afficher un message d'erreur et empêcher l'avancement
+                    alert('❌ MARIAGE IMPOSSIBLE\n\n' + messageBlocage + '\n\nVeuillez résoudre cette situation avant de continuer.');
+                    return false; // Empêcher l'avancement
+                }
+
+                // Remplir le formulaire avec les données trouvées
+                $("#nom_epouse").val(donneesEpouseTrouvees.nom || '');
+                $("#prenom_epouse").val(donneesEpouseTrouvees.prenom || '');
+                $("#date_naissance_epouse").val(donneesEpouseTrouvees.date_naissance || '');
+                $("#num_acte_naissance_epouse").val(donneesEpouseTrouvees.numero_ancien_acte || '');
+                $("#date_emission_acte_naissance_epouse").val(donneesEpouseTrouvees.dateEmisAN || '');
+                $("#nom_pere_epouse").val(donneesEpouseTrouvees.pere || '');
+                $("#nom_mere_epouse").val(donneesEpouseTrouvees.mere || '');
+
+                // Gestion de la situation matrimoniale
+                if(donneesEpouseTrouvees.situation_matrimoniale) {
+                    // Déterminer le code de situation matrimoniale
+                    var situationCode = determinerCodeSituationMatrimoniale(donneesEpouseTrouvees.situation_matrimoniale);
+                    if(situationCode) {
+                        $("#sit_matrimoniale_epouse").val(situationCode).trigger('change');
+                    }
+                }
+
+                // Gérer la nationalité et la profession
+                if(donneesEpouseTrouvees.code_nationalite) {
+                    $("#code_nationalite_epouse").val(donneesEpouseTrouvees.code_nationalite).trigger('change');
+                }
+                if(donneesEpouseTrouvees.code_profession) {
+                    $("#code_profession_epouse").val(donneesEpouseTrouvees.code_profession);
+                }
+
+                // Remplir le lieu de naissance et le centre d'état civil selon la nationalité
+                // Pour les Congolais (nationalité locale), utiliser les champs normaux
+                if(donneesEpouseTrouvees.lieu_naissance && donneesEpouseTrouvees.lieu_naissance !== 'LOC_4247') {
+                    // Localité congolaise - utiliser le dropdown de localité
+                    $("#code_localite_epouse").val(donneesEpouseTrouvees.lieu_naissance).trigger('change');
+
+                    // Remplir le centre d'état civil une fois que les CEC sont chargés
+                    if(donneesEpouseTrouvees.code_cec_naissance) {
+                        // Attendre que les CEC se chargent puis sélectionner le bon
+                        setTimeout(function() {
+                            $("#code_cec_epouse").val(donneesEpouseTrouvees.code_cec_naissance).trigger('change');
+
+                            // Si la sélection n'a pas fonctionné, essayer avec le libellé
+                            if($("#code_cec_epouse").val() === null || $("#code_cec_epouse").val() === '') {
+                                // Chercher l'option par son texte
+                                $("#code_cec_epouse option").each(function() {
+                                    if($(this).text().toLowerCase().includes(donneesEpouseTrouvees.cec_naissance.toLowerCase())) {
+                                        $(this).prop('selected', true);
+                                        $("#code_cec_epouse").trigger('change');
+                                        return false; // Break the loop
+                                    }
+                                });
+                            }
+                        }, 1000); // Augmenter le délai à 1 seconde
+                    }
+                } else if(donneesEpouseTrouvees.lieu_naissance === 'LOC_4247') {
+                    // Étranger - utiliser les champs texte spéciaux
+                    $("#lieu_naissance_epouse").val(donneesEpouseTrouvees.lib_lieu_naissance || '');
+                    $("#cec_naissance_epouse").val(donneesEpouseTrouvees.cec_naissance || '');
+                }
+
+                // Mettre tous les champs identifiés en mode lecture seule
+                $("#nom_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#prenom_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#date_naissance_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#num_acte_naissance_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#date_emission_acte_naissance_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#nom_pere_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#nom_mere_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#code_nationalite_epouse").prop('disabled', true).addClass('readonly-field');
+                $("#code_profession_epouse").prop('disabled', true).addClass('readonly-field');
+                $("#code_localite_epouse").prop('disabled', true).addClass('readonly-field');
+                $("#code_cec_epouse").prop('disabled', true).addClass('readonly-field');
+
+                // Afficher l'identité dans le formulaire principal
+                $("#nom_prenom_epouse_trouve").text((donneesEpouseTrouvees.nom || '') + ' ' + (donneesEpouseTrouvees.prenom || ''));
+
+                // Formater la date de naissance pour l'affichage principal
+                var dateNaissanceEpouseFormatee = 'Non spécifiée';
+                if(donneesEpouseTrouvees.date_naissance) {
+                    var date = new Date(donneesEpouseTrouvees.date_naissance);
+                    var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    dateNaissanceEpouseFormatee = date.toLocaleDateString('fr-FR', options);
+                }
+                $("#date_naissance_epouse_trouve").text(dateNaissanceEpouseFormatee);
+
+                $("#numero_acte_epouse_trouve").text(donneesEpouseTrouvees.numero_ancien_acte || '');
+                $("#identite_trouvee_epouse").show();
+
+                // Fermer la modal
+                $(".epouse-search-modal-lg").modal("hide");
+
+                // Afficher un message de succès
+                flashAlert("Succès", "success", "Informations de l'épouse remplies automatiquement");
+
+                // Réinitialiser la modal pour une prochaine recherche
+                resetModalEpouse();
+            }
+        });
+
+        // Fonction pour réinitialiser la modal épouse
+        function resetModalEpouse() {
+            $("#numero_acte_naissance_epouse").val('').prop('readonly', false);
+            $("#rechercherEpouse").show().html('<i class="fa fa-search"></i> Rechercher');
+            $("#resultats_epouse").hide();
+            $("#confirmer_epouse").hide();
+            donneesEpouseTrouvees = null;
+        }
+
+        // Réinitialiser la modal quand elle se ferme
+        $('.epouse-search-modal-lg').on('hidden.bs.modal', function () {
+            resetModalEpouse();
+        });
+
+        // ========== BOUTONS VIDER ==========
+
+        // Bouton vider pour l'époux
+        $("#clear_epoux").on("click", function(){
+            if(confirm("Êtes-vous sûr de vouloir vider toutes les informations de l'époux ?")) {
+                // Vider tous les champs de l'époux
+                $("#nom_epoux").val('');
+                $("#prenom_epoux").val('');
+                $("#date_naissance_epoux").val('');
+                $("#num_acte_naissance_epoux").val('');
+                $("#date_emission_acte_naissance_epoux").val('');
+                $("#nom_pere_epoux").val('');
+                $("#nom_mere_epoux").val('');
+                $("#code_nationalite_epoux").val('').trigger('change');
+                $("#code_profession_epoux").val('').trigger('change');
+
+                // Retirer le mode lecture seule de tous les champs
+                $("#nom_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#prenom_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#date_naissance_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#num_acte_naissance_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#date_emission_acte_naissance_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_pere_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_mere_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#code_nationalite_epoux").prop('disabled', false).removeClass('readonly-field');
+                $("#code_profession_epoux").prop('disabled', false).removeClass('readonly-field');
+                $("#code_localite_epoux").prop('disabled', false).removeClass('readonly-field');
+                $("#code_cec_epoux").prop('disabled', false).removeClass('readonly-field');
+
+                // Masquer la zone d'identité trouvée
+                $("#identite_trouvee_epoux").hide();
+
+                // Réinitialiser les données stockées
+                donneesEpouxTrouvees = null;
+
+                flashAlert("Succès", "success", "Informations de l'époux vidées");
+            }
+        });
+
+        // Bouton vider pour l'épouse
+        $("#clear_epouse").on("click", function(){
+            if(confirm("Êtes-vous sûr de vouloir vider toutes les informations de l'épouse ?")) {
+                // Vider tous les champs de l'épouse
+                $("#nom_epouse").val('');
+                $("#prenom_epouse").val('');
+                $("#date_naissance_epouse").val('');
+                $("#num_acte_naissance_epouse").val('');
+                $("#date_emission_acte_naissance_epouse").val('');
+                $("#nom_pere_epouse").val('');
+                $("#nom_mere_epouse").val('');
+                $("#code_nationalite_epouse").val('').trigger('change');
+                $("#code_profession_epouse").val('').trigger('change');
+
+                // Retirer le mode lecture seule de tous les champs
+                $("#nom_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#prenom_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#date_naissance_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#num_acte_naissance_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#date_emission_acte_naissance_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_pere_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_mere_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#code_nationalite_epouse").prop('disabled', false).removeClass('readonly-field');
+                $("#code_profession_epouse").prop('disabled', false).removeClass('readonly-field');
+                $("#code_localite_epouse").prop('disabled', false).removeClass('readonly-field');
+                $("#code_cec_epouse").prop('disabled', false).removeClass('readonly-field');
+
+                // Masquer la zone d'identité trouvée
+                $("#identite_trouvee_epouse").hide();
+
+                // Réinitialiser les données stockées
+                donneesEpouseTrouvees = null;
+
+                flashAlert("Succès", "success", "Informations de l'épouse vidées");
+            }
         });
 
         $("#lieu_ceremonie_mariage").on("change", function(){
@@ -1181,8 +1675,42 @@
 
     });
 
+    // Fonction pour déterminer le code de situation matrimoniale
+    function determinerCodeSituationMatrimoniale(situationData) {
+        if (!situationData) {
+            return null;
+        }
 
+        // Si on a directement le code de situation matrimoniale (cas où la personne a déjà un statut)
+        if (situationData.code_situation_matrimoniale) {
+            // Vérifier si c'est un statut autorisé pour le mariage
+            const statutsAutorises = ['SMAT_0001', 'SMAT_0002', 'SMAT_0005', 'SMAT_0006'];
+            if (statutsAutorises.includes(situationData.code_situation_matrimoniale)) {
+                return situationData.code_situation_matrimoniale;
+            }
+            return null;
+        }
 
+        // Sinon, utiliser la logique basée sur le statut
+        if (!situationData.statut) {
+            return null;
+        }
+
+        switch(situationData.statut) {
+            case 'celibataire':
+                return null;
+            case 'marie_monogamie':
+                return 'SMAT_0001';
+            case 'polygame':
+                return 'SMAT_0001';
+            case 'divorce':
+                return 'SMAT_0005';
+            case 'veuf':
+                return 'SMAT_0006';
+            default:
+                return null;
+        }
+    }
 
 </script>
 @endsection

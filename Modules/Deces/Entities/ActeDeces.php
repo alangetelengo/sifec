@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Registre;
 use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\RetraitActe;
 use Modules\Referentiel\Entities\ActeRegistre;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -62,6 +63,11 @@ class ActeDeces extends Model
     public function retrait(): HasOne
     {
         return $this->hasOne(RetraitActe::class, 'code_acte', 'code_acte_deces');
+    }
+
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class, 'code_institution', 'code_institution');
     }
 
 }

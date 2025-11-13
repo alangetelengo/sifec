@@ -2,19 +2,21 @@
 
 namespace Modules\Mariage\Entities;
 
+use App\Models\Jugement;
+use App\Models\Requisition;
 use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Mariage\Entities\Signature;
 use Modules\Referentiel\Entities\Regime;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Filiation;
+use Modules\Referentiel\Entities\Profession;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Referentiel\Entities\OptionMariage;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Modules\Referentiel\Entities\Profession;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 
 class DeclarationMariage extends Model
@@ -26,6 +28,7 @@ class DeclarationMariage extends Model
     protected $table = "t_declaration_mariage";
     protected $primaryKey = "code_declaration_mariage";
     public $incrementing = false;
+
 
 
 
@@ -43,7 +46,7 @@ class DeclarationMariage extends Model
         return $this->belongsTo(Personne::class, 'code_temoin_femme_epoux', 'code_personne');
     }
 
-    
+
     public function temoinHommeEpouse(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'code_temoin_homme_epouse', 'code_personne');
@@ -88,10 +91,15 @@ class DeclarationMariage extends Model
         return $this->belongsTo(InstitutionUser::class, 'cui', 'cui');
     }
 
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Referentiel\Entities\Institution::class, 'code_institution', 'code_institution');
+    }
+
 
     public function mouvements(): HasMany
     {
-        return $this->hasMany(MouvementMariage::class, 'code_declaration_mariage', 'code_declaration_mariage');
+        return $this->hasMany(\Modules\Mariage\Entities\MouvementMariage::class, 'code_declaration_mariage', 'code_declaration_mariage');
     }
 
     public function acte(): HasOne
@@ -118,6 +126,18 @@ class DeclarationMariage extends Model
     public function professionEpouse(): BelongsTo
     {
         return $this->belongsTo(Profession::class, 'code_profession_epouse', 'code_profession');
+    }
+
+    //pour retracer le jugement venant du tribunal
+    public function jugement(): HasOne
+    {
+        return $this->hasOne(Jugement::class, 'code_declaration', 'code_declaration_mariage');
+    }
+
+    //pour retracer la réquisition venant du tribunal
+    public function requisition(): HasOne
+    {
+        return $this->hasOne(Requisition::class, 'code_declaration', 'code_declaration_mariage');
     }
 
 }

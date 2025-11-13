@@ -100,9 +100,9 @@ if ($institution->code_district != NULL) {
 
     </page_header>
     <div style="text-align:left">
-            <strong>{{ "DEPARTEMENT DE LA ".$dm->institutionUser->institution->lieu->localiteParent->localiteParent->lib_localite }}</strong><br>
-            {{-- <strong>{{ "COMMUNE DE ".$dm->institutionUser->institution->lieu->lib_localite}}</strong><br> --}}
-            <strong>{{ $dm->institutionUser->institution->lib_institution }}</strong>
+            <strong>{{ "DEPARTEMENT DE ".$dm->institution->lieu->localiteParent->localiteParent->lib_localite }}</strong><br>
+            <strong>{{ "COMMUNE DE ".$dm->institution->lieu->localiteParent->lib_localite}}</strong><br>
+            <strong>{{ $dm->institution->lib_institution }}</strong>
         </div>
         <div style="text-align:right;margin-top:-50px">
             <strong>REPUBLIQUE DU CONGO</strong><br>
@@ -114,23 +114,7 @@ if ($institution->code_district != NULL) {
             <span >Unité - Travail - Progrès</span><br>
 
         </div>
-    <!--table cellspacing="0" style="border-collapse: collapse;" style="margin-top:-40px;margin-right:-120px">
-		<col style="width: 20%">
-		<col style="width: 20%">
-		<col style="width: 25%">
-		<col style="width: 35%">
 
-		<tr>
-			<td style="border-right: none; padding:5px 0px;text-align: center"  >&nbsp;</td>
-			<td style="border-bottom: none; padding:5px 0px;text-align: center" >&nbsp;</td>
-			<td style="border-bottom: none; padding:5px 0px;text-align: center" >&nbsp;</td>
-			<td style="border-bottom: none; padding:5px 0px;text-align: center">
-                <strong>REPUBLIQUE DU CONGO</strong><br/>
-                Unité - Travail - Progrès
-            </td>
-
-		</tr>
-    </table-->
 
 	<table cellspacing="0" style="border-collapse: collapse; margin-top:30px">
 		<col style="width: 25%">
@@ -168,7 +152,7 @@ if ($institution->code_district != NULL) {
 		</tr>
     </table>
     <div style="width: 100%;">
-        <p style="font-size: 13px;"> <strong>Centre d’état civil de : </strong>{{ $inst }}<br>
+        <p style="font-size: 13px;"> <strong>Centre d’état civil principal de : </strong>{{ $inst }}<br>
              Le <strong>{{ Sifec::asLetters((int)date("d", strtotime($dm->date_declaration_mariage)))." ".Sifec::mois(date("m", strtotime($dm->date_declaration_mariage)))." ".Sifec::asLetters(date("Y", strtotime($dm->date_declaration_mariage))) }}</strong> <br>
              Par devant nous, </p>
             <br>
@@ -178,7 +162,7 @@ if ($institution->code_district != NULL) {
                 <col style="width: 50%">
                 <col style="width: 50%">
                 <tr>
-                    <td style="border: none; padding:5px 0px;padding-left: 20px;" colspan="3">  <strong><span style="font-size:13px;;"> {{ $dm->type_mariage == 'POSTHUME' ? ' (FEU) ' : " M. " }} {{ $dm->epoux->nom ." ".$dm->epoux->prenom }}</span></strong></td>
+                    <td style="border: none; padding:5px 0px;padding-left: 20px;" colspan="3">  <strong><span style="font-size:13px;;"> {{ $dm->type_mariage == 'POSTHUME' ? ' (FEU) ' : " M. " }} {{ $dm->epoux->nom ." ".ucfirst($dm->epoux->prenom) }}</span></strong></td>
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
@@ -256,7 +240,7 @@ if ($institution->code_district != NULL) {
             <col style="width: 50%">
 
             <tr>
-                <td style="border: none; padding:5px 0px;padding-left: 20px;" colspan="3"> <strong><span style="font-size:13px;;">Et Mme. {{ $dm->epouse->nom ." ". $dm->epouse->prenom }}</span></strong></td>
+                <td style="border: none; padding:5px 0px;padding-left: 20px;" colspan="3"> <strong><span style="font-size:13px;;">Et Mme. {{ $dm->epouse->nom ." ". ucfirst($dm->epouse->prenom) }}</span></strong></td>
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
@@ -378,7 +362,7 @@ if ($institution->code_district != NULL) {
                 @endif
 
 
-<br>
+
         <legend>Célébration du mariage </legend>
         <hr>
         <table cellspacing="0" style="border-collapse: collapse; ">
@@ -474,7 +458,9 @@ if ($institution->code_district != NULL) {
         <p>Parents paternels : <strong>{{ $dm->parent_paternel_epouse }}</strong></p>
         <p>Parents maternels : <strong>{{ $dm->parent_maternel_epouse }}</strong></p>
         <p>4- Quel est le montant de la dot versé ? (sur interpellation des parents de l’époux) <strong>50 000 FCFA</strong></p>
-
+    </p>
+    <p>
+        <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
         <legend>Question de l’officier de l’état civil et réponse du futur époux</legend>
         <hr>
         <strong>A- Question sur les résultats des examens prénuptiaux</strong>
@@ -507,7 +493,8 @@ if ($institution->code_district != NULL) {
             @endif
         @endif
     </p>
-
+    <br><br><br><br>  <br><br><br><br>  <br><br>
+    {{-- Liste des témoins --}}
     <table cellspacing="0" style="border-collapse: collapse; ">
         <col style="width: 50%">
         <col style="width: 50%">
@@ -517,13 +504,13 @@ if ($institution->code_district != NULL) {
                 <hr>
                 <strong>A-Les témoins du futur époux </strong><br>
                 1-	Premier témoin <br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->nomcomplet() }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->nom ." ". ucfirst($dm->temoinHommeEpoux->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpoux->date_naissance)) ." à ".$dm->temoinHommeEpoux->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->adresse }}</span><br><br>
 
                 2-	Deuxième témoin <br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->nom }} née {{ $dm->temoinFemmeEpoux->nom.' '.$dm->temoinFemmeEpoux->prenom }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";"> {{ $dm->temoinFemmeEpoux->nom.' '.ucfirst($dm->temoinFemmeEpoux->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." à ".$dm->temoinFemmeEpoux->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpoux->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->adresse }}</span><br><br>
@@ -531,13 +518,13 @@ if ($institution->code_district != NULL) {
                 <br>
                 <strong>B-Les témoins du futur épouse </strong><br>
                 1-	Premier témoin <br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->nomcomplet() }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->nom ." ". ucfirst($dm->temoinHommeEpouse->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpouse->date_naissance)) ." à ".$dm->temoinHommeEpouse->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->adresse }}</span><br><br>
 
                 2-	Deuxième témoin <br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->nom }} née {{ $dm->temoinFemmeEpouse->nom.' '.$dm->temoinFemmeEpouse->prenom }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpouse->nom.' '.ucfirst($dm->temoinFemmeEpouse->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinFemmeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpouse->date_naissance)) ." à ".$dm->temoinFemmeEpouse->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpouse->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->adresse }}</span><br><br><br>
@@ -546,40 +533,52 @@ if ($institution->code_district != NULL) {
             <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
         </tr>
     </table>
-</div>
-    {{-- <div style="position:absolute; margin-left:570px;margin-top: 10px;">
-        <qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/certificat?niupp=Code QR du test" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
-    </div> --}}
 
-    <div>
-        <table class="historique" cellspacing="0" style="width: 95%; font-size: 13px;margin-top:110px">
-            <col style="width: 25%">
-            <col style="width: 25%">
-            <col style="width: 50%">
-            <thead>
-              <tr style="text-align: center">
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
+    <table class="historique" cellspacing="0" style="width: 95%; font-size: 13px;margin-top:130px">
+        <col style="width: 25%">
+        <col style="width: 25%">
+        <col style="width: 50%">
+        <thead>
+          <tr style="text-align: center">
+            <td style="text-align: center;"></td>
+            <td style="text-align: center;"></td>
+            <td style="text-align: center;"></td>
+          </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
+                <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
+                <td style="text-align: right;">
+                     Fait à <span style="text-transform:capitalize">{{ $dm->institution->lieu->localiteParent->lib_localite }}</span>, le {{ date("d-m-Y", strtotime($dm->date_declaration_mariage)) }}<br>
+                    <p style="text-align:left;margin-left:120px">L’officier de l'état civil</p><br><br><br><br><br><br><br><br><br><br>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
-                    <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
-                    <td style="text-align: right;">
-                        Fait à <span style="text-transform:capitalize">{{ $dm->institutionUser->institution->lieu->lib_localite }}</span>, le {{ date("d-m-Y", strtotime($dm->date_declaration_mariage)) }}<br>
-                        <p style="text-align:left;margin-left:120px">L’officier de l'état civil</p><br><br><br><br><br><br><br><br><br><br>
-                    </td>
-                  </tr>
 
-                  <tr>
-                    <td style="text-align: left;">Lu et approuvé <br>Le futur époux</td>
-                    <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
-                    <td style="text-align: right;">Lu et approuvé <br>La future épouse</td>
-                  </tr>
-            </tbody>
-        </table>
+              <tr>
+                <td style="text-align: left;">Lu et approuvé
+                    <br><strong>(<span style="color: red;">{{ $dm->epoux_approuver }}</span>)</strong>
+                    <br>Le futur époux</td>
+                <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
+                <td style="text-align: right;">Lu et approuvé <br><strong>(<span style="color: red;">{{ $dm->epouse_approuver }}</span>)</strong>
+                    <br>La future épouse</td>
+              </tr>
+        </tbody>
+    </table>
+
+@if($dm->type_declaration == "DISPENSE")
+<br><br><br><br><br><br><br><br><br>
+<span style="text-align: left; font-style:italic; font-size:11px"><span style="color:red">(*)</span> Ce document requiert une dispense</span>
+@endif
+</div>
+
+
+
+@if($dm->epoux_approuver == "OUI" && $dm->epouse_approuver == "OUI")
+    <div style="position:absolute; margin-left:40px;margin-top: 550px;">
+        <qrcode value="{{env('QRCODE_URL')}}/qrcode/mariage/certificat?code={{ $dm->code_declaration_mariage }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
     </div>
+@endif
+
 
 </page>

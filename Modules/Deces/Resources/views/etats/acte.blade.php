@@ -9,8 +9,9 @@
         font-size: 120%;
     }
 </style>
-<page orientation="portrait" backimg="{{ asset("tpl/back-border.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
-{{-- <page orientation="portrait" backimg="" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
+<page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+{{-- <page orientation="portrait" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
+
     @php
     setlocale(LC_TIME, "fr_FR", "French");
         $departement = "";
@@ -19,64 +20,44 @@
         $libInstitution = $institution->lib_institution;
 
         $infos = "";
-        if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-            $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
-        }
-
-        if($acte->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
-            $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
-        }
-
-        if($acte->declaration->type_declaration == "CERTIFICAT DE TRANSCRIPTION"){
-            $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
-        }
-
-        if($acte->declaration->type_declaration == "DECLARATION TARDIVE"){
-            $infos = 'ACTE TRANSCRIT SUIVANT LA DECLARATION TARDIVE';
-        }
-
-        // if($acte->declaration->type_declaration == "CERTIFICAT DE CONSTATATION DE DECES"){
-        //     $infos = 'ACTE EMIS SUIVANT LA CONSTATATION  N° '.$acte->declaration->numero_certificat.' /2022 DU MEDECIN '.$acte->declaration->nom_medecin;
+        // if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+        //     $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
         // }
 
-        if ($institution->code_arrondissement != NULL) {
-            $communeDistrict = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-            $departement  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-            $localisation = $institution->arrondissement->commune->lib_commune;
+        // if($acte->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
+        //     $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
+        // }
+
+
+        // if($acte->declaration->type_declaration == "DECLARATION TARDIVE"){
+        //     $infos = 'ACTE TRANSCRIT SUIVANT LA DECLARATION TARDIVE';
+        // }
+
+        if($acte->declaration->requisition != ""){
+            $titre = $acte->declaration->requisition->typeRequisition->lib_type_requisition;
+            $num = $acte->declaration->requisition->num_requisition;
+            $date = $acte->declaration->requisition->date_requisition;
+            $infos = 'ACTE ETABLIT SUIVANT LA '.$titre.' N° '.$num.' DU '.(date("d-m-Y", strtotime($date)))." AU ".$acte->declaration->institution->institutionParent->lib_institution;
+
         }
 
-        if ($institution->code_commune != NULL) {
-            $communeDistrict = "COMMUNE DE ".$institution->commune->lib_commune;
-            $departement  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-            $localisation = $institution->commune->lib_commune;
-        }
 
-        if ($institution->code_communaute_urbaine != NULL) {
-            $communeDistrict = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-            $departement  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-
-        if ($institution->code_district != NULL) {
-            $communeDistrict = "DISTRICT DE ".$institution->district->lib_district;
-            $departement  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-        $dept = "DEPARTEMENT DE LA ".$institution->institutionParent->lieu->localiteParent->localiteParent->lib_localite;
+        $commune = "COMMUNE DE ".$acte->declaration->institution->lieu->localiteParent->lib_localite;
+        $dept = "DEPARTEMENT DE ".$institution->institutionParent->lieu->localiteParent->localiteParent->lib_localite;
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 10pt;">
         <tr>
             <td style="width:35%; text-align: center;">
-                <p><strong>
-                    <span>{{$dept}}</span> <br>
-                    {{-- <span>{{$communeDistrict}}</span> <br> --}}
-                <span>{{$acte->institutionUser->institution->lib_institution}}</span>
-                </strong></p>
+                <p>
+                    <span><strong>{{$dept}}</strong></span> <br>
+                    <span>{{$commune}}</span> <br>
+                    <span><strong>{{$acte->institutionUser->institution->lib_institution}}</strong></span>
+                </p>
             </td>
             <td style="width:30%; text-align: center;">
-                <p style="color: red">{{ $infos != "" ? $infos : "" }}</p>
+                <p style="color: red;text-align:center;font-style:italic"><small style="text-transform: uppercase">{{ $infos }}</small></p>
                 @if ($acte->approbation_tribunal == 1)
-                    <img src='{{ asset("app/".$acte->sceau_tribunal) }}' alt="" width="100" height="100">
+                    <img src='{{ public_path('app/'.$acte->sceau_tribunal) }}' alt="" width="100" height="100">
                 @endif
 
             </td>
@@ -89,10 +70,9 @@
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
-                <p><strong style="font-size: 150%;">ACTE DE DECES</strong><br> Année: <strong>{{date("Y", strtotime($acte->declaration->date_heure_declaration))}}</strong> Acte n°:<strong style="color: red">{{ $acte->code_acte_deces }}</strong></p>
+                <p><strong style="font-size: 150%;"> ACTE DE DECES</strong><br> Année: <strong>{{date("Y", strtotime($acte->declaration->date_heure_declaration))}}</strong> Acte n°:<strong>{{ $acte->code_acte_deces }}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
-
             </td>
         </tr><br>
     </table>
@@ -123,7 +103,7 @@
                     <td style="height: 15px;">Domicilié(e): <strong>{{ $acte->declaration->declarant->adresse }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;padding-bottom: 4px;">
-                    <td>qui a déclaré le décès de: <b>{{ $acte->declaration->defunt->nom." ".$acte->declaration->defunt->prenom }}</b></td>
+                    <td>qui a déclaré le décès de: <b style="color: red">{{ $acte->declaration->defunt->nom." ".$acte->declaration->defunt->prenom }}</b></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Date de décès: <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_deces))). " " . Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) . " " . Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".Sifec::asLetters(( (int)date("H", strtotime( $acte->declaration->date_heure_deces))))}} heure(s) {{ Sifec::asLetters( (int) date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
@@ -134,7 +114,7 @@
                         {{ $acte->declaration->lieu_deces }}
                     </strong></td>
                 </tr>
-                {{-- <tr style="width:100%; text-align: left;">
+                <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Cause du décès:
                         @php
                             $causesd = $acte->declaration->DDecesCauses;
@@ -151,7 +131,7 @@
                                 @endif
                         </strong>
                     </td>
-                </tr> --}}
+                </tr>
 
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Sexe: <strong>{{ $acte->declaration->defunt->sexe== "M" ? "Masculin" : "Féminin" }}</strong></td>
@@ -168,7 +148,6 @@
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Domicile: <strong>{{ $acte->declaration->defunt->adresse }} </strong></td>
                 </tr>
-
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Lieu de survenance: <strong>{{ $acte->declaration->lieuSurvenance->lib_lieu_survenance }}</strong></td>
                 </tr>
@@ -245,14 +224,13 @@
                     </td>
                     <td style="text-align: left;">
 
-                       <p>Fait à {{ ucfirst(strtolower(trans($localisation)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $acte->date_emission)))}}</p>
+                       <p>Fait à {{ ucfirst(strtolower(trans($acte->declaration->institution->lieu->localiteParent->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $acte->date_emission)))}}</p>
 
                        @if ($acte->approbation_pompe_funebre != "")
-                        {{-- <p>  {{ $acte->signataire->user->fonction->lib_fonction }},<br></p> --}}
-                        <!-- <p>  {{ $acte->signataire->user->affectationActive()->fonction->lib_fonction }},<br></p> -->
+                        <!-- {{-- <p>  {{ $acte->signataire->user->fonction->lib_fonction }},<br></p> --}} -->
                          <p>L'officier de l'état civil</p>
-
-                            <img src='{{ asset("app/".$acte->signature_pompe_funebre)}}'><br>
+                        <!-- <p>  {{ $acte->signataire->user->affectationActive()->fonction->lib_fonction }},<br></p> -->
+                            <img src='{{ public_path('app/'.$acte->signature_pompe_funebre) }}'><br>
                             {{ $acte->signataire->user->personne->nomcomplet() }}
                         @endif <br>
 

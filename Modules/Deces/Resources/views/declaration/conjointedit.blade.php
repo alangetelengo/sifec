@@ -1,3 +1,45 @@
+@if ($dd->situationMat->code_situation_matrimoniale!="SMAT_0001")
+    {{-- désactivation par défaut de tous les champs du formulaire --}}
+    <script>
+
+                    $("input.cec_mariage").addClass("d-none");
+                    document.getElementById('code_localite_conjoint').disabled = true;
+                    document.getElementById('email_conjoint').disabled = true;
+                    document.getElementById('nom_conjoint').disabled = true;
+                    document.getElementById('prenom_conjoint').disabled = true;
+                    document.getElementById('date_naissance_conjoint').disabled = true;
+                    document.getElementById('date_mariage').disabled = true;
+                    document.getElementById('cec_mariage').disabled = true;
+                    document.getElementById('lieu_naissance_conjoint').disabled = true;
+                    document.getElementById('code_pays_conjoint').disabled = true;
+                    document.getElementById('telephone_conjoint').disabled = true;
+                    document.getElementById('code_nationalite_conjoint').disabled = true;
+                    document.getElementById('sexe_conjoint').disabled = true;
+                    document.getElementById('domicile_pays_conjoint').disabled = true;
+                    document.getElementById('code_type_document_conjoint').disabled = true;
+                    document.getElementById('statut_personne_conjoint').disabled = true;
+                    document.getElementById('code_profession_conjoint').disabled = true;
+                    document.getElementById('code_regime').disabled = true;
+                    document.getElementById('niveau_instruction_conjoint').disabled = true;
+                    document.getElementById('domicile_numero_conjoint').disabled = true;
+                    document.getElementById('domicile_nomvoie_conjoint').disabled = true;
+                    document.getElementById('domicile_quartier_conjoint').disabled = true;
+                    document.getElementById('domicile_typevoie_conjoint').disabled = true;
+                    document.getElementById('domicile_arrondissement_conjoint').disabled = true;
+                    document.getElementById('domicile_pays_conjoint').disabled = true;
+                    document.getElementById('num_acte_mariage').disabled = true;
+                    document.getElementById('lieu_mariage').disabled = true;
+                    document.getElementById('liste_cec').disabled = true;
+                    document.getElementById('statut_personne_conjoint').disabled = true;
+                    document.getElementById('code_type_document_conjoint').disabled = true;
+                    document.getElementById('numero_document_conjoint').disabled = true;
+                    // document.getElementById('liste_cec').disabled = false;
+                    document.getElementById('search_conjoint').style.visibility = 'hidden';
+                    document.getElementById('clear_conjoint').style.visibility = 'hidden';
+                    document.getElementById('conjoint_click').style.visibility = 'hidden';
+
+            </script>     
+@endif
 <h6>Conjoint</h6>
 <section>
     <div class="d-flex justify-content-end align-items-center">
@@ -12,7 +54,7 @@
         <div class="col-md-3">
             <input name="code_conjoint" id="code_conjoint" type="hidden" readonly>
             <label class="form-label">Nom(s) Conjoint </label>
-            <input type="text" class="form-control @error('nom_conjoint') is-invalid @enderror" value="{{ old("nom_conjoint") }}"  id="nom_conjoint" name="nom_conjoint" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()">
+            <input type="text" class="form-control @error('nom_conjoint') is-invalid @enderror" value="@if($dd->conjoint!=null){{ $dd->conjoint->nom }}@endif"  id="nom_conjoint" name="nom_conjoint" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()">
             @error("nom_conjoint")
             <div class="invalid-feedback">
                 {{ $message }}
@@ -21,20 +63,20 @@
         </div>
         <div class="col-md-3">
             <label class="form-label">Prénom(s) Conjoint</label>
-            <input type="text" class="form-control" value="{{ old("prenom_conjoint") }}"  id="prenom_conjoint" onkeyup="verif_lettre(this);" style="text-transform: capitalize">
+            <input type="text" class="form-control" value="@if($dd->conjoint!=null){{ $dd->conjoint->prenom }}@endif"  id="prenom_conjoint" onkeyup="verif_lettre(this);" style="text-transform: capitalize">
         </div>
         <div class="col-md-3">
             <label class="form-label">Sexe du conjoint<span class="text-danger">*</span></label>
             <select id="sexe_conjoint" name="sexe_conjoint" class="form-control form-control wide">
-                <option value="">Selectionner</option>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
+                <option disabled selected>Sélectionner</option>
+                <option value="M" @if(($dd->conjoint!=null) && ($dd->conjoint->sexe=="M")) selected @endif>Masculin</option>
+                <option value="F" @if(($dd->conjoint!=null) && ($dd->conjoint->sexe=="F")) selected @endif>Féminin</option>
             </select>
         </div>
 
         <div class="col-md-3">
             <label class="form-label">Date naissance Conjoint</label>
-            <input  max="<?php  $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 18 years'));?>" type="date" class="form-control @error('date_naissance_conjoint') is-invalid @enderror" value="{{ old("date_naissance_conjoint") }}"  id="date_naissance_conjoint"  name="date_naissance_conjoint">
+            <input  max="<?php  $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 18 years'));?>" type="date" class="form-control @error('date_naissance_conjoint') is-invalid @enderror" value="@if($dd->conjoint!=null) {{ $dd->conjoint->date_naissance }} @endif"  id="date_naissance_conjoint"  name="date_naissance_conjoint">
             <input type="checkbox" id="type_date_naissance_conjoint" value="ESTIME" name="type_date_naissance_conjoint"><label for="type_date_naissance_conjoint">date estimée</label>
         </div>
     </div>
@@ -45,7 +87,7 @@
             <select class="form-control" id="code_localite_conjoint">
                 <option disabled selected>Choisissez</option>
                 @foreach ($localites as $localite)
-                    <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
+                    <option value="{{ $localite->code_localite }}" @if(($dd->conjoint!=null) && ($dd->conjoint->lieu_naissance==$localite->lib_localite)) selected @endif>{{ $localite->lib_localite }}</option>
                 @endforeach
             </select>
         </div>
@@ -65,16 +107,16 @@
             <select id="code_nationalite_conjoint" class="form-control form-control wide">
                     <option>Choisissez</option>
                 @foreach ($nationalites as $nationalite)
-                    <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
+                    <option value="{{ $nationalite->code_nationalite }}"  @if(($dd->conjoint!=null) && ($dd->conjoint->code_nationalite == $nationalite->code_nationalite)) {{ "selected" }} @endif >{{ $nationalite->lib_nationalite }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">Niveau d'instruction du conjoint</label>
             <select id="niveau_instruction_conjoint" class="form-control form-control wide">
-                    <option disabled selected>Choisissez</option>
+                    <option disabled>Choisissez</option>
                 @foreach ($instructions as $item)
-                    <option value="{{ $item }}">{{ $item }}</option>
+                    <option value="{{ $item }}"  @if(($dd->conjoint!=null) && ($dd->conjoint->niveau_instruction == $item)) {{ "selected" }} @endif>{{ $item }}</option>
                 @endforeach
             </select>
             @error("niveau_instruction_conjoint")
@@ -89,7 +131,7 @@
             <select id="code_profession_conjoint" name="code_profession_conjoint" class="form-control form-control wide">
                 <option>Choisissez</option>
                 @foreach ($professions as $item)
-                    <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
+                    <option value="{{ $item->code_profession }}"  @if(($dd->conjoint!=null) && ($dd->conjoint->code_profession == $item->code_profession)) {{ "selected" }} @endif>{{ $item->lib_profession }}</option>
                 @endforeach
             </select>
         </div>
@@ -98,13 +140,13 @@
             <select id="code_type_document_conjoint" name="code_type_document_conjoint" class="form-control form-control wide">
                     <option disabled selected>Choisissez</option>
                 @foreach ($typedocuments as $item)
-                    <option value="{{ $item->code_type_document }}">{{ $item->lib_type_document  }}</option>
+                    <option value="{{ $item->code_type_document }}" @if(($dd->conjoint!=null) && ($dd->conjoint->document->typeDocument->code_type_document == $item->code_type_document)) {{ "selected" }} @endif>{{ $item->lib_type_document  }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">Numéro pièce d'identité</label>
-            <input type="text" id="numero_document_conjoint" name="numero_document_conjoint" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()">
+            <input type="text" id="numero_document_conjoint" name="numero_document_conjoint" value="@if($dd->conjoint!=null) {{ $dd->conjoint->document->numero_document }} @endif" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()">
         </div>
     </div>
 
@@ -117,18 +159,29 @@
             <label class="form-label">Pays<span class="text-danger"></span></label>
             <select id="domicile_pays_conjoint" class="form-control required">
                 <option value="">Choisissez</option>
-                @foreach ($countries as $countrie)
+                 @foreach ($countries as $countrie)
+                    @if(($dd->conjoint!=null) && ($dd->conjoint->adresses->last() != null))
+                        <option value="{{ $countrie->name }}" {{ $dd->conjoint->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
+                    @else
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
+                    @endif
                 @endforeach
             </select>
         </div>
         <div class="mb-2 col-md-3 domicile_ville_conjoint d-none">
             <label class="form-label">Commune/District<span class="text-danger"></span></label>
             <select class="form-control" id="domicile_ville_conjoint">
-                <option value="">Choisir</option>
-                @foreach ($localites as $localite)
-                    <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
-                @endforeach
+
+                @if(($dd->conjoint!=null) && ($dd->conjoint->adresses->last() != null))
+                    @foreach ($localites as $item)
+                        <option value="{{ $item->code_localite }}" {{  $dd->conjoint->adresses->last()->code_localite == $item->code_localite ? "selected" : "" }}>{{ $item->lib_localite }}</option>
+                    @endforeach
+                @else
+                    <option value="">Selectionnez</option>
+                    @foreach ($localites as $item)
+                        <option value="{{ $item->code_localite }}">{{ $item->lib_localite }}</option>
+                    @endforeach
+                @endif
             </select>
         </div>
         <div class="mb-2 col-md-3 autredomicile_ville_conjoint d-none">

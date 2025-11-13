@@ -124,7 +124,7 @@
         <div class="row">
             <div class="mb-2 col-md-3">
                 <label class="form-label">Pays<span class="text-danger"></span></label>
-                <select id="domicile_pays_declarant" class="form-control required">
+                <select id="domicile_pays_declarant" name="domicile_pays_declarant" class="form-control required">
                     <option value="">Choisissez</option>
                     @foreach ($countries as $countrie)
                         <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
@@ -133,7 +133,7 @@
             </div>
             <div class="mb-2 col-md-3 domicile_ville_declarant">
                 <label class="form-label">Commune/District<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_ville_declarant">
+                <select id="domicile_ville_declarant" name="domicile_ville_declarant" class="form-control">
                     {{-- <option value="">Choisir</option> --}}
                     @foreach ($localites as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
@@ -147,9 +147,9 @@
 
             <div class="mb-2 col-md-3 domicile_arrondissement_declarant">
                 <label class="form-label">Arr/Com. Urb<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_arrondissement_declarant">
+                <select id="domicile_arrondissement_declarant" name="domicile_arrondissement_declarant" class="form-control">
                     <option value="">Choisir</option>
-                    @foreach ($arrondissement as $localite)
+                    @foreach ($arrondissements as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                     @endforeach
                 </select>
@@ -157,16 +157,16 @@
 
             <div class="mb-2 col-md-3 domicile_quartier_declarant">
                 <label class="form-label">Quartier/Village<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_quartier_declarant">
+                <select id="domicile_quartier_declarant" name="domicile_quartier_declarant" class="form-control">
                     <option value="">Choisir</option>
-                    @foreach ($quartierVillages as $localite)
+                    @foreach ( $quartiers as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Type voie<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_typevoie_declarant">
+                <select id="domicile_typevoie_declarant" name="domicile_typevoie_declarant" class="form-control">
                     <option value="">Choisir</option>
                     <option value="Avenue">Avenue</option>
                     <option value="Boulevard">Boulevard</option>
@@ -177,11 +177,11 @@
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">N° voie<span class="text-danger"></span></label>
-                <input type="text" class="form-control" id="domicile_numero_declarant" placeholder="N° voie">
+                <input type="text" id="domicile_numero_declarant" name="domicile_numero_declarant" class="form-control" placeholder="N° voie">
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Nom voie<span class="text-danger"></span></label>
-                <input type="text" class="form-control" id="domicile_nomvoie_declarant" placeholder="Nom voie" style="text-transform: capitalize">
+                <input type="text" id="domicile_nomvoie_declarant" name="domicile_nomvoie_declarant" class="form-control" placeholder="Nom voie" style="text-transform: capitalize">
             </div>
             <div class="ligne">
                 <h4>CONTACTS</h4>

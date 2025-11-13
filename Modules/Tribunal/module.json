@@ -1,0 +1,13 @@
+{
+    "name": "Tribunal",
+    "alias": "tribunal",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Tribunal\\Providers\\TribunalServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

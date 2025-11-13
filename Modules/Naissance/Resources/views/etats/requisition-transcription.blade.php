@@ -115,7 +115,11 @@
                 <tr>
                     <td style="text-align: center;"></td>
                     <td style="text-align: left;">
-                        <div style="margin-bottom:0;"><qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/requisition?niupp={{ $requisition->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
+                        @isset($qrCode)
+                        <div style="margin-bottom:0; width: 30mm;">
+                            <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                        </div>
+                        @endisset
                     </td>
                     <td style="text-align: left;">
                         <p>Fait au Parquet, le {{utf8_encode(strftime("%d %B %Y", strtotime( $requisition->date_heure_declaration)))}}<br>Le Procureur de la République,</p>

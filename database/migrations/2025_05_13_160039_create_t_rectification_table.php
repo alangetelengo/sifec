@@ -18,6 +18,7 @@ class CreateTRectificationTable extends Migration
             $table->primary("code_rectification");
             $table->string("cui",16)->nullable()->comment("CUI de l'utilisateur qui a fait la rectification");
             $table->string("code_institution",16)->nullable()->comment("Centre état civil où vient la rectification");
+            $table->string("code_institution_destinataire",16)->nullable()->comment("Centre état civil où va la rectification");
             $table->string("numero_rectification",30)->nullable()->comment("Numéro de la rectification");
             $table->string("code_type_acte",16)->nullable();
             $table->string("code_requisition",16)->nullable();
@@ -36,6 +37,7 @@ class CreateTRectificationTable extends Migration
             $table->foreign("code_filiation")->references("code_filiation")->on("tr_filiation")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("cui")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
+            $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
             $table->softDeletes();
 
             $table->timestamps();

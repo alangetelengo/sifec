@@ -23,6 +23,35 @@
         src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.0/js/bootstrap-datepicker.min.js"></script> --}}
 
     <script>
+        /**
+         * Traite et formate les messages d'erreur reçus du serveur
+         */
+        function traiterMessageErreur(response) {
+            var message = response.message;
+
+            // Si le message est un objet, extraire le premier message
+            if (typeof message === 'object' && message !== null) {
+                var messages = Object.values(message);
+                if (messages.length > 0) {
+                    message = messages[0];
+                } else {
+                    message = "Une erreur s'est produite";
+                }
+            }
+
+            // Si le message est un tableau, prendre le premier élément
+            if (Array.isArray(message)) {
+                message = message.length > 0 ? message[0] : "Une erreur s'est produite";
+            }
+
+            // Si le message est vide ou undefined, utiliser un message par défaut
+            if (!message || message.trim() === '') {
+                message = "Une erreur inattendue s'est produite";
+            }
+
+            return message;
+        }
+
         //Custom design form example
         $(".tab-wizard").steps({
             headerTag: "h6",
@@ -1233,27 +1262,36 @@ html:
                             success: function(response )
                             {
 
-                                if (response.success==true)
+                                if (response.code == "200")
                                 {
-                                    swal.fire("Enregistré!", response.message, "success");
-                                    var url= "{{ route('declarationDeces.index') }}";
-                                    var url2= "{{ route('declarationDeces.autorisationtransfert') }}";
+                                    flashAlert("Opération réussie","success",response.message);
+                                    var url = "{{ route('declarationDeces.index') }}";
+                                    var url2 = "{{ route('certificatNonInscriptionDeces.index') }}";
+                                    var url3 = "{{ route('declarationTardiveDeces.index') }}";
                                     var typeDocument = type_declaration.val();
-                                    if(typeDocument != "AUTORISATION DE TRANSFERT DE DEPOUILLE MORTELLE")
+
                                     setTimeout(() => {
-                                        window.open(url);
+                                        if (typeDocument === "CERTIFICAT DE NON INSCRIPTION") {
+                                            window.open(url2);
+                                        } else if (typeDocument === "DECLARATION TARDIVE") {
+                                            window.open(url3);
+                                        } else {
+                                            window.open(url);
+                                        }
                                     }, 2000);
-                                    else{
-                                        setTimeout(() => {
-                                        window.open(url2);
-                                    }, 2000);
-                                    }
                                 } else {
-                                    swal.fire("Erreur!", response.message, "error");
+                                    // Gestion améliorée des messages d'erreur
+                                    var messageErreur = traiterMessageErreur(response);
+                                    flashAlert("Opération échouée","error",messageErreur);
                                 }
                             },
-                            error: function (resp) {
-                                swal.fire("Erreur!", "Sumething went wrong.", "error");
+                            error: function (xhr) {
+                                // Gestion des erreurs de connexion
+                                var messageErreur = "Erreur de connexion. Veuillez vérifier votre connexion internet et réessayer.";
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    messageErreur = traiterMessageErreur(xhr.responseJSON);
+                                }
+                                flashAlert("Erreur de connexion","error",messageErreur);
                             }
                         });
 
@@ -2252,7 +2290,7 @@ html:
                     document.getElementById('statut_personne_conjoint').disabled = true;
                     document.getElementById('code_type_document_conjoint').disabled = true;
                     document.getElementById('numero_document_conjoint').disabled = true;
-                    document.getElementById('liste_cec').disabled = false;
+                    document.getElementById('liste_cec').disabled = true;
                     document.getElementById('search_conjoint').style.visibility = 'hidden';
                     document.getElementById('clear_conjoint').style.visibility = 'hidden';
                     document.getElementById('conjoint_click').style.visibility = 'hidden';
@@ -2260,7 +2298,7 @@ html:
                 }
                 else
                 {
-                    document.getElementById('code_localite_conjoint').disabled = true;
+                    document.getElementById('code_localite_conjoint').disabled = false;
                     document.getElementById('email_conjoint').disabled = false;
                     document.getElementById('nom_conjoint').disabled = false;
                     document.getElementById('prenom_conjoint').disabled = false;
@@ -2288,7 +2326,7 @@ html:
                     document.getElementById('statut_personne_conjoint').disabled = false;
                     document.getElementById('code_type_document_conjoint').disabled = false;
                     document.getElementById('numero_document_conjoint').disabled = false;
-                    document.getElementById('liste_cec').disabled = true;
+                    document.getElementById('liste_cec').disabled = false;
 
                     document.getElementById('search_conjoint').style.visibility = 'hidden';
                     document.getElementById('clear_conjoint').style.visibility = 'hidden';

@@ -230,7 +230,7 @@
 
                         @if ($acte->approbation_pompe_funebre == 1)
 
-                            <img src='{{ asset("app/".$acte->signature_pompe_funebre) }}'>
+                            <img src='{{ public_path('app/'.$acte->signature_pompe_funebre) }}'>
                             {{ $nomcomplet }}
                         @endif <br>
 

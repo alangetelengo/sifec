@@ -15,6 +15,64 @@
      <!-- css de la carte -->
      {{-- <link rel="stylesheet" type="text/css" href="{{ URL::to('carte/css/map.css') }}" /> --}}
      <script src="{{ URL::to('carte/js/modernizr.custom.js') }}"></script>
+
+    <!-- Styles pour la reliure spirale noire -->
+    <style>
+        .spiral-binding {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            height: 670px;
+            width: 25px;
+            background: repeating-linear-gradient(
+                0deg,
+                #333 0px,
+                #333 8px,
+                #666 8px,
+                #666 12px,
+                #333 12px,
+                #333 20px
+            );
+            z-index: 10;
+            transform: translateX(-50%);
+            box-shadow:
+                0 0 10px rgba(0, 0, 0, 0.3),
+                inset 0 0 5px rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .spiral-binding::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                #555 0px,
+                #555 4px,
+                #999 4px,
+                #999 8px
+            );
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        /* Espacement pour éviter le chevauchement */
+        .col-sm-6:first-child {
+            padding-right: 10px;
+        }
+
+        .col-sm-6:last-child {
+            padding-left: 10px;
+        }
+    </style>
+
 @endsection
 
 @section("corps")
@@ -29,7 +87,9 @@
             $acte = App\Sifec\Sifec::acteNaissance($acte->declaration->code_declaration_naissance);
             @endphp --}}
             <div class="bb-item">
-                <div class="row">
+                <div class="row position-relative">
+                    <!-- Reliure spirale noire -->
+                    <div class="spiral-binding"></div>
 
                     <div class="col-sm-6">
                         <div class="card" style="height: 670px; border: 2px solid">
@@ -41,62 +101,74 @@
                                 <div class="row" style="font-size: 12px">
                                     <div class="col-sm-5">
 
-                                       @php
-                                            $departement = "";
-                                        $communeDistrict = "";
-                                        $institution = $acte->declaration->institutionUser->institution;
-                                        $libInstitution = $institution->lib_institution;
-                                        $localisation = Auth::user()->affectationActive()->institution->lieu->lib_localite;
+                                        @php
+                                            $institution = $acte->institutionUser->institution;
+                                            $departement = $institution->lieu->localiteParent->localiteParent;
+                                            $communeDistrict = $institution->lieu->localiteParent;
+                                            $tribunal = $acte->institutionUser->institution->institutionParent->lib_institution;
+                                            setlocale(LC_TIME, "fr_FR", "French");
 
-                                        $infos = "";
-                                        if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-                                            $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acte->declaration->numero_req.' /2022';
-                                        }
+                                            $num = "";
+                                            $titre = "";
+                                            $top = "";
+                                            $infos = "";
 
-                                        if($acte->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
-                                            $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acte->declaration->numero_req.' /2022';
-                                        }
+                                            if (str_contains($tribunal, "TRIBUNAL D'INSTANCE")) {
+                                                $num = str_replace("TRIBUNAL D'INSTANCE","TI ",$tribunal);
+                                            } else {
+                                                $num = str_replace("TRIBUNAL DE GRANDE INSTANCE","TGI ",$tribunal);
+                                            }
 
-                                        if($acte->declaration->type_declaration == "CERTIFICAT DE TRANSCRIPTION"){
-                                            $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.' /2022';
-                                        }
+                                            if ($acte->declaration->top_requisition == 1) {
+                                                $top = "REQUISITION";
+                                                $titre = $acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration));
+                                            }elseif ($acte->declaration->top_jugement == 1){
+                                                $top = "JUGEMENT";
+                                                $titre = $acte->declaration->numero_jug.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration));
+                                            }else{
+                                                $top = "";
+                                                $titre = "";
+                                            }
 
-                                        if($acte->declaration->type_declaration == "CERTIFICAT DE CONSTATATION DE DECES"){
-                                            $infos = 'ACTE EMIS SUIVANT LA CONSTATATION  N° '.$acte->declaration->numero_certificat.' /2022 DU MEDECIN '.$acte->declaration->nom_medecin;
-                                        }
+                                            if($acte->declaration->jugement != null){
 
-                                        // if ($institution->code_arrondissement != NULL) {
-                                        //     $communeDistrict = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-                                        //     $departement  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-                                        //     $localisation = $institution->arrondissement->commune->lib_commune;
-                                        // }
+                                               if($acte->declaration->jugement->type_jugement == "JUGEMENT SUPPLETIF"){
+                                                   $infos = 'ACTE ETABLIT SUIVANT LE JUGEMENT N° '.$acte->declaration->jugement->num_jugement.'  DU '.(date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)))." AU ".$acte->declaration->jugement->institutionUser->institution->lib_institution;
+                                               }
 
-                                        // if ($institution->code_commune != NULL) {
-                                        //     $communeDistrict = "COMMUNE DE ".$institution->commune->lib_commune;
-                                        //     $departement  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-                                        //     $localisation = $institution->commune->lib_commune;
-                                        // }
+                                               if($acte->declaration->jugement->type_jugement == "JUGEMENT D'HOMOLOGATION"){
+                                                   $infos = 'ACTE ETABLIT SUIVANT LE JUGEMENT N° '.$acte->declaration->jugement->num_jugement.'  DU '.(date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)))." AU ".$acte->declaration->jugement->institutionUser->institution->lib_institution;
+                                               }
 
-                                        // if ($institution->code_communaute_urbaine != NULL) {
-                                        //     $communeDistrict = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-                                        //     $departement  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-                                        //     $localisation = $institution->communauteUrbaine->district->lib_district;
-                                        // }
+                                               if($acte->declaration->type_declaration == "DECLARATION DE NAISSANCE" && $acte->declaration->numero_req != 0){
+                                                   $infos = 'ACTE ETABLIT SUIVANT '.$top.' DE DECLARATION TARDIVE N° '.$titre." ".$num;
+                                               }
 
-                                        // if ($institution->code_district != NULL) {
-                                        //     $communeDistrict = "DISTRICT DE ".$institution->district->lib_district;
-                                        //     $departement  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-                                        //     $localisation = $institution->communauteUrbaine->district->lib_district;
-                                        // }
-                                        @endphp
+                                               if ($acte->deleted_at != NULL && $acte->deleted_at != "") {
+                                                   $infos = 'ACTE ANNULE PAR JUGEMENT N° '.$acte->declaration->jugement->num_jugement.'  DU '.(date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)))." \n AU ".$acte->declaration->jugement->institutionUser->institution->lib_institution;
+                                               }
 
+                                            }
+
+                                            @endphp
+
+                                        @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
                                         <p>
                                             <span>
-                                                <strong>{{ $departement }}</strong><br>
-                                                {{-- <strong>{{ $communeDistrict }}</strong><br> --}}
-                                            </span>
-                                            <span><strong>{{$acte->institutionUser->institution->lib_institution}}</strong></span>
+                                            {{ "DEPARTEMENT DE ".$departement->lib_localite }}
+                                            <br>
+                                                {{ "COMMUNE DE ".$communeDistrict->lib_localite }}
+                                            </span> <br>
+                                            <span><strong>{{ $institution->lib_institution }}</strong></span>
                                         </p>
+                                        @else
+                                        <p>
+                                            <span>
+                                                <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
+                                            </span> <br>
+                                            <span>Service Consulaire</span> <br>
+                                        </p>
+                                        @endif
                                     </div>
 
                                     <div class="col-sm-2">
@@ -113,7 +185,9 @@
 
                                 <div class="row">
                                     <div class="col-xl-12">
-                                        <br> Année: <strong>{{date("Y", strtotime($acte->created_at))}}</strong> Registre: <strong> {{ $acte->registre->getcode() }} </strong> Acte n°: <strong>{{ $acte->numeroActe->numero_acte }}</strong>
+                                        {{-- <br> Année: <strong>{{date("Y", strtotime($acte->created_at))}}</strong> Registre: <strong> {{ $acte->registre->getcode() }} </strong> Acte n°: <strong>{{ $acte->numeroActe->numero_acte }}</strong>
+                                        <br><br> --}}
+                                        <br> <strong>ACTE DE NAISSANCE  <br> N°: <span style="color: red">{{ $acte->niupp }}  R.A.N {{ $acte->registre->created_at->format('Y') }} </span> </strong>
                                         <br><br>
                                     </div>
                                     <div class="col-xl-12" style="text-align:left; font-size:14px">
@@ -167,13 +241,13 @@
                                     </div><br><br>
                                     Le déclarant,
                                     <div class="col-xl-12" style="margin-left: 100px">
-                                    <p>Fait à {{$localisation}}, le {{date("d-m-Y", strtotime( $acte->date_emission))}}<br>
-                                        @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
-                                            L'Officier de l'Etat Civil
-                                        @else
-                                            Consule
-                                        @endif
-                                    </p>
+                                        <p>Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
+                                            @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
+                                                L'Officier de l'Etat Civil
+                                            @else
+                                                Consule
+                                            @endif
+                                        </p>
                                         @if ($acte->approbation_mairie != "")
                                             <img src='{{ asset("app/".$acte->signature_mairie) }}'><br>
                                             {{ $acte->signataire->user->personne->nomcomplet() }}

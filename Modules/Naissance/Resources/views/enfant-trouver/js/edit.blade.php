@@ -1791,13 +1791,9 @@
                     }else{
                         console.log(response);
                         return false;
-                        var outString = "<ul>";
-                            for (const [key, value] of Object.entries(response.message))
-                            {
-                            outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                            }
-                        outString += "</ul>";
-                        flashAlert("Une erreur est suvernue","error",outString);
+                            // Gestion améliorée des messages d'erreur
+                            var messageErreur = traiterMessageErreur(response);
+                            flashAlert("Opération échouée","error",messageErreur);
                     }
 
                 });
@@ -1811,6 +1807,35 @@
 
 </script>
 <script>
+    /**
+     * Traite et formate les messages d'erreur reçus du serveur
+     */
+    function traiterMessageErreur(response) {
+        var message = response.message;
+
+        // Si le message est un objet, extraire le premier message
+        if (typeof message === 'object' && message !== null) {
+            var messages = Object.values(message);
+            if (messages.length > 0) {
+                message = messages[0];
+            } else {
+                message = "Une erreur s'est produite";
+            }
+        }
+
+        // Si le message est un tableau, prendre le premier élément
+        if (Array.isArray(message)) {
+            message = message.length > 0 ? message[0] : "Une erreur s'est produite";
+        }
+
+        // Si le message est vide ou undefined, utiliser un message par défaut
+        if (!message || message.trim() === '') {
+            message = "Une erreur inattendue s'est produite";
+        }
+
+        return message;
+    }
+
 function dateFrench(dat){
     var date = new Date(dat);
     return date.getDate()+ "/"+(date.getMonth() + 1 )+"/"+date.getFullYear();

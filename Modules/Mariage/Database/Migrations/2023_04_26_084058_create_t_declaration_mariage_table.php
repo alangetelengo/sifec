@@ -81,9 +81,9 @@ class CreateTDeclarationMariageTable extends Migration
             $table->enum("type_mariage",['NORMAL','POSTHUME','PROCURATION']);
 
 
-            $table->enum("titre_requisition",['REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS ET DE DELAI DE CELEBRATION DU MARIAGE','REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS ET DE LIEU DE CELEBRATION DU MARIAGE','REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS,DE DELAI ET DU LIEU DE CELEBRATION DU MARIAGE'])->nullable();
+            // $table->enum("titre_requisition",['REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS ET DE DELAI DE CELEBRATION DU MARIAGE','REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS ET DE LIEU DE CELEBRATION DU MARIAGE','REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS,DE DELAI ET DU LIEU DE CELEBRATION DU MARIAGE'])->nullable();
             $table->string('cui', 16);
-            $table->boolean("top_requisition")->default(false);
+            // $table->boolean("top_requisition")->default(false);
             $table->string("numero_dispense",16)->nullable();
 
             $table->string('code_profession_epoux',16)->nullable();
@@ -94,6 +94,25 @@ class CreateTDeclarationMariageTable extends Migration
             $table->string('code_profession_temoin_f_epouse',16)->nullable();
             $table->string("nom_prenom_mandant_epoux",200)->nullable();
             $table->string("nom_prenom_mandant_epouse",200)->nullable();
+
+            $table->enum("approuver", ["OUI","NON"])->nullable()->default("NON")->comment("Permet de savoir si le docuement a été lu et approuvé par le déclarant");
+            $table->enum("cec_approuver", ["OUI","NON"])->default("NON")->comment("permet de savoir si la declaration est prête ou pas pour la transcription de l'acte");
+
+            $table->string("cec_approuve_par")->nullable();
+            $table->enum("tribunal_approuver",["NON","OUI"])->default("NON");
+            $table->string("tribunal_approuve_par")->nullable();
+
+            $table->timestamp("cec_approuve_le")->nullable();
+            $table->timestamp("tribunal_approuve_le")->nullable();
+
+            $table->foreign("cec_approuve_par")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
+            $table->foreign("tribunal_approuve_par")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
+
+
+            $table->string("code_institution", 16)->nullable()->comment("institution à qui appartient cette declaration");
+            $table->string("code_institution_destinataire", 16)->nullable()->comment("institution destinataire de la déclaration");
+            $table->enum("epoux_approuver", ["OUI","NON"])->nullable()->default("NON")->comment("Permet de savoir si le document a été lu et approuvé par le future époux");
+            $table->enum("epouse_approuver", ["OUI","NON"])->nullable()->default("NON")->comment("Permet de savoir si le document a été lu et approuvé par la future épouse");
 
             $table->foreign("code_epouse")->references("code_personne")->on("tr_identification_personne")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_epoux")->references("code_personne")->on("tr_identification_personne")->onDelete("cascade")->onUpdate("cascade");
@@ -107,6 +126,9 @@ class CreateTDeclarationMariageTable extends Migration
             $table->foreign("code_situation_mat_epouse")->references("code_situation_matrimoniale")->on("tr_situation_matrimoniale")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_situation_mat_epoux")->references("code_situation_matrimoniale")->on("tr_situation_matrimoniale")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("cui")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
+
+            $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
+            $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
 
             $table->foreign('code_profession_epoux')->references('code_profession')->on('tr_profession')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('code_profession_epouse')->references('code_profession')->on('tr_profession')->onDelete('cascade')->onUpdate('cascade');

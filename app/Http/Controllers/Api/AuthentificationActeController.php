@@ -3,57 +3,64 @@
 namespace App\Http\Controllers\Api;
 
 use Exception;
+use Carbon\Carbon;
+use App\Sifec\Sifec;
+use Omnipay\Omnipay;
+use Twilio\Rest\Client;
 use Illuminate\Http\Request;
 use Spipu\Html2Pdf\Html2Pdf;
+use App\Models\PaiementDocument;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Models\AdministrationAuthentification;
 use App\Models\AuthentificationActe;
+use Illuminate\Support\Facades\Mail;
 use Modules\Deces\Entities\ActeDeces;
+use Illuminate\Support\Facades\Storage;
+use App\Mail\TransmissionDocumentPortail;
 use App\Models\DemandePortailParticulier;
-use App\Models\PaiementDocument;
-use App\Sifec\Sifec;
-use Carbon\Carbon;
 use Modules\Mariage\Entities\ActeMariage;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Naissance\Entities\ActeNaissance;
-use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Referentiel\Entities\Institution;
-use Omnipay\Omnipay;
+use Modules\Mariage\Entities\DeclarationMariage;
+use Modules\Naissance\Entities\Declarationnaissance;
+use Modules\Notification\Jobs\SendSmsJob;
+use Modules\Naissance\Services\OtpService;
+use Modules\Referentiel\Entities\Registre;
+use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Naissance\Entities\ActeNaissance;
+use Modules\Referentiel\Entities\Institution;
+use Modules\Referentiel\Entities\RetraitActe;
+use Modules\Mariage\Entities\DeclarationMariage;
+use Modules\Naissance\Services\MouvementService;
+use Modules\Naissance\Entities\MouvementNaissance;
+use Modules\Naissance\Entities\Declarationnaissance;
+use Modules\Naissance\Services\ActeNaissanceService;
+use Modules\Naissance\Http\Requests\GenerateActeRequest;
+use Modules\Notification\Jobs\ValidationacteNaissanceJob;
+use Modules\Notification\Services\NotificationService;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Facades\URL;
 
-use App\Mail\TransmissionDocumentPortail;
-use Illuminate\Support\Facades\Mail;
 
 class AuthentificationActeController extends Controller
 {
     public function authentification(Request $request)
     {
 
-       
         $request->validate([
             "type_acte" => ['required','string'],
             "numero_acte" => ['required','string']
         ]);
 
 
-        //récupération du formulaire authentification :: provisoire
+
+        //récupération du formulaire authentification
         $typeActe = $request->type_acte;
         $numeroActe = $request->numero_acte;
-        $admin = $request->administration;
-        if($admin=="DIRECTION DES EXAMENS ET CONCOURS (DEC)DIRECTION DES EXAMENS ET CONCOURS (DEC)"){
-            $administration = "ADM_0001";
-        }
-
-        if($admin=="BANQUE CONGOLAISE DE L'HABITAT (BCH)BANQUE CONGOLAISE DE L'HABITAT (BCH)"){
-            $administration = "ADM_0002";
-        }
-        if($admin=="DIRECTION DE L'IDENTIFICATION CIVILE(DIC)DIRECTION DE L'IDENTIFICATION CIVILE(DIC)"){
-            $administration = "ADM_0005";
-        }
         $route = "";
 
-      
         //enregitrement de l'opération d'authentification d'acte en bdd
         //0.enregistrement des informations de la demande
         $auth = new AuthentificationActe();
@@ -61,10 +68,12 @@ class AuthentificationActeController extends Controller
         $auth->type_acte_authentification = $typeActe;
         $auth->date_authentification = date("Y-m-d", strtotime(now()));
         $auth->numero_acte_authentification = $numeroActe;
-        $auth->montant_authentification = 1000;//coût du service d'authentification :: Estimation
-        $auth->administration = $administration;//récuépration à partir des paramètres code l'amdinistration de l'utilisateur:: provisoire
 
-      
+        //configuration pointe-noire
+        $auth->montant_authentification = 1000;//coût du service d'authentification :: Estimation
+        $auth->administration = "DEC";//récuépration à partir des paramètres de l'utilisateur
+
+
         if($typeActe == 'Acte de naissance'){
 
             $an = ActeNaissance::find($numeroActe);
@@ -87,10 +96,6 @@ class AuthentificationActeController extends Controller
 
             $auth->save();
 
-
-           
-
-
            //récupération déclaration numéro
             $numDec = $an->code_declaration_naissance;
             //récupération de l'état de l'acte
@@ -102,8 +107,6 @@ class AuthentificationActeController extends Controller
             //return $route;
             //création de la facture
             $routeRecu =  route('etatRecuNaissance',$numDec);
-
-             
 
             return response()->json([
                 "code"=>"200",
@@ -220,15 +223,17 @@ class AuthentificationActeController extends Controller
         $numDec = "";
 
         if($typeActe == 'Naissance'){
+
              //-1 vérification de l'existence de l'authenticité de l'acte
             if($numeroActe!=''){
                 //cas de recherche par numéro acte
-                 $an = ActeNaissance::find($numeroActe);
+                $an = ActeNaissance::find($numeroActe);
                 if($an != null){
-                    //récupéération code déclaration pour l'appel des services Etats
+                    //récupération code déclaration pour l'appel des services Etats
                     $numDec =  $an->code_declaration_naissance;
+
                 }else{
-                    return response()->json(["code"=>"180",'message'=>"Acte non trouvé"]);
+                    return "Acte non trouvé";
                 }
             }else{
                 //recherche par identification du sujet
@@ -241,6 +246,8 @@ class AuthentificationActeController extends Controller
                                             and t.date_naissance like "%'.$dateNaissanceActe.'%"
                 ');
 
+
+
                 if($dn != null){
                     //récupéération code déclaration pour l'appel des services Etats
                     $numDec =  $dn->code_declaration_naissance;
@@ -249,6 +256,9 @@ class AuthentificationActeController extends Controller
                 }
 
             }
+
+
+
 
                 //0.enregistrement des informations de la demande
                 $dmd = new DemandePortailParticulier();
@@ -278,91 +288,16 @@ class AuthentificationActeController extends Controller
 
                 $dmd->save();
 
-                  /*return response()->json([
-                      "code"=>"200",
-                      "demandeDocument" => $dmd
-                  ]);*/
+                if($dmd->type_document == "Copie"){
+                    $piece = route('copieActeNaissancePortail',$numDec.'|'.$cecTraitement);
+                }
 
-                                   //Transmission par mail
-                /* $liste = [];
-                Mail::to($dmd->email_demandeur)->send(new TransmissionDocumentPortail($dmd, $liste));
-                */
-                 //transmission de l'acte par mail
+                if($dmd->type_document == "Extrait acte naissance"){
+                    $piece = route("acteNaissance.displayExtraitActePortail",$numDec.'|'.$cecTraitement);
+                }
 
-                // main header (multipart mandatory)
-            /*$filename = 'piece';
-            $path = 'your path goes here';
-            $file = $path . "/" . $filename;*/
+                return $piece;
 
-           // $file = file_get_contents($route);
-            
-            /*$mailto = $dmd->email_demandeur;
-
-          
-            
-
-            $subject = 'Document état civil';
-
-          
-
-            $message = "M/Mme ".$dmd->nom_demandeur.",\nVeuillez recevoir votre ".$dmd->type_document." d'acte de ".$dmd->type_acte."\nL'état-civil.";
-           
-            
-            //$content = file_get_contents($file);
-            ///$content = chunk_split(base64_encode($content));
-        
-            // a random hash will be necessary to send mixed content
-            $separator = md5(time());
-        
-            // carriage return type (RFC)
-            $eol = "\r\n";
-
-            $headers = "From: name <sifec@mid.cg>" . $eol;
-            $headers .= "MIME-Version: 1.0" . $eol;
-            $headers .= "Content-Type: multipart/mixed; boundary=\"" . $separator . "\"" . $eol;
-            $headers .= "Content-Transfer-Encoding: 7bit" . $eol;
-            $headers .= "This is a MIME encoded message." . $eol;
-
-            // message
-            $body = "--" . $separator . $eol;
-            $body .= "Content-Type: text/plain; charset=\"iso-8859-1\"" . $eol;
-            $body .= "Content-Transfer-Encoding: 8bit" . $eol;
-            $body .= $message . $eol;
-
-            // attachment
-            /*$body .= "--" . $separator . $eol;
-            $body .= "Content-Type: application/octet-stream; name=\"" . $filename . "\"" . $eol;
-            $body .= "Content-Transfer-Encoding: base64" . $eol;
-            $body .= "Content-Disposition: attachment" . $eol;
-            $body .= $content . $eol;
-            $body .= "--" . $separator . "--";
-
-            //SEND Mail
-            
-            mail($mailto, $subject, $body, $headers);/*) {
-                return "Envoi d'email réussie"; // or use booleans here
-            } else {
-                return "Erreur d'envoi d'email !";
-               // print_r( error_get_last() );
-            }*/
-
-            //affichage de la demande à la vue
-            $route = "";
-            if($typeDocument == "Copie"){
-
-                $route = route('copieActeNaissance',$numDec);
-            }
-
-            if($typeDocument == "Extrait acte naissance"){
-                $route = route("acteNaissance.displayExtraitActe",$numDec);
-            }
-
-
-
-            return response()->json([
-                "etat"=> $route
-            ]);
-                
 
         }
         if($typeActe == 'Mariage'){
@@ -427,37 +362,10 @@ class AuthentificationActeController extends Controller
 
             $dmd->save();
 
-            /*return response()->json([
-                "code"=>"200",
-                "demandeDocument" => $dmd
-            ]);*/
-
-             //traitement paiement
-            /*return response()->json([
-                "code"=>"200",
-                "demandeDocument" => $dmd
-            ]);*/
-
-            //Transmission par mail
-            /*$liste = [];
-            Mail::to($dmd->email_demandeur)->send(new TransmissionDocumentPortail($dmd, $liste));*/
-            //affichage de la demande à la vue
-            $route = "";
-            if($typeDocument == "Copie"){
-
-                $route = route('copieActeMariage',$numDec);
-            }
-
-            if($typeDocument == "Extrait acte naissance"){
-                $route = route("extraitActeMariage",$numDec);
-            }
-
-
-
             return response()->json([
-                "etat"=> $route
+                "code"=>"200",
+                "demandeDocument" => $dmd
             ]);
-
 
 
 
@@ -528,33 +436,10 @@ class AuthentificationActeController extends Controller
 
                 $dmd->save();
 
-               //traitement paiement
-            /*return response()->json([
-                "code"=>"200",
-                "demandeDocument" => $dmd
-            ]);*/
-
-            //Transmission par mail
-           /* $liste = [];
-            Mail::to($dmd->email_demandeur)->send(new TransmissionDocumentPortail($dmd, $liste));*/
-            //affichage de la demande à la vue
-            $route = "";
-            if($typeDocument == "Copie"){
-
-                $route = route('copieActeDeces',$numDec);
-            }
-
-            if($typeDocument == "Extrait acte naissance"){
-                $route = route("acteDeces.displayExtrait",$numDec);
-            }
-
-
-
-            return response()->json([
-                "etat"=> $route
-            ]);
-
-
+                return response()->json([
+                    "code"=>"200",
+                    "demandeDocument" => $dmd
+                ]);
 
         }
             return response()->json(["code"=>"180",'message'=>"veuiller choisir un type d'acte valable"]);
@@ -597,6 +482,76 @@ class AuthentificationActeController extends Controller
 
     }
 
+     public function displayCopiePortail($id)
+    {
+
+        $lib_institution_portail = explode('|', $id)[1];
+        $numActe = explode('|', $id)[0];
+        //récupération de l'institution correspondante
+        $institutionPortail = Institution::where('lib_institution', $lib_institution_portail)->first();
+
+        //récupération du signataire de l'institution
+
+
+        $ins_user = DB::table('tr_ins_user as i')
+            ->join('tr_fonction as f', 'i.code_fonction', '=', 'f.code_fonction')
+            ->where('i.code_institution', $institutionPortail->code_institution)
+            ->where('i.active', 1)
+            ->where('f.lib_fonction', 'Officier d\'état civil')
+            ->select('i.code_user')
+            ->first();
+        if(is_null($ins_user)){
+            return "Aucun officier d'état civil trouvé pour cette institution.";
+        }
+            //récupération de l'utilisateur
+            $signatairePortail = DB::table('tr_user as u')
+                ->join('tr_identification_personne as p', 'u.code_personne', '=', 'p.code_personne')
+                ->where('u.code_user', $ins_user->code_user)
+                ->select('p.nom', 'p.prenom', 'signature')
+                ->first();
+        //récupération de l'utilisateur
+        $signatairePortail = DB::table('tr_user as u')
+            ->join('tr_identification_personne as p', 'u.code_personne', '=', 'p.code_personne')
+            ->where('u.code_user', $ins_user->code_user)
+            ->select('p.nom', 'p.prenom', 'signature')
+            ->first();
+
+
+        $acte = ActeNaissance::where("code_declaration_naissance",$numActe)->first();
+        $dummy = "XXXXXXXXXXXXXXXX";
+
+        if($acte == null){
+            toastr()->error("Vous ne pouvez pas généré une copie d'acte de naissance");
+            return back();
+        }
+
+        $declarationDeces = DeclarationDeces::where("num_acte_naissance", $acte->niupp)->first();
+
+        $mariage = null;
+        if (DeclarationMariage::where('numero_acte_naissance_epoux',$acte->niupp)->first() != null) {
+            $mariage = DeclarationMariage::where('numero_acte_naissance_epoux',$acte->niupp)->first();
+        }
+        if (DeclarationMariage::where('numero_acte_naissance_epouse',$acte->niupp)->first() != null) {
+            $mariage = DeclarationMariage::where('numero_acte_naissance_epouse',$acte->niupp)->first();
+        }
+
+
+        view()->share("tester", "Alange");
+        $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+        $html2pdf->setDefaultFont('Arial');
+        $verificationUrl = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
+        $qrCode = QrCode::format('svg')
+            ->size(300)
+            ->margin(2)
+            ->errorCorrection('H')
+            ->generate($verificationUrl);
+        $qrCode = trim(preg_replace('/^<\?xml.*?\?>/s', '', $qrCode));
+        $html2pdf->writeHTML(view('naissance::etats.copieActeNaissancePortail', compact("acte","dummy", "declarationDeces","mariage", 'institutionPortail', 'signatairePortail','qrCode'))->render());
+        // // $html2pdf->writeHTML(view('naissance::etats.displayextrait', compact("acte","dummy", "declarationDeces","mariage"))->render());
+        // // $html2pdf->writeHTML("<h1>Test reussi</h1>");
+        return $html2pdf->output($acte->code_acte_naissance.".pdf");
+
+    }
 
 
     public function listeCec()
@@ -641,59 +596,51 @@ class AuthentificationActeController extends Controller
     }
 
 
-    public function etatRecouvrement()
+      public function displayExtraitActePortail($id)
     {
-        $etat = DB::select('select libelle_administration, sum(montant_authentification) as montantApayer from tr_authentification_acte auth, tr_administration_authentification admin where admin.code_administration = auth.administration group by libelle_administration');
-        //$numExtrait = substr(time(), 2);
-        //return $etat;
-        if($etat == null){
-            toastr()->error("Vous ne pouvez pas généré l'état de recouvrement");
+
+        $lib_institution_portail = explode('|', $id)[1];
+        $numActe = explode('|', $id)[0];
+        //récupération de l'institution correspondante
+        $institutionPortail = Institution::where('lib_institution', $lib_institution_portail)->first();
+
+        //récupération du signataire de l'institution
+
+
+        $ins_user = DB::table('tr_ins_user as i')
+            ->join('tr_fonction as f', 'i.code_fonction', '=', 'f.code_fonction')
+            ->where('i.code_institution', $institutionPortail->code_institution)
+            ->where('i.active', 1)
+            ->where('f.lib_fonction', 'Officier d\'état civil')
+            ->select('i.code_user')
+            ->first();
+
+         if(is_null($ins_user)){
+            return "Aucun officier d'état civil trouvé pour cette institution.";
+        }
+
+        //récupération de l'utilisateur
+        $signatairePortail = DB::table('tr_user as u')
+            ->join('tr_identification_personne as p', 'u.code_personne', '=', 'p.code_personne')
+            ->where('u.code_user', $ins_user->code_user)
+            ->select('p.nom', 'p.prenom', 'signature')
+            ->first();
+
+        $acte = ActeNaissance::where("code_declaration_naissance",$numActe)->first();
+        $numExtrait = substr(time(), 2);
+
+        if($acte == null){
+            toastr()->error("Vous ne pouvez pas généré un extrait d'acte de naissance");
             return back();
         }
 
         view()->share("tester", "Alange");
-        $html2pdf = new Html2Pdf('p', 'A4', 'fr');
+        $html2pdf = new Html2Pdf('L', 'A5', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('recouvrement.etat', compact("etat"))->render());
-        return $html2pdf->output("recouvrement.pdf");
+        $html2pdf->writeHTML(view('naissance::etats.ExtraitPortail', compact("acte", "numExtrait", 'signatairePortail', 'institutionPortail'))->render());
+        return $html2pdf->output($acte->code_acte_naissance.".pdf");
 
     }
-
-    public function historiqueAuthentification(Request $request)
-    {
-        //récupération de l'id administration
-        $code_administration = $request->code_administration;
-        //return "reponse: ".$code_administration;
-        //récupération de létat
-        $routeEtat =  route('etatHistorique', $code_administration);
-        return response()->json([
-            "code"=>"200",
-            'etat'=>$routeEtat
-        ]);
-
-    }
-
-    public function etatHistorique($id)
-    {
-        //récupération de l'id administration
-        $code_administration = $id;
-        $administration = AdministrationAuthentification::find($code_administration);
-        $etat = DB::select("select * from tr_authentification_acte where administration ='$code_administration'");
-        //$numExtrait = substr(time(), 2);
-        //return $etat;
-        if($etat == null){
-            toastr()->error("Vous ne pouvez pas généré l'état de recouvrement");
-            return back();
-        }
-        //création de l'état de sortie
-        view()->share("tester", "Alange");
-        $html2pdf = new Html2Pdf('L', 'A4', 'fr');
-        $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('recouvrement.historique', compact("etat", "administration"))->render());
-        return $html2pdf->output("historique.pdf");
-
-    }
-
       //
       public function displayDuplicata($id)
       {
@@ -713,23 +660,60 @@ class AuthentificationActeController extends Controller
           return $html2pdf->output($acte->code_acte_naissance.".pdf");
       }
 
-      public function displayActe($id)
-      {
-          $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
-          $dummy = "XXXXXXXXXXXXXXXX";
+    //   public function displayActe($id)
+    //   {
+    //       $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
+    //       $dummy = "XXXXXXXXXXXXXXXX";
 
-          if($acte == null){
-              toastr()->error("Vous ne pouvez pas généré un acte de naissance");
-              return back();
-          }
+    //       if($acte == null){
+    //           toastr()->error("Vous ne pouvez pas généré un acte de naissance");
+    //           return back();
+    //       }
 
-          view()->share("tester", "Alange");
-          $html2pdf = new Html2Pdf('P', 'A4', 'fr');
-          $html2pdf->setDefaultFont('Arial');
-          $html2pdf->writeHTML(view('naissance::etats.acte', compact("acte","dummy"))->render());
+    //       view()->share("tester", "Alange");
+    //       $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+    //       $html2pdf->setDefaultFont('Arial');
+    //       $html2pdf->writeHTML(view('naissance::etats.acte', compact("acte","dummy"))->render());
 
-          return $html2pdf->output($acte->code_acte_naissance.".pdf");
-      }
+    //       return $html2pdf->output($acte->code_acte_naissance.".pdf");
+    //   }
+
+    public function displayActe($id)
+    {
+
+
+        try {
+            $acte = ActeNaissance::where("code_declaration_naissance", $id)->first();
+            $dummy = "XXXXXXXXXXXXXXXX";
+
+            if ($acte == null) {
+                toastr()->error("Vous ne pouvez pas généré un acte de naissance");
+                return back();
+            }
+            $acteannuler = Declarationnaissance::where("numero_ancien_acte", $acte->niupp)->first();
+            $declarationDeces = DeclarationDeces::where("num_acte_naissance", $acte->niupp)->first();
+
+            $mariage = null;
+            if (DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first() != null) {
+                $mariage = DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first();
+            }
+            if (DeclarationMariage::where('numero_acte_naissance_epouse', $acte->niupp)->first() != null) {
+                $mariage = DeclarationMariage::where('numero_acte_naissance_epouse', $acte->niupp)->first();
+            }
+
+            view()->share("tester", "Alange");
+            $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+            $html2pdf->setDefaultFont('Arial');
+
+            $html2pdf->writeHTML(view('naissance::etats.acte', compact("acte", "dummy", "acteannuler", "declarationDeces", "mariage"))->render());
+
+            return $html2pdf->output($acte->code_acte_naissance . ".pdf");
+        } catch (Exception $e) {
+            Log::channel("sifec")->info("Erreur lors de la génération de l'acte de naissance: " . $e->getMessage());
+            toastr()->error("Une erreur est survenue lors de la génération de l'acte de naissance: " . $e->getMessage());
+            return back();
+        }
+    }
 
       public function etatRecuNaissance($id)
       {

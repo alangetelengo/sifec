@@ -78,18 +78,13 @@
             <input type="text" id="numero_document_pere" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()">
         </div>
 
-        {{-- <div class="mb-2 col-md-4">
-            <label class="form-label"></label><br>
-            <a href="#" class="btn btn-info show-piece-pere-modal"><i class="fa fa-file"></i> Joindre pièce</a>
-        </div> --}}
-
         <div class="ligne">
             <h4>ADRESSE</h4>
         </div>
         <div class="row">
             <div class="mb-2 col-md-3">
                 <label class="form-label">Pays<span class="text-danger"></span></label>
-                <select id="domicile_pays_pere" class="form-control required">
+                <select name="domicile_pays_pere" id="domicile_pays_pere" class="form-control required">
                     @foreach ($countries as $countrie)
                         <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                     @endforeach
@@ -97,13 +92,14 @@
             </div>
             <div class="mb-2 col-md-3 domicile_ville_pere">
                 <label class="form-label">Commune/District<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_ville_pere">
+                <select name="domicile_ville_pere" id="domicile_ville_pere" class="form-control">
                     <option value="">Choisir</option>
                     @foreach ($localites as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                     @endforeach
                 </select>
             </div>
+
             <div class="mb-2 col-md-3 autredomicile_ville_pere d-none">
                 <label class="form-label">Ville<span class="text-danger"></span></label>
                 <input type="text" id="autredomicile_ville_pere" class="form-control form-control wide" placeholder="Libellé de la ville" onkeyup="this.value=this.value.toUpperCase()">
@@ -111,9 +107,9 @@
 
             <div class="mb-2 col-md-3 domicile_arrondissement_pere d-none">
                 <label class="form-label">Arr/Com. Urb<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_arrondissement_pere">
+                <select name="domicile_arrondissement_pere" id="domicile_arrondissement_pere" class="form-control">
                     <option value="">Choisir</option>
-                    @foreach ($arrondissement as $localite)
+                    @foreach ( $arrondissements as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                     @endforeach
                 </select>
@@ -121,16 +117,16 @@
 
             <div class="mb-2 col-md-3 domicile_quartier_pere">
                 <label class="form-label">Quartier/Village<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_quartier_pere">
+                <select name="domicile_quartier_pere" id="domicile_quartier_pere" class="form-control">
                     <option value="">Choisir</option>
-                    @foreach ($quartierVillages as $localite)
+                    @foreach ( $quartiers as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Type voie<span class="text-danger"></span></label>
-                <select class="form-control" id="domicile_typevoie_pere">
+                <select name="domicile_typevoie_pere" id="domicile_typevoie_pere" class="form-control">
                     <option value="">Choisir</option>
                     <option value="Avenue">Avenue</option>
                     <option value="Boulevard">Boulevard</option>
@@ -141,11 +137,11 @@
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">N° voie<span class="text-danger"></span></label>
-                <input type="text" class="form-control" id="domicile_numero_pere" placeholder="N° voie">
+                <input type="text" name="domicile_numero_pere" id="domicile_numero_pere" class="form-control" placeholder="N° voie">
             </div>
             <div class="mb-2 col-md-3">
                 <label class="form-label">Nom voie<span class="text-danger"></span></label>
-                <input type="text" class="form-control" id="domicile_nomvoie_pere" placeholder="Nom voie" style="text-transform: capitalize">
+                <input type="text" name="domicile_nomvoie_pere" id="domicile_nomvoie_pere" class="form-control" placeholder="Nom voie" style="text-transform: capitalize">
             </div>
 
             <div class="ligne">
@@ -155,7 +151,6 @@
                 <div class="col-md-4">
                     <label class="form-label">Indicatif<span class="text-danger">*</span></label>
                     <select name="code_pays_pere" id="code_pays_pere" class="form-control">
-
                         @forelse ($countries as $code)
                             <option value="{{ $code->dial_code }}">({{ $code->dial_code }}) {{ $code->name }}</option>
                         @empty
@@ -282,7 +277,7 @@
     <div class="row adressemere">
         <div class="mb-2 col-md-3">
             <label class="form-label">Pays<span class="text-danger"></span></label>
-            <select id="domicile_pays_mere" class="form-control required" disabled>
+            <select name="domicile_pays_mere" id="domicile_pays_mere" class="form-control required">
                 @foreach ($countries as $countrie)
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                 @endforeach
@@ -290,7 +285,7 @@
         </div>
         <div class="mb-2 col-md-3 domicile_ville_mere">
             <label class="form-label">Commune/District<span class="text-danger"></span></label>
-            <select class="form-control" id="domicile_ville_mere" disabled>
+            <select name="domicile_ville_mere" id="domicile_ville_mere" class="form-control">
                 <option value="">Choisir</option>
                 @foreach ($localites as $localite)
                     <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
@@ -304,9 +299,9 @@
 
         <div class="mb-2 col-md-3 domicile_arrondissement_mere">
             <label class="form-label">Arr/Com. Urb<span class="text-danger"></span></label>
-            <select class="form-control" id="domicile_arrondissement_mere" disabled>
+            <select name="domicile_arrondissement_mere" id="domicile_arrondissement_mere" class="form-control" disabled>
                 <option value="">Choisir</option>
-                @foreach ($arrondissement as $localite)
+                @foreach ( $arrondissements as $localite)
                     <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                 @endforeach
             </select>
@@ -315,16 +310,16 @@
         {{-- <div class="mb-2 col-md-3 domicile_quartier_mere"> --}}
         <div class="mb-2 col-md-3">
             <label class="form-label">Quartier/Village<span class="text-danger"></span></label>
-            <select class="form-control" id="domicile_quartier_mere" disabled>
+            <select name="domicile_quartier_mere" id="domicile_quartier_mere" class="form-control" disabled>
                 <option value="">Choisir</option>
-                @foreach ($quartierVillages as $localite)
+                @foreach ( $quartiers as $localite)
                     <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">Type voie<span class="text-danger"></span></label>
-            <select class="form-control" id="domicile_typevoie_mere" disabled>
+            <select name="domicile_typevoie_mere" id="domicile_typevoie_mere" class="form-control" disabled>
                 <option value="">Choisir</option>
                 <option value="Avenue">Avenue</option>
                 <option value="Boulevard">Boulevard</option>
@@ -335,11 +330,11 @@
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">N° voie<span class="text-danger"></span></label>
-            <input type="text" class="form-control" id="domicile_numero_mere" disabled placeholder="N° voie">
+            <input type="text" name="domicile_numero_mere" id="domicile_numero_mere" class="form-control" disabled placeholder="N° voie">
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">Nom voie<span class="text-danger"></span></label>
-            <input type="text" class="form-control" id="domicile_nomvoie_mere" disabled placeholder="Nom voie" style="text-transform: capitalize">
+            <input type="text" name="domicile_nomvoie_mere" id="domicile_nomvoie_mere" class="form-control" disabled placeholder="Nom voie" style="text-transform: capitalize">
         </div>
     </div>
     <div class="ligne">
@@ -383,7 +378,5 @@
     </div>
 </section>
 <!-- Step 4 -->
-
-    @include('naissance::declaration.declarant')
 
 

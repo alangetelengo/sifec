@@ -33,10 +33,54 @@ use Modules\Authentification\Entities\Module;
 class UserController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::whereHas("personne")->where(["status" =>1])->get();
-        return view('authentification::utilisateur.index',compact('users'));
+        $query = User::whereHas("personne");
+
+        // Filtres
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('institution')) {
+            $query->whereHas('affectations', function($q) use ($request) {
+                $q->where('active', 1)
+                  ->whereHas('institution', function($q2) use ($request) {
+                      $q2->where('lib_institution', $request->institution);
+                  });
+            });
+        }
+
+        if ($request->filled('fonction')) {
+            $query->whereHas('affectations', function($q) use ($request) {
+                $q->where('active', 1)
+                  ->whereHas('fonction', function($q2) use ($request) {
+                      $q2->where('lib_fonction', $request->fonction);
+                  });
+            });
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('email', 'like', "%{$search}%")
+                  ->orWhere('pseudo', 'like', "%{$search}%")
+                  ->orWhereHas('personne', function($q2) use ($search) {
+                      $q2->where('nom', 'like', "%{$search}%")
+                         ->orWhere('prenom', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $perPage = $request->input('per_page', 15);
+        $users = $query->with(['personne', 'affectations.institution', 'affectations.fonction'])
+                       ->paginate($perPage)
+                       ->appends($request->except('page'));
+
+        // Pour les filtres
+        $allUsers = User::whereHas("personne")->with(['affectations.institution', 'affectations.fonction'])->get();
+
+        return view('authentification::utilisateur.index', compact('users', 'allUsers'));
     }
 
     public function create()
@@ -299,6 +343,7 @@ class UserController extends Controller
     public function signature(Request $request, $id)
     {
 
+
         $request->validate([
             "signature"=>["required","image","mimes:png,jpg"],
         ]);
@@ -312,11 +357,43 @@ class UserController extends Controller
 
         DB::beginTransaction();
         try{
-            $signature = $request->signature->store("signature");
-            $personne = Personne::find($user->code_personne);
-            $personne->signature = $signature;
 
-            $personne->save();
+            if(!empty($user->personne->signature)){
+                $signatureExistant = $user->personne->signature;
+                $cheminSignature = public_path("storage/".$signatureExistant);
+                if(!empty($signatureExistant) && file_exists($cheminSignature)){
+                    unlink($cheminSignature);
+                }
+            }
+
+            // Log de debug pour l'upload de signature
+            Log::channel('sifec')->info('Debug signature upload', [
+                'hasFile' => $request->hasFile('signature'),
+                'isValid' => $request->file('signature') ? $request->file('signature')->isValid() : null,
+                'all' => $request->all(),
+                'files' => $request->files->all(),
+            ]);
+            // Ajout de la vérification de la présence et validité du fichier signature
+            if ($request->hasFile('signature')) {
+                $file = $request->file('signature');
+                if ($file->isValid()) {
+                    $signature = $file->store('signature', 'public');
+                    if (empty($signature)) {
+                        toastr()->error("Erreur lors de l'enregistrement du fichier de signature.", "Gestion des utilisateurs");
+                        return back()->withInput();
+                    }
+                    $personne = Personne::find($user->code_personne);
+                    $personne->signature = $signature;
+                    $personne->save();
+                } else {
+                    toastr()->error("Le fichier de signature est corrompu ou inaccessible.", "Gestion des utilisateurs");
+                    return back()->withInput();
+                }
+            } else {
+                toastr()->error("Aucun fichier de signature n'a été envoyé.", "Gestion des utilisateurs");
+                return back()->withInput();
+            }
+
             DB::commit();
             toastr()->success("Signature ajoutée avec succès");
             return back();
@@ -412,6 +489,80 @@ class UserController extends Controller
             toastr()->error($e->getMessage());
             return back()->withInput();
 
+        }
+    }
+
+    /**
+     * Afficher le formulaire de modification du mot de passe
+     */
+    public function showChangePasswordForm($id)
+    {
+        $user = User::find($id);
+
+        if($user == null){
+            toastr()->error("Utilisateur introuvable");
+            return back();
+        }
+
+        return view("authentification::utilisateur.change-password", compact("user"));
+    }
+
+    /**
+     * Traiter la modification du mot de passe
+     */
+    public function changePassword(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if($user == null){
+            toastr()->error("Utilisateur introuvable");
+            return back();
+        }
+
+        // Validation
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+            'new_password_confirmation' => 'required'
+        ], [
+            'current_password.required' => 'Le mot de passe actuel est requis',
+            'new_password.required' => 'Le nouveau mot de passe est requis',
+            'new_password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères',
+            'new_password.confirmed' => 'La confirmation du mot de passe ne correspond pas',
+            'new_password_confirmation.required' => 'La confirmation du mot de passe est requise'
+        ]);
+
+        // Vérifier le mot de passe actuel
+        if (!Hash::check($request->current_password, $user->password)) {
+            toastr()->error("Le mot de passe actuel est incorrect");
+            return back()->withInput();
+        }
+
+        // Vérifier que le nouveau mot de passe est différent de l'ancien
+        if (Hash::check($request->new_password, $user->password)) {
+            toastr()->error("Le nouveau mot de passe doit être différent de l'actuel");
+            return back()->withInput();
+        }
+
+        try {
+            // Mettre à jour le mot de passe
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            // Log de l'audit trail
+            if (method_exists($user, 'logActivity')) {
+                $user->logActivity('password_change', 'Mot de passe modifié', [
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+            }
+
+            toastr()->success("Mot de passe modifié avec succès");
+            return redirect()->route('utilisateur.profile', $user->code_user);
+
+        } catch (Exception $e) {
+            toastr()->error("Erreur lors de la modification du mot de passe : " . $e->getMessage());
+            return back()->withInput();
         }
     }
 

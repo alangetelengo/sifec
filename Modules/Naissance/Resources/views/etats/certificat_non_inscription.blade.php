@@ -22,6 +22,11 @@
 
         $localiteParent  = "DEPARTEMENT DE LA CUVETTE";
         $localisation = $institution->lieu->localiteParent->lib_localite;
+
+        $typeLocalite =  $certificat->institution->lieu->localiteParent->localiteParent->typeLocalite->lib_type_localite;
+        $departement = $certificat->institution->lieu->localiteParent->localiteParent->lib_localite;
+        $comDistrict = $certificat->institution->lieu->localiteParent->lib_localite;
+        $cec =  $certificat->institution->lib_institution;
     @endphp
 
     <table cellspacing="0" style="width: 100%; font-size: 14px;">
@@ -29,16 +34,17 @@
             <td style="width:40%; text-align: center;">
                 <p>
                     <span>
-                        <strong>{{ $localiteParent }}</strong>
+                        <strong>{{ $typeLocalite." DE ".$departement }}</strong>
                     </span> <br>
-                    <span>{{ $localite}}</span> <br>
+                    <span>{{ "COMMUNE DE ".$comDistrict}}</span> <br>
 
                     <span>
-                        @if ($certificat->type_declaration == "DECLARATION NAISSANCE" || $certificat->type_declaration == "DECLARATION TARDIVE DE NAISSANCE" || $certificat->type_declaration == "DECLARATION DE PATERNITE")
-                            {{Auth::user()->affectationActive()->institution->lib_institution}}
+                        {{-- @if ($certificat->type_declaration == "DECLARATION NAISSANCE" || $certificat->type_declaration == "DECLARATION TARDIVE DE NAISSANCE" || $certificat->type_declaration == "DECLARATION DE PATERNITE")
+                            {{ $certificat->institution->lib_institution}}
                         @else
                             {{ $inst }}
-                        @endif
+                        @endif --}}
+                        {{ $cec}}
                     </span>
                 </p>
             </td>
@@ -87,7 +93,7 @@
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
-                    <td style="height: 14px;">Né le : <strong>{{strftime("%d %B %Y", strtotime( $certificat->pere->date_naissance))}}</strong>, à : <strong>{{$certificat->pere->lieu_naissance}}</strong></td>
+                    <td style="height: 14px;">Né le : <strong>{{ utf8_encode(strftime('%d %B %Y', strtotime( $certificat->pere->date_naissance))) }}</strong>, à <strong>{{$certificat->pere->lieu_naissance}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 14px;">Profession: <strong>{{$certificat->pere->profession->lib_profession}}</strong>, Nationalité: <strong>{{ $certificat->pere->nationalite->lib_nationalite }}</strong></td>
@@ -100,7 +106,7 @@
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
-                    <td style="height: 14px;">Né le : <strong>{{strftime("%d %B %Y", strtotime( $certificat->mere->date_naissance))}}</strong>, à <strong>{{$certificat->mere->lieu_naissance}}</strong></td>
+                    <td style="height: 14px;">Né le : <strong>{{ utf8_encode(strftime('%d %B %Y', strtotime( $certificat->mere->date_naissance))) }}</strong>, à <strong>{{$certificat->mere->lieu_naissance}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 14px;">Profession: <strong>{{$certificat->mere->code_profession != NULL ? $certificat->mere->profession->lib_profession :""}}</strong>, Nationalité: <strong>{{ $certificat->mere->nationalite->lib_nationalite }}</strong></td>
@@ -136,7 +142,11 @@
                 <tr>
                     <td style="text-align: center;"></td>
                     <td style="text-align: left;">
-                        <div style="margin-bottom:0;"><qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/certificat?niupp={{ $certificat->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
+                        @isset($qrCode)
+                        <div style="margin-bottom:0; width: 30mm;">
+                            <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                        </div>
+                        @endisset
                     </td>
                     <td style="text-align: left;">
                         <p>Fait à <span style="text-transform: capitalize">{{ $localisation }}</span> , le {{utf8_encode(strftime("%d %B %Y", strtotime( $certificat->date_heure_declaration)))}}<br>L'officier de l'état civil</p>
@@ -146,5 +156,7 @@
             </tbody>
         </table>
     </div>
+    <br><br><br>
+    <p style="text-align: left; font-style:italic; font-size:11px"><span style="color:red">(*)</span> Ce document requiert une réquisition ou un jugement</p>
 
 </page>

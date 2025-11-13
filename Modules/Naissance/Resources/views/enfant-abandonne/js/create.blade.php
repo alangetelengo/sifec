@@ -1,6 +1,35 @@
 @section("scripts")
 
 <script>
+    /**
+     * Traite et formate les messages d'erreur reçus du serveur
+     */
+    function traiterMessageErreur(response) {
+        var message = response.message;
+
+        // Si le message est un objet, extraire le premier message
+        if (typeof message === 'object' && message !== null) {
+            var messages = Object.values(message);
+            if (messages.length > 0) {
+                message = messages[0];
+            } else {
+                message = "Une erreur s'est produite";
+            }
+        }
+
+        // Si le message est un tableau, prendre le premier élément
+        if (Array.isArray(message)) {
+            message = message.length > 0 ? message[0] : "Une erreur s'est produite";
+        }
+
+        // Si le message est vide ou undefined, utiliser un message par défaut
+        if (!message || message.trim() === '') {
+            message = "Une erreur inattendue s'est produite";
+        }
+
+        return message;
+    }
+
     function dateFrench(dat){
         var date = new Date(dat);
         return date.getDate()+ "/"+(date.getMonth() + 1 )+"/"+date.getFullYear();
@@ -123,7 +152,14 @@
          var domicile_nomvoie_declarant = $("#domicile_nomvoie_declarant");
          var date_heure_declaration = $("#date_heure_declaration");
          var type_declaration = $("#type_declaration");
+         var type_declarant = $("#type_declarant");
+         var personne_declaree = $("#personne_declaree");
          var formation_sanitaire_naissance = $("#formation_sanitaire_naissance");
+
+         var lieu_placement = $("#lieu_placement");
+         var extrait_main_courante = $("#extrait_main_courante");
+         var num_fiche_placement = $("#num_fiche_placement");
+         var num_jugement_placement_provisoir = $("#num_jugement_placement_provisoir");
 
          //champs obligatoires
          var champs = [nom_pere,
@@ -276,7 +312,14 @@
 
              date_heure_declaration:date_heure_declaration.val(),
              type_declaration:type_declaration.val(),
+             type_declarant:type_declarant.val(),
+             personne_declaree:personne_declaree.val(),
              formation_sanitaire_naissance:formation_sanitaire_naissance.val(),
+
+             lieu_placement:lieu_placement.val(),
+             extrait_main_courante:extrait_main_courante.val(),
+             num_fiche_placement:num_fiche_placement.val(),
+             num_jugement_placement_provisoir:num_jugement_placement_provisoir.val(),
          };
 
         //traitement ajax
@@ -328,15 +371,18 @@
                                  window.open(url);
                              }, 2000);
                          }else{
-                             var outString = "<ul>";
-                                 for (const [key, value] of Object.entries(response.message))
-                                 {
-                                 outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                                 }
-                             outString += "</ul>";
-                             flashAlert("Une erreur est suvernue","error",outString);
+                             // Gestion améliorée des messages d'erreur
+                             var messageErreur = traiterMessageErreur(response);
+                             flashAlert("Opération échouée","error",messageErreur);
                          }
 
+                     }).fail(function(xhr) {
+                         // Gestion des erreurs de connexion
+                         var messageErreur = "Erreur de connexion. Veuillez vérifier votre connexion internet et réessayer.";
+                         if (xhr.responseJSON && xhr.responseJSON.message) {
+                             messageErreur = traiterMessageErreur(xhr.responseJSON);
+                         }
+                         flashAlert("Erreur de connexion","error",messageErreur);
                      });
              }
 
@@ -353,7 +399,7 @@
          transitionEffect: "fade",
          titleTemplate: '<span class="step">#index#</span> #title#',
          labels: {
-             finish: "Enrégistrer"
+             finish: "Enregistrer"
          },
          onStepChanging: function (event, currentIndex, newIndex) {
              return currentIndex > newIndex || !(3 === newIndex && Number($("#age-2").val()) < 18) && (currentIndex < newIndex && (form.find(".body:eq(" + newIndex + ") label.error").remove(), form.find(".body:eq(" + newIndex + ") .error").removeClass("error")), form.validate().settings.ignore = ":disabled,:hidden", form.valid())

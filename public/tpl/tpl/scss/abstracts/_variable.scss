@@ -36,7 +36,7 @@ $info-light: lighten($info, 47%);
 $dark-light: lighten($dark, 50%);
 
 /////////////////////////
-// Opacity 
+// Opacity
 /////////////////////////
 $primary-opacity: rgba($primary, 0.2);
 $secondary-opacity: rgba($secondary, 0.5);
@@ -98,25 +98,25 @@ $athensGray: #F0F0F2;
 $sky: #2290FF;
 
 
-//color for coller pallate
+//color for coller pallate - Charte Congo-Brazzaville
 $color_pallate_1: $white;
-$color_pallate_2: #143b64;
+$color_pallate_2: #009E49; // Vert Congo
 $color_pallate_3: $primary;
-$color_pallate_4: #4527a0;
-$color_pallate_5: #c62828;
-$color_pallate_6: #283593;
-$color_pallate_7: #7356f1;
+$color_pallate_4: #FBDE4A; // Jaune Congo
+$color_pallate_5: #DC241F; // Rouge Congo
+$color_pallate_6: #007A3A; // Vert foncé
+$color_pallate_7: #009E49; // Vert Congo
 $color_pallate_8: #3695eb;
 $color_pallate_9: #00838f;
-$color_pallate_10: #ff8f16;
+$color_pallate_10: #FBDE4A; // Jaune Congo
 $color_pallate_11: #6673fd;
-$color_pallate_12: #558b2f;
+$color_pallate_12: #007A3A; // Vert foncé
 $color_pallate_13: #2a2a2a;
 $color_pallate_14: #1367c8;
-$color_pallate_15: #ed0b4c;
+$color_pallate_15: #DC241F; // Rouge Congo
 
 //utility variables
-$radius: 0.5rem; 
+$radius: 0.5rem;
 
 :root{
 	--primary: #{$primary};

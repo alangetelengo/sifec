@@ -1,10 +1,9 @@
+<html lang="fr">
 @extends("layout.app")
 @section("titre")
-    Déclaration naissance
+    Formulaire type
 @endsection
-@section("sous-titre")
-    Déclaration naissance
-@endsection
+
 @section("styles")
 <!-- Form step -->
 <link href="{{ asset('tpl/vendor/jquery-smartwizard/dist/css/smart_wizard.min.css') }}" rel="stylesheet">
@@ -18,803 +17,1718 @@
 <link href="{{ asset('tpl/vendor/bootstrap-material-datetimepicker/css/bootstrap-material-datetimepicker.css') }}" rel="stylesheet">
 <!-- Pick date -->
 <link href="{{ asset('tpl/wizard/assets/node_modules/wizard/steps.css') }}" rel="stylesheet">
-    <!--alerts CSS -->
-    <link href="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.css') }}" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+<!--alerts CSS -->
+<link href="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.css') }}" rel="stylesheet">
+<!-- Custom CSS -->
+<link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+<link rel="stylesheet" href="{{ asset('app/script-sifec/form.js') }}">
+
+<style>
+    /* Style pour les champs en mode lecture seule */
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+    }
+
+    .readonly-field:focus {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        box-shadow: none !important;
+    }
+
+    /* Style spécial pour les select en mode disabled */
+    select.readonly-field:disabled {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #6c757d !important;
+        opacity: 1 !important;
+    }
+</style>
 @endsection
 @section("corps")
-
         <!-- row -->
         <div class="row" id="validation">
             <div class="col-12">
-                <div class="card wizard-content">
-                    <div class="card-body">
-                        {{--  <h4 class="card-title">Step wizard with validation</h4>
-                        <h6 class="card-subtitle">You can us the validation like what we did</h6>  --}}
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Modifier la déclaration de mariage</h4>
 
-                        <form action="#" class="validation-wizard wizard-circle">
+                        <div class="d-flex justify-content-end">
+                            <!--label class="form-label col-md-3">Type de mariage</label-->
+                            <select id="type_mariage"  class="form-control" style="width:200px">
+                                 {{-- <option value="" selected>Type de mariage</option> --}}
+                                <option value="NORMAL" {{ $declaration->type_mariage == 'NORMAL' ? 'selected' : '' }}>Mariage normal</option>
+                                <option value="PROCURATION" {{ $declaration->type_mariage == 'PROCURATION' ? 'selected' : '' }}>Mariage par procuration</option>
+                                <!-- <option value="posthume">Mariage à titre posthume</option> -->
+                            </select>
+                            <select id="type_mandant"  class="form-control" style="width:200px">
+                                <option value="" {{ !$declaration->nom_prenom_mandant_epoux && !$declaration->nom_prenom_mandant_epouse ? 'selected' : '' }}> Choix du mandant </option>
+                                <option value="mandant_epoux" {{ $declaration->nom_prenom_mandant_epoux ? 'selected' : '' }}>Epoux</option>
+                                <option value="mandant_epouse" {{ $declaration->nom_prenom_mandant_epouse ? 'selected' : '' }}>Epouse</option>
+                                <!-- <option value="posthume">Mariage à titre posthume</option> -->
+                            </select>
+                            <br>
+                            <a href="{{ route('declarationMariage.index') }}" class="btn btn-primary me-2">Liste des déclarations</a>
 
-                            <!-- Step 1 -->
-
-                            <h6>Enfant</h6>
-
-                           <span class="btn btn-primary" style="margin-bottom:2%; width: 100%">{{ $dn->code_declaration_naissance }}</span>
-
-                           {{--  <button type="button" class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target=".search_mere-modal-lg">Faire une recherche</button>  --}}
-                            <section>
-                                <hr>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nom(s) enfant <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="nom_enfant" placeholder="Nom enfant" value="{{ $dn->enfant->nom }}" id="nom_enfant">
-
-                                    </div>
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Prénom(s) enfant</label>
-                                        <input type="text" class="form-control" name="prenom_enfant" value="{{ $dn->enfant->prenom }}" placeholder="Prénom enfant" id="prenom_enfant">
-
-                                    </div>
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Sexe <span class="text-danger">*</span></label>
-                                        <select id="sexe_enfant" name="sexe_enfant" class="form-control form-control wide">
-
-
-                                            <option value="M" {{"M"==$dn->enfant->sexe ? "selected":"" }}>Masculin</option>
-                                            <option value="F" {{"F"==$dn->enfant->sexe ? "selected":"" }}>Feminin</option>
-
-
-                                        </select>
-                                    </div>
-
-
-                                </div>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Date de naissance <span class="text-danger">*</span></label>
-                                        <input type="date" name="date_naissance_enfant" value={{ $dn->enfant->date_naissance }} max="<?php echo date("Y-m-d"); ?>" min="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 3 month'));?>" onchange="compare()" class="form-control" id="date_naissance_enfant">
-
-                                    </div>
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Lieu de naissance <span class="text-danger">*</span></label>
-                                        <input type="text" name="lieu_naissance_enfant" value={{ $dn->enfant->lieu_naissance }} class="form-control" id="lieu_naissance_enfant">
-
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Heure de naissance <span class="text-danger">*</span></label>
-                                        <input type="time" name="heure_naissance_enfant" value={{ date("h:i", strtotime($dn->enfant->date_naissance)) }} class="form-control"  id="heure_naissance_enfant">
-
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    {{-- <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nationalité <span class="text-danger">*</span></label>
-                                        <select id="code_nationalite_enfant" class="form-control form-control wide">
-                                                <option disabled selected>Choisissez</option>
-                                            @foreach ($nationalites as $nationalite)
-                                                <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div> --}}
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Lieu de survenance <span class="text-danger">*</span></label>
-                                        <select id="code_lieu_survenance" name="lieu_survenance" class="form-control form-control wide">
-
-
-                                            <option value={{ $dn->lieusurvenance->code_lieu_survenance }}>{{ $dn->lieusurvenance->lib_lieu_survenance   }}</option>
-
-                                            @foreach ($lieuSurvenances as $item)
-                                                <option value="{{ $item->code_lieu_survenance }}">{{ $item->lib_lieu_survenance }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Situation matrimoniale des parents</label>
-                                        <select id="code_situation_matrimoniale" name="code_situation_matrimoniale" class="form-control form-control wide">
-
-                                            <option value={{ $dn->code_situation_mat  }}>{{ $dn->sitMatParent->lib_situation_matrimoniale   }}</option>
-                                            @foreach ($situationMatrimoniales as $item)
-                                                <option value="{{ $item->code_situation_matrimoniale }}">{{ $item->lib_situation_matrimoniale }}</option>
-                                            @endforeach
-
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nombre d enfants (y compris le sujet)</label>
-                                        <input type="number" name="nombre_enfant"  value={{$dn->nombre_enfant}} min="1" class="form-control" placeholder="0" id="nombre_enfants">
-
-                                    </div>
-                                </div>
-                            </section>
-                            <!-- Step 2 -->
-                            <h6>Père</h6>
-                            <section>
-                                <div class="d-flex justify-content-end align-items-center">
-                                    <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".search-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche du père</button>
-                                </div>
-                                <hr>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nom(s) père <span class="text-danger">*</span></label>
-                                        <input type="text" name="nom_pere"  value={{$dn->pere->nom}} class="form-control"lass="form-control"  placeholder="Nom du père" id="nom_pere">
-                                    </div>
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Prénom(s) du père </label>
-                                        <input type="text" name="prenom_pere" value={{$dn->pere->prenom}} class="form-control" placeholder="Prénom du père" id="prenom_pere">
-
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Date de naissance du père<span class="text-danger">*</span></label>
-                                        <input type="date" name="date_naissance_pere"  value={{$dn->pere->date_naissance}} max="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 14 years'));?>" min="<?php echo date('Y-m-d', strtotime($jour. ' - 100 years')); ?>" onchange="compare()" class="form-control" id="date_naissance_pere">
-                                    </div>
-
-
-                                   {{--  <div class="mb-2 col-md-4">
-                                        <label class="form-label">Sexe<span class="text-danger">*</span></label>
-                                        <select id="sexe_pere" class="form-control form-control wide">
-                                            <option value="M">Masculin</option>
-                                            <option value="F">Féminin</option>
-                                        </select>
-                                    </div> --}}
-                                </div>
-                                <div class="row">
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Lieu de naissance père</label>
-                                        <input type="text" name="lieu_naissance_pere"  value={{$dn->pere->lieu_naissance}} class="form-control" id="lieu_naissance_pere" placeholder="Lieu de naissance">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Domicile du père<span class="text-danger">*</span></label>
-                                        <input type="text" name="domicile_pere" class="form-control"  value={{$dn->pere->adresse}} id="domicile_pere" placeholder="Domicile du père">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nationalité du père<span class="text-danger">*</span></label>
-                                        <select name="code_nationalite_pere" id="code_nationalite_pere" class="form-control form-control wide">
-                                            <option value={{ $dn->pere->code_nationalite }}>{{ $dn->pere->nationalite->lib_nationalite }}</option>
-                                            @foreach ($nationalites as $nationalite)
-                                                <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Profession du père<span class="text-danger">*</span></label>
-                                        <select id="profession_pere" name="profession_pere" class="form-control form-control wide">
-
-                                            <option value="{{ $dn->pere->code_profession }}">{{ $dn->pere->profession->lib_profession }}</option>
-                                            @foreach ($professions as $item)
-                                                <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Téléphone père<span class="text-danger">*</span></label>
-                                        <input type="text" name="telephone_pere" value={{$dn->pere->telephone}} id="telephone_pere" class="form-control form-control wide" placeholder="Téléphone mère">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Niveau d instruction du père</label>
-                                        <select name="niveau_instruction_pere" id="niveau_instruction_pere" class="form-control form-control wide">
-                                            <option value={{ $dn->pere->niveau_instruction }}>{{  $dn->pere->niveau_instruction }}</option>
-                                            @foreach ($instructions as $item)
-                                                <option value="{{ $item }}">{{ $item }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Type pièce d'identité</label>
-                                        <select name="code_type_document_pere" id="code_type_document_pere" class="form-control form-control wide">
-
-
-                                            @foreach ($typedocuments as $item)
-                                                <option value="{{ $item->code_type_document }}" {{ $item->code_type_document==$dn->pere->document->code_type_document ? "selected":"" }}>{{ $item->lib_type_document  }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Numéro pièce d identité</label>
-                                        <input type="text" name="numero_document_pere" value="{{ $dn->pere->document->numero_document }}" id="numero_document_pere" class="form-control form-control wide" placeholder="Numéro du document">
-                                    </div>
-                                </div>
-                            </section>
-                            <!-- Step 3 -->
-                            <h6>Mère</h6>
-                            <section>
-                                <div class="d-flex justify-content-end align-items-center">
-                                    <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".search-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche de la mère</button>
-                                </div>
-                                <hr>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nom(s) mère <span class="text-danger">*</span></label>
-                                        <input type="text" name="nom_mere" value="{{$dn->mere->nom}}" class="form-control"  placeholder="Nom de la mère" id="nom_mere">
-                                    </div>
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Prénom(s) du mère </label>
-                                        <input type="text" name="prenom_mere"  value="{{$dn->mere->prenom}}" class="form-control" placeholder="Prénom de la mère" id="prenom_mere">
-
-                                    </div>
-                                    <!-- <div class="mb-2 col-md-4">
-                                        <label class="form-label">Sexe<span class="text-danger">*</span></label>
-                                        <select id="sexe_mere" name="sexe_mere" class="form-control form-control wide">
-                                            <option value="F">Féminin</option>
-                                        </select>
-                                    </div> -->
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Date de naissance de la mère<span class="text-danger">*</span></label>
-                                        <input type="date" name="date_naissance_mere"  value="{{$dn->mere->date_naissance}}" max="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 12 years'));?>" min="<?php echo date('Y-m-d', strtotime($jour. ' - 100 years')); ?>" class="form-control" id="date_naissance_mere">
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Lieu de naissance mère</label>
-                                        <input type="text" name="lieu_naissance_mere"  value="{{$dn->mere->lieu_naissance}}" class="form-control" id="lieu_naissance_mere" placeholder="Lieu de naissance">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Domicile de la mère<span class="text-danger">*</span></label>
-                                        <input type="text" name="domicile_mere"  value="{{$dn->mere->adresse}}" class="form-control" id="domicile_mere" placeholder="Domicile mère">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nationalité de la mère<span class="text-danger">*</span></label>
-                                        <select id="code_nationalite_mere" name="code_nationalite_mere" class="form-control form-control wide">
-                                            <option value={{ $dn->mere->code_nationalite }}>{{ $dn->mere->nationalite->lib_nationalite }}</option>
-                                            @foreach ($nationalites as $nationalite)
-                                                <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                </div>
-                                <div class="row">
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Profession de la mère</label>
-                                        <select id="profession_mere" name="profession_mere" class="form-control form-control wide">
-                                            <option value="{{ $dn->mere->code_profession }}">{{ $dn->mere->profession->lib_profession }}</option>
-
-                                            @foreach ($professions as $item)
-                                                <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Téléphone mère</label>
-                                        <input type="text" value="{{ $dn->mere->telephone }}" id="telephone_mere" name="telephone_mere" class="form-control form-control wide" placeholder="Téléphone mère">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Niveau d'instruction du mère</label>
-                                        <select id="niveau_instruction_mere" name="niveau_instruction_mere" class="form-control form-control wide">
-                                            <option value={{ $dn->mere->niveau_instruction }}>{{  $dn->mere->niveau_instruction }}</option>
-                                            @foreach ($instructions as $item)
-                                                <option value="{{ $item }}">{{ $item }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Type pièce d identité</label>
-                                        <select id="code_type_document_mere" name="code_type_document_mere" class="form-control form-control wide">
-                                            <option value={{ $dn->mere->document->code_type_document }}>{{ $dn->mere->document->code_type_document }}</option>
-                                            @foreach ($typedocuments as $item)
-                                                <option value="{{ $item->code_type_document }}">{{ $item->lib_type_document  }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Numéro pièce d identité</label>
-                                        <input type="text" name="numero_document_mere" value="{{ $dn->mere->document->numero_document }}" id="numero_document_mere" class="form-control form-control wide" placeholder="Numéro du document">
-                                    </div>
-                                </div>
-                            </section>
-                            <!-- Step 4 -->
-                            <h6>Déclarant</h6>
-
-                            <section>
-                                <div class="d-flex justify-content-end align-items-center">
-                                    <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".search-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche du déclarant</button>
-                                </div>
-                                <hr>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nom(s) déclarant <span class="text-danger">*</span></label>
-                                        <input type="text" name="nom_declarant" value="{{$dn->declarant->nom}}"  class="form-control"  placeholder="Nom du déclarant" id="nom_declarant">
-                                    </div>
-
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Prénom(s) du déclarant </label>
-                                        <input type="text" name="prenom_declarant" value="{{$dn->declarant->prenom}}" class="form-control" placeholder="Prénom du déclarant" id="prenom_declarant">
-
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Sexe du déclarant<span class="text-danger">*</span></label>
-                                        <select id="sexe_declarant" name="sexe_declarant" class="form-control form-control wide">
-
-                                            <option value="M" {{"M"==$dn->enfant->sexe ? "selected":"" }}>Masculin</option>
-                                            <option value="F" {{"F"==$dn->enfant->sexe ? "selected":"" }}>Feminin</option>
-
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Date de naissance du déclarant<span class="text-danger">*</span></label>
-                                        <input type="date" name="date_naissance_declarant"  value="{{$dn->declarant->date_naissance}}" max="<?php $jour=date("Y-m-d"); echo date('Y-m-d', strtotime($jour. ' - 18 years'));?>" min="<?php echo date('Y-m-d', strtotime($jour. ' - 100 years')); ?>" class="form-control"  id="date_naissance_declarant">
-
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Lieu de naissance </label>
-                                        <input type="text" name="lieu_naissance_declarant" value="{{$dn->declarant->lieu_naissance}}" class="form-control" id="lieu_naissance_declarant" placeholder="Lieu de naissance">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Filiation </label>
-                                        <select id="filiation" name="filiation" class="form-control form-control wide">
-
-                                            <option value={{ $dn->code_filiation }}>{{ $dn->filiation->lib_filiation }}</option>
-
-                                            @foreach ($filiations as $item)
-                                                <option value="{{ $item->code_filiation }}">{{ $item->lib_filiation }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Nationalité du déclarant<span class="text-danger">*</span></label>
-                                        <select name="code_nationalite_declarant" id="code_nationalite_declarant" class="form-control form-control wide">
-                                            <option value={{ $dn->declarant->code_nationalite }}>{{ $dn->declarant->nationalite->lib_nationalite }}</option>
-                                            @foreach ($nationalites as $nationalite)
-                                                <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Domicile du déclarant<span class="text-danger">*</span></label>
-                                        <input type="text" value="{{ $dn->declarant->adresse }}" class="form-control" id="domicile_declarant" name="domicile_declarant" placeholder="Domicile du déclarant">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Profession du déclarant</label>
-                                        <select id="profession_declarant" name="profession_declarant" class="form-control form-control wide">
-                                            <option value="{{ $dn->declarant->code_profession }}">{{ $dn->declarant->profession->lib_profession }}</option>
-                                            @foreach ($professions as $item)
-                                                <option value="{{ $item->code_profession }}">{{ $item->lib_profession }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Téléphone déclarant</label>
-                                        <input type="text" name="telephone_declarant" value="{{ $dn->declarant->telephone }}" id="telephone_declarant" class="form-control form-control wide" placeholder="Téléphone déclarant">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" id="email_declarant" class="form-control form-control wide" placeholder="Email déclarant">
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Type pièce d identité</label>
-                                        <select name="code_type_document_declarant" id="code_type_document_declarant" class="form-control form-control wide">
-                                            <option value="{{ $dn->declarant->document->code_type_document }}">{{ $dn->declarant->document->code_type_document }}</option>
-
-                                            @foreach ($typedocuments as $item)
-                                                <option value="{{ $item->code_type_document }}">{{ $item->lib_type_document  }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="mb-2 col-md-4">
-                                        <label class="form-label">Numéro Pièce Identité</label>
-                                        <input type="text" name="numero_document_declarant" value="{{ $dn->declarant->document->numero_document }}" id="numero_document_declarant" class="form-control form-control wide" placeholder="Numéro du document">
-                                    </div>
-                                </div>
-
-
-                                <div class="mb-2 col-md-4">
-                                    <a href="#" class="btn btn-info btn-block validate">Valider</a>
-                                </div>
-
-                            </section>
-
-                        </form>
-
-
-                    </div>
-
-
-                    <div class="modal fade search-search-modal-lg" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Recherchert</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal">
-                                    </button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="row">
-                                        <div class="mb-2 col-md-6">
-                                            <label class="form-label">Nom(s) défunt <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control"lass="form-control @error('nom_defunt') is-invalid @enderror" value="{{ old("nom_defunt") }}" placeholder="" id="nom_defunt">
-                                            @error("nom_defunt")
-                                            <div class="invalid-feedback">
-                                                {{ $message }}
-                                            </div>
-                                            @enderror
-                                        </div>
-
-                                        <div class="mb-2 col-md-6">
-                                            <label class="form-label">Prénom(s) défunt</label>
-                                            <input type="text" class="form-control @error('prenom_pere') is-invalid @enderror" value="{{ old("prenom_defunt") }}" placeholder="" id="prenom_defunt">
-                                            @error("prenom_defunt")
-                                            <div class="invalid-feedback">
-                                                {{ $message }}
-                                            </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="mb-2 col-md-6">
-                                            <label class="form-label">Date de naissance</label>
-                                            <input type="date" max="<?php echo date("Y-m-d"); ?>" class="form-control @error('date_naissance_pere') is-invalid @enderror" value="{{ old("date_naissance_pere") }}" id="date_naissance_pere">
-                                            @error("date_naissance_pere")
-                                            <div class="invalid-feedback">
-                                                {{ $message }}
-                                            </div>
-                                            @enderror
-                                        </div>
-                                        <div class="mb-2 col-md-6">
-                                            <label class="form-label">Lieu de naissance </label>
-                                            <select id="code_localite" class="form-select form-control required">
-                                                    <option>Choisissez</option>
-                                                @foreach ($localites as $localite)
-                                                    <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" class="btn btn-info text-white">Rechercher</button>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="card">
-                                                <div class="card-header">
-                                                    <h4 class="card-title">Résultat de la recherche</h4>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="table-responsive">
-                                                        <table id="example" class="display" style="min-width: 845px">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>#</th>
-                                                                    <th>Nom</th>
-                                                                    <th>Prénom</th>
-                                                                    <th>Date naissance</th>
-                                                                    <th>Sexe</th>
-                                                                    <th>Action</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                <tr>
-                                                                    <td></td>
-                                                                </tr>
-                                                            </tbody>
-                                                            <tfoot>
-                                                                <tr>
-                                                                    <th>#</th>
-                                                                    <th>Nom</th>
-                                                                    <th>Prénom</th>
-                                                                    <th>Date naissance</th>
-                                                                    <th>Sexe</th>
-                                                                    <th>Action</th>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
-                                </div>
-                            </div>
                         </div>
                     </div>
+                    <p id="notificationMsgProcuration"  style="background:red; color:white; padding:10px; font-size:15px;font-weight:bold"> <i class="fa fa-warning"></i> Ce type de mariage requiert la présence du mandant  conformément à l'article 152 du code de la famille.
+                    </p>
+                    <div class="card wizard-content">
+                        <div class="card-body">
+                           <!-- Champ caché pour l'ID de la déclaration -->
+                           <input type="hidden" id="declaration_id" name="declaration_id" value="{{ $declaration->code_declaration_mariage }}">
 
-
-
+                           @include('mariage::declaration.form')
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
+        @include('mariage::declaration.madal-search')
+
+
 
 @endsection
 @section("scripts")
-<script src="{{ asset('tpl/vendor/jquery-smartwizard/dist/js/jquery.smartWizard.js') }}"></script>
-    <script src="{{ asset('tpl/vendor/jquery-validation/jquery.validate.min.js') }}"></script>
-    <!-- Form validate init -->
-    <script src="{{ asset('tpl/js/plugins-init/jquery.validate-init.js') }}"></script>
 
-     <!-- Daterangepicker -->
-     <script src="{{ asset('tpl/js/plugins-init/bs-daterange-picker-init.js') }}"></script>
-     <!-- Clockpicker init -->
-     <script src="{{ asset('tpl/js/plugins-init/clock-picker-init.js') }}"></script>
-     <!-- asColorPicker init -->
-     <script src="{{ asset('tpl/js/plugins-init/jquery-asColorPicker.init.js') }}"></script>
-     <!-- Material color picker init -->
-     <script src="{{ asset('tpl/js/plugins-init/material-date-picker-init.js') }}"></script>
-     <!-- Pickdate -->
-     <script src="{{ asset('tpl/js/plugins-init/pickadate-init.js') }}"></script>
+@include("mariage::declaration.js.create")
 
 
+<script>
+     $(document).ready(function(){
+        $("#notificationMsgProcuration").hide();
+        $("#type_mandant").hide();
+        $("#bloc_mandant_epoux").hide();
+        $("#bloc_mandant_epouse").hide();
 
-    <!-- This Page JS -->
-    <script src="{{ asset('tpl/wizard/assets/node_modules/wizard/jquery.steps.min.js') }}"></script>
-    <script src="{{ asset('tpl/wizard/assets/node_modules/wizard/jquery.validate.min.js') }}"></script>
-    <script src="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.js') }}"></script>
+        // Pré-remplir le formulaire avec les données existantes
+        preRemplirFormulaire();
+     });
 
- {{--    contrôle de date --}}
-        <script>
+     //Gestion de l'affichage des blocs mandats
+     $("#type_mandant").change(function(){
+        var type=$(this).val();
 
+        if(type=="mandant_epoux"){
+            $("#bloc_mandant_epoux").show(300);
+            $("#bloc_mandant_epouse").hide();
+        }else{
+            $("#bloc_mandant_epouse").show(300);
+            $("#bloc_mandant_epoux").hide();
+        }
+        // $("#bloc_mandant_epouse").hide();
 
+     });
 
+    function getRegime(optionmariage){
+        var out = "";
 
-
-
-
-
-        </script>
-
-
-
-
-
-
-    <script>
-        //Custom design form example
-        $(".tab-wizard").steps({
-            headerTag: "h6",
-            bodyTag: "section",
-            transitionEffect: "fade",
-            titleTemplate: '<span class="step">#index#</span> #title#',
-            labels: {
-                finish: "Submit"
-            },
-            onFinished: function (event, currentIndex) {
-                Swal.fire("Déclaration Enrégistrée !", "Déclarion est en cours de traitement, consectetur adipiscing elit. Sed lorem erat eleifend ex semper, lobortis purus sed.");
-
+        $.get("{{ route('declarationMariage.regime') }}", { optionmariage:optionmariage }, function(data){
+            if(data.length > 0){
+                $(".showregime").removeClass("d-none");
+                for(var i=0; i < data.length; i++){
+                    out += "<option value="+data[i].code_regime+" >"+data[i].lib_regime+"</option>";
+                }
             }
+            $("#regime_mariage").html(out);
+
         });
+    }
+    function getQuartierVillage(codeparent,cle){
+        var route = "{{ route('declarationNaissance.search.quartier') }}";
+        var option = "<option> Selectionnez </option>";
 
-
-        var form = $(".validation-wizard").show();
-
-        $(".validation-wizard").steps({
-            headerTag: "h6",
-            bodyTag: "section",
-            transitionEffect: "fade",
-            titleTemplate: '<span class="step">#index#</span> #title#',
-            labels: {
-                finish: "Enrégistrer"
-            },
-            onStepChanging: function (event, currentIndex, newIndex) {
-                return currentIndex > newIndex || !(3 === newIndex && Number($("#age-2").val()) < 18) && (currentIndex < newIndex && (form.find(".body:eq(" + newIndex + ") label.error").remove(), form.find(".body:eq(" + newIndex + ") .error").removeClass("error")), form.validate().settings.ignore = ":disabled,:hidden", form.valid())
-            },
-            onFinishing: function (event, currentIndex) {
-                return form.validate().settings.ignore = ":disabled", form.valid()
-            },
-            onFinished: function (event, currentIndex) {
-                Swal.fire("Déclaration Enrégistrée !", "Déclarion est en cours de traiatement, consectetur adipiscing elit. Sed lorem erat eleifend ex semper, lobortis purus sed.");
-            }
-        }), $(".validation-wizard").validate({
-            ignore: "input[type=hidden]",
-            errorClass: "text-danger",
-            successClass: "text-success",
-            highlight: function (element, errorClass) {
-                $(element).removeClass(errorClass)
-            },
-            unhighlight: function (element, errorClass) {
-                $(element).removeClass(errorClass)
-            },
-            errorPlacement: function (error, element) {
-                error.insertAfter(element)
-            },
-            rules: {
-                email: {
-                    email: !0
-                }
-            }
-        })
-    </script>
-
-    <!-- Datatable -->
-
-    <script>
-        $(function(){
-            $("a.validate").on("click",function()
-            {
-                // informations du père
-                var nom_pere = $("#nom_pere");
-                var prenom_pere = $("#prenom_pere");
-                var date_naissance_pere = $("#date_naissance_pere");
-                var lieu_naissance_pere = $("#lieu_naissance_pere");
-                var domicile_pere = $("#domicile_pere");
-                var telephone_pere = $("#telephone_pere");
-                var profession_pere = $("#profession_pere");
-                var code_nationalite_pere = $("#code_nationalite_pere");
-                var niveau_instruction_pere = $("#niveau_instruction_pere");
-                var code_type_document_pere = $("#code_type_document_pere");
-                var numero_document_pere = $("#numero_document_pere");
-
-                //information mere
-                var nom_mere = $("#nom_mere");
-                var prenom_mere = $("#prenom_mere");
-                var date_naissance_mere = $("#date_naissance_mere");
-                var lieu_naissance_mere = $("#lieu_naissance_mere");
-                var domicile_mere = $("#domicile_mere");
-                var telephone_mere = $("#telephone_mere");
-                var profession_mere = $("#profession_mere");
-                var code_nationalite_mere = $("#code_nationalite_mere");
-                var niveau_instruction_mere = $("#niveau_instruction_mere");
-                var code_type_document_mere = $("#code_type_document_mere");
-                var numero_document_mere = $("#numero_document_mere");
-
-                //déclarant
-                var nom_declarant = $("#nom_declarant");
-                var prenom_declarant = $("#prenom_declarant");
-                var date_naissance_declarant = $("#date_naissance_declarant");
-                var lieu_naissance_declarant = $("#lieu_naissance_declarant");
-                var domicile_declarant = $("#domicile_declarant");
-                var telephone_declarant = $("#telephone_declarant");
-                var profession_declarant = $("#profession_declarant");
-                var code_nationalite_declarant = $("#code_nationalite_declarant");
-                var filiation = $("#filiation");
-                var sexe_declarant = $("#sexe_declarant");
-                var email = $("#email");
-                var code_type_document_declarant = $("#code_type_document_declarant");
-                var numero_document_declarant = $("#numero_document_declarant");
-
-                // enfant
-                var nom_enfant = $("#nom_enfant");
-                var prenom_enfant = $("#prenom_enfant");
-                var date_naissance_enfant = $("#date_naissance_enfant");
-                var lieu_naissance_enfant = $("#lieu_naissance_enfant");
-                var code_situation_matrimoniale = $("#code_situation_matrimoniale");
-                var lieu_survenance = $("#code_lieu_survenance");
-
-                //var code_nationalite_enfant = $("#code_nationalite_enfant");
-                var sexe_enfant = $("#sexe_enfant");
-                var heure_naissance_enfant = $("#heure_naissance_enfant");
-                var nombre_enfants = $("#nombre_enfants");
-
-                //champs obligatoires
-                var champs = [nom_pere,
-                             date_naissance_pere,
-                             code_nationalite_pere,
-                             domicile_pere,
-                             telephone_pere,
-                             profession_pere,
-                              nom_mere,
-                              date_naissance_mere,
-                              profession_mere,
-                              code_nationalite_mere,
-                              telephone_mere,
-                              domicile_mere,
-                              nom_declarant,
-                              filiation,
-                              code_nationalite_declarant,
-                              telephone_declarant,
-                              date_naissance_declarant,
-                              domicile_declarant,
-                              sexe_declarant,
-                              nom_enfant,
-                              sexe_enfant,
-                              date_naissance_enfant,
-                              lieu_naissance_enfant,
-                              lieu_survenance,
-                              code_situation_matrimoniale,
-                              heure_naissance_enfant,
-                              code_type_document_declarant,
-                              numero_document_declarant];
-
-                var champsVides = [];
-
-                for(var i = 0; i < champs.length; i++)
-                {
-                    if(champs[i].val() == "" || champs[i].val() == null)
-                    {
-                        champsVides.push(champs[i]);
-                    }
-
-                }
-
-                //vérification des champs vides
-                for(var i = 0; i < champsVides.length; i++)
-                {
-                    champsVides[i].addClass("is-invalid");
-                }
-
-                //si un champ obligatoire est null ou vide alors il ne passe pas à l'étape suivante
-                if(champsVides.length > 0)
-                {
-                    return false;
-                }
-
-               // alert(champs);
-
-                // alert(champsVides.length);
-
-                var data =
-                {
-                    // données du père
-                    nom_pere:nom_pere.val(),
-                    prenom_pere:prenom_pere.val(),
-                    date_naissance_pere:date_naissance_pere.val(),
-                    lieu_naissance_pere:lieu_naissance_pere.val(),
-                    domicile_pere:domicile_pere.val(),
-                    profession_pere:profession_pere.val(),
-                    code_nationalite_pere:code_nationalite_pere.val(),
-                    niveau_instruction_pere:niveau_instruction_pere.val(),
-                    telephone_pere:telephone_pere.val(),
-                    code_type_document_pere:code_type_document_pere.val(),
-                    numero_document_pere:numero_document_pere.val(),
-                    // données de la mère
-                    nom_mere:nom_mere.val(),
-                    prenom_mere:prenom_mere.val(),
-                    date_naissance_mere:date_naissance_mere.val(),
-                    lieu_naissance_mere:lieu_naissance_mere.val(),
-                    domicile_mere:domicile_mere.val(),
-                    profession_mere:profession_mere.val(),
-                    code_nationalite_mere:code_nationalite_mere.val(),
-                    niveau_instruction_mere:niveau_instruction_mere.val(),
-                    telephone_mere:telephone_mere.val(),
-                    code_type_document_mere:code_type_document_mere.val(),
-                    numero_document_mere:numero_document_mere.val(),
-                    // données du déclarant
-                    nom_declarant:nom_declarant.val(),
-                    prenom_declarant:prenom_declarant.val(),
-                    date_naissance_declarant:date_naissance_declarant.val(),
-                    lieu_naissance_declarant:lieu_naissance_declarant.val(),
-                    domicile_declarant:domicile_declarant.val(),
-                    profession_declarant:profession_declarant.val(),
-                    code_nationalite_declarant:code_nationalite_declarant.val(),
-                    filiation:filiation.val(),
-                    telephone_declarant:telephone_declarant.val(),
-                    email_declarant:email.val(),
-                    sexe_declarant:sexe_declarant.val(),
-                    code_type_document_declarant:code_type_document_declarant.val(),
-                    numero_document_declarant:numero_document_declarant.val(),
-                    // données de l'enfant
-                    nom_enfant:nom_enfant.val(),
-                    prenom_enfant:prenom_enfant.val(),
-                    date_naissance_enfant:date_naissance_enfant.val(),
-                    lieu_naissance_enfant:lieu_naissance_enfant.val(),
-                    code_situation_matrimoniale:code_situation_matrimoniale.val(),
-                    //code_nationalite_enfant:code_nationalite_enfant.val(),
-                    sexe_enfant:sexe_enfant.val(),
-                    heure_naissance_enfant:heure_naissance_enfant.val(),
-                    lieu_survenance:lieu_survenance.val(),
-                    nombre_enfant:nombre_enfants.val(),
-                    _method:'PUT'
-                };
-
-
-                //traitement ajax
-                var code = "{{$dn->code_declaration_naissance}}";
-                var route = "{{route('declarationNaissance.update',':id')}}";
-                route = route.replace(':id',code);
-              // alert(route);
-                  $.post(route,data,function(response)
-                {
-                    console.log(response.declaration);
+        $.ajax({
+            url: route,
+            data:'id='+codeparent,
+            dataType:
+                'json',
+            success: function(json) {
+                $.each(json, function (index, value) {
+                    console.log(value.lib_localite);
+                    option += '<option value="'+value.code_localite+'">'+value.lib_localite+'</option>';
                 });
-
-                //return false;
-            });
+                $("#"+cle).html(option);
+            }
         });
-      </script>
+    }
+
+    function getArrComUrbaine(codeparent,cle){
+        var route = "{{ route('declarationNaissance.search.arrond',':id') }}";
+        route = route.replace(":id", codeparent);
+        var option = "<option> Selectionnez </option>";
+        $.ajax({
+            url: route,
+            data:'id='+codeparent,
+            dataType:
+                'json',
+            success: function(json) {
+                $.each(json, function (index, value) {
+                    console.log(value.lib_localite);
+                    option += '<option value="'+value.code_localite+'">'+value.lib_localite+'</option>';
+                });
+                $("#"+cle).html(option);
+            }
+        });
+    }
+    function getCentreEtatCivil(codelocalite,key){
+        var route = "{{ route('declarationNaissance.search.institution') }}";
+        var option = "";
+        // var option = "<option>Selectionnez</option>";
+
+        $.ajax({
+            url: route,
+            data: 'id=' +codelocalite,
+            dataType:
+                'json',
+            success: function(json) {
+                $.each(json, function (index, value) {
+                    console.log(value.lib_institution);
+                    option += '<option value="'+value.code_institution+'">'+value.lib_institution+'</option>';
+                });
+                $("#"+key).html(option);
+                console.log(json);
+            }
+        });
+
+    }
+
+    function undisabledOtherAdress()
+    {
+        $('#domicile_pays_epouse').prop('disabled',false);
+        $('#domicile_ville_epouse').prop('disabled',false);
+        $('#domicile_arrondissement_epouse').prop('disabled',false);
+        $('#domicile_quartier_epouse').prop('disabled',false);
+        $('#domicile_typevoie_epouse').prop('disabled',false);
+        $('#domicile_numero_epouse').removeAttr('disabled');
+        $('#domicile_nomvoie_epouse').removeAttr('disabled');
+    }
+
+    $(function(){
+        $("#type_mariage").on("change", function(){
+
+            var typemariage = $(this).val();
+
+            if(typemariage == "NORMAL"){
+                $("div.optionmariage").removeClass('d-none');
+                $("div.showregime").removeClass('d-none');
+                $("#notificationMsgProcuration").hide(300);
+                $("#type_mandant").hide(300);
+            }
+
+            if(typemariage == "PROCURATION"){
+
+                $("div.optionmariage").removeClass('d-none');
+                $("div.showregime").removeClass('d-none');
+                $("#notificationMsgProcuration").show(300);
+                $("#type_mandant").show(300);
+
+            }
+            // }else{
+            //     $("#notificationMsgProcuration").hide(300);
+            // }
+
+            if(typemariage == "posthume"){
+                $("div.optionmariage").addClass('d-none');
+                $("div.showregime").addClass('d-none');
+                $("#notificationMsgProcuration").hide(300);
+            }
+        });
+
+        $("#option_mariage").on("change", function(){
+            var optionmariage = $(this).val();
+            getRegime(optionmariage);
+        });
+
+        $("#code_localite_epoux").change(function() {
+            var localiteepoux = $(this).val();
+
+            var libLocaliteEpoux = $("#code_localite_epoux option:selected").text();
+            if(localiteepoux != '' || localiteepoux != null){
+                getCentreEtatCivil(localiteepoux,'code_cec_epoux');
+                $("#lieu_naissance_epoux").val(libLocaliteEpoux);
+                $("div.autrelieunaissanceepoux").addClass("d-none");
+                $("div.autrececnaissanceepoux").addClass("d-none");
+                $("div.codececepoux").removeClass("d-none");
+            }
+            if(localiteepoux == 'LOC_4247'){
+               $("div.autrelieunaissanceepoux").removeClass("d-none");
+               $("div.autrececnaissanceepoux").removeClass("d-none");
+               $("div.codececepoux").addClass("d-none");
+               $("#lieu_naissance_epoux").val("");
+            }
+
+        });
+        $("#code_cec_epoux").on("change", function() {
+            var libCecNaisEpoux = $("#code_cec_epoux option:selected").text();
+            $("#cec_naissance_epoux").val(libCecNaisEpoux);
+        });
+        $("#etranger_lieu_naissance_epoux").on("change", function() {
+            var libLieuNaisEpoux = $("#etranger_lieu_naissance_epoux option:selected").text();
+            $("#lieu_naissance_epoux").val(libLieuNaisEpoux);
+        });
+
+        $("#code_localite_epouse").change(function() {
+            var localiteepouse = $(this).val();
+
+            var libLocaliteEpoux = $("#code_localite_epouse option:selected").text();
+            if(localiteepouse != '' || localiteepouse != null){
+                // alert(localiteepouse);
+                getCentreEtatCivil(localiteepouse,'code_cec_epouse');
+                $("#lieu_naissance_epouse").val(libLocaliteEpoux);
+                $("div.autrelieunaissanceepouse").addClass("d-none");
+                $("div.autrececnaissanceepouse").addClass("d-none");
+                $("div.codececepouse").removeClass("d-none");
+            }
+            if(localiteepouse == 'LOC_4247'){
+               $("div.autrelieunaissanceepouse").removeClass("d-none");
+               $("div.autrececnaissanceepouse").removeClass("d-none");
+               $("div.codececepouse").addClass("d-none");
+               $("#lieu_naissance_epouse").val("");
+            }
+
+        });
+
+        $("#etranger_lieu_naissance_epouse").on("change", function() {
+            var libLieuNaisEpouse = $("#etranger_lieu_naissance_epouse option:selected").text();
+            $("#lieu_naissance_epouse").val(libLieuNaisEpouse);
+        });
+
+        $("#code_cec_epouse").on("change", function() {
+            var libCecNaisEpoux = $("#code_cec_epouse option:selected").text();
+            $("#cec_naissance_epouse").val(libCecNaisEpoux);
+        });
+
+
+        $('#departementcongo_epoux').hide();
+        $('#domicile_pays_epoux').on('change', function () {
+            var pays = $('#domicile_pays_epoux').val();
+
+            if (pays == 'Congo') {
+                $('#departementcongo_epoux').show();
+                $('#autredepartement_epoux').hide();
+                $("div.adresselocale_epoux").removeClass('d-none');
+            } else {
+                $('#departementcongo_epoux').hide();
+                $('#autredepartement_epoux').show();
+                $("div.adresselocale_epoux").addClass('d-none');
+            }
+        });
+
+        $('#departementcongo_epouse').hide();
+        $('#domicile_pays_epouse').on('change', function () {
+            var pays = $('#domicile_pays_epouse').val();
+            if (pays == 'Congo') {
+                $('#departementcongo_epouse').show();
+                $('#autredepartement_epouse').hide();
+                $("div.adresselocale_epouse").removeClass('d-none');
+            } else {
+                $('#departementcongo_epouse').hide();
+                $('#autredepartement_epouse').show();
+                $("div.adresselocale_epouse").addClass('d-none');
+            }
+        });
+
+        $('#departementcongo_temoins_epoux').hide();
+        $('#domicile_pays_temoins_epoux').on('change', function () {
+            var pays = $('#domicile_pays_temoins_epoux').val();
+            if (pays == 'Congo') {
+                $('#departementcongo_temoins_epoux').show();
+                $('#autredepartement_temoins_epoux').hide();
+                $("div.adresselocale_temoins_epoux").removeClass('d-none');
+            } else {
+                $('#departementcongo_temoins_epoux').hide();
+                $('#autredepartement_temoins_epoux').show();
+                $("div.adresselocale_temoins_epoux").addClass('d-none');
+            }
+        });
+
+
+        $('#departementcongo_temoins_epouse').hide();
+        $('#domicile_pays_temoins_epouse').on('change', function () {
+            var pays = $('#domicile_pays_temoins_epouse').val();
+            if (pays == 'Congo') {
+                $('#departementcongo_temoins_epouse').show();
+                $('#autredepartement_temoins_epouse').hide();
+                $("div.adresselocale_temoins_epouse").removeClass('d-none');
+            } else {
+                $('#departementcongo_temoins_epouse').hide();
+                $('#autredepartement_temoins_epouse').show();
+                $("div.adresselocale_temoins_epouse").addClass('d-none');
+            }
+        });
+
+        $('#departementcongo_declarant').hide();
+        $('#domicile_pays_declarant').on('change', function () {
+            var pays = $('#domicile_pays_declarant').val();
+            if (pays == 'Congo') {
+                $('#departementcongo_declarant').show();
+                $('#autredepartement_declarant').hide();
+                $("div.adresselocale_declarant").removeClass('d-none');
+            } else {
+                $('#departementcongo_declarant').hide();
+                $('#autredepartement_declarant').show();
+                $("div.adresselocale_declarant").addClass('d-none');
+            }
+        });
+
+        $("#domicile_ville_epoux").on("change", function(){
+            var localiteParent = $(this).val();
+
+            if(localiteParent != "" || localiteParent !=null){
+                var domicilevilleepoux = $("#domicile_ville_epoux option:selected").text();
+                getArrComUrbaine(localiteParent,'domicile_arrondissement_epoux');
+            }
+
+        });
+
+        $("#domicile_quartier_epoux").on('change', function(){
+            var q = $(this).val();
+            if(q != "" || q !=null){
+                var quartier = '<option>'+$("#domicile_quartier_epoux option:selected").text()+'</option>';
+            }
+        });
+
+        $("#domicile_typevoie_epoux").on('change', function(){
+            var typevoie = $(this).val();
+            if(typevoie != "" || typevoie !=null){
+                var tvoie = '<option>'+typevoie+'</option>';
+            }
+        });
+
+        $("#domicile_arrondissement_epoux").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                var domicilearrondepoux = $("#domicile_arrondissement_epoux option:selected").text();
+                getQuartierVillage(localiteParent,'domicile_quartier_epoux');
+            }
+        });
+
+
+        //Debut traitement adresse epouse,soit même que l'époux
+        $("#sameadress").on('click', function(){
+
+            undisabledOtherAdress();
+
+            $('#domicile_pays_epouse').val($('#domicile_pays_epoux option:selected').text());
+            $('#domicile_pays_epouse').attr('readOnly','readOnly');
+
+            $('#domicile_ville_epouse').attr('readOnly','readOnly');
+
+            var domicile_ville_epouse = $("#domicile_ville_epouse");
+            var domicile_ville_epoux = $("#domicile_ville_epoux");
+            domicile_ville_epouse.val(domicile_ville_epoux.val());
+
+            $('#domicile_arrondissement_epouse').attr('readOnly','readOnly');
+            var domicile_arrondissement_epouse = $("#domicile_arrondissement_epouse");
+            var domicile_arrondissement_epoux = $("#domicile_arrondissement_epoux");
+            domicile_arrondissement_epouse.val(domicile_arrondissement_epoux.val());
+
+            $('#domicile_quartier_epouse').attr('readOnly','readOnly');
+            var domicile_quartier_epouse = $("#domicile_quartier_epouse");
+            var domicile_quartier_epoux = $("#domicile_quartier_epoux");
+            domicile_quartier_epouse.val(domicile_quartier_epoux.val());
+
+
+            $('#domicile_numero_epouse').val($('#domicile_numero_epoux').val());
+            $('#domicile_numero_epouse').attr('readOnly','readOnly');
+
+            $('#domicile_nomvoie_epouse').val($('#domicile_nomvoie_epoux').val());
+            $('#domicile_nomvoie_epouse').attr('readOnly','readOnly');
+
+            $('#domicile_typevoie_epouse').val($('#domicile_typevoie_epoux').val());
+            $('#domicile_typevoie_epouse').attr('readOnly','readOnly');
+
+        });
+
+        $("#otheradress").on('click', function(){
+
+            undisabledOtherAdress();
+
+            $('#domicile_pays_epouse').val("");
+            $('#domicile_pays_epouse').attr('readOnly',false);
+
+            $("#domicile_ville_epouse").val("");
+            $('#domicile_ville_epouse').attr('readOnly',false);
+
+            $("#domicile_arrondissement_epouse").val("");
+            $('#domicile_arrondissement_epouse').attr('readOnly',false);
+
+            $("#domicile_quartier_epouse").val("");
+            $('#domicile_quartier_epouse').attr('readOnly',false);
+
+            $('#domicile_numero_epouse').val("");
+            $('#domicile_numero_epouse').attr('readOnly',false);
+            $('#domicile_nomvoie_epouse').val("");
+            $('#domicile_nomvoie_epouse').attr('readOnly',false);
+            $('#domicile_typevoie_epouse').val("");
+            $('#domicile_typevoie_epouse').attr('readOnly',false);
+
+            });
+        //Fin traitement adresse epouse,soit même que l'époux
+
+        // epouse
+        $("#domicile_ville_epouse").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getArrComUrbaine(localiteParent,'domicile_arrondissement_epouse');
+            }
+            return false;
+        });
+
+        $("#domicile_arrondissement_epouse").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getQuartierVillage(localiteParent,'domicile_quartier_epouse');
+            }
+            return false;
+        });
+
+        // Témoins époux
+        $("#domicile_ville_temoins_epoux").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getArrComUrbaine(localiteParent,'domicile_arrondissement_temoins_epoux');
+            }
+            return false;
+        });
+
+        $("#domicile_arrondissement_temoins_epoux").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getQuartierVillage(localiteParent,'domicile_quartier_temoins_epoux');
+            }
+            return false;
+        });
+
+        // Témoins épouse
+        $("#domicile_ville_temoins_epouse").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getArrComUrbaine(localiteParent,'domicile_arrondissement_temoins_epouse');
+            }
+            return false;
+        });
+
+        $("#domicile_arrondissement_temoins_epouse").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getQuartierVillage(localiteParent,'domicile_quartier_temoins_epouse');
+            }
+            return false;
+        });
+
+        // Déclarant
+        $("#domicile_ville_declarant").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getArrComUrbaine(localiteParent,'domicile_arrondissement_declarant');
+            }
+            return false;
+        });
+
+        $("#domicile_arrondissement_declarant").on("change", function(){
+            var localiteParent = $(this).val();
+            if(localiteParent != "" || localiteParent !=null){
+                getQuartierVillage(localiteParent,'domicile_quartier_declarant');
+            }
+            return false;
+        });
+
+        //temoin epoux
+        $("#code_localite_t_epoux_1").change(function() {
+            var localiteepouxt1 = $(this).val();
+            var libLocalitetEpoux1 = $("#code_localite_t_epoux_1 option:selected").text();
+
+            if(localiteepouxt1 != '' || localiteepouxt1 != null){
+                // alert(localiteepouxt1);
+                $("#lieu_naissance_t_epoux_1").val(libLocalitetEpoux1);
+                $("div.autrelieunaissancetemoinepoux1").addClass("d-none");
+
+            }
+            if(localiteepouxt1 == 'LOC_4247'){
+               $("div.autrelieunaissancetemoinepoux1").removeClass("d-none");
+               $("#lieu_naissance_t_epoux_1").val("");
+            }
+        });
+
+        $("#code_localite_t_epoux_2").change(function() {
+            var localiteepouxt2 = $(this).val();
+
+            var libLocalitetEpoux2 = $("#code_localite_t_epoux_2 option:selected").text();
+
+            if(localiteepouxt2 != '' || localiteepouxt2 != null){
+                // alert(localiteepouxt2);
+                $("#lieu_naissance_t_epoux_2").val(libLocalitetEpoux2);
+                $("div.autrelieunaissancetemoinepoux2").addClass("d-none");
+            }
+            if(localiteepouxt2 == 'LOC_4247'){
+                $("div.autrelieunaissancetemoinepoux2").removeClass("d-none");
+                $("#lieu_naissance_t_epoux_2").val("");
+            }
+
+            // if(localiteepouxt2 == '' || localiteepouxt2 == null){
+            //     $("div.autrelieunaissanceepoux").addClass("d-none");
+            //     $("input.autrelieunaissancetemoinepoux2").attr("disabled","disabled");
+            // }
+            // if(localiteepouxt2 == "autres_localite_t_epoux_2"){
+            //    $("div.autrelieunaissancetemoinepoux2").removeClass("d-none");
+            //     $("input.autrelieunaissancetemoinepoux2").removeAttr("disabled");
+            //     $("select.code_localite_t_epoux_2").attr("disabled","disabled");
+
+            // }else{
+            //     $("div.autrelieunaissancetemoinepoux2").addClass("d-none");
+            //     $("input.autrelieunaissancetemoinepoux2").attr("disabled","disabled");
+            // }
+        });
+
+
+        $("#cec_epoux").change(function (e) {
+            e.preventDefault();
+
+            var cq = $(this).val();
+            if(cq == "new_cec_epoux"){
+                // alert(cq)
+                $("div.newcecepoux").removeClass("d-none");
+                $("input.newcecepoux").removeAttr("disabled");
+            }else{
+                $("div.newcecepoux").addClass("d-none");
+                $("input.newcecepoux").attr("disabled","disabled");
+            }
+        });
+
+
+        // $("#code_localite_epouse").change(function() {
+        //     var localiteepouse = $(this).val();
+
+        //     var libLocalitetEpouse = $("#code_localite_epouse option:selected").text();
+
+        //     if(localiteepouxt2 != '' || localiteepouxt2 != null){
+        //         // alert(localiteepouxt2);
+        //         $("#lieu_naissance_t_epoux_2").val(libLocalitetEpouse);
+        //         $("div.autrelieunaissancetemoinepouse").addClass("d-none");
+        //     }
+        //     if(localiteepouxt2 == 'LOC_4247'){
+        //         $("div.autrelieunaissancetemoinepouse").removeClass("d-none");
+        //         $("#lieu_naissance_t_epoux_2").val(libLocalitetEpouse);
+        //     }
+
+            // if(localiteepouse == '' || localiteepouse == null){
+            //     $("div.autrelieunaissanceepouse").addClass("d-none");
+            //     $("input.autrelieunaissanceepouse").attr("disabled","disabled");
+            // }
+            // if(localiteepouse == "autres_localite_epouse"){
+            //    $("div.autrelieunaissanceepouse").removeClass("d-none");
+            //     $("input.autrelieunaissanceepouse").removeAttr("disabled");
+            //     $("select.code_localite_epouse").attr("disabled","disabled");
+
+            // }else{
+            //     $("div.autrelieunaissanceepouse").addClass("d-none");
+            //     $("input.autrelieunaissanceepouse").attr("disabled","disabled");
+            // }
+        //});
+        //temoin epouse
+        $("#code_localite_t_epouse_1").change(function() {
+            var localiteepouset1 = $(this).val();
+
+            var libLocalitetEpouse1 = $("#code_localite_t_epouse_1 option:selected").text();
+
+            if(localiteepouset1 != '' || localiteepouset1 != null){
+                // alert(localiteepouset1);
+                $("#lieu_naissance_t_epouse_1").val(libLocalitetEpouse1);
+                $("div.autrelieunaissancetemoinepouse1").addClass("d-none");
+            }
+            if(localiteepouset1 == 'LOC_4247'){
+                $("div.autrelieunaissancetemoinepouse1").removeClass("d-none");
+                $("#lieu_naissance_t_epouse_1").val("");
+            }
+
+
+            // if(localiteepouset1 == '' || localiteepouset1 == null){
+            //     $("div.autrelieunaissanceepouse").addClass("d-none");
+            //     $("input.autrelieunaissancetemoinepouse1").attr("disabled","disabled");
+            // }
+            // if(localiteepouset1 == "autres_localite_t_epouse_1"){
+            //    $("div.autrelieunaissancetemoinepouse1").removeClass("d-none");
+            //     $("input.autrelieunaissancetemoinepouse1").removeAttr("disabled");
+            //     $("select.code_localite_t_epouse_1").attr("disabled","disabled");
+
+            // }else{
+            //     $("div.autrelieunaissancetemoinepouse1").addClass("d-none");
+            //     $("input.autrelieunaissancetemoinepouse1").attr("disabled","disabled");
+            // }
+        });
+        $("#code_localite_t_epouse_2").change(function() {
+            var localiteepouset2 = $(this).val();
+
+            var libLocalitetEpouse2 = $("#code_localite_t_epouse_2 option:selected").text();
+
+            if(localiteepouset2 != '' || localiteepouset2 != null){
+                // alert(localiteepouset2);
+                $("#lieu_naissance_t_epouse_2").val(libLocalitetEpouse2);
+                $("div.autrelieunaissancetemoinepouse2").addClass("d-none");
+            }
+            if(localiteepouset2 == 'LOC_4247'){
+                $("div.autrelieunaissancetemoinepouse2").removeClass("d-none");
+                $("#lieu_naissance_t_epouse_2").val("");
+            }
+
+            // if(localiteepouset2 == '' || localiteepouset2 == null){
+            //     $("div.autrelieunaissanceepouse").addClass("d-none");
+            //     $("input.autrelieunaissancetemoinepouse2").attr("disabled","disabled");
+            // }
+            // if(localiteepouset2 == "autres_localite_t_epouse_2"){
+            //    $("div.autrelieunaissancetemoinepouse2").removeClass("d-none");
+            //     $("input.autrelieunaissancetemoinepouse2").removeAttr("disabled");
+            //     $("select.code_localite_t_epouse_2").attr("disabled","disabled");
+
+            // }else{
+            //     $("div.autrelieunaissancetemoinepouse2").addClass("d-none");
+            //     $("input.autrelieunaissancetemoinepouse2").attr("disabled","disabled");
+            // }
+        });
+
+        $("#cec_epouse").change(function (e) {
+            e.preventDefault();
+
+            var cq = $(this).val();
+            if(cq == "new_cec_epouse"){
+                // alert(cq)
+                $("div.newcecepouse").removeClass("d-none");
+                $("input.newcecepouse").removeAttr("disabled");
+            }else{
+                $("div.newcecepouse").addClass("d-none");
+                $("input.newcecepouse").attr("disabled","disabled");
+            }
+        });
+
+
+        // $("#lieu_naissance_t_epoux_1").change(function (e) {
+        //     e.preventDefault();
+
+        //     var lNaisEpouxT1 = $(this).val();
+        //     if(lNaisEpouxT1 == "communes_t_epoux_1"){
+        //         // alert(cq)
+        //         $("div.communestemoinepoux1").removeClass("d-none");
+        //         $("select.communestemoinepoux1").removeAttr("disabled");
+        //         $("div.districtstemoinepoux1").addClass("d-none");
+        //         $("select.districtstemoinepoux1").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepoux1").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux1").attr("disabled","disabled");
+
+        //     }else if(lNaisEpouxT1 == "districts_t_epoux_1"){
+        //         $("div.districtstemoinepoux1").removeClass("d-none");
+        //         $("select.districtstemoinepoux1").removeAttr("disabled");
+        //         $("div.communestemoinepoux1").addClass("d-none");
+        //         $("select.communestemoinepoux1").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepoux1").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux1").attr("disabled","disabled");
+
+
+        //     }else if(lNaisEpouxT1 == "autres_localite_t_epoux_1"){
+        //        $("div.autrelieunaissancetemoinepoux1").removeClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux1").removeAttr("disabled","disabled");
+        //         $("div.communestemoinepoux1").addClass("d-none");
+        //         $("select.communestemoinepoux1").attr("disabled","disabled");
+        //         $("div.districtstemoinepoux1").addClass("d-none");
+        //         $("select.districtstemoinepoux1").attr("disabled","disabled");
+
+        //     }
+        //     else{
+        //         $("div.autrelieunaissancetemoinepoux1").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux1").attr("disabled","disabled");
+        //         $("div.communestemoinepoux1").addClass("d-none");
+        //         $("select.communestemoinepoux1").attr("disabled","disabled");
+        //         $("div.districtstemoinepoux1").addClass("d-none");
+        //         $("select.districtstemoinepoux1").attr("disabled","disabled");
+
+        //     }
+        // });
+
+        // $("#lieu_naissance_t_epoux_2").change(function (e) {
+        //     e.preventDefault();
+
+        //     var lNaisEpouxT2 = $(this).val();
+        //     if(lNaisEpouxT2 == "communes_t_epoux_2"){
+        //         // alert(cq)
+        //         $("div.communestemoinepoux2").removeClass("d-none");
+        //         $("select.communestemoinepoux2").removeAttr("disabled");
+        //         $("div.districtstemoinepoux2").addClass("d-none");
+        //         $("select.districtstemoinepoux2").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepoux2").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux2").attr("disabled","disabled");
+
+        //     }else if(lNaisEpouxT2 == "districts_t_epoux_2"){
+        //         $("div.districtstemoinepoux2").removeClass("d-none");
+        //         $("select.districtstemoinepoux2").removeAttr("disabled");
+        //         $("div.communestemoinepoux2").addClass("d-none");
+        //         $("select.communestemoinepoux2").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepoux2").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux2").attr("disabled","disabled");
+
+
+        //     }else if(lNaisEpouxT2 == "autres_localite_t_epoux_2"){
+        //        $("div.autrelieunaissancetemoinepoux2").removeClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux2").removeAttr("disabled","disabled");
+        //         $("div.communestemoinepoux2").addClass("d-none");
+        //         $("select.communestemoinepoux2").attr("disabled","disabled");
+        //         $("div.districtstemoinepoux2").addClass("d-none");
+        //         $("select.districtstemoinepoux2").attr("disabled","disabled");
+
+        //     }
+        //     else{
+        //         $("div.autrelieunaissancetemoinepoux2").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepoux2").attr("disabled","disabled");
+        //         $("div.communestemoinepoux2").addClass("d-none");
+        //         $("select.communestemoinepoux2").attr("disabled","disabled");
+        //         $("div.districtstemoinepoux2").addClass("d-none");
+        //         $("select.districtstemoinepoux2").attr("disabled","disabled");
+
+        //     }
+        // });
+
+        // //EPOUSE TEMOIN
+        // $("#lieu_naissance_t_epouse_1").change(function (e) {
+        //     e.preventDefault();
+
+        //     var lNaisEpouseT1 = $(this).val();
+        //     if(lNaisEpouseT1 == "communes_t_epouse_1"){
+        //         // alert(cq)
+        //         $("div.communestemoinepouse1").removeClass("d-none");
+        //         $("select.communestemoinepouse1").removeAttr("disabled");
+        //         $("div.districtstemoinepouse1").addClass("d-none");
+        //         $("select.districtstemoinepouse1").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepouse1").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse1").attr("disabled","disabled");
+
+        //     }else if(lNaisEpouseT1 == "districts_t_epouse_1"){
+        //         $("div.districtstemoinepouse1").removeClass("d-none");
+        //         $("select.districtstemoinepouse1").removeAttr("disabled");
+        //         $("div.communestemoinepouse1").addClass("d-none");
+        //         $("select.communestemoinepouse1").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepouse1").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse1").attr("disabled","disabled");
+
+
+        //     }else if(lNaisEpouseT1 == "autres_localite_t_epouse_1"){
+        //        $("div.autrelieunaissancetemoinepouse1").removeClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse1").removeAttr("disabled","disabled");
+        //         $("div.communestemoinepouse1").addClass("d-none");
+        //         $("select.communestemoinepouse1").attr("disabled","disabled");
+        //         $("div.districtstemoinepouse1").addClass("d-none");
+        //         $("select.districtstemoinepouse1").attr("disabled","disabled");
+
+        //     }
+        //     else{
+        //         $("div.autrelieunaissancetemoinepouse1").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse1").attr("disabled","disabled");
+        //         $("div.communestemoinepouse1").addClass("d-none");
+        //         $("select.communestemoinepouse1").attr("disabled","disabled");
+        //         $("div.districtstemoinepouse1").addClass("d-none");
+        //         $("select.districtstemoinepouse1").attr("disabled","disabled");
+
+        //     }
+        // });
+
+        // $("#lieu_naissance_t_epouse_2").change(function (e) {
+        //     e.preventDefault();
+
+        //     var lNaisEpouseT2 = $(this).val();
+        //     if(lNaisEpouseT2 == "communes_t_epouse_2"){
+        //         // alert(cq)
+        //         $("div.communestemoinepouse2").removeClass("d-none");
+        //         $("select.communestemoinepouse2").removeAttr("disabled");
+        //         $("div.districtstemoinepouse2").addClass("d-none");
+        //         $("select.districtstemoinepouse2").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepouse2").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse2").attr("disabled","disabled");
+
+        //     }else if(lNaisEpouseT2 == "districts_t_epouse_2"){
+        //         $("div.districtstemoinepouse2").removeClass("d-none");
+        //         $("select.districtstemoinepouse2").removeAttr("disabled");
+        //         $("div.communestemoinepouse2").addClass("d-none");
+        //         $("select.communestemoinepouse2").attr("disabled","disabled");
+        //         $("div.autrelieunaissancetemoinepouse2").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse2").attr("disabled","disabled");
+
+
+        //     }else if(lNaisEpouseT2 == "autres_localite_t_epouse_2"){
+        //        $("div.autrelieunaissancetemoinepouse2").removeClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse2").removeAttr("disabled","disabled");
+        //         $("div.communestemoinepouse2").addClass("d-none");
+        //         $("select.communestemoinepouse2").attr("disabled","disabled");
+        //         $("div.districtstemoinepouse2").addClass("d-none");
+        //         $("select.districtstemoinepouse2").attr("disabled","disabled");
+
+        //     }
+        //     else{
+        //         $("div.autrelieunaissancetemoinepouse2").addClass("d-none");
+        //         $("input.autrelieunaissancetemoinepouse2").attr("disabled","disabled");
+        //         $("div.communestemoinepouse2").addClass("d-none");
+        //         $("select.communestemoinepouse2").attr("disabled","disabled");
+        //         $("div.districtstemoinepouse2").addClass("d-none");
+        //         $("select.districtstemoinepouse2").attr("disabled","disabled");
+
+        //     }
+        // });
+
+        $("#numero_acte_mariage_epoux").blur(function (e) {
+            e.preventDefault();
+            var num_acte_epoux = $(this).val();
+            var url = "{{ route('acteMariage.search', ':id') }}";
+            url = url.replace(":id", num_acte_epoux);
+
+            if(num_acte_epoux != "" || num_acte_epoux != null){
+
+                $.get(url, function(reponse){
+                    if(reponse.code == "99"){
+
+                        // $(".over-loader-page").fadeIn(600);
+                        // flashAlert("dfvd","warning",reponse.message);
+                        $(".numajugementdivorceepoux").fadeIn(3000);
+                        $("#numero_jugement_divorce_epoux").prop("disabled",false);
+                        $(".numactedecesepouse").fadeIn(3000);
+                        $("#numero_acte_deces_epouse").prop("disabled",false);
+
+                    }else{
+                        // alert("Aucun acte trouvé");
+                        // flashAlert("Réponse","error","Aucun acte trouvé");
+                        $(".numajugementdivorceepoux").fadeOut();
+                        $("#numero_jugement_divorce_epoux").prop("disabled",true);
+                        $(".numactedecesepouse").fadeOut();
+                        $(".numactedecesepoux").fadeOut();
+                        $("#numero_acte_deces_epouse").prop("disabled",true);
+
+                    }
+                });
+            }
+
+        });
+
+
+        // Variable globale pour stocker les données de recherche
+        var donneesEpouxTrouvees = null;
+
+        $("#rechercherEpoux").on("click", function(event){
+            event.preventDefault();
+
+            var numero_acte_naissance = $("#numero_acte_naissance_epoux").val().trim();
+            if(!numero_acte_naissance) {
+                alert("Veuillez saisir un numéro d'acte de naissance");
+                return;
+            }
+
+            // Afficher un loader
+            $(this).html('<i class="fa fa-spinner fa-spin"></i> Recherche...');
+            $(this).prop('disabled', true);
+
+            var data = {
+                numero_acte_naissance: numero_acte_naissance
+            };
+
+            $.post("{{ route('declarationMariage.recherchePersonne') }}", data, function (response) {
+                // Restaurer le bouton
+                $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpoux").prop('disabled', false);
+
+                if(response.code == "200"){
+                    // Stocker les données pour utilisation ultérieure
+                    donneesEpouxTrouvees = response;
+
+                    // Afficher les résultats dans la modal
+                    $("#identite_epoux").text((response.nom || '') + ' ' + (response.prenom || ''));
+
+                    // Formater la date de naissance
+                    var dateNaissanceFormatee = 'Non spécifiée';
+                    if(response.date_naissance) {
+                        var date = new Date(response.date_naissance);
+                        var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                        dateNaissanceFormatee = date.toLocaleDateString('fr-FR', options);
+                    }
+                    $("#date_naissance_result_epoux").text(dateNaissanceFormatee);
+
+                    $("#sexe_result_epoux").text(response.sexe == 'M' ? 'Masculin' : (response.sexe == 'F' ? 'Féminin' : 'Non spécifié'));
+                    $("#lieu_naissance_result_epoux").text(response.lib_lieu_naissance || 'Non spécifié');
+                    $("#parents_result_epoux").text((response.pere || 'Père non spécifié') + ' / ' + (response.mere || 'Mère non spécifiée'));
+
+                    // Afficher la zone de résultats et le bouton de confirmation
+                    $("#resultats_epoux").show();
+                    $("#confirmer_epoux").show();
+
+                    // Masquer le champ de recherche
+                    $("#numero_acte_naissance_epoux").prop('readonly', true);
+                    $("#rechercherEpoux").hide();
+
+                } else {
+                    // Masquer les résultats en cas d'erreur
+                    $("#resultats_epoux").hide();
+                    $("#confirmer_epoux").hide();
+                    flashAlert("Recherche échouée", "error", response.message);
+                }
+            }).fail(function() {
+                $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpoux").prop('disabled', false);
+                flashAlert("Erreur", "error", "Erreur de connexion lors de la recherche");
+            });
+
+            return false;
+        });
+
+        // Bouton de confirmation pour l'époux
+        $("#confirmer_epoux").on("click", function(){
+            if(donneesEpouxTrouvees) {
+                // Remplir le formulaire avec les données trouvées
+                $("#nom_epoux").val(donneesEpouxTrouvees.nom || '');
+                $("#prenom_epoux").val(donneesEpouxTrouvees.prenom || '');
+                $("#date_naissance_epoux").val(donneesEpouxTrouvees.date_naissance || '');
+                $("#num_acte_naissance_epoux").val(donneesEpouxTrouvees.numero_ancien_acte || '');
+                $("#date_emission_acte_naissance_epoux").val(donneesEpouxTrouvees.dateEmisAN || '');
+                $("#nom_pere_epoux").val(donneesEpouxTrouvees.pere || '');
+                $("#nom_mere_epoux").val(donneesEpouxTrouvees.mere || '');
+
+                // Gérer la nationalité et la profession
+                if(donneesEpouxTrouvees.code_nationalite) {
+                    $("#code_nationalite_epoux").val(donneesEpouxTrouvees.code_nationalite).trigger('change');
+                }
+                if(donneesEpouxTrouvees.code_profession) {
+                    $("#code_profession_epoux").val(donneesEpouxTrouvees.code_profession);
+                }
+
+                // Remplir le lieu de naissance et le centre d'état civil selon la nationalité
+                // Pour les Congolais (nationalité locale), utiliser les champs normaux
+                if(donneesEpouxTrouvees.lieu_naissance && donneesEpouxTrouvees.lieu_naissance !== 'LOC_4247') {
+                    // Localité congolaise - utiliser le dropdown de localité
+                    $("#code_localite_epoux").val(donneesEpouxTrouvees.lieu_naissance).trigger('change');
+
+                    // Remplir le centre d'état civil une fois que les CEC sont chargés
+                    if(donneesEpouxTrouvees.code_cec_naissance) {
+                        // Attendre que les CEC se chargent puis sélectionner le bon
+                        setTimeout(function() {
+                            $("#code_cec_epoux").val(donneesEpouxTrouvees.code_cec_naissance).trigger('change');
+
+                            // Si la sélection n'a pas fonctionné, essayer avec le libellé
+                            if($("#code_cec_epoux").val() === null || $("#code_cec_epoux").val() === '') {
+                                // Chercher l'option par son texte
+                                $("#code_cec_epoux option").each(function() {
+                                    if($(this).text().toLowerCase().includes(donneesEpouxTrouvees.cec_naissance.toLowerCase())) {
+                                        $(this).prop('selected', true);
+                                        $("#code_cec_epoux").trigger('change');
+                                        return false; // Break the loop
+                                    }
+                                });
+                            }
+                        }, 1000); // Augmenter le délai à 1 seconde
+                    }
+                } else if(donneesEpouxTrouvees.lieu_naissance === 'LOC_4247') {
+                    // Étranger - utiliser les champs texte spéciaux
+                    $("#lieu_naissance_epoux").val(donneesEpouxTrouvees.lib_lieu_naissance || '');
+                    $("#cec_naissance_epoux").val(donneesEpouxTrouvees.cec_naissance || '');
+                }
+
+                // Mettre tous les champs identifiés en mode lecture seule
+                $("#nom_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#prenom_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#date_naissance_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#num_acte_naissance_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#date_emission_acte_naissance_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#nom_pere_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#nom_mere_epoux").prop('readonly', true).addClass('readonly-field');
+                $("#code_nationalite_epoux").prop('disabled', true).addClass('readonly-field');
+                $("#code_profession_epoux").prop('disabled', true).addClass('readonly-field');
+                $("#code_localite_epoux").prop('disabled', true).addClass('readonly-field');
+                $("#code_cec_epoux").prop('disabled', true).addClass('readonly-field');
+
+                // Afficher l'identité dans le formulaire principal
+                $("#nom_prenom_epoux_trouve").text((donneesEpouxTrouvees.nom || '') + ' ' + (donneesEpouxTrouvees.prenom || ''));
+
+                // Formater la date de naissance pour l'affichage principal
+                var dateNaissanceEpouxFormatee = 'Non spécifiée';
+                if(donneesEpouxTrouvees.date_naissance) {
+                    var date = new Date(donneesEpouxTrouvees.date_naissance);
+                    var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    dateNaissanceEpouxFormatee = date.toLocaleDateString('fr-FR', options);
+                }
+                $("#date_naissance_epoux_trouve").text(dateNaissanceEpouxFormatee);
+
+                $("#numero_acte_epoux_trouve").text(donneesEpouxTrouvees.numero_ancien_acte || '');
+                $("#identite_trouvee_epoux").show();
+
+                // Fermer la modal
+                $(".epoux-search-modal-lg").modal("hide");
+
+                // Afficher un message de succès
+                flashAlert("Succès", "success", "Informations de l'époux remplies automatiquement");
+
+                // Réinitialiser la modal pour une prochaine recherche
+                resetModalEpoux();
+            }
+        });
+
+        // Fonction pour réinitialiser la modal époux
+        function resetModalEpoux() {
+            $("#numero_acte_naissance_epoux").val('').prop('readonly', false);
+            $("#rechercherEpoux").show().html('<i class="fa fa-search"></i> Rechercher');
+            $("#resultats_epoux").hide();
+            $("#confirmer_epoux").hide();
+            donneesEpouxTrouvees = null;
+        }
+
+        // Réinitialiser la modal quand elle se ferme
+        $('.epoux-search-modal-lg').on('hidden.bs.modal', function () {
+            resetModalEpoux();
+        });
+
+        // Variable globale pour stocker les données de recherche épouse
+        var donneesEpouseTrouvees = null;
+
+        $("#rechercherEpouse").on("click", function(event){
+            event.preventDefault();
+
+            var numero_acte_naissance = $("#numero_acte_naissance_epouse").val().trim();
+            if(!numero_acte_naissance) {
+                alert("Veuillez saisir un numéro d'acte de naissance");
+                return;
+            }
+
+            // Afficher un loader
+            $(this).html('<i class="fa fa-spinner fa-spin"></i> Recherche...');
+            $(this).prop('disabled', true);
+
+            var data = {
+                numero_acte_naissance: numero_acte_naissance
+            };
+
+            $.post("{{ route('declarationMariage.recherchePersonne') }}", data, function (response) {
+                // Restaurer le bouton
+                $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpouse").prop('disabled', false);
+
+                if(response.code == "200"){
+                    // Stocker les données pour utilisation ultérieure
+                    donneesEpouseTrouvees = response;
+
+                    // Afficher les résultats dans la modal
+                    $("#identite_epouse").text((response.nom || '') + ' ' + (response.prenom || ''));
+
+                    // Formater la date de naissance
+                    var dateNaissanceFormatee = 'Non spécifiée';
+                    if(response.date_naissance) {
+                        var date = new Date(response.date_naissance);
+                        var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                        dateNaissanceFormatee = date.toLocaleDateString('fr-FR', options);
+                    }
+                    $("#date_naissance_result_epouse").text(dateNaissanceFormatee);
+
+                    $("#sexe_result_epouse").text(response.sexe == 'M' ? 'Masculin' : (response.sexe == 'F' ? 'Féminin' : 'Non spécifié'));
+                    $("#lieu_naissance_result_epouse").text(response.lib_lieu_naissance || 'Non spécifié');
+                    $("#parents_result_epouse").text((response.pere || 'Père non spécifié') + ' / ' + (response.mere || 'Mère non spécifiée'));
+
+                    // Afficher la zone de résultats et le bouton de confirmation
+                    $("#resultats_epouse").show();
+                    $("#confirmer_epouse").show();
+
+                    // Masquer le champ de recherche
+                    $("#numero_acte_naissance_epouse").prop('readonly', true);
+                    $("#rechercherEpouse").hide();
+
+                } else {
+                    // Masquer les résultats en cas d'erreur
+                    $("#resultats_epouse").hide();
+                    $("#confirmer_epouse").hide();
+                    flashAlert("Recherche échouée", "error", response.message);
+                }
+            }).fail(function() {
+                $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
+                $("#rechercherEpouse").prop('disabled', false);
+                flashAlert("Erreur", "error", "Erreur de connexion lors de la recherche");
+            });
+
+            return false;
+        });
+
+        // Bouton de confirmation pour l'épouse
+        $("#confirmer_epouse").on("click", function(){
+            if(donneesEpouseTrouvees) {
+                // Remplir le formulaire avec les données trouvées
+                $("#nom_epouse").val(donneesEpouseTrouvees.nom || '');
+                $("#prenom_epouse").val(donneesEpouseTrouvees.prenom || '');
+                $("#date_naissance_epouse").val(donneesEpouseTrouvees.date_naissance || '');
+                $("#num_acte_naissance_epouse").val(donneesEpouseTrouvees.numero_ancien_acte || '');
+                $("#date_emission_acte_naissance_epouse").val(donneesEpouseTrouvees.dateEmisAN || '');
+                $("#nom_pere_epouse").val(donneesEpouseTrouvees.pere || '');
+                $("#nom_mere_epouse").val(donneesEpouseTrouvees.mere || '');
+
+                // Gérer la nationalité et la profession
+                if(donneesEpouseTrouvees.code_nationalite) {
+                    $("#code_nationalite_epouse").val(donneesEpouseTrouvees.code_nationalite).trigger('change');
+                }
+                if(donneesEpouseTrouvees.code_profession) {
+                    $("#code_profession_epouse").val(donneesEpouseTrouvees.code_profession);
+                }
+
+                // Remplir le lieu de naissance et le centre d'état civil selon la nationalité
+                // Pour les Congolais (nationalité locale), utiliser les champs normaux
+                if(donneesEpouseTrouvees.lieu_naissance && donneesEpouseTrouvees.lieu_naissance !== 'LOC_4247') {
+                    // Localité congolaise - utiliser le dropdown de localité
+                    $("#code_localite_epouse").val(donneesEpouseTrouvees.lieu_naissance).trigger('change');
+
+                    // Remplir le centre d'état civil une fois que les CEC sont chargés
+                    if(donneesEpouseTrouvees.code_cec_naissance) {
+                        // Attendre que les CEC se chargent puis sélectionner le bon
+                        setTimeout(function() {
+                            $("#code_cec_epouse").val(donneesEpouseTrouvees.code_cec_naissance).trigger('change');
+
+                            // Si la sélection n'a pas fonctionné, essayer avec le libellé
+                            if($("#code_cec_epouse").val() === null || $("#code_cec_epouse").val() === '') {
+                                // Chercher l'option par son texte
+                                $("#code_cec_epouse option").each(function() {
+                                    if($(this).text().toLowerCase().includes(donneesEpouseTrouvees.cec_naissance.toLowerCase())) {
+                                        $(this).prop('selected', true);
+                                        $("#code_cec_epouse").trigger('change');
+                                        return false; // Break the loop
+                                    }
+                                });
+                            }
+                        }, 1000); // Augmenter le délai à 1 seconde
+                    }
+                } else if(donneesEpouseTrouvees.lieu_naissance === 'LOC_4247') {
+                    // Étranger - utiliser les champs texte spéciaux
+                    $("#lieu_naissance_epouse").val(donneesEpouseTrouvees.lib_lieu_naissance || '');
+                    $("#cec_naissance_epouse").val(donneesEpouseTrouvees.cec_naissance || '');
+                }
+
+                // Mettre tous les champs identifiés en mode lecture seule
+                $("#nom_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#prenom_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#date_naissance_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#num_acte_naissance_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#date_emission_acte_naissance_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#nom_pere_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#nom_mere_epouse").prop('readonly', true).addClass('readonly-field');
+                $("#code_nationalite_epouse").prop('disabled', true).addClass('readonly-field');
+                $("#code_profession_epouse").prop('disabled', true).addClass('readonly-field');
+                $("#code_localite_epouse").prop('disabled', true).addClass('readonly-field');
+                $("#code_cec_epouse").prop('disabled', true).addClass('readonly-field');
+
+                // Afficher l'identité dans le formulaire principal
+                $("#nom_prenom_epouse_trouve").text((donneesEpouseTrouvees.nom || '') + ' ' + (donneesEpouseTrouvees.prenom || ''));
+
+                // Formater la date de naissance pour l'affichage principal
+                var dateNaissanceEpouseFormatee = 'Non spécifiée';
+                if(donneesEpouseTrouvees.date_naissance) {
+                    var date = new Date(donneesEpouseTrouvees.date_naissance);
+                    var options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    dateNaissanceEpouseFormatee = date.toLocaleDateString('fr-FR', options);
+                }
+                $("#date_naissance_epouse_trouve").text(dateNaissanceEpouseFormatee);
+
+                $("#numero_acte_epouse_trouve").text(donneesEpouseTrouvees.numero_ancien_acte || '');
+                $("#identite_trouvee_epouse").show();
+
+                // Fermer la modal
+                $(".epouse-search-modal-lg").modal("hide");
+
+                // Afficher un message de succès
+                flashAlert("Succès", "success", "Informations de l'épouse remplies automatiquement");
+
+                // Réinitialiser la modal pour une prochaine recherche
+                resetModalEpouse();
+            }
+        });
+
+        // Fonction pour réinitialiser la modal épouse
+        function resetModalEpouse() {
+            $("#numero_acte_naissance_epouse").val('').prop('readonly', false);
+            $("#rechercherEpouse").show().html('<i class="fa fa-search"></i> Rechercher');
+            $("#resultats_epouse").hide();
+            $("#confirmer_epouse").hide();
+            donneesEpouseTrouvees = null;
+        }
+
+        // Réinitialiser la modal quand elle se ferme
+        $('.epouse-search-modal-lg').on('hidden.bs.modal', function () {
+            resetModalEpouse();
+        });
+
+        // ========== BOUTONS VIDER ==========
+
+        // Bouton vider pour l'époux
+        $("#clear_epoux").on("click", function(){
+            if(confirm("Êtes-vous sûr de vouloir vider toutes les informations de l'époux ?")) {
+                // Vider tous les champs de l'époux
+                $("#nom_epoux").val('');
+                $("#prenom_epoux").val('');
+                $("#date_naissance_epoux").val('');
+                $("#num_acte_naissance_epoux").val('');
+                $("#date_emission_acte_naissance_epoux").val('');
+                $("#nom_pere_epoux").val('');
+                $("#nom_mere_epoux").val('');
+                $("#code_nationalite_epoux").val('').trigger('change');
+                $("#code_profession_epoux").val('').trigger('change');
+
+                // Retirer le mode lecture seule de tous les champs
+                $("#nom_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#prenom_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#date_naissance_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#num_acte_naissance_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#date_emission_acte_naissance_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_pere_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_mere_epoux").prop('readonly', false).removeClass('readonly-field');
+                $("#code_nationalite_epoux").prop('disabled', false).removeClass('readonly-field');
+                $("#code_profession_epoux").prop('disabled', false).removeClass('readonly-field');
+                $("#code_localite_epoux").prop('disabled', false).removeClass('readonly-field');
+                $("#code_cec_epoux").prop('disabled', false).removeClass('readonly-field');
+
+                // Masquer la zone d'identité trouvée
+                $("#identite_trouvee_epoux").hide();
+
+                // Réinitialiser les données stockées
+                donneesEpouxTrouvees = null;
+
+                flashAlert("Succès", "success", "Informations de l'époux vidées");
+            }
+        });
+
+        // Bouton vider pour l'épouse
+        $("#clear_epouse").on("click", function(){
+            if(confirm("Êtes-vous sûr de vouloir vider toutes les informations de l'épouse ?")) {
+                // Vider tous les champs de l'épouse
+                $("#nom_epouse").val('');
+                $("#prenom_epouse").val('');
+                $("#date_naissance_epouse").val('');
+                $("#num_acte_naissance_epouse").val('');
+                $("#date_emission_acte_naissance_epouse").val('');
+                $("#nom_pere_epouse").val('');
+                $("#nom_mere_epouse").val('');
+                $("#code_nationalite_epouse").val('').trigger('change');
+                $("#code_profession_epouse").val('').trigger('change');
+
+                // Retirer le mode lecture seule de tous les champs
+                $("#nom_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#prenom_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#date_naissance_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#num_acte_naissance_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#date_emission_acte_naissance_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_pere_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#nom_mere_epouse").prop('readonly', false).removeClass('readonly-field');
+                $("#code_nationalite_epouse").prop('disabled', false).removeClass('readonly-field');
+                $("#code_profession_epouse").prop('disabled', false).removeClass('readonly-field');
+                $("#code_localite_epouse").prop('disabled', false).removeClass('readonly-field');
+                $("#code_cec_epouse").prop('disabled', false).removeClass('readonly-field');
+
+                // Masquer la zone d'identité trouvée
+                $("#identite_trouvee_epouse").hide();
+
+                // Réinitialiser les données stockées
+                donneesEpouseTrouvees = null;
+
+                flashAlert("Succès", "success", "Informations de l'épouse vidées");
+            }
+        });
+
+        $("#lieu_ceremonie_mariage").on("change", function(){
+            var lieu_Mariage = $(this).val();
+
+            if(lieu_Mariage != null || lieu_Mariage != ""){
+
+                if(lieu_Mariage == 'Hors centre d\'état civil'){
+                    // alert(lieu_Mariage)
+                    $('.adresseCeremonie').removeClass("d-none");
+                    $('#adresse_celebration').prop("disabled",false);
+                }else{
+                    // alert("rien")
+                    $('.adresseCeremonie').addClass("d-none");
+                    $('#adresse_celebration').prop("disabled",true);
+                }
+
+            }
+            return false;
+        });
+
+        $("#date_ceremonie_mariage").blur(function() {
+            var durree = $(this).val();
+            var today = new Date();
+
+            if(durree != null || durree != ''){
+                var date2 = new Date(durree);
+
+                // To calculate the time difference of two dates
+                var Difference_In_Time = date2.getTime() - today.getTime();
+                var n_jours = parseInt(Difference_In_Time / (1000 * 3600 * 24));
+
+                if(n_jours < 60){
+                    $(".notification").slideDown(300);
+                }else{
+                    $(".notification").fadeOut();
+                }
+                return false;
+                // alert(n_jours);
+            }
+        });
+
+        $("#lieu_ceremonie_mariage").change(function (e) {
+            e.preventDefault();
+
+            var lieuC = $(this).val();
+            if(lieuC != "" || lieuC != null){
+                if(lieuC === 'Hors centre d\'état civil'){
+                    $(".notification2").slideDown(300);
+                }else{
+                    $(".notification2").fadeOut();
+                }
+
+            }
+        });
+
+        // GESTION ADRESSE EPOUX/EPOUSE/TEMOINS EPOUX/TEMOINS EPOUSE/INFO GENERALE
+            //EPOUX
+        $(".quartier_epoux").removeClass("d-none");
+        // $(".village_epoux").removeClass("d-none");
+        $("#residence_externe_epoux").change(function(e) {
+            e.preventDefault();
+
+            var pays = $(this).val();
+            if(pays == 'Congo'){
+
+                $(".quartier_epoux").removeClass("d-none");
+                $("#code_quartier_epoux").removeAttr("disabled");
+                $("div.ville_epoux").addClass("d-none");
+                $("input.ville_epoux").attr("disabled", "disabled");
+
+            }else{
+                $("#code_quartier_epoux").attr("disabled","disabled");
+                $(".quartier_epoux").addClass("d-none");
+                $("div.ville_epoux").removeClass("d-none");
+                $("input.ville_epoux").removeAttr("disabled");
+
+                $("div.new_quartier_epoux").addClass("d-none");
+                $("input.new_quartier_epoux").attr("disabled","disabled");
+            }
+        });
+
+        $("#code_quartier_epoux").change(function (e) {
+            e.preventDefault();
+
+            var cq = $(this).val();
+            if(cq == "new_q_epoux"){
+                // alert(cq)
+                $("div.new_quartier_epoux").removeClass("d-none");
+                $("input.new_quartier_epoux").removeAttr("disabled");
+            }else{
+                $("div.new_quartier_epoux").addClass("d-none");
+                $("input.new_quartier_epoux").attr("disabled","disabled");
+            }
+        });
+            //EPOUSE
+        $(".quartier_epouse").removeClass("d-none");
+        // $(".village_epouse").removeClass("d-none");
+        $("#residence_externe_epouse").change(function(e) {
+            e.preventDefault();
+
+            var pays = $(this).val();
+            if(pays == 'Congo'){
+
+                $(".quartier_epouse").removeClass("d-none");
+                $("#code_quartier_epouse").removeAttr("disabled");
+                $("div.ville_epouse").addClass("d-none");
+                $("input.ville_epouse").attr("disabled", "disabled");
+
+            }else{
+                $("#code_quartier_epouse").attr("disabled","disabled");
+                $(".quartier_epouse").addClass("d-none");
+                $("div.ville_epouse").removeClass("d-none");
+                $("input.ville_epouse").removeAttr("disabled");
+
+                $("div.new_quartier_epouse").addClass("d-none");
+                $("input.new_quartier_epouse").attr("disabled","disabled");
+            }
+        });
+
+        $("#code_quartier_epouse").change(function (e) {
+            e.preventDefault();
+
+            var cq = $(this).val();
+            if(cq == "new_q_epouse"){
+                // alert(cq)
+                $("div.new_quartier_epouse").removeClass("d-none");
+                $("input.new_quartier_epouse").removeAttr("disabled");
+            }else{
+                $("div.new_quartier_epouse").addClass("d-none");
+                $("input.new_quartier_epouse").attr("disabled","disabled");
+            }
+        });
+            //TEMOINS EPOUX
+        $(".quartier_temoins_epoux").removeClass("d-none");
+        // $(".village_temoins_epoux").removeClass("d-none");
+        $("#residence_externe_temoins_epoux").change(function(e) {
+            e.preventDefault();
+
+            var pays = $(this).val();
+            if(pays == 'Congo'){
+
+                $(".quartier_temoins_epoux").removeClass("d-none");
+                $("#code_quartier_temoins_epoux").removeAttr("disabled");
+                $("div.ville_temoins_epoux").addClass("d-none");
+                $("input.ville_temoins_epoux").attr("disabled", "disabled");
+
+            }else{
+                $("#code_quartier_temoins_epoux").attr("disabled","disabled");
+                $(".quartier_temoins_epoux").addClass("d-none");
+                $("div.ville_temoins_epoux").removeClass("d-none");
+                $("input.ville_temoins_epoux").removeAttr("disabled");
+
+                $("div.new_quartier_temoins_epoux").addClass("d-none");
+                $("input.new_quartier_temoins_epoux").attr("disabled","disabled");
+            }
+        });
+
+        $("#code_quartier_temoins_epoux").change(function (e) {
+            e.preventDefault();
+
+            var cq = $(this).val();
+            if(cq == "new_q_temoins_epoux"){
+                // alert(cq)
+                $("div.new_quartier_temoins_epoux").removeClass("d-none");
+                $("input.new_quartier_temoins_epoux").removeAttr("disabled");
+            }else{
+                $("div.new_quartier_temoins_epoux").addClass("d-none");
+                $("input.new_quartier_temoins_epoux").attr("disabled","disabled");
+            }
+        });
+            //TEMOINS EPOUSE
+        $(".quartier_temoins_epouse").removeClass("d-none");
+        // $(".village_temoins_epouse").removeClass("d-none");
+        $("#residence_externe_temoins_epouse").change(function(e) {
+            e.preventDefault();
+
+            var pays = $(this).val();
+            if(pays == 'Congo'){
+
+                $(".quartier_temoins_epouse").removeClass("d-none");
+                $("#code_quartier_temoins_epouse").removeAttr("disabled");
+                $("div.ville_temoins_epouse").addClass("d-none");
+                $("input.ville_temoins_epouse").attr("disabled", "disabled");
+
+            }else{
+                $("#code_quartier_temoins_epouse").attr("disabled","disabled");
+                $(".quartier_temoins_epouse").addClass("d-none");
+                $("div.ville_temoins_epouse").removeClass("d-none");
+                $("input.ville_temoins_epouse").removeAttr("disabled");
+
+                $("div.new_quartier_temoins_epouse").addClass("d-none");
+                $("input.new_quartier_temoins_epouse").attr("disabled","disabled");
+            }
+        });
+
+        $("#code_quartier_temoins_epouse").change(function (e) {
+            e.preventDefault();
+
+            var cq = $(this).val();
+            if(cq == "new_q_temoins_epouse"){
+                // alert(cq)
+                $("div.new_quartier_temoins_epouse").removeClass("d-none");
+                $("input.new_quartier_temoins_epouse").removeAttr("disabled");
+            }else{
+                $("div.new_quartier_temoins_epouse").addClass("d-none");
+                $("input.new_quartier_temoins_epouse").attr("disabled","disabled");
+            }
+        });
+
+        //ADRESSE CEREMONIE
+        $("#lib_quartier_ceremonie").change(function (e) {
+            e.preventDefault();
+            $("div.domicile_ceremonie").removeClass("d-none");
+            $("div.domicile_numero_ceremonie").removeClass("d-none");
+            $("div.domicile_nomvoie_ceremonie").removeClass("d-none");
+
+            var cq = $(this).val();
+            if(cq == "new_q_ceremonie"){
+                // alert(cq)
+                $("div.new_quartier_ceremonie").removeClass("d-none");
+                $("div.domicile_ceremonie").removeClass("d-none");
+                $("div.domicile_numero_ceremonie").removeClass("d-none");
+                $("div.domicile_nomvoie_ceremonie").removeClass("d-none");
+
+                $("input.new_quartier_ceremonie").removeAttr("disabled");
+                $("#domicile_ceremonie").removeAttr("disabled");
+                $("#domicile_numero_ceremonie").removeAttr("disabled");
+                $("#domicile_nomvoie_ceremonie").removeAttr("disabled");
+            }else{
+
+                $("div.new_quartier_ceremonie").addClass("d-none");
+                $("input.new_quartier_ceremonie").attr("disabled","disabled");
+            }
+        });
+
+
+
+    });
+
+    // Fonction pour pré-remplir le formulaire avec les données existantes
+    function preRemplirFormulaire() {
+        // Données de la déclaration
+        var declaration = @json($declaration);
+
+        // Informations générales
+        $("#type_declaration").val(declaration.type_declaration || '');
+        $("#date_declaration_mariage").val(declaration.date_declaration_mariage || '');
+        $("#date_ceremonie_mariage").val(declaration.date_ceremonie_mariage || '');
+        $("#lieu_ceremonie_mariage").val(declaration.lieu_ceremonie_mariage || '');
+        $("#option_mariage").val(declaration.code_option_mariage || '');
+        $("#regime_mariage").val(declaration.code_regime || '');
+        $("#chef_famille").val(declaration.chef_famille || '');
+        $("#filiation").val(declaration.code_filiation || '');
+
+        // Informations époux
+        if (declaration.epoux) {
+            $("#nom_epoux").val(declaration.epoux.nom || '');
+            $("#prenom_epoux").val(declaration.epoux.prenom || '');
+            $("#date_naissance_epoux").val(declaration.epoux.date_naissance || '');
+            $("#lieu_naissance_epoux").val(declaration.epoux.lieu_naissance || '');
+            $("#code_localite_epoux").val(declaration.epoux.code_localite || '');
+            $("#code_nationalite_epoux").val(declaration.epoux.code_nationalite || '');
+            $("#code_profession_epoux").val(declaration.epoux.code_profession || '');
+            $("#nom_pere_epoux").val(declaration.epoux.nom_pere || '');
+            $("#nom_mere_epoux").val(declaration.epoux.nom_mere || '');
+            $("#sit_matrimoniale_epoux").val(declaration.code_situation_mat_epoux || '');
+            $("#num_acte_naissance_epoux").val(declaration.numero_acte_naissance_epoux || '');
+            $("#date_emission_acte_naissance_epoux").val(declaration.date_emission_acte_naissance_epoux || '');
+            $("#numero_acte_mariage_epoux").val(declaration.numero_acte_mariage_epoux || '');
+            $("#date_pre_mariage_epoux").val(declaration.date_pre_mariage_epoux || '');
+            $("#parent_paternel_epoux").val(declaration.parent_paternel_epoux || '');
+            $("#parent_maternel_epoux").val(declaration.parent_maternel_epoux || '');
+        }
+
+        // Informations épouse
+        if (declaration.epouse) {
+            $("#nom_epouse").val(declaration.epouse.nom || '');
+            $("#prenom_epouse").val(declaration.epouse.prenom || '');
+            $("#date_naissance_epouse").val(declaration.epouse.date_naissance || '');
+            $("#lieu_naissance_epouse").val(declaration.epouse.lieu_naissance || '');
+            $("#code_localite_epouse").val(declaration.epouse.code_localite || '');
+            $("#code_nationalite_epouse").val(declaration.epouse.code_nationalite || '');
+            $("#code_profession_epouse").val(declaration.epouse.code_profession || '');
+            $("#nom_pere_epouse").val(declaration.epouse.nom_pere || '');
+            $("#nom_mere_epouse").val(declaration.epouse.nom_mere || '');
+            $("#sit_matrimoniale_epouse").val(declaration.code_situation_mat_epouse || '');
+            $("#num_acte_naissance_epouse").val(declaration.numero_acte_naissance_epouse || '');
+            $("#date_emission_acte_naissance_epouse").val(declaration.date_emission_acte_naissance_epouse || '');
+            $("#numero_acte_mariage_epouse").val(declaration.numero_acte_mariage_epouse || '');
+            $("#date_pre_mariage_epouse").val(declaration.date_pre_mariage_epouse || '');
+            $("#parent_paternel_epouse").val(declaration.parent_paternel_epouse || '');
+            $("#parent_maternel_epouse").val(declaration.parent_maternel_epouse || '');
+        }
+
+        // Témoins époux
+        if (declaration.temoinHommeEpoux) {
+            $("#nom_t_epoux_1").val(declaration.temoinHommeEpoux.nom || '');
+            $("#prenom_t_epoux_1").val(declaration.temoinHommeEpoux.prenom || '');
+            $("#date_naissance_t_epoux_1").val(declaration.temoinHommeEpoux.date_naissance || '');
+            $("#code_localite_t_epoux_1").val(declaration.temoinHommeEpoux.code_localite || '');
+            $("#code_nationalite_t_epoux_1").val(declaration.temoinHommeEpoux.code_nationalite || '');
+            $("#code_profession_t_epoux_1").val(declaration.temoinHommeEpoux.code_profession || '');
+        }
+
+        if (declaration.temoinFemmeEpoux) {
+            $("#nom_t_epoux_2").val(declaration.temoinFemmeEpoux.nom || '');
+            $("#prenom_t_epoux_2").val(declaration.temoinFemmeEpoux.prenom || '');
+            $("#date_naissance_t_epoux_2").val(declaration.temoinFemmeEpoux.date_naissance || '');
+            $("#code_localite_t_epoux_2").val(declaration.temoinFemmeEpoux.code_localite || '');
+            $("#code_nationalite_t_epoux_2").val(declaration.temoinFemmeEpoux.code_nationalite || '');
+            $("#code_profession_t_epoux_2").val(declaration.temoinFemmeEpoux.code_profession || '');
+        }
+
+        // Témoins épouse
+        if (declaration.temoinHommeEpouse) {
+            $("#nom_t_epouse_1").val(declaration.temoinHommeEpouse.nom || '');
+            $("#prenom_t_epouse_1").val(declaration.temoinHommeEpouse.prenom || '');
+            $("#date_naissance_t_epouse_1").val(declaration.temoinHommeEpouse.date_naissance || '');
+            $("#code_localite_t_epouse_1").val(declaration.temoinHommeEpouse.code_localite || '');
+            $("#code_nationalite_t_epouse_1").val(declaration.temoinHommeEpouse.code_nationalite || '');
+            $("#code_profession_t_epouse_1").val(declaration.temoinHommeEpouse.code_profession || '');
+        }
+
+        if (declaration.temoinFemmeEpouse) {
+            $("#nom_t_epouse_2").val(declaration.temoinFemmeEpouse.nom || '');
+            $("#prenom_t_epouse_2").val(declaration.temoinFemmeEpouse.prenom || '');
+            $("#date_naissance_t_epouse_2").val(declaration.temoinFemmeEpouse.date_naissance || '');
+            $("#code_localite_t_epouse_2").val(declaration.temoinFemmeEpouse.code_localite || '');
+            $("#code_nationalite_t_epouse_2").val(declaration.temoinFemmeEpouse.code_nationalite || '');
+            $("#code_profession_t_epouse_2").val(declaration.temoinFemmeEpouse.code_profession || '');
+        }
+
+        // Informations complémentaires
+        $("#examens_prenuptiaux").val(declaration.examens_prenuptiaux || '1');
+        $("#montant_dot").val(declaration.montant_dot || '50000');
+        $("#nbre_enfant").val(declaration.nbre_enfant || '0');
+
+        // Mandants
+        if (declaration.nom_prenom_mandant_epoux) {
+            $("#nom_prenom_mandant_epoux").val(declaration.nom_prenom_mandant_epoux);
+            $("#type_mandant").val('mandant_epoux');
+        }
+        if (declaration.nom_prenom_mandant_epouse) {
+            $("#nom_prenom_mandant_epouse").val(declaration.nom_prenom_mandant_epouse);
+            $("#type_mandant").val('mandant_epouse');
+        }
+
+        // Gérer l'affichage des champs conditionnels selon les données existantes
+        gererChampsConditionnels();
+
+        // Déclencher les événements de changement pour mettre à jour les champs dépendants
+        $("#option_mariage").trigger('change');
+        $("#type_mariage").trigger('change');
+        $("#type_mandant").trigger('change');
+
+        // Modifier l'action du formulaire pour la modification
+        $("#contactUsForm").attr('action', '{{ route("declarationMariage.update", $declaration->code_declaration_mariage) }}');
+
+        // Ajouter la méthode PUT pour Laravel
+        $("#contactUsForm").append('<input type="hidden" name="_method" value="PUT">');
+    }
+
+    // Fonction pour gérer l'affichage des champs conditionnels
+    function gererChampsConditionnels() {
+        var declaration = @json($declaration);
+
+        // Gérer les champs de situation matrimoniale
+        if (declaration.code_situation_mat_epoux === 'SMAT_0001') {
+            // Célibataire - afficher les champs de pré-mariage
+            $(".premariageepoux").removeClass('d-none');
+        } else if (declaration.code_situation_mat_epoux === 'SMAT_0002') {
+            // Divorcé - afficher les champs d'acte de mariage
+            $(".numactemariageepoux").show();
+        }
+
+        if (declaration.code_situation_mat_epouse === 'SMAT_0001') {
+            // Célibataire - afficher les champs de pré-mariage
+            $(".premariageepouse").removeClass('d-none');
+        } else if (declaration.code_situation_mat_epouse === 'SMAT_0002') {
+            // Divorcée - afficher les champs d'acte de mariage
+            $(".numactemariageepouse").show();
+        }
+
+        // Gérer l'affichage des blocs de mandant
+        if (declaration.nom_prenom_mandant_epoux) {
+            $("#bloc_mandant_epoux").show();
+            $("#type_mandant").show();
+        } else if (declaration.nom_prenom_mandant_epouse) {
+            $("#bloc_mandant_epouse").show();
+            $("#type_mandant").show();
+        }
+
+        // Gérer l'affichage des notifications de procuration
+        if (declaration.type_mariage === 'PROCURATION') {
+            $("#notificationMsgProcuration").show();
+        }
+    }
+
+
+
+
+</script>
 @endsection

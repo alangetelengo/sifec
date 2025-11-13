@@ -1,6 +1,11 @@
 (function($) {
     /* "use strict" */
 
+ // Vérifier si Chartist est chargé
+ if (typeof Chartist === 'undefined') {
+     console.warn('Chartist library is not loaded');
+     return;
+ }
 
  var dzChartlist = function(){
 	
@@ -23,6 +28,8 @@
 	}
 	
 	var lineAnimatedChart = function(){
+		// Vérifier si l'élément existe
+		if ($('#smil-animations').length === 0) return;
 		    
 		var chart = new Chartist.Line('#smil-animations', {
 			labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
@@ -196,11 +203,13 @@
 				}]
 			  ];
 			  
+			  if ($('#scatter-diagram').length === 0) return;
 			  new Chartist.Line('#scatter-diagram', data, options, responsiveOptions);
 	}
 	
 	var simpleLineChart = function(){
 		//Simple line chart
+		if ($('#simple-line-chart').length === 0) return;
 		new Chartist.Line('#simple-line-chart', {
 			labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
 			series: [
@@ -271,6 +280,7 @@
 	}
 	var withAreaChart = function(){
 	 //Line chart with area
+	  if ($('#chart-with-area').length === 0) return;
 	  
 	  new Chartist.Line('#chart-with-area', {
 		labels: [1, 2, 3, 4, 5, 6, 7, 8, 9],

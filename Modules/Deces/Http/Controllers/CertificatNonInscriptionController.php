@@ -21,6 +21,7 @@ use Modules\Referentiel\Entities\Religion;
 use Modules\Referentiel\Entities\Filiation;
 use Illuminate\Contracts\Support\Renderable;
 use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Deces\Services\MouvementService;
 use Modules\Referentiel\Entities\CauseDeces;
 use Modules\Referentiel\Entities\Profession;
 use Modules\Referentiel\Entities\Departement;
@@ -29,6 +30,7 @@ use Modules\Referentiel\Entities\Nationalite;
 use Modules\Referentiel\Entities\TypeDocument;
 use Modules\Referentiel\Entities\Arrondissement;
 use Modules\Referentiel\Entities\LieuSurvenance;
+use Modules\Notification\Services\NotificationService;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 
 class CertificatNonInscriptionController extends Controller
@@ -39,38 +41,44 @@ class CertificatNonInscriptionController extends Controller
      */
     public function index()
     {
+        $typeDeclaration ='CERTIFICAT DE NON INSCRIPTION';
+        $certificats = Auth::user()->institution()->declarationsDeces()->where("type_declaration",$typeDeclaration);
 
+        return view('deces::certificat-non-inscription.index',compact('certificats'));
+    }
 
-        $certificatNonInscriptions = DeclarationDeces::where('type_declaration','CERTIFICAT DE NON INSCRIPTION')->get();
-        return view('deces::certificat-non-inscription.index',compact('certificatNonInscriptions'));
+    //declarationTardive
+    public function declarationTardive()
+    {
+        $typeDeclaration ='DECLARATION TARDIVE';
+        $declarationsTardives = Auth::user()->institution()->declarationsDeces()->where("type_declaration",$typeDeclaration);
+
+        return view('deces::declaration.tardive',compact('declarationsTardives'));
     }
 
     public function create(Request $request)
     {
-
         $datedeces = $request->date_deces;
         $date_decesConvertis = Carbon::create($datedeces);
         $date = date("Y-m-d");
         $date_decesNow = Carbon::create($date);
         $ageEnfant = $date_decesConvertis->diffInYears($date_decesNow);
-        $nbreMoisDeces = $date_decesConvertis->diffInDays($date_decesNow);
+        $nbreJourSansDeclarer = $date_decesConvertis->diffInDays($date_decesNow)+1;
 
         $title = "";
         $type_declaration = "";
 
-        if($nbreMoisDeces < 90){
-            $title = "Créer une déclaration de décès";
-            $type_declaration = "DECLARATION DE DECES";
+        if($nbreJourSansDeclarer < 15){
+            $title = "Créer une déclaration tardive";
+            $type_declaration = "DECLARATION TARDIVE";
         }
 
-        if($nbreMoisDeces > 90){
+        if($nbreJourSansDeclarer > 15){
             $title = "Créer un certificat de non inscription";
             $type_declaration = "CERTIFICAT DE NON INSCRIPTION";
         }
 
-
-
-
+// dd($type_declaration);
         $cecMariage = Institution::where("code_type_institution","TPINS_0002")->get();
         $instructions = Sifec::niveauInstructions();
         $localites = Localite::where('code_type_localite','TPLOC_0002')->Orwhere('code_type_localite','TPLOC_0003')->get();
@@ -294,7 +302,75 @@ class CertificatNonInscriptionController extends Controller
      */
     public function show($id)
     {
-        return view('deces::show');
+        $certificat = DeclarationDeces::find($id);
+        return view('deces::certificat-non-inscription.show',compact('certificat'));
+    }
+
+    public function envoyerAuTribunal(Request $request, MouvementService $mouvementService, NotificationService $notificationService)
+    {
+        $certificat = DeclarationDeces::findOrFail($request->code_declaration_deces);
+        $user = Auth::user();
+        $tribunal = $certificat->institution->institutionParent;
+        $codeMouvement = 'MOUV_0006'; // Code mouvement pour certificat de non inscription
+        $statut = 'Envoyée';
+        $observation = $request->observation ?? null;
+
+        DB::beginTransaction();
+        try {
+            // Utilise la méthode spécialisée pour l'envoi de certificats de décès
+            [$success, $message] = $mouvementService->envoyerCertificatDeces(
+                $user,
+                $certificat,
+                'certificat_non_inscription',
+                $statut,
+                $observation,
+                $tribunal->code_institution
+            );
+            if (!$success) {
+                DB::rollBack();
+                return response()->json([
+                    "code" => "90",
+                    "message" => $message
+                ]);
+            }
+
+             //recuperer le code_institution_destinataire pour la notification de l'envoi du certificat
+             $codeInstitutionDestinataire = $certificat->code_institution_destinataire;
+             $institutionDestinataire = Institution::find($codeInstitutionDestinataire);
+
+            // Utilisation du NotificationService pour notifier tous les agents du tribunal
+            try {
+                $notificationService->notifierAgentsInstitution(
+                    $institutionDestinataire,
+                    new \Modules\Notification\Notifications\DeclarationEnvoyeeCentreNotification(
+                        $certificat,
+                        $institutionDestinataire,
+                        'envoyée',
+                        'Un certificat de non inscription a été envoyé à votre institution.'
+                    )
+                );
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::channel('sifec')->info($e->getMessage());
+                return response()->json([
+                    "code" => "90",
+                    "message" => "Erreur lors de la notification aux agents du tribunal : " . $e->getMessage()
+                ]);
+            }
+
+            DB::commit();
+            return response()->json([
+                "code" => "200",
+                "message" => "Certificat envoyé au tribunal et notification envoyée aux agents du tribunal."
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::channel('sifec')->info($e->getMessage());
+            return response()->json([
+                "code" => "90",
+                "message" => $e->getMessage()
+            ]);
+        }
     }
 
     /**

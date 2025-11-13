@@ -4,6 +4,7 @@ namespace Modules\Deces\Entities;
 
 use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Referentiel\Entities\Mouvement;
 use Modules\Deces\Entities\DeclarationDeces;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,4 +27,9 @@ class MouvementDeces extends Model
     {
         return $this->belongsTo(InstitutionUser::class, 'cui', 'cui');
     }
+    public function mouvement(): BelongsTo
+    {
+        return $this->belongsTo(Mouvement::class, 'code_mouvement', 'code_mouvement');
+    }
+
 }

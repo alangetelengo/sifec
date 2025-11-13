@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\TypeJugement;
 use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -26,9 +27,21 @@ class Jugement extends Model
         return $this->belongsTo(InstitutionUser::class, 'cui', 'cui');
     }
 
-    public function declarationNaissance(): HasOne
+    /**
+     * Relation correcte : un Jugement appartient à une déclaration de naissance
+     */
+    public function declarationNaissance(): BelongsTo
     {
-        return $this->hasOne(Declarationnaissance::class, 'code_jugement', 'code_jugement');
+        return $this->belongsTo(Declarationnaissance::class, 'code_jugement', 'code_jugement');
     }
 
+    /**
+     * Get the typeJugement that owns the Jugement
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function typeJugement(): BelongsTo
+    {
+        return $this->belongsTo(TypeJugement::class, 'code_type_jugement', 'code_type_jugement');
+    }
 }

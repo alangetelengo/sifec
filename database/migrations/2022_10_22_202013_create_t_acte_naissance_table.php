@@ -20,6 +20,7 @@ class CreateTActeNaissanceTable extends Migration
             $table->string("code_declaration_naissance",16);
             $table->string("code_registre",30)->nullable();
             $table->string("cui",16);
+            $table->string("code_institution",16)->nullable()->comment('Code de l\'institution qui a généré l\'acte');
             $table->boolean("approbation_tribunal")->default(false);
             $table->string("approbation_mairie", 16)->nullable();
 
@@ -35,6 +36,7 @@ class CreateTActeNaissanceTable extends Migration
             $table->foreign("cui")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
 
             $table->foreign("approbation_mairie")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
+            $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
             $table->timestamps();
             $table->softDeletes();
         });

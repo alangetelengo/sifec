@@ -26,6 +26,10 @@ Route::middleware('auth')->prefix('utilisateur')->group(function() {
     Route::get('{id}/assigner-permission', [UserController::class,'assignerFonctionnalite'])->name("utilisateur.assigner.permission");
     Route::post('{id}/assigner-permission', [FonctionController::class, 'storeAssigner'])->name('utilisateur.assigner.store');
 
+    // Modification du mot de passe
+    Route::get('{id}/change-password', [UserController::class,'showChangePasswordForm'])->name("utilisateur.change-password");
+    Route::post('{id}/change-password', [UserController::class,'changePassword'])->name('utilisateur.change-password.store');
+
 });
 Route::middleware('auth')->prefix('fonctionnalite')->group(function() {
     Route::get('/', [FonctionnaliteController::class, 'index'])->name('fonctionnalite.index'); //->middleware("can:module.fonctionnalites.fonctionnalites");

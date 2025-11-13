@@ -20,14 +20,10 @@ class CreateTResidencePersonneTable extends Migration
             $table->string("type_voie", 175)->nullable();
             $table->string("nom_voie", 150)->nullable();
             $table->string("numero_rue", 6)->nullable();
-            $table->string("code_quartier_village",16)->nullable();
-            $table->string("code_localite", 16)->nullable(); // commune ou district
-            $table->string("code_arrondissement_comurbaine", 16)->nullable();
+            $table->string("code_localite", 16)->nullable(); // de type localite commune ou district
             $table->string("code_personne", 16);
 
-            $table->foreign("code_quartier_village")->references("code_localite")->on("tr_localite")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_localite")->references("code_localite")->on("tr_localite")->onDelete("cascade")->onUpdate("cascade");
-            $table->foreign("code_arrondissement_comurbaine")->references("code_localite")->on("tr_localite")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_personne")->references("code_personne")->on("tr_identification_personne")->onDelete("cascade")->onUpdate("cascade");
             $table->timestamps();
             $table->softDeletes();

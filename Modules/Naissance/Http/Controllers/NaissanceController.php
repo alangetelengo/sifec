@@ -2,13 +2,15 @@
 
 namespace Modules\Naissance\Http\Controllers;
 
-use App\Models\Jugement;
-use App\Models\Requisition;
 use Exception;
 use Carbon\Carbon;
 use App\Sifec\Sifec;
+use App\Models\Jugement;
+use App\Models\Requisition;
 use Illuminate\Http\Request;
 use Spipu\Html2Pdf\Html2Pdf;
+use App\Helpers\LocaliteHelper;
+use App\Models\InstitutionUser;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,8 +22,8 @@ use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Filiation;
 use Illuminate\Contracts\Support\Renderable;
-use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\Profession;
+use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\Departement;
 use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\Nationalite;
@@ -30,7 +32,14 @@ use Modules\Referentiel\Entities\Arrondissement;
 use Modules\Referentiel\Entities\LieuSurvenance;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Entities\Declarationnaissance;
+use Modules\Notification\Services\NotificationService;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
+use Modules\Naissance\Http\Requests\StoreAdoptionRequest;
+use Modules\Naissance\Services\DeclarationNaissanceService;
+use Modules\Naissance\Http\Requests\StoreDeclarationNaissanceRequest;
+use Modules\Naissance\Http\Requests\UpdateDeclarationNaissanceRequest;
+use Modules\Naissance\Services\MouvementService;
+use Illuminate\Support\Facades\URL;
 
 class NaissanceController extends Controller
 {
@@ -38,23 +47,22 @@ class NaissanceController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $declarations = [];
         $title = "Liste des déclarations de naissance";
         $button = "Créer déclaration";
 
+        $institution = $user->institution();
 
-        // if($user->affectationActive()->fonction->code_fonction == "FONC_0022") //si c'est un agent de maternité
-        // {
-        //     $title = "Liste des fiches de maternité";
-        //     $button = "Créer une fiche de maternité";
-        //     // $declarations = Declarationnaissance::where("code_user_institution",$user->affectationActive()->cui)->where('statut_enfant','Vivant')->get();
-        //     $declarations = Declarationnaissance::where("code_user_institution",$user->affectationActive()->cui)->get();
-        // }else{
-        //     $declarations = $user->institution()->declarationsNaissances();
-        // }
-        $declarations = $user->institution()->declarationsNaissances();
+        $declarations = Declarationnaissance::query()
+            ->with(['enfant', 'declarant', 'pere', 'mere', 'mouvements'])
+            ->when($institution, function ($query) use ($institution) {
+                return $query->where('code_institution', $institution->code_institution);
+            })
+            ->where('type_declaration', '!=', 'CERTIFICAT DE NON INSCRIPTION')
+            ->orderByDesc('date_heure_declaration')
+            ->limit(2000)
+            ->get();
 
-        return view('naissance::declaration.index',compact("declarations","title","button"));
+        return view('naissance::declaration.index', compact('declarations', 'title', 'button'));
     }
 
     public function etat($id)
@@ -87,7 +95,8 @@ class NaissanceController extends Controller
 
         if($declarations != null){
 
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy"),["dn"=>$declarations])->render());
+            $qrCode = $this->generateDeclarationQr($declarations->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy", "qrCode"),["dn"=>$declarations])->render());
            return $html2pdf->output($declarations->code_declaration_naissance.".pdf");
         }
 
@@ -96,34 +105,41 @@ class NaissanceController extends Controller
             $dateNaissEnfant = Carbon::create($declarationsN->enfant->date_naissance);
             $dateNow = Carbon::create(date("Y-m-y"));
             $ageEnfant = $dateNow->diffInYears($dateNaissEnfant);
+            $qrCode = $this->generateDeclarationQr($declarationsN->code_declaration_naissance);
 
-            $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact("dummy","ageEnfant"),["certificat"=>$declarationsN])->render());
+            $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact("dummy","ageEnfant","qrCode"),["certificat"=>$declarationsN])->render());
             return $html2pdf->output($declarationsN->code_declaration_naissance.".pdf");
         }
         if($jugementHomologation != null){
 
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy"),["dn"=>$jugementHomologation])->render());
+            $qrCode = $this->generateDeclarationQr($jugementHomologation->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$jugementHomologation])->render());
             return $html2pdf->output($jugementHomologation->code_declaration_naissance.".pdf");
         }
         if($jugementSuppletif != null){
             // dd($jugementSuppletif);
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy"),["dn"=>$jugementSuppletif])->render());
+            $qrCode = $this->generateDeclarationQr($jugementSuppletif->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$jugementSuppletif])->render());
             return $html2pdf->output($jugementSuppletif->code_declaration_naissance.".pdf");
         }
         if($declarationP != null){
-            $html2pdf->writeHTML(view('naissance::etats.certificat_de_transcription', compact("dummy"),["certificat"=>$declarationP])->render());
+            $qrCode = $this->generateDeclarationQr($declarationP->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.certificat_de_transcription', compact("dummy","qrCode"),["certificat"=>$declarationP])->render());
             return $html2pdf->output($declarationP->code_declaration_naissance.".pdf");
         }
         if($declarationsD != null){
-            $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact("dummy"),["certificat"=>$declarationsD])->render());
+            $qrCode = $this->generateDeclarationQr($declarationsD->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact("dummy","qrCode"),["certificat"=>$declarationsD])->render());
             return $html2pdf->output($declarationsD->code_declaration_naissance.".pdf");
         }
         if($ficheMat != null){
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy"),["dn"=>$ficheMat])->render());
+            $qrCode = $this->generateDeclarationQr($ficheMat->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$ficheMat])->render());
             return $html2pdf->output($ficheMat->code_declaration_naissance.".pdf");
         }
         if($ficheTransActe != null){
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy"),["dn"=>$ficheTransActe])->render());
+            $qrCode = $this->generateDeclarationQr($ficheTransActe->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$ficheTransActe])->render());
             return $html2pdf->output($ficheTransActe->code_declaration_naissance.".pdf");
         }
     }
@@ -199,6 +215,8 @@ class NaissanceController extends Controller
         $user = Auth::user();
         $title = "Créer une déclaration de naissance";
         $type_declaration = "DECLARATION DE NAISSANCE";
+        $ageEnfant = 0;
+        $dateNaissance = request("date_naissance_enfant");
 
         if($user->affectationActive()->fonction->code_fonction == "FONC_0022") //si c'est un agent de maternité
         {
@@ -208,8 +226,8 @@ class NaissanceController extends Controller
 
         if($user->affectationActive()->fonction->code_fonction == "FONC_0014") //si c'est un agent de la mairie centrale
         {
-            $title = "Créer une fiche de transcription de l'acte";
-            $type_declaration = "FICHE DE TRANSCRIPTION DE L'ACTE";
+            $title = "Créer un certificat de transcription de l'acte";
+            $type_declaration = "CERTIFICAT DE TRANSCRIPTION";
         }
 
         $instructions = Sifec::niveauInstructions();
@@ -220,11 +238,12 @@ class NaissanceController extends Controller
         $filiations = Filiation::all();
         $typedocuments = TypeDocument::all();
         $situationMatrimoniales = SituationMatrimoniale::all();
-        $arrondissement = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
-        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
+        $communes = Localite::where('code_type_localite','TPLOC_0003')->Orwhere('code_type_localite','TPLOC_0002')->get();
+        $arrondissements = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
+        $quartiers = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
         $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
         $departements = Departement::all();
-        return view('naissance::declaration.create',compact("title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","type_declaration"));
+        return view('naissance::declaration.create',compact("title","ageEnfant","dateNaissance","departements","countries","communes","arrondissements","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartiers","type_declaration"));
     }
 
     public function affaireSociale()
@@ -242,6 +261,7 @@ class NaissanceController extends Controller
         $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
         $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
         $departements = Departement::all();
+
 
         $dummy = "XXXXXXXXXXXXXXXX";
 
@@ -270,584 +290,223 @@ class NaissanceController extends Controller
 
     }
 
-    public function affaireSocialeStore(Request $request)
-    {
 
-        DB::beginTransaction();
-
-        try{
-
-            $enfantUniqueString = Sifec::uniqueString($request,"_enfant",$request->sexe_enfant);
-            $pereUniqueString = Sifec::uniqueString($request,"_pere","M");
-            $mereUniqueString = Sifec::uniqueString($request,"_mere","F");
-
-            $ec = Personne::where("personne_string",$enfantUniqueString)->first();
-
-            $declarantUniqueString = Sifec::uniqueString($request,"_declarant",$request->sexe_declarant);
-
-            $ec = Personne::where("personne_string",$enfantUniqueString)->first();
-
-            // Log::channel('sifec')->info(["objet"=>$request->all()]);
-            // dd("ok");
-
-            if($ec != null){
-                return response()->json([
-                    "code"=>"99",
-                    "message"=>["enfant_exist"=>"La déclaration de cet enfant existe déjà dans le système"]
-                ]);
-            }
-
-            $declarant = Personne::where("personne_string",$declarantUniqueString)->first();
-            $pere = Personne::where("personne_string",$pereUniqueString)->first();
-            $mere = Personne::where("personne_string",$mereUniqueString)->first();
-
-            if($declarant == null)
-            {
-                $declarant = Sifec::savePersonne($request,"_declarant",$request->sexe_declarant,$declarantUniqueString);
-            }
-
-            if($pere == null){
-                $pere = Sifec::savePersonne($request,"_pere","M",$pereUniqueString);
-            }
-
-            if($mere == null){
-                $mere = Sifec::savePersonne($request,"_mere","F",$mereUniqueString);
-            }
-
-            $enfant = Sifec::savePersonne($request,"_enfant",$request->sexe_enfant,$enfantUniqueString);
-
-
-            $dn = new Declarationnaissance;
-            $codedn = Sifec::genererCodeUniqueReferentiel($dn,"code_declaration_naissance",8,"CDN_");
-            $dn->code_declaration_naissance = $codedn;
-            $dn->nombre_enfant = 0;
-            $dn->date_heure_naissance = $request->date_naissance_enfant." ".$request->heure_naissance_enfant.":00" ;
-            $dn->date_heure_declaration = date("Y-m-d H:i");
-
-            $dn->type_declarant = "Personne morale";
-            $dn->code_declarant = $declarant->code_personne;
-            $dn->code_enfant = $enfant->code_personne;
-            $dn->code_pere = $pere->code_personne;
-            $dn->code_mere = $mere->code_personne;
-            if(Auth::user()->affectationActive()->institution->typeInstitution->code_type_institution == "TPINS_0002")//cas de mairie ou Enfant trouvé
-            {
-                $dn->personne_declaree = "Enfant trouvé";
-                $dn->code_lieu_survenance = "LSURV_0007";
-            }else{
-                $dn->personne_declaree = "Enfant abandonné";
-                $dn->code_lieu_survenance = "LSURV_0001";
-            }
-
-            $dn->code_user_institution  = Auth::user()->affectationActive()->cui;
-            $dn->code_institution = Auth::user()->affectationActive()->code_institution;
-            $dn->type_declaration = $request->type_declaration;
-
-            $dn->formation_sanitaire_naissance = $request->formation_sanitaire_naissance;
-            $dn->save();
-
-            $transaction = new MouvementNaissance();
-            $transaction->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_naissance",4,"MDN_");
-            $transaction->statut = "En cours";
-            $transaction->code_declaration_naissance = $dn->code_declaration_naissance;
-            $transaction->cui = Auth::user()->affectationActive()->cui;
-            $transaction->save();
-
-            DB::commit();
-
-            return response()->json([
-                "code"=>"200",
-                "message"=>"La déclaration enregistrée avec succès"
-            ]);
-
-        }catch(Exception $e){
-                DB::rollBack();
-                Log::channel("sifec")->error($e->getMessage());
-                return response()->json([
-                    "code"=>"99",
-                    "message"=>["error" =>$e->getMessage()]
-                ]);
-        }
-    }
     /**
      * Store a newly created resource in storage.
      * @param Request $request
      * @return Renderable
      */
-    public function store(Request $request)
+    public function store(StoreDeclarationNaissanceRequest $request, DeclarationNaissanceService $service)
     {
+        try {
+            // Log::channel("sifec")->info($request->all());
+            // dd($request->all());
+            // Enregistrement de la déclaration
+            $resultatEnregistrement = $service->enregistrer($request, Auth::user());
 
+            // Si le service retourne une réponse JSON (erreur), on la retourne directement
+            if ($resultatEnregistrement instanceof \Illuminate\Http\JsonResponse) {
+                return $resultatEnregistrement;
+            }
 
-        $rules = [
-            "nom_enfant"=>["required"],
-            "date_naissance_enfant"=>["required","date"],
-            "code_situation_matrimoniale"=>["required"],
-            "sexe_enfant"=>["required"],
-            "heure_naissance_enfant"=>["required","max:5","min:5"],
-            "nombre_enfant"=>["required","numeric"]
+            $declaration = $resultatEnregistrement;
+
+            // Gestion du mouvement après enregistrement réussi
+            $resultatMouvement = $this->gererMouvementDeclaration($request, $declaration);
+            if ($resultatMouvement !== true) {
+                return $resultatMouvement;
+            }
+
+            return response()->json([
+                "code" => "200",
+                "message" => "La déclaration a été enregistrée avec succès"
+            ]);
+
+        } catch (Exception $e) {
+            Log::channel("sifec")->error("Erreur dans le contrôleur de déclaration de naissance: " . $e->getMessage());
+            return response()->json([
+                "code" => "90",
+                "message" => "Une erreur inattendue s'est produite lors de l'enregistrement"
+            ]);
+        }
+    }
+
+    /**
+     * Gère le mouvement de la déclaration
+     */
+    private function gererMouvementDeclaration($request, $declaration)
+    {
+        $mappingTypeEvenement = [
+            'DECLARATION DE NAISSANCE' => 'declaration_naissance',
+            'CERTIFICAT DE NON INSCRIPTION' => 'certificat_non_inscription',
+            "CERTIFICAT DE DESTRUCTION DE L'ACTE" => 'certificat_destruction',
+            'FICHE DE MATERNITE' => 'fiche_maternite',
+            'CERTIFICAT DE TRANSCRIPTION' => 'fiche_transcription',
+            'JUGEMENT SUPPLETIF' => 'jugement_suppletif',
+            "JUGEMENT D'HOMOLOGATION" => 'jugement_homologation',
+            "JUGEMENT D'ADOPTION" => 'jugement_adoption',
         ];
 
-        $dateNaissEnfant = Carbon::create($request->date_naissance_enfant);
-        $date = Carbon::create(date("Y-m-y"));
-        $ageEnfant = $date->diffInYears($dateNaissEnfant);
+        $typeDeclaration = $request->input('type_declaration', 'DECLARATION DE NAISSANCE');
+        $typeEvenement = $mappingTypeEvenement[$typeDeclaration] ?? 'declaration_naissance';
 
-        // Log::channel("sifec")->info(["objet"=>$request->all()]);
-        // dd("ok");
+        try {
+            $mouvementService = app(MouvementService::class);
+            $result = $mouvementService->ajouterEvenementDeclaration(Auth::user(), $declaration, $typeEvenement);
 
-        $validator = Validator::make($request->all(),$rules);
-
-        if($validator->fails()){
-            return response()->json([
-                "code"=>"150",
-                "message"=>$validator->errors()
-            ]);
-        }
-        // le pere doit avoir au moins 14 ans de plus que l'enfant
-        // la mere doit avoir au moins 12 ans de plus que l'enfant
-
-        $dateNaissancePere = Carbon::create($request->date_naissance_pere);
-        $dateNaissanceEnfant = Carbon::create($request->date_naissance_enfant);
-        $dateNaissanceMere = Carbon::create($request->date_naissance_mere);
-        $differenceAgeEnfantPere = $dateNaissancePere->diffInYears($dateNaissanceEnfant);
-        $differenceAgeEnfantMere = $dateNaissanceMere->diffInYears($dateNaissanceEnfant);
-
-
-        if($differenceAgeEnfantPere < 14){
-            return response()->json([
-                "code"=>"99",
-                "message"=>["age_pere"=>"La différence d'age entre père et enfant doit être supérieure ou égale à 14 ans"]
-            ]);
-        }
-
-        if($differenceAgeEnfantMere < 12){
-            return response()->json([
-                "code"=>"99",
-                "message"=>["age_mere"=>"La différence d'age entre mère et enfant doit être supérieure ou égale à 12 ans"]
-            ]);
-        }
-
-        DB::beginTransaction();
-        try{
-            $pereUniqueString = Sifec::uniqueString($request,"_pere","M");
-            $mereUniqueString = Sifec::uniqueString($request,"_mere","F");
-            $enfantUniqueString = Sifec::uniqueString($request,"_enfant",$request->sexe_enfant);
-            $ec = Personne::where("personne_string",$enfantUniqueString)->first();
-
-
-
-            $declarantUniqueString = Sifec::uniqueString($request,"_declarant",$request->sexe_declarant);
-
-
-
-            if($ec != null){
+            if (!$result[0]) {
                 return response()->json([
-                    "code"=>"99",
-                    "message"=>["enfant_exist"=>"La déclaration de cet enfant existe déjà dans le système"]
+                    "code" => "91",
+                    "message" => "Erreur lors de l'enregistrement du mouvement: " . $result[1]
                 ]);
             }
 
-            $pere = Personne::where("personne_string",$pereUniqueString)->first();
-            $mere = Personne::where("personne_string",$mereUniqueString)->first();
-            $declarant = Personne::where("personne_string",$declarantUniqueString)->first();
+            return true;
 
-            //insertion de pere,mere,declarant et enfant
-            if($pere == null){
-                $pere = Sifec::savePersonne($request,"_pere","M",$pereUniqueString);
-                // // Log::channel("sifec")->info(["enfantUniqueString"=>$enfantUniqueString]);
-            }
-
-
-            if($mere == null){
-                $mere = Sifec::savePersonne($request,"_mere","F",$mereUniqueString);
-            }
-            if($declarant == null)
-            {
-
-                if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002")
-                {
-                    $declarant = Sifec::savePersonne($request,"_declarant",$request->sexe_declarant,$declarantUniqueString);
-                }
-                if($declarantUniqueString != $enfantUniqueString)
-                {
-                    $enfant = Sifec::savePersonne($request,"_enfant",$request->sexe_enfant,$enfantUniqueString);
-                }
-                else
-                {
-                    $enfant = $declarant;
-                }
-            }
-
-            $dn = new Declarationnaissance;
-            $codedn = Sifec::genererCodeUniqueReferentiel($dn,"code_declaration_naissance",8,"CDN_");
-            $dn->code_declaration_naissance = $codedn;
-            $dn->nombre_enfant = $request->nombre_enfant;
-            if ($request->date_heure_declaration != '') {
-                $dn->date_heure_declaration = $request->date_heure_declaration.' 00:00';
-            }else{
-                $dn->date_heure_declaration = date("Y-m-d H:i");
-            }
-            $dn->date_heure_naissance = $request->date_naissance_enfant." ".$request->heure_naissance_enfant.":00" ;
-            $dn->type_declarant = "Personne physique";
-            if($request->filiation == "FIL_0001"){
-                $dn->code_declarant = $pere->code_personne;
-            }
-            if($request->filiation == "FIL_0002"){
-                $dn->code_declarant = $mere->code_personne;
-            }
-            if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002"){
-                $dn->code_declarant = $declarant->code_personne;
-            }
-
-            $dn->code_enfant = $enfant->code_personne;
-            $dn->code_pere = $pere->code_personne;
-            $dn->code_mere = $mere->code_personne;
-            $dn->personne_declaree = "Enfant normal";
-            if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
-            {
-                $dn->code_lieu_survenance = "LSURV_0001";
-            }else{
-                $dn->code_lieu_survenance = $request->lieu_survenance;
-            }
-            $dn->code_user_institution  = Auth::user()->affectationActive()->cui;
-            $dn->code_filiation = $request->filiation;
-            $dn->code_situation_mat = $request->code_situation_matrimoniale;
-
-            $dn->type_declaration = $request->type_declaration;
-            // if ($request->type_declaration != 'DECLARATION DE NAISSANCE' && $request->type_declaration != "FICHE DE MATERNITE" && $request->type_declaration != "DECLARATION DE PATERNITE") {
-            if ($request->type_declaration != 'DECLARATION DE NAISSANCE' && $request->type_declaration != "FICHE DE MATERNITE") {
-                $dn->numero_certificat = Sifec::genererCodeUniqueReferentiel($dn,"numero_certificat",4,"");
-            }
-            $dn->formation_sanitaire_naissance = $request->formation_sanitaire_naissance;
-            $dn->code_jugement = $request->code_jugement;
-            $dn->code_institution = Auth::user()->affectationActive()->code_institution;
-            $dn->save();
-
-            $transaction = new MouvementNaissance();
-            $transaction->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_naissance",4,"MDN_");
-            $transaction->statut = "En cours";
-            $transaction->code_declaration_naissance = $dn->code_declaration_naissance;
-            $transaction->cui = Auth::user()->affectationActive()->cui;
-            $transaction->save();
-
-            if($dn->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-                $requisition = new Requisition;
-                $requisition->code_requisition = Sifec::genererCodeUniqueReferentiel($requisition, 'code_requisition', 4, "CREQ_");
-                $requisition->code_institution = Auth::user()->affectationActive()->code_institution;
-                $requisition->save();
-
-                //update le code_requisition dans la dn
-                $dn->code_requisition = $requisition->code_requisition;
-                $dn->save();
-            }
-            if($dn->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
-
-                  //calculer l'age de l'enfant
-                    $dateNaissance = $request->date_naissance_enfant;
-                    $dateNaissanceConvertis = Carbon::create($dateNaissance);
-                    $date = date("Y-m-d");
-                    $dateNaissanceNow = Carbon::create($date);
-                    $ageEnfant = $dateNaissanceConvertis->diffInDays($dateNaissanceNow);
-
-                 //cas de l'age > 3 mois un jugement est requis conformément à l'article 80 du code de la famille
-                 if($ageEnfant > 90){
-                    $jugement = new Jugement;
-                    $jugement->code_jugement = Sifec::genererCodeUniqueReferentiel($jugement, 'code_jugement', 4, "CJUG_");
-                    $jugement->type_jugement = "JUGEMENT D'AUTORISATION";
-                    $jugement->code_institution = Auth::user()->affectationActive()->code_institution;
-                    $jugement->save();
-
-                    //update le code_jugement dans la dn
-                    $dn->code_jugement = $jugement->code_jugement;
-                    $dn->save();
-
-                 }else{
-                    $requisition = new Requisition;
-                    $requisition->code_requisition = Sifec::genererCodeUniqueReferentiel($requisition, 'code_requisition', 4, "CREQ_");
-                    $requisition->code_institution = Auth::user()->affectationActive()->code_institution;
-                    $requisition->save();
-
-                    //update le code_requisition dans la dn
-                    $dn->code_requisition = $requisition->code_requisition;
-                    $dn->save();
-                 }
-
-
-            }
-
-            DB::commit();
-
+        } catch (Exception $e) {
+            Log::channel("sifec")->error("Erreur lors de la gestion du mouvement: " . $e->getMessage());
             return response()->json([
-                "code"=>"200",
-                "message"=>"La déclaration enregistrée avec succès"
-            ]);
-
-        }catch(Exception $e){
-            DB::rollBack();
-            Log::channel("sifec")->error($e->getMessage());
-            return response()->json([
-                "code"=>"90",
-                "message"=>["error" =>$e->getMessage()]
+                "code" => "91",
+                "message" => "Erreur lors de l'enregistrement du mouvement"
             ]);
         }
-
     }
 
 
     public function show($id)
     {
-        return view('naissance::declaration.show');
+        $declaration = Declarationnaissance::find($id);
+        if($declaration == null){
+            toastr()->error("Impossible de charger cette page");
+            return back();
+        }
+
+        return view('naissance::declaration.show', compact("declaration"));
     }
 
     public function edit($id)
     {
         $dn = Declarationnaissance::find($id);
-
         if($dn==null)
         {
             toastr()->error("Impossible de charger cette page");
             return back();
         }
-        //recuperer la fonction de user pour la gestion de fiche de maternité
-        //si la modification est faite lors de la declaration,
-        //le document change de type(en declaration de naissance)
         $fnUser = Auth::user()->affectationActive()->fonction->code_fonction;
-        $typeDeclaration = "";
-
-        $fnUser == "FONC_0006" ? $typeDeclaration = "DECLARATION DE NAISSANCE" : $typeDeclaration = $dn->type_declaration; //agent formation sanitaire
-
-       $title = " MODIFICATION ".$typeDeclaration;
-
-       $date = Carbon::create(date("Y-m-y"));
-       $dateNaissEnfant = Carbon::create($dn->enfant->date_naissance);
-       $ageEnfant = $date->diffInYears($dateNaissEnfant);
-
-       $instructions = Sifec::niveauInstructions();
-       $localites = Localite::where('code_type_localite','TPLOC_0002')->Orwhere('code_type_localite','TPLOC_0003')->get();
-       $professions = Profession::all();
-       $nationalites = Nationalite::all();
-       $lieuSurvenances = LieuSurvenance::all();
-       $filiations = Filiation::all();
-       $typedocuments = TypeDocument::all();
-       $situationMatrimoniales = SituationMatrimoniale::all();
-       $arrondissement = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
-       $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
-       $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
-       $departements = Departement::all();
-
-
-       return view('naissance::declaration.edit',compact("ageEnfant","dn","title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","typeDeclaration"));
-
+        $typeDeclaration = $dn->type_declaration;
+        $title = " MODIFICATION ".$typeDeclaration;
+        $date = Carbon::create(date("Y-m-y"));
+        $dateNaissEnfant = Carbon::create($dn->enfant->date_naissance);
+        $ageEnfant = $date->diffInYears($dateNaissEnfant);
+        $instructions = Sifec::niveauInstructions();
+        $professions = Profession::all();
+        $nationalites = Nationalite::all();
+        $lieuSurvenances = LieuSurvenance::all();
+        $typedocuments = TypeDocument::all();
+        $situationMatrimoniales = SituationMatrimoniale::all();
+        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $localites = Localite::where('code_type_localite','TPLOC_0002')
+            ->orWhere('code_type_localite','TPLOC_0003')->get();
+        $arrondissements = Localite::where('code_type_localite','TPLOC_0004')
+            ->orWhere('code_type_localite','TPLOC_0005')->get();
+        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')
+            ->orWhere('code_type_localite','TPLOC_0008')->get();
+        $departementsDropdown = LocaliteHelper::getDepartementsDropdown();
+        $communesDropdown = LocaliteHelper::getLocalitesDropdown('TPLOC_0003');
+        $arrondissementsDropdown = LocaliteHelper::getLocalitesDropdown('TPLOC_0004');
+        $quartiersDropdown = LocaliteHelper::getLocalitesDropdown('TPLOC_0007');
+        $adressePere = $dn->pere ? $dn->pere->adresses->last() : null;
+        $commune = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, 'TPLOC_0003') : null;
+        $arrondissement = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, 'TPLOC_0004') : null;
+        $quartier = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, 'TPLOC_0007') : null;
+        $adresseMere = $dn->mere ? $dn->mere->adresses->last() : null;
+        $communeMere = $adresseMere ? LocaliteHelper::getLocaliteByType($adresseMere->code_localite, 'TPLOC_0003') : null;
+        $arrondissementMere = $adresseMere ? LocaliteHelper::getLocaliteByType($adresseMere->code_localite, 'TPLOC_0004') : null;
+        $quartierMere = $adresseMere ? LocaliteHelper::getLocaliteByType($adresseMere->code_localite, 'TPLOC_0007') : null;
+        $adresseDeclarant = $dn->declarant ? $dn->declarant->adresses->last() : null;
+        $communeDeclarant = $adresseDeclarant ? LocaliteHelper::getLocaliteByType($adresseDeclarant->code_localite, 'TPLOC_0003') : null;
+        $arrondissementDeclarant = $adresseDeclarant ? LocaliteHelper::getLocaliteByType($adresseDeclarant->code_localite, 'TPLOC_0004') : null;
+        $quartierDeclarant = $adresseDeclarant ? LocaliteHelper::getLocaliteByType($adresseDeclarant->code_localite, 'TPLOC_0007') : null;
+        $filiations = Filiation::all();
+        return view('naissance::declaration.edit', compact(
+            "typeDeclaration",
+            "ageEnfant","dn","title","countries",
+            "typedocuments","instructions","professions","nationalites",
+            "situationMatrimoniales","lieuSurvenances",
+            "localites","arrondissements",
+            "departementsDropdown","communesDropdown","arrondissementsDropdown","quartiersDropdown",
+            "commune","arrondissement","quartier",
+            "communeMere","arrondissementMere","quartierMere",
+            "communeDeclarant","arrondissementDeclarant","quartierDeclarant",
+            "filiations"
+        ));
     }
 
 
-    public function update(Request $request, $id)
+    public function update(UpdateDeclarationNaissanceRequest $request, $id, DeclarationNaissanceService $service)
     {
-
-        $dn = Declarationnaissance::find($id);
-        // Log::channel("sifec")->info(["update"=> $request->all()]);
-        // dd("ok");
-       if($dn == null){
+        // Log::channel('sifec')->info($request->all());
+        // dd($request->all());
+        try {
+            $declaration = $service->update($request, $id, Auth::user());
         return response()->json([
-            "code"=>"150",
-            "message"=>"Impossible de charger cette page"
+                "code" => "200",
+                "message" => "Document modifié avec succès"
             ]);
-        }
-        $pere = Personne::find($request->code_pere);
-        $mere = Personne::find($request->code_mere);
-        $enfant = Personne::find($request->code_enfant);
-
-        //gestion de cas d'adoption
-        $typeAdoption = $request->type_adoption;
-
-
-       if($pere == null){
-        return response()->json([
-            "code"=>"150",
-            "message"=>"Le père n'existe pas"
-            ]);
-       }
-       if($mere == null){
-        return response()->json([
-            "code"=>"150",
-            "message"=>"Le mère n'existe pas"
-            ]);
-       }
-
-        DB::beginTransaction();
-
-        try{
-
-            $pere = Sifec::updatePersonne($request,"_pere","M",$pere->code_personne);
-            $mere = Sifec::updatePersonne($request,"_mere","F",$mere->code_personne);
-
-            //cas de l'adoption
-            if($typeAdoption != ""){
-
-                $enfantUniqueString = "";
-                $adoptant = "";
-                // $declarant = "";
-                //cas d'adoption
-                $enfantUniqueString = Sifec::uniqueString($request,"_enfant",$request->sexe_enfant,$typeAdoption);
-                $enfant = Sifec::updatePersonne($request,"_enfant",$request->sexe_enfant,$enfant->code_personne,$enfantUniqueString);
-
-                //creation de string unique de l'adoptant
-                $adoptantUniqueString = Sifec::uniqueString($request,"_adoptant",$request->sexe_adoptant);
-
-                $adoptant = Personne::where("personne_string",$adoptantUniqueString)->first();
-
-                //creation de l'adoptant
-                if($adoptant == ""){
-                    $adoptant = Sifec::savePersonne($request,"_adoptant",$request->sexe_adoptant,$adoptantUniqueString);
-                }
-
-                //fin cas d'adoption
-            }else{
-
-                $declarant = Personne::find($request->code_declarant);
-                // if($declarant == null){
-                // return response()->json([
-                //     "code"=>"150",
-                //     "message"=>"Le déclarant n'existe pas"
-                //     ]);
-                // }
-
-
-                $declarant = Sifec::updatePersonne($request,"_declarant",$request->sexe_declarant,$declarant->code_personne);
-                $enfant = Sifec::updatePersonne($request,"_enfant",$request->sexe_enfant,$enfant->code_personne);
-            }
-            // Log::channel("sifec")->info(['enfant'=>$enfant]);
-            // dd("ok");
-
-            $lieuSurvenance = Auth::user()->affectationActive()->institution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003" ? "LSURV_0001" : $request->lieu_survenance;
-            $dn->nombre_enfant = $request->nombre_enfant;
-
-            if ($request->date_heure_declaration != '') {
-                $dn->date_heure_declaration = $request->date_heure_declaration.' 00:00';
-            }else{
-                $dn->date_heure_declaration = date("Y-m-d H:i");
-            }
-            $dn->date_heure_naissance = $request->date_naissance_enfant." ".$request->heure_naissance_enfant ;
-            $dn->type_declarant = "Personne physique";
-            if($request->filiation == "FIL_0001" && $typeAdoption== ""){
-                $dn->code_declarant = $pere->code_personne;
-            }
-            if($request->filiation == "FIL_0002" && $typeAdoption== ""){
-                $dn->code_declarant = $mere->code_personne;
-            }
-            if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002" && $typeAdoption== ""){
-                $dn->code_declarant = $declarant->code_personne;
-            }
-            $dn->code_enfant = $enfant->code_personne;
-            $dn->code_pere = $pere->code_personne;
-            $dn->code_mere = $mere->code_personne;
-            $dn->personne_declaree = "Enfant normal";
-            if($request->type_declaration == 'DECLARATION DE NAISSANCE' || $request->type_declaration == 'FICHE DE MATERNITE'){
-                $dn->code_lieu_survenance = "LSURV_0001";
-            }
-            // $dn->code_user_institution  = Auth::user()->affectationActive()->cui;
-            $dn->code_filiation = $request->filiation;
-            $dn->code_situation_mat = $request->code_situation_matrimoniale;
-            $dn->type_declaration = $request->type_declaration;
-            if ($request->type_declaration != 'DECLARATION DE NAISSANCE' && $request->type_declaration != "FICHE DE MATERNITE" && $request->type_declaration != "DECLARATION DE PATERNITE") {
-                $dn->numero_certificat = Sifec::genererCodeUniqueReferentiel($dn,"numero_certificat",4,"");
-            }
-            $dn->formation_sanitaire_naissance = $request->formation_sanitaire_naissance;
-
-            if($typeAdoption != ""){
-                //cas d'adoption partielle
-                $dn->code_jugement = $request->code_jugement;
-                // $dn->date_jugement = $request->date_jugement;
-                // $dn->code_tribunal_jugement  = $request->tribunal_jugement;
-                $dn->code_adoptant = $adoptant->code_personne;
-                $dn->type_adoption = $typeAdoption;
-            }
-            $dn->save();
-
-
-           DB::commit();
-
-            return response()->json([
-                "code"=>"200",
-                "message"=>"Document modifié avec succès"
-            ]);
-
-        }catch(Exception $e){
-            DB::rollBack();
-            Log::channel("sifec")->error($e->getMessage());
-
-            return response()->json([
-                "code"=>"150",
-                "message"=>$e->getMessage()
-            ]);
-        }
-
-    }
-
-    public function mouvement(Request $request)
-    {
-        $rules = [
-            "code_declaration_naissance"=>["required"]
-            // ,
-            // "motif_renvoi"=>["required"],
-            // "observation"=>["required"]
-        ];
-        $validator = Validator::make($request->all(),$rules);
-
-        if($validator->fails()){
-            return response()->json([
-                "code"=>"180",
-                "message"=>"Veuillez renseigner le motif et l'observation !"
-            ]);
-        }
-
-        DB::beginTransaction();
-        try{
-            $dn = Declarationnaissance::find($request->code_declaration_naissance);
-            $typeDeclaration = $dn->type_declaration;
-
-            $lastMouvement = $dn->mouvements->last();
-
-            $transaction = new MouvementNaissance();
-            $transaction->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_naissance",4,"MDN_");
-
-            if($lastMouvement->statut == "En cours"){
-                $transaction->statut = "Envoyée";
-                $dn->approuver = "OUI";
-            }
-            if($lastMouvement->statut == "Envoyée"){
-                $transaction->statut = "Renvoyée";
-                $dn->approuver = "NON";
-            }
-            if($lastMouvement->statut == "Renvoyée"){
-                $transaction->statut = "Envoyée";
-                $dn->approuver = "OUI";
-            }
-
-            if($typeDeclaration == "CERTIFICAT DE NON INSCRIPTION" || $typeDeclaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-                if($lastMouvement->statut == "En cours"){
-                    $transaction->statut = "Envoye au tribunal";
-                }
-            }
-
-            $transaction->code_declaration_naissance = $request->code_declaration_naissance;
-            $transaction->cui = Auth::user()->affectationActive()->cui;
-            $transaction->motif_renvoi = $request->motif_renvoi;
-            $transaction->observation = trim($request->observation);
-            $transaction->save();
-
-             $dn->save();
-
-             DB::commit();
-
-            return response()->json([
-                "code"=>"200",
-                "message"=>"Cette déclaration a été $transaction->statut avec succès"
-            ]);
-
         } catch (Exception $e) {
-            DB::rollBack();
+        return response()->json([
+                "code" => "150",
+                "message" => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function mouvement(MouvementService $mouvement ,Request $request)
+    {
+        $dn = Declarationnaissance::find($request->code_declaration_naissance);
+        if($dn == null){
             return response()->json([
                 "code"=>"183",
-                "message"=>["error"=>$e->getMessage()]
+                "message"=>["error" => "Aucun document trouvé pour ce code"]
+            ]);
+        }
+        $statut = 'Envoyée';
+        $observation = $request->observation;
+
+        try {
+            DB::transaction(function () use ($mouvement, $dn, $observation, $request) {
+                [$ok, $statutResult] =  $mouvement->envoyerDeclaration(Auth::user(), $dn, 'MOUV_0001', 'Envoyée', $observation);
+
+                if(!$ok){
+                    Log::channel('sifec')->info($statutResult);
+                    throw new Exception($statutResult ?: "Opération a échouée");
+                }
+
+                //recuperer le code_institution_destinataire pour la notification de l'envoi de la déclaration
+                $codeInstitutionDestinataire = $dn->code_institution_destinataire;
+                $institutionDestinataire = Institution::find($codeInstitutionDestinataire);
+
+                // Notification centralisée via le module Notification
+                NotificationService::notifierAgentsInstitution(
+                    $institutionDestinataire,
+                    new \Modules\Notification\Notifications\DeclarationEnvoyeeCentreNotification(
+                        $dn,
+                        $institutionDestinataire,
+                        'envoyée'
+                    )
+                );
+
+            });
+
+            return response()->json([
+                "code"=>"200",
+                "message"=>"Cette déclaration a été $statut avec succès"
+            ]);
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('Erreur transaction mouvement : ' . $e->getMessage());
+            return response()->json([
+                "code"=>"500",
+                "message"=>"Erreur lors de l'envoi au centre d'état civil : " . $e->getMessage()
             ]);
         }
     }
@@ -1103,92 +762,40 @@ class NaissanceController extends Controller
     }
 
 
-    public function joindreDocument($id)
-    {
-        $dn = Declarationnaissance::find($id);
-        if($dn ==null){
-            toastr()->error("Aucun document trouvé");
-            return back();
-        }
-       return view('naissance::declaration.add_document', compact("dn"));
-    }
-
-    public function storeScanner(Request $request)
-    {
-
-        $file = $request->com_asprise_scannerjs_images[0];
-
-        //Recherche du document
-        $fdoc = Document::where("numero_document", $request->numero_document)->first();
-
-        if($fdoc == null){
-            return response()->json([
-                "code"=> "180",
-                "message"=> "Ce document n'existe pas"
-            ]);
-        }
-
-
-        DB::beginTransaction();
-        try{
-
-            $chemin_document = $file->store("document");
-
-            $fdoc->image_document = $chemin_document;
-            $fdoc->save();
-
-            DB::commit();
-            return response()->json(1);
-
-        }catch(Exception $e){
-            DB::rollBack();
-            Log::channel("sifec")->error($e->getMessage());
-            return response()->json($e->getMessage());
-
-
-        }
-    }
-
     public function storeImporter(Request $request)
     {
-        // return $request->all();
-
-        // verification des champs avec ajax
-        $validator = \Validator::make($request->all(),[
-            // 'file' => 'required|mimes:doc,docx,pdf,zip,rar|max:2048',
+        $validator = Validator::make($request->all(),[
             'file' => 'required|mimes:pdf|max:2048',
             'code_type_document'=>'required|string',
             'codeparent'=>'required|string',
             'numero_document'=>'required|string'
         ]);
-
-
-        // Message des champs vide avec ajax
-        if(!$validator->passes()){
+        if(!$validator->fails()){
             return response()->json(['code'=>0,'error'=>$validator->errors()->toArray()]);
         }
-
         $fdoc = Document::where("numero_document", $request->numero_document)->first();
-
         if ($fdoc == null) {
             return response()->json(['code'=>1,'msg'=>'Le système ne retrouve pas ce document']);
         }
-
-        DB::beginTransaction();
-        try{
-
-            $chemin_document = $request->file->store("document");
-
-            $fdoc->image_document = $chemin_document;
-            $fdoc->save();
-
-            DB::commit();
-            return response()->json(['code'=>2,"codeparent"=>$request->codeparent, 'msg'=>'Enregistement de la pièce effectué avec succès']);
-
-        }catch(Exception $e){
-            DB::rollBack();
-            //-------- redirection avec ajax
-            return response()->json(['code'=>1, 'msg'=> $e->getMessage()]);
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            if ($file->isValid()) {
+                DB::beginTransaction();
+                try{
+                    $chemin_document = $file->store("document");
+                    $fdoc->image_document = $chemin_document;
+                    $fdoc->save();
+                    DB::commit();
+                    return response()->json(['code'=>2,"codeparent"=>$request->codeparent, 'msg'=>'Enregistement de la pièce effectué avec succès']);
+                }catch(Exception $e){
+                    DB::rollBack();
+                    return response()->json(['code'=>1, 'msg'=> $e->getMessage()]);
+                }
+            } else {
+                return response()->json(['code'=>1, 'msg'=> 'Le fichier importé est corrompu ou inaccessible.']);
+            }
+        } else {
+            return response()->json(['code'=>1, 'msg'=> 'Aucun fichier importé reçu.']);
         }
     }
 
@@ -1291,160 +898,20 @@ class NaissanceController extends Controller
     }
 
     //enregistrement adoption pleniere d'un enfant
-    public function storeAdoptionPleniere(Request $request)
+    public function storeAdoptionPleniere(StoreAdoptionRequest $request, DeclarationNaissanceService $service)
     {
-
-        $rules = [
-            "nom_enfant"=>["required"],
-            "date_naissance_enfant"=>["required","date"],
-            "code_situation_matrimoniale"=>["required"],
-            "sexe_enfant"=>["required"],
-            "heure_naissance_enfant"=>["required","max:5","min:5"],
-            "nombre_enfant"=>["required","numeric"],
-            "code_jugement"=>["required"]
-        ];
-
-        $dateNaissEnfant = Carbon::create($request->date_naissance_enfant);
-        $date = Carbon::create(date("Y-m-y"));
-        $ageEnfant = $date->diffInYears($dateNaissEnfant);
-
-        $validator = Validator::make($request->all(),$rules);
-
-        if($validator->fails()){
+        try {
+            $declaration = $service->adopter($request, Auth::user());
             return response()->json([
-                "code"=>"150",
-                "message"=>$validator->errors()
+                "code" => "200",
+                "message" => "La déclaration enregistrée avec succès"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                "code" => "99",
+                "message" => ["error" => $e->getMessage()]
             ]);
         }
-        // le pere doit avoir au moins 14 ans de plus que l'enfant
-        // la mere doit avoir au moins 12 ans de plus que l'enfant
-        $dateNaissancePere = Carbon::create($request->date_naissance_pere);
-        $dateNaissanceEnfant = Carbon::create($request->date_naissance_enfant);
-        $dateNaissanceMere = Carbon::create($request->date_naissance_mere);
-        $differenceAgeEnfantPere = $dateNaissancePere->diffInYears($dateNaissanceEnfant);
-        $differenceAgeEnfantMere = $dateNaissanceMere->diffInYears($dateNaissanceEnfant);
-
-
-        if($differenceAgeEnfantPere < 14){
-            return response()->json([
-                "code"=>"99",
-                "message"=>["age_pere"=>"La différence d'age entre père et enfant doit être supérieure ou égale à 14 ans"]
-            ]);
-        }
-
-        if($differenceAgeEnfantMere < 12){
-            return response()->json([
-                "code"=>"99",
-                "message"=>["age_mere"=>"La différence d'age entre mère et enfant doit être supérieure ou égale à 12 ans"]
-            ]);
-        }
-
-        // $pereUniqueString = Sifec::uniqueString($request,"_pere","M");
-        // $pere = Sifec::savePersonne($request,"_pere","M",$pereUniqueString);
-        DB::beginTransaction();
-
-        try{
-
-            //gestion de cas d'adoption
-            $typeAdoption = $request->type_adoption;
-            $pereUniqueString = Sifec::uniqueString($request,"_pere","M");
-            $mereUniqueString = Sifec::uniqueString($request,"_mere","F");
-            $enfantUniqueString = Sifec::uniqueString($request,"_enfant",$request->sexe_enfant,$typeAdoption);
-
-            $ec = Personne::where("personne_string",$enfantUniqueString)->first();
-
-            $adoptantUniqueString = Sifec::uniqueString($request,"_adoptant",$request->sexe_adoptant);
-
-            if($ec != null){
-                return response()->json([
-                    "code"=>"99",
-                    "message"=>["enfant_exist"=>"La déclaration de cet enfant existe déjà dans le système"]
-                ]);
-            }
-
-            $pere = Personne::where("personne_string",$pereUniqueString)->first();
-            $mere = Personne::where("personne_string",$mereUniqueString)->first();
-
-            //insertion de pere,mere,adoptant et enfant
-            if($pere == null){
-                $pere = Sifec::savePersonne($request,"_pere","M",$pereUniqueString);
-            }
-            if($mere == null){
-                $mere = Sifec::savePersonne($request,"_mere","F",$mereUniqueString);
-            }
-
-            $adoptant = Personne::where("personne_string",$adoptantUniqueString)->first();
-            $enfant = Sifec::savePersonne($request,"_enfant",$request->sexe_enfant,$enfantUniqueString);
-
-            if($adoptant == null)
-            {
-                $adoptant = Sifec::savePersonne($request,"_adoptant",$request->sexe_adoptant,$adoptantUniqueString);
-            }
-
-            // Log::channel("sifec")->info($request->all());
-            // dd("ok ok");
-            $dn = new Declarationnaissance;
-            $codedn = Sifec::genererCodeUniqueReferentiel($dn,"code_declaration_naissance",8,"CDN_");
-            $dn->code_declaration_naissance = $codedn;
-            $dn->nombre_enfant = $request->nombre_enfant;
-            if ($request->date_heure_declaration != '') {
-                $dn->date_heure_declaration = $request->date_heure_declaration.' 00:00';
-            }else{
-                $dn->date_heure_declaration = date("Y-m-d H:i");
-            }
-            $dn->date_heure_naissance = $request->date_naissance_enfant." ".$request->heure_naissance_enfant.":00" ;
-            $dn->type_declarant = "Personne physique";
-            $dn->code_adoptant = $adoptant->code_personne;
-            $dn->code_enfant = $enfant->code_personne;
-            $dn->code_pere = $pere->code_personne;
-            $dn->code_mere = $mere->code_personne;
-            $dn->personne_declaree = "Enfant normal";
-            if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
-            {
-                $dn->code_lieu_survenance = "LSURV_0001";
-            }else{
-                $dn->code_lieu_survenance = $request->lieu_survenance;
-            }
-            $dn->code_user_institution  = Auth::user()->affectationActive()->cui;
-            $dn->code_filiation = $request->filiation;
-            $dn->code_situation_mat = $request->code_situation_matrimoniale;
-            $dn->type_declaration = $request->type_declaration;
-            if ($request->type_declaration != 'DECLARATION DE NAISSANCE' && $request->type_declaration != "FICHE DE MATERNITE" && $request->type_declaration != "DECLARATION DE PATERNITE") {
-                $dn->numero_certificat = Sifec::genererCodeUniqueReferentiel($dn,"numero_certificat",4,"");
-            }
-            $dn->formation_sanitaire_naissance = $request->formation_sanitaire_naissance;
-            $dn->numero_ancien_acte = $request->niupp;
-            $dn->code_jugement = $request->code_jugement;
-            $dn->save();
-
-            $transaction = new MouvementNaissance();
-            $transaction->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_naissance",4,"MDN_");
-            $transaction->statut = "En cours";
-            $transaction->code_declaration_naissance = $dn->code_declaration_naissance;
-            $transaction->cui = Auth::user()->affectationActive()->cui;
-            $transaction->save();
-
-            //cas d'adoption plenierre de l'enfant, on fais la mise a jour de l'ancien acte
-            $updtaeOldActe = ActeNaissance::find($request->niupp);
-            $updtaeOldActe->statut = 1; //annulation de l'acte
-            $updtaeOldActe->save();
-
-            DB::commit();
-
-            return response()->json([
-                "code"=>"200",
-                "message"=>"La déclaration enregistrée avec succès"
-            ]);
-
-            }catch(Exception $e){
-                DB::rollBack();
-                Log::channel("sifec")->error($e->getMessage());
-                return response()->json([
-                    "code"=>"99",
-                    "message"=>["error" =>$e->getMessage()]
-                ]);
-            }
-
     }
 
 
@@ -1535,9 +1002,8 @@ class NaissanceController extends Controller
 
 
 
-    public function storeJugementHomologation(Request $request)
+    public function storeJugementHomologation(Request $request, DeclarationNaissanceService $service)
     {
-
         $rules = [
             "nom_enfant"=>["required"],
             "date_naissance_enfant"=>["required","date"],
@@ -1547,36 +1013,26 @@ class NaissanceController extends Controller
             "nombre_enfant"=>["required","numeric"]
         ];
 
-        $dateNaissEnfant = Carbon::create($request->date_naissance_enfant);
-        $date = Carbon::create(date("Y-m-y"));
-        $ageEnfant = $date->diffInYears($dateNaissEnfant);
-
-
         $validator = Validator::make($request->all(),$rules);
-
         if($validator->fails()){
             return response()->json([
                 "code"=>"150",
                 "message"=>$validator->errors()
             ]);
         }
-        // le pere doit avoir au moins 14 ans de plus que l'enfant
-        // la mere doit avoir au moins 12 ans de plus que l'enfant
 
+        // Vérification des âges
         $dateNaissancePere = Carbon::create($request->date_naissance_pere);
         $dateNaissanceEnfant = Carbon::create($request->date_naissance_enfant);
         $dateNaissanceMere = Carbon::create($request->date_naissance_mere);
         $differenceAgeEnfantPere = $dateNaissancePere->diffInYears($dateNaissanceEnfant);
         $differenceAgeEnfantMere = $dateNaissanceMere->diffInYears($dateNaissanceEnfant);
-
-
         if($differenceAgeEnfantPere < 14){
             return response()->json([
                 "code"=>"99",
                 "message"=>["age_pere"=>"La différence d'age entre père et enfant doit être supérieure ou égale à 14 ans"]
             ]);
         }
-
         if($differenceAgeEnfantMere < 12){
             return response()->json([
                 "code"=>"99",
@@ -1584,146 +1040,107 @@ class NaissanceController extends Controller
             ]);
         }
 
-        DB::beginTransaction();
-        try{
-
-            //recuperation de l'ancienne declaration
-            $dnOld = ActeNaissance::find($request->numero_ancien_acte);
-            if($dnOld == NULL){
-
-                $pereUniqueString = Sifec::uniqueString($request,"_pere","M");
-                $mereUniqueString = Sifec::uniqueString($request,"_mere","F");
-                $enfantUniqueString = Sifec::uniqueString($request,"_enfant",$request->sexe_enfant);
-                $ec = Personne::where("personne_string",$enfantUniqueString)->first();
-
-                $declarantUniqueString = Sifec::uniqueString($request,"_declarant",$request->sexe_declarant);
-
-                if($ec != null){
-                    return response()->json([
-                        "code"=>"99",
-                        "message"=>["enfant_exist"=>"La déclaration de cet enfant existe déjà dans le système"]
-                    ]);
-                }
-
-                $pere = Personne::where("personne_string",$pereUniqueString)->first();
-                $mere = Personne::where("personne_string",$mereUniqueString)->first();
-                $declarant = Personne::where("personne_string",$declarantUniqueString)->first();
-
-
-                Log::channel("sifec")->info("aucun acte trouvé");
-                dd("ok");
-            }
-
-
-            //création du nouveau pere
-            $newPereUniqueString = Sifec::uniqueString($request,"_pere","M");
-            $newPpere = Personne::where("personne_string",$newPereUniqueString)->first();
-
-            //insertion du nouveau new pere
-            if($newPpere == null){
-                $newPpere = Sifec::savePersonne($request,"_pere","M",$newPereUniqueString);
-            }
-
-            //recuperation des infos de la mere
-            $oldActe = ActeNaissance::find($request->numero_ancien_acte);
-            $mere = $oldActe->declaration->mere;
-            $declarant = $newPpere;
-            $pere = $newPpere;
-            $enfant = $oldActe->declaration->enfant;
-
-            // if($declarant == null)
-            // {
-
-            //     if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002")
-            //     {
-            //         $declarant = Sifec::savePersonne($request,"_declarant",$request->sexe_declarant,$declarantUniqueString);
-            //     }
-            //     if($declarantUniqueString != $enfantUniqueString)
-            //     {
-            //         $enfant = Sifec::savePersonne($request,"_enfant",$request->sexe_enfant,$enfantUniqueString);
-            //     }
-            //     else
-            //     {
-            //         $enfant = $declarant;
-            //     }
-            // }
-
-
-            $dn = new Declarationnaissance;
-            $codedn = Sifec::genererCodeUniqueReferentiel($dn,"code_declaration_naissance",8,"CDN_");
-            $dn->code_declaration_naissance = $codedn;
-            $dn->nombre_enfant = $request->nombre_enfant;
-            if ($request->date_heure_declaration != '') {
-                $dn->date_heure_declaration = $request->date_heure_declaration.' 00:00';
-            }else{
-                $dn->date_heure_declaration = date("Y-m-d H:i");
-            }
-            $dn->date_heure_naissance = $request->date_naissance_enfant." ".$request->heure_naissance_enfant.":00" ;
-            $dn->type_declarant = "Personne physique";
-            if($request->filiation == "FIL_0001"){
-                $dn->code_declarant = $pere->code_personne;
-            }
-            if($request->filiation == "FIL_0002"){
-                $dn->code_declarant = $mere->code_personne;
-            }
-            if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002"){
-                $dn->code_declarant = $declarant->code_personne;
-            }
-
-            $dn->code_enfant = $enfant->code_personne;
-            $dn->code_pere = $pere->code_personne;
-            $dn->code_mere = $mere->code_personne;
-            $dn->personne_declaree = "Enfant normal";
-            if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
-            {
-                $dn->code_lieu_survenance = "LSURV_0001";
-            }else{
-                $dn->code_lieu_survenance = $request->lieu_survenance;
-            }
-            $dn->code_user_institution  = Auth::user()->affectationActive()->cui;
-            $dn->code_filiation = $request->filiation;
-            $dn->code_situation_mat = $request->code_situation_matrimoniale;
-            $dn->type_declaration = $request->type_declaration;
-            $dn->formation_sanitaire_naissance = $request->formation_sanitaire_naissance;
-
-            $dn->num_jugement = $request->num_jugement;
-            $dn->date_jugement = $request->date_jugement;
-            $dn->code_tribunal_jugement  = $request->tribunal;
-            $dn->numero_ancien_acte  = $request->numero_ancien_acte;
-            $dn->save();
-
-            $transaction = new MouvementNaissance();
-            $transaction->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_naissance",4,"MDN_");
-            $transaction->statut = "En cours";
-            $transaction->code_declaration_naissance = $dn->code_declaration_naissance;
-            $transaction->cui = Auth::user()->affectationActive()->cui;
-            $transaction->save();
-
-            //mise à jour du statut de l'ancienne déclaration de naissance
-            $oldDn = Declarationnaissance::find($oldActe->declaration->code_declaration_naissance);
-            $oldDn->statut  = 1;
-            $oldDn->num_jugement = $request->num_jugement;
-            $oldDn->date_jugement = $request->date_jugement;
-            $oldDn->code_tribunal_jugement  = $request->tribunal;
-            $oldDn->save();
-
-            DB::commit();
-
+        try {
+            $user = Auth::user();
+            $dn = $service->creerViaJugement($request, $user);
             return response()->json([
                 "code"=>"200",
                 "message"=>"Le document enregistré avec succès"
             ]);
-
-            }catch(Exception $e){
-                DB::rollBack();
-                Log::channel("sifec")->error($e->getMessage());
-                return response()->json([
-                    "code"=>"99",
-                    "message"=>["error" =>$e->getMessage()]
-                ]);
-            }
-
+        } catch (\Exception $e) {
+            \Log::channel("sifec")->error($e->getMessage());
+            return response()->json([
+                "code"=>"99",
+                "message"=>["error" =>$e->getMessage()]
+            ]);
+        }
     }
 
 
+
+    //juste
+    public function storePiece(Request $request, $code, $type)
+    {
+        $request->validate([
+            'piece' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ]);
+
+        $declaration = Declarationnaissance::where('code_declaration_naissance', $code)->firstOrFail();
+        $uploadPath = public_path('app/pieces');
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+        try {
+            if ($request->hasFile('piece') && $request->file('piece')->isValid()) {
+                $file = $request->file('piece');
+                $extension = $file->getClientOriginalExtension();
+                $imageName = $declaration->code_declaration_naissance . '_' . $type . '_' . time() . '.' . $extension;
+
+                // Supprimer l'ancienne pièce si elle existe
+                $oldPath = $declaration->{'piece_' . $type};
+                if ($oldPath && file_exists(public_path($oldPath))) {
+                    @unlink(public_path($oldPath));
+                }
+
+                $file->move($uploadPath, $imageName);
+                $declaration->{'piece_' . $type} = 'app/pieces/' . $imageName;
+                $declaration->save();
+                return response()->json([
+                    'code' => '200',
+                    'message' => 'Pièce enregistrée avec succès.',
+                    'file_path' => 'app/pieces/' . $imageName
+                ]);
+            } else {
+                return response()->json([
+                    'code' => '400',
+                    'message' => 'Erreur lors de l\'upload du fichier.'
+                ], 400);
+            }
+        } catch (Exception $e) {
+            Log::error('Erreur upload pièce: ' . $e->getMessage());
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de l\'enregistrement de la pièce: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function verificationDeclaration(Request $request, $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $declaration = Declarationnaissance::with(['enfant', 'pere', 'mere', 'declarant', 'mouvements'])
+            ->where('code_declaration_naissance', $code)
+            ->first();
+
+        if (!$declaration) {
+            abort(404);
+        }
+
+        return view('naissance::verification.declaration', compact('declaration'));
+    }
+
+    public function verificationActe(Request $request, $niupp)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $acte = ActeNaissance::with(['declaration.enfant', 'declaration.pere', 'declaration.mere'])
+            ->where('niupp', $niupp)
+            ->first();
+
+        if (!$acte) {
+            abort(404);
+        }
+
+        return view('naissance::verification.acte', compact('acte'));
+    }
+
+    private function generateDeclarationQr(string $code): string
+    {
+        return URL::signedRoute('verification.declaration', ['code' => $code]);
+    }
 }

@@ -63,7 +63,7 @@
         <div class="mb-2 col-md-3">
             <label class="form-label">Nationalité du conjoint<span class="text-danger">*</span></label>
             <select id="code_nationalite_conjoint" class="form-control form-control wide">
-                    <option>Choisissez</option>
+                    {{-- <option>Choisissez</option> --}}
                 @foreach ($nationalites as $nationalite)
                     <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
                 @endforeach
@@ -116,13 +116,13 @@
         <div class="mb-2 col-md-3">
             <label class="form-label">Pays<span class="text-danger"></span></label>
             <select id="domicile_pays_conjoint" class="form-control required">
-                <option value="">Choisissez</option>
+                {{-- <option value="">Choisissez</option> --}}
                 @foreach ($countries as $countrie)
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div class="mb-2 col-md-3 domicile_ville_conjoint d-none">
+        <div class="mb-2 col-md-3 domicile_ville_conjoint">
             <label class="form-label">Commune/District<span class="text-danger"></span></label>
             <select class="form-control" id="domicile_ville_conjoint">
                 <option value="">Choisir</option>
@@ -182,7 +182,7 @@
             <div class="col-md-4">
                 <label class="form-label">Indicatif<span class="text-danger">*</span></label>
                 <select name="code_pays_conjoint" id="code_pays_conjoint" class="form-control">
-                    <option value="">Selectionnez</option>
+                    {{-- <option value="">Selectionnez</option> --}}
                     @forelse ($countries as $code)
                         <option value="{{ $code->dial_code }}">({{ $code->dial_code }}) {{ $code->name }}</option>
                     @empty
@@ -215,7 +215,7 @@
         <div class="col-md-3">
             <label class="form-label">Centre d'état civil du mariage </label>
             <select id="liste_cec" class="form-select form-control">
-                    <option disabled selected>Choisissez</option>
+                    {{-- <option disabled selected>Choisissez</option> --}}
                 @foreach ($cecMariage as $institution)
                     <option value="{{ $institution->code_institution }}">{{ $institution->lib_institution }}</option>
                 @endforeach

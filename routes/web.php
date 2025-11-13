@@ -3,27 +3,26 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\HomeController;
 use App\Mail\ValidationRegistreMailable;
 use App\Http\Controllers\CartesController;
-use App\Http\Controllers\DashbordGouvController;
-use App\Http\Controllers\PaiementDocumentController;
 use App\Http\Controllers\QrcodeController;
-use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\DashbordGouvController;
+use App\Http\Controllers\PersonneSearchController;
 use Modules\Notification\Jobs\CreationRegistreJob;
+use App\Http\Controllers\PaiementDocumentController;
 use Modules\Notification\Jobs\ValidationRegistreJob;
 use Modules\Notification\Jobs\ValidationacteNaissanceJob;
+use Modules\Notification\Http\Controllers\NotificationController;
 use Modules\Authentification\Http\Controllers\AuthentificationController;
+use Modules\Naissance\Http\Controllers\NaissanceController;
 
 Route::get('/', [AuthentificationController::class,'index'])->name('dashboard.index')->middleware(['auth']);
 // Route::get('/', [AuthentificationController::class,'home'])->name('home.index')->middleware(['auth']);
 
 Route::get("testmail",function(){
-    // Mail::to("mukinayiseth@gmail.com")
-    // ->send(new ValidationRegistreMailable("BRAZZAVILLE","015247","AN01451"));
-    // dispatch(new CreationRegistreJob("TRIB","TPE5425","AN21452","OUENZE","alangetelengo87@gmail.com"));
     dispatch(new ValidationacteNaissanceJob("MAKELEKELE","AN0001","14F52","alangetelengo87@gmail.com"));
-
     return "le traitement sera fait";
 });
 
@@ -67,8 +66,60 @@ Route::middleware('auth')->prefix('tableau')->group(function() {
     // Route::get('cumuleNationale', [HomeController::class,'cumuleNationale'])->name('cartes.cumule.nationale');
 });
 
+Route::get('/personnes/recherche', [PersonneSearchController::class, 'recherche'])->name('personnes.recherche');
+
+
+
+Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+Route::get('/notifications/read/{id}', [NotificationController::class, 'read'])->name('notifications.read');
+
+// Notifications AJAX
+Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unreadCount');
+Route::get('/notifications/unread-list', [NotificationController::class, 'unreadList'])->name('notifications.unreadList');
+Route::get('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+
+
 Auth::routes();
 
+// ==========================================
+// Routes 2FA (Double Authentification)
+// ==========================================
+
+use App\Http\Controllers\TwoFactorController;
+
+// Routes de configuration 2FA (nécessite authentification)
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        // Page principale de configuration
+        Route::get('/', [TwoFactorController::class, 'index'])->name('index');
+
+        // Activation
+        Route::get('/enable', [TwoFactorController::class, 'enable'])->name('enable');
+        Route::post('/confirm', [TwoFactorController::class, 'confirm'])->name('confirm');
+
+        // Codes de récupération
+        Route::get('/recovery-codes', [TwoFactorController::class, 'showRecoveryCodes'])->name('recovery-codes');
+        Route::post('/recovery-codes/regenerate', [TwoFactorController::class, 'regenerateRecoveryCodes'])->name('recovery-codes.regenerate');
+
+        // Désactivation
+        Route::post('/disable', [TwoFactorController::class, 'disable'])->name('disable');
+    });
+});
+
+// Routes de vérification 2FA (lors de la connexion, sans auth complète)
+Route::middleware(['web'])->group(function () {
+    Route::get('/two-factor/verify', [TwoFactorController::class, 'showVerify'])->name('two-factor.verify');
+    Route::post('/two-factor/verify', [TwoFactorController::class, 'verify'])->name('two-factor.verify.post');
+    Route::post('/two-factor/verify-recovery', [TwoFactorController::class, 'verifyRecoveryCode'])->name('two-factor.verify-recovery');
+});
+
+Route::middleware(['signed','throttle:10,1'])
+    ->get('/verification/acte/{niupp}', [NaissanceController::class, 'verificationActe'])
+    ->name('verification.acte');
+
+Route::middleware(['signed','throttle:10,1'])
+    ->get('/verification/declaration/{code}', [NaissanceController::class, 'verificationDeclaration'])
+    ->name('verification.declaration');
 
 
 

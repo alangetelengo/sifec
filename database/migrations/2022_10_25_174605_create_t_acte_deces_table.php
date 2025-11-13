@@ -20,6 +20,8 @@ class CreateTActeDecesTable extends Migration
             $table->string("code_registre",30)->nullable();
             $table->string("code_declaration_deces",16);
             $table->string("cui",16);
+            $table->dateTime("date_heure_approbation_pompe_funebre")->nullable();
+            $table->string("code_institution",16)->nullable()->comment('Code de l\'institution qui a généré l\'acte');
             $table->boolean("retirer")->default(0);
             $table->boolean("approbation_tribunal")->default(false);
             $table->string("approbation_pompe_funebre", 16)->nullable();
@@ -37,7 +39,7 @@ class CreateTActeDecesTable extends Migration
             $table->softDeletes();
 
             $table->foreign("approbation_pompe_funebre")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
-
+            $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
         });
     }
 

@@ -2,7 +2,6 @@
 
 namespace Modules\Mariage\Http\Controllers;
 
-use App\Mail\ValidationActeMariageMailable;
 use Exception;
 use App\Sifec\Sifec;
 use App\Sifec\SifecFacade;
@@ -10,16 +9,21 @@ use Illuminate\Http\Request;
 use Spipu\Html2Pdf\Html2Pdf;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Modules\Mariage\Services\OtpService;
+use Illuminate\Support\Facades\Validator;
 use Modules\Mariage\Entities\ActeMariage;
 use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Referentiel\Entities\Registre;
+use App\Mail\ValidationActeMariageMailable;
 use Illuminate\Contracts\Support\Renderable;
 use Modules\Mariage\Entities\Declarationmariage;
-use Modules\Notification\Jobs\ValidationActeMariageJob;
+use Modules\Mariage\Services\ActeMariageService;
 use Modules\Referentiel\Entities\FeuilletRegistre;
-use Illuminate\Support\Facades\Validator;
+use Modules\Notification\Services\NotificationService;
+use Modules\Notification\Jobs\ValidationActeMariageJob;
 
 
 class ActeMariageController extends Controller
@@ -30,10 +34,36 @@ class ActeMariageController extends Controller
      */
     public function index()
     {
-        // $registre = Registre::where("statut",1)->where("code_type_registre","TPRG_0002")->first();
-        $registre = Registre::where("code_type_registre","TPRG_0002")->first();
+        $user = Auth::user();
+        $affectation = $user->affectationActive();
+        $institution = $affectation->institution;
 
-		$declarations = Auth::user()->affectationActive()->institution->declarationsMariages();
+        $registre = Registre::where("statut",1)->where("code_type_registre","TPRG_0002")->first();
+        // $registre = Registre::where("code_type_registre","TPRG_0002")->first();
+
+        // $declarations = Auth::user()->affectationActive()->institution->declarationsMariages()->where("cec_approuver","OUI");
+
+        $declarations = DeclarationMariage::where(function($query) use ($institution) {
+            $query->where("code_institution_destinataire", $institution->code_institution)
+                  ->orWhere("code_institution", $institution->code_institution);
+        })
+        ->where("cec_approuver", "OUI")
+        ->where(function($query) {
+            $query->where("type_declaration", "!=", "DISPENSE")
+                  ->orWhere(function($subQuery) {
+                      $subQuery->where("type_declaration", "DISPENSE")
+                               ->where("tribunal_approuver", "OUI")
+                               ->where(function($requisitionQuery) {
+                                   $requisitionQuery->whereHas('requisition', function($reqQuery) {
+                                                       $reqQuery->where('statut', 'envoyée');
+                                                   })
+                                                   ->orWhereHas('jugement', function($jugQuery) {
+                                                       $jugQuery->where('statut', 'envoyée');
+                                                   });
+                               });
+                  });
+        })
+        ->get();
 
         return view('mariage::acte.index',compact("declarations","registre"));
     }
@@ -56,6 +86,82 @@ class ActeMariageController extends Controller
     public function store(Request $request)
     {
         //
+    }
+
+    /**
+     * Générer un acte de mariage
+     */
+    public function generateActe(Request $request, ActeMariageService $service)
+    {
+        $user = Auth::user();
+        $declaration = Declarationmariage::findOrFail($request->code_declaration_mariage);
+
+        // Vérifier si un acte existe déjà pour cette déclaration
+        $acteExistant = $service->obtenirActeParDeclaration($declaration->code_declaration_mariage);
+        if ($acteExistant) {
+            return response()->json([
+                "code" => "409",
+                "message" => "Un acte de mariage existe déjà pour cette déclaration (Code: " . $acteExistant->code_acte_mariage . ")"
+            ], 409);
+        }
+
+        // Protection supplémentaire : vérifier si une génération est en cours
+        $cacheKey = "generation_acte_" . $declaration->code_declaration_mariage;
+        if (cache()->has($cacheKey)) {
+            return response()->json([
+                "code" => "429",
+                "message" => "Une génération d'acte est déjà en cours pour cette déclaration. Veuillez patienter."
+            ], 429);
+        }
+
+        // Marquer qu'une génération est en cours (expire après 30 secondes)
+        cache()->put($cacheKey, true, 30);
+
+        $registre = $user->affectationActive()->registres()->where("code_type_registre","TPRG_0002")->where("statut",1)->first();
+
+        if (!Gate::allows("module.acteMariage.generate")) {
+            return response()->json([
+                "code" => "403",
+                "message" => "Vous n'êtes pas autorisé à générer un acte"
+            ], 403);
+        }
+        if (!$registre || $registre->statut == 0 || ($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) == 0) {
+            return response()->json([
+                "code" => "400",
+                "message" => "Registre non disponible ou complet"
+            ], 400);
+        }
+        DB::beginTransaction();
+        try {
+            $acte = $service->genererActe($declaration, $registre, $user);
+
+            $mouvementService = app(\Modules\Mariage\Services\MouvementMariageService::class);
+            $mouvementService->ajouterEvenementActe($user, $acte, 'attente_approbation', null, $acte);
+
+            DB::commit();
+            
+            // Libérer le verrou de génération
+            cache()->forget($cacheKey);
+            
+            return response()->json([
+                "code" => "200",
+                "message" => "Acte de mariage généré avec succès",
+                "data" => [
+                    "code_acte_mariage" => $acte->code_acte_mariage,
+                    "niupp" => $acte->code_acte_mariage
+                ]
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            
+            // Libérer le verrou de génération en cas d'erreur
+            cache()->forget($cacheKey);
+            
+            return response()->json([
+                "code" => "500",
+                "message" => "Erreur lors de la génération de l'acte: " . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -128,357 +234,304 @@ class ActeMariageController extends Controller
         }
     }
 
-    public function validateOtp(Request $request)
+    /**
+     * Envoyer OTP pour validation d'un acte
+     */
+    public function sendOtp(Request $request, OtpService $otpService)
     {
-
         $rules = [
-            "otp_approbation_mairie"=>["required","numeric"],
-            "code_declaration_mariage"=>["required","string"]
+            "code_declaration_mariage" => ["required", "string"]
         ];
 
-        $validator = Validator::make($request->all(),$rules);
-
-        if($validator->fails()){
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun acte trouvé pour ce code"
+                "code" => "180",
+                "message" => "Code de déclaration requis"
             ]);
         }
 
-        if(!Gate::allows("module.acteMariage.signature")){
+        if (!Gate::allows("module.acteMariage.signature")) {
             return response()->json([
-                "code"=>"181",
-                "message"=>["error"=>"Vous n'êtes pas autorisé à valider un acte de mariage"]
-            ]);
-        }
-
-        $cdm = $request->code_declaration_mariage;
-        $otp = $request->otp_approbation_mairie;
-
-        $am = ActeMariage::where("code_declaration_mariage",$cdm)->first();
-        if($am == null){
-            return response()->json([
-                "code"=>"182",
-                "message"=>"Aucun acte trouvé pour ce code $cdm"
-            ]);
-        }
-
-        if($otp != $am->otp_approbation_mairie){
-            return response()->json([
-                "code"=>"183",
-                "message"=>"Code otp incorrect"
+                "code" => "181",
+                "message" => "Vous n'êtes pas autorisé à valider un acte de mariage"
             ]);
         }
 
         try {
-
-            $am->otp_approbation_mairie = 1;
-            $am->approbation_mairie = Auth::user()->affectationActive()->cui;
-            $am->signature = Auth::user()->personne->signature;
-            $am->save();
-
-            $otp = substr(time(),2);
-
-            $temp = config("sifec.sms.templates.actions.acte_mariage");
-            // $temp = str_replace(":declarant",$am->declaration->declarant->nomcomplet(),$temp);
-            $temp = str_replace(":declarant",$am->declaration->epoux->nomcomplet(),$temp);
-            $temp = str_replace(":code_acte_mariage",$am->code_acte_mariage,$temp);
-
-            // $sifecObjet = new Sifec;
-            $am->otp_approbation_mairie = $otp;
-            $am->save();
-
-
-            $contact = $am->declaration->epoux->contacts->first();
-
-            if($contact != null){
-                $indicatif = $contact->indicatif;
-
-                // if($indicatif != "+242"){
-                //     SifecFacade::infobipSms($contact->indicatif.$contact->telephone, $temp);
-                // }else{
-                //     dispatch(new SendSmsJob($contact->indicatif.$contact->telephone,$temp));
-                //     // dispatch(new SendSmsJob("+242066835332",$temp));
-                // }
-                SifecFacade::infobipSms($contact->indicatif.$contact->telephone, $temp);
-                dispatch(new SendSmsJob($contact->indicatif.$contact->telephone,$temp));
-
-                // dispatch(new SendSmsJob($contact->telephone,$temp));
-                dispatch(new SendSmsJob($am->declaration->epoux->telephone,$temp));
-
+            $acte = ActeMariage::where("code_declaration_mariage", $request->code_declaration_mariage)->first();
+            if (!$acte) {
+                return response()->json([
+                    "code" => "182",
+                    "message" => "Aucun acte trouvé pour ce code"
+                ]);
             }
 
+            $otp = $otpService->envoyerOtpValidationActes(Auth::user(), [$acte]);
 
             return response()->json([
-                "code"=>"200",
-                "message"=>"Acte de mariage validé avec succès"
+                "code" => "200",
+                "message" => "SMS envoyé avec succès"
             ]);
-
 
         } catch (Exception $e) {
             return response()->json([
-                "code"=>"183",
-                "message"=>["error" =>$e->getMessage()]
+                "code" => "183",
+                "message" => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function validateOtp(Request $request, OtpService $otpService)
+    {
+        $rules = [
+            "otp_approbation_mairie" => ["required", "numeric"],
+            "code_declaration_mariage" => ["required", "string"]
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                "code" => "180",
+                "message" => "Données requises manquantes"
             ]);
         }
 
+        if (!Gate::allows("module.acteMariage.signature")) {
+            return response()->json([
+                "code" => "181",
+                "message" => "Vous n'êtes pas autorisé à valider un acte de mariage"
+            ]);
+        }
+
+        try {
+            [$success, $message] = $otpService->validerOtpActes([$request->code_declaration_mariage], $request->otp_approbation_mairie);
+
+            if (!$success) {
+                return response()->json([
+                    "code" => "183",
+                    "message" => $message
+                ]);
+            }
+
+            return response()->json([
+                "code" => "200",
+                "message" => "Acte de mariage validé avec succès"
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                "code" => "183",
+                "message" => $e->getMessage()
+            ]);
+        }
     }
 
 
      // Send OTP for bulk validation
-     public function sendOtpBulk(Request $request){
+     public function sendOtpBulk(Request $request, OtpService $otpService){
         $codes = $request->codes;
-        // return response()->json($codes);
-        $am = ActeMariage::whereIn("code_declaration_mariage",$codes)->get();
-        if($am->count() == 0){
+
+        if (empty($codes)) {
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun acte trouvé"
+                "code" => "180",
+                "message" => "Aucune déclaration sélectionnée"
+            ]);
+        }
+
+        $actes = ActeMariage::whereIn("code_declaration_mariage", $codes)->get();
+        if ($actes->count() == 0) {
+            return response()->json([
+                "code" => "180",
+                "message" => "Aucun acte trouvé"
+            ]);
+        }
+
+        if (!Gate::allows("module.acteMariage.signature")) {
+            return response()->json([
+                "code" => "181",
+                "message" => "Vous n'êtes pas autorisé à valider des actes de mariage"
             ]);
         }
 
         try {
-            $otp = substr(time(),2);
-
-            $temp = config("sifec.sms.templates.actions.validation_multiples_acte_mariages");
-            $temp = str_replace(":maire",Auth::user()->personne->nom,$temp);
-            $temp = str_replace(":nombre",$am->count(),$temp);
-            $temp = str_replace(":code_otp",$otp,$temp);
-
-
-            ActeMariage::whereIn("code_declaration_mariage",$codes)->update(["otp_approbation_mairie"=>$otp]);
-
-            $contact = Auth::user()->personne->contacts->first();
-
-            if($contact != null){
-                $indicatif = $contact->indicatif;
-
-                // if($indicatif != "+242"){
-                //     SifecFacade::infobipSms($contact->indicatif.$contact->telephone, $temp);
-                // }else{
-                //     dispatch(new SendSmsJob($contact->indicatif.$contact->telephone,$temp));
-                //     // dispatch(new SendSmsJob("+242066835332",$temp));
-                // }
-                SifecFacade::infobipSms($contact->indicatif.$contact->telephone, $temp);
-                dispatch(new SendSmsJob($contact->indicatif.$contact->telephone,$temp));
-
-                dispatch(new ValidationActeMariageJob(Auth::user()->personne->nomComplet(),$am->count(),$otp,"alangetelengo87@gmail.com"));
-                // dispatch(new ValidationActeMariageJob(Auth::user()->personne->nomComplet(), $am->count(), $otp, "alangetelengo87@gmail.com"));
-            }
+            $otp = $otpService->envoyerOtpValidationActes(Auth::user(), $actes);
 
             return response()->json([
-                "code"=>"200",
-                "message"=>"SMS envoyé avec succès"
+                "code" => "200",
+                "message" => "SMS envoyé avec succès"
             ]);
-
 
         } catch (Exception $e) {
             return response()->json([
-                "code"=>"181",
-                "message"=>["error" =>$e->getMessage()]
+                "code" => "181",
+                "message" => $e->getMessage()
             ]);
         }
-
     }
 
 
 
     // Validate multiple actes
-    public function validateOtpBulk(Request $request){
-        // return $request->all();
+    public function validateOtpBulk(Request $request, OtpService $otpService){
         $rules = [
-            "otp_approbation_mairie"=>["required","numeric"],
-            "codes"=>["required"]
+            "otp_approbation_mairie" => ["required", "numeric"],
+            "codes" => ["required"]
         ];
 
-        $validator = Validator::make($request->all(),$rules);
-
-        if($validator->fails()){
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun acte trouvé pour ce code"
+                "code" => "180",
+                "message" => "Données requises manquantes"
             ]);
         }
 
-        if(!Gate::allows("module.acteMariage.signature")){
+        if (!Gate::allows("module.acteMariage.signature")) {
             return response()->json([
-                "code"=>"181",
-                "message"=>["error" =>"Vous n'êtes pas autorisé à valider un acte de mariage"]
+                "code" => "181",
+                "message" => "Vous n'êtes pas autorisé à valider des actes de mariage"
             ]);
         }
 
         $codes = $request->codes;
         $otp = $request->otp_approbation_mairie;
 
-        $am = ActeMariage::whereIn("code_declaration_mariage",$codes)->get();
-        if($am->count() == 0){
-            return response()->json([
-                "code"=>"182",
-                "message"=>"Aucun acte trouvé"
-            ]);
-        }
-
-        if($otp != $am->last()->otp_approbation_mairie){
-            return response()->json([
-                "code"=>"183",
-                "message"=>["error" =>"Code otp incorrect"]
-            ]);
-        }
-
-        DB::beginTransaction();
         try {
+            [$success, $message] = $otpService->validerOtpActes($codes, $otp);
 
-            ActeMariage::whereIn("code_declaration_mariage",$codes)->update([
-                "approbation_mairie"=> Auth::user()->affectationActive()->cui,
-                "signature_maire"=> Auth::user()->personne->signature
-            ]);
-
-            DB::commit();
-
-
-            foreach($am as $a){
-                $temp = config("sifec.sms.templates.actions.acte_mariage");
-                // $temp = str_replace(":declarant",$a->declaration->declarant->nomcomplet(),$temp);
-                $temp = str_replace(":declarant",$a->declaration->epoux->nomcomplet(),$temp);
-                $temp = str_replace(":code_acte_mariage",$a->code_acte_mariage,$temp);
-                // dispatch(new SendSmsJob($a->declaration->declarant->telephone,$temp));
-                dispatch(new SendSmsJob($a->declaration->epoux->telephone,$temp));
-                // $contact = $a->declaration->declarant->contacts->first();
-                $contact = $a->declaration->epoux->contacts->first();
-
-
-                if($contact != null){
-                    // dispatch(new SendSmsJob($a->declaration->declarant->telephone(),$temp));
-                    dispatch(new SendSmsJob($a->declaration->epoux->telephone(),$temp));
-                    dispatch(new ValidationActeMariageJob(Auth::user()->personne->nomComplet(),$am->count(),$otp,$contact->email_professionnelle));
-                }
-
+            if (!$success) {
+                return response()->json([
+                    "code" => "183",
+                    "message" => $message
+                ]);
             }
 
-            // $sifecObjet = new Sifec;
             return response()->json([
-                "code"=>"200",
-                "message"=>"Acte(s) de mariage validé(s) avec succès"
+                "code" => "200",
+                "message" => "Acte(s) de mariage validé(s) avec succès"
             ]);
-
 
         } catch (Exception $e) {
-            DB::rollBack();
             return response()->json([
-                "code"=>"183",
-                "message"=>["error"=>$e->getMessage()]
+                "code" => "183",
+                "message" => $e->getMessage()
             ]);
         }
-
     }
 
 
 
      // générer bulk actes
-     public function generateActeBulk(Request $request)
-     {
-         $codes = $request->codes;
-         $dm = Declarationmariage::whereIn("code_declaration_mariage",$codes)->get();
-         $rn = Registre::where("statut",1)->where("code_type_registre","TPRG_0002")->first();
+    //  public function generateActeBulk(Request $request)
+    //  {
+    //      try {
+    //          $codes = $request->codes;
 
-         if($dm->count() == 0){
+    //          if (empty($codes)) {
+    //              return response()->json([
+    //                  "code" => "180",
+    //                  "message" => ["error" => "Aucune déclaration sélectionnée"],
+    //                  "flashAlert" => [
+    //                      "type" => "error",
+    //                      "message" => "Veuillez sélectionner au moins une déclaration"
+    //                  ]
+    //              ]);
+    //          }
 
-             return response()->json([
-                 "code"=>"180",
-                 "message"=>["error"=>"Aucune déclaration à générer"]
-             ]);
-         }
+    //          $acteMariageService = new ActeMariageService();
+    //          [$success, $message, $actes] = $acteMariageService->genererActesEnLot($codes, Auth::user());
 
-         if(! Gate::allows("module.acteMariage.generate")){
+    //          return response()->json([
+    //              "code" => "200",
+    //              "message" => ["reponse" => $message],
+    //              "flashAlert" => [
+    //                  "type" => "success",
+    //                  "message" => $message
+    //              ],
+    //              "data" => [
+    //                  "nombre_actes" => count($actes)
+    //              ]
+    //          ]);
 
-             return response()->json([
-                 "code"=>"181",
-                 "message"=>["error"=>"Vous n'êtes pas autorisé à générer un acte"]
-             ]);
-         }
-
-         if($rn == null){
-             return response()->json([
-                 "code"=>"182",
-                 "message"=>["error"=>"Aucun registre disponible"]
-             ]);
-         }
-
-         if($rn->statut == 0){
-             return response()->json([
-                 "code"=>"183",
-                 "message"=>["error"=>"Ce registre est déjà clôturé"]
-             ]);
-         }
-
-         if($rn->nombre_acte_prevu == $rn->nombre_acte_transcrit){
-             return response()->json([
-                 "code"=>"184",
-                 "message"=>["error"=>"Ce registre a déjà atteint le nombre d'actes prévu"]
-             ]);
-         }
-
-         DB::beginTransaction();
-         try{
-
-             foreach($dm as $d){
-                 $acteMariage = new ActeMariage;
-                 $acteMariage->code_acte_mariage = Sifec::genererCodeUniqueReferentiel($acteMariage,"code_acte_mariage",8,"AM_");
-                 $acteMariage->date_emission = now();
-                 $acteMariage->code_declaration_mariage = $d->code_declaration_mariage;
-                 $acteMariage->code_registre = $rn->code_registre;
-                 $acteMariage->cui = Auth::user()->affectationActive()->cui;
-                 $acteMariage->approbation_tribunal = 1;
-                 $acteMariage->sceau_tribunal = Auth::user()->affectationActive()->institution->institutionParent->sceau;
-                 $acteMariage->save();
-
-                 if(($rn->nombre_acte_transcrit + 1) == $rn->nombre_acte_prevu){
-                     $rn->statut = 0;
-                 }
-
-                 $position = $rn->nombre_acte_transcrit + 1;
-                 $rn->nombre_acte_transcrit = $position;
-
-                 $rn->save();
-
-                 $feuillet = new FeuilletRegistre;
-                 $feuillet->code_feuillet_registre = Sifec::genererCodeUniqueReferentiel($feuillet, "code_feuillet_registre", 4, "FRE_");
-                 $feuillet->code_acte = $acteMariage->code_acte_mariage;
-                 $feuillet->numero_acte =  SifecFacade::generate_acte_number($rn, $position);
-                 $feuillet->save();
-             }
-
-             DB::commit();
-
-             return response()->json([
-                 "code"=>"200",
-                 "message"=>["reponse"=>"Actes des mariages générés avec succès"]
-             ]);
-
-
-         }catch(Exception $e){
-             DB::rollBack();
-             return response()->json([
-                 "code"=>"201",
-                 "message"=>["error"=> $e->getMessage()]
-             ]);
-         }
-     }
+    //      } catch (Exception $e) {
+    //          return response()->json([
+    //              "code" => "201",
+    //              "message" => ["error" => $e->getMessage()],
+    //              "flashAlert" => [
+    //                  "type" => "error",
+    //                  "message" => $e->getMessage()
+    //              ]
+    //          ]);
+    //      }
+    //  }
 
      public function searchActe($id)
      {
-        $acte = ActeMariage::with(["declaration.optionMariage"])->where("code_acte_mariage",$id)->first();
-        if($acte !== null){
-            if($acte->declaration->optionMariage->code_option_mariage == "OPM_0001"){
+        try {
+            $acteMariageService = new ActeMariageService();
+            $acte = $acteMariageService->rechercherActe($id);
+
+            if($acte !== null){
+                $optionMariage = $acte->declaration->optionMariage;
+
+                if($optionMariage->code_option_mariage == "OMRG_0002"){
+                    // Monogamie - problème
+                    return response()->json([
+                        "code" => "99",
+                        "message" => [
+                            "optionMariage" => "Il semble que l'époux soit déjà marié avec l'option <strong>Monogamie</strong>, au cas où il serait divorcé, alors veuillez présenter le jugement du divorce ou bien l'acte de décès de son épouse"
+                        ],
+                        "acte" => [
+                            "code_acte" => $acte->code_acte_mariage,
+                            "date_emission" => $acte->date_emission,
+                            "option_mariage" => $optionMariage->lib_option_mariage
+                        ]
+                    ]);
+                } else {
+                    // Polygamie - OK
+                    return response()->json([
+                        "code" => "200",
+                        "message" => [
+                            "optionMariage" => "L'époux est déjà marié avec l'option " . $optionMariage->lib_option_mariage . ". Le processus peut continuer."
+                        ],
+                        "acte" => [
+                            "code_acte" => $acte->code_acte_mariage,
+                            "date_emission" => $acte->date_emission,
+                            "option_mariage" => $optionMariage->lib_option_mariage,
+                            "epouse" => [
+                                "nom" => $acte->declaration->epouse->nom ?? '',
+                                "prenom" => $acte->declaration->epouse->prenom ?? '',
+                                "nom_complet" => $acte->declaration->epouse->nomcomplet() ?? ''
+                            ],
+                            "date_celebration" => $acte->declaration->date_prevue_mariage ?? $acte->declaration->date_celebration_mariage ?? '',
+                            "etat_civil" => [
+                                "nom_institution" => $acte->institution->lib_institution ?? ''
+                            ]
+                        ]
+                    ]);
+                }
+            } else {
+                // Aucun acte trouvé
                 return response()->json([
-                    "code"=>"99",
-                    "message"=>["optionMariage"=>"Il semble que l'époux soit déjà marié avec l'option <strong>Monogamie</strong>, au cas où il serait divorcé, alors veuillez présenter le jugement du divorce ou bien l'acte de décès de son épouse"]
+                    "code" => "404",
+                    "message" => [
+                        "optionMariage" => "Aucun acte de mariage trouvé avec ce numéro."
+                    ]
                 ]);
             }
-            // return response()->json([
-            //     "code"=>"200",
-            //     "message"=>["optionMariage"=>$acte->declaration->optionMariage->code_option_mariage]
-            // ]);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la recherche d\'acte de mariage: ' . $e->getMessage(), [
+                'numero_acte' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                "code" => "500",
+                "message" => [
+                    "optionMariage" => "Une erreur s'est produite lors de la vérification de l'acte de mariage."
+                ]
+            ], 500);
         }
      }
 
@@ -524,52 +577,180 @@ class ActeMariageController extends Controller
     }
 
 
-     // poser le visa du Sécrétaire général de la mairie sur les actes
-     public function viserActeBulk(Request $request)
-     {
-         $codes = $request->codes;
-         $dn = Declarationmariage::whereIn("code_declaration_mariage",$codes)->get();
 
-         if($dn->count() == 0){
+    /**
+     * Affiche l'acte de mariage pour impression
+     */
+    public function printActe($id)
+    {
+        $acte = ActeMariage::where("code_declaration_mariage", $id)->orWhere("code_acte_mariage", $id)->first();
 
-             return response()->json([
-                 "code"=>"180",
-                 "message"=>["error"=>"Aucun document à générer"]
-             ]);
-         }
+        // Pas besoin de redirection ici, la vue gère le cas où $acte est null
+        return view('mariage::acte.acte', compact("acte"));
+    }
 
-         if( ! Gate::allows("module.acteMariage.viser")){
+    /**
+     * Annule un acte de mariage
+     */
+    public function annuler(Request $request)
+    {
+        try {
+            $request->validate([
+                'code_declaration_mariage' => 'required|string',
+                'motif' => 'required|string',
+                'observation' => 'nullable|string'
+            ]);
 
-             return response()->json([
-                 "code"=>"181",
-                 "message"=>["error"=>"Vous n'êtes pas autorisé à viser un acte"]
-             ]);
-         }
+            $declaration = DeclarationMariage::where('code_declaration_mariage', $request->code_declaration_mariage)->first();
 
-         DB::beginTransaction();
-         try {
+            if (!$declaration || !$declaration->acte) {
+                return response()->json([
+                    'code' => '400',
+                    'message' => 'Acte non trouvé'
+                ], 400);
+            }
 
-             ActeMariage::whereIn("code_declaration_mariage",$codes)->update([
-                 "approbation_secretaire_general"=> Auth::user()->affectationActive()->cui,
-                 "visa_secretaire_general"=> Auth::user()->personne->signature
-             ]);
+            // Logique d'annulation (à adapter selon vos besoins)
+            $declaration->acte->update([
+                'annule' => true,
+                'motif_annulation' => $request->motif,
+                'observation_annulation' => $request->observation,
+                'date_annulation' => now()
+            ]);
 
-             DB::commit();
+            return response()->json([
+                'code' => '200',
+                'message' => [
+                    'reponse' => 'Acte annulé avec succès'
+                ]
+            ]);
 
-               return response()->json([
-                 "code"=>"200",
-                 "message"=>"Acte(s) de mariage visés avec succès"
-             ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de l\'annulation de l\'acte: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
+    /**
+     * Annule plusieurs actes de mariage
+     */
+    public function annulerBulk(Request $request)
+    {
+        try {
+            $request->validate([
+                'codes' => 'required|array',
+                'motif' => 'required|string',
+                'observation' => 'nullable|string'
+            ]);
 
-         } catch (Exception $e) {
-             DB::rollBack();
-             return response()->json([
-                 "code"=>"183",
-                 "message"=>["error"=>$e->getMessage()]
-             ]);
-         }
+            $codes = $request->codes;
+            $annules = 0;
+            $erreurs = [];
 
-     }
+            foreach ($codes as $code) {
+                $declaration = DeclarationMariage::where('code_declaration_mariage', $code)->first();
 
+                if ($declaration && $declaration->acte) {
+                    $declaration->acte->update([
+                        'annule' => true,
+                        'motif_annulation' => $request->motif,
+                        'observation_annulation' => $request->observation,
+                        'date_annulation' => now()
+                    ]);
+                    $annules++;
+                } else {
+                    $erreurs[] = "Acte non trouvé pour le code: $code";
+                }
+            }
+
+            return response()->json([
+                'code' => '200',
+                'message' => [
+                    'reponse' => "$annules acte(s) annulé(s) avec succès"
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de l\'annulation des actes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Enregistre le retrait d'un acte de mariage
+     */
+    public function retrait(Request $request)
+    {
+        try {
+            $request->validate([
+                'code_acte_mariage' => 'required|string',
+                'nominteresse' => 'required|string',
+                'prenominteresse' => 'nullable|string',
+                'telephoneinteresse' => 'required|string'
+            ]);
+
+            $acte = ActeMariage::where('code_acte_mariage', $request->code_acte_mariage)->first();
+
+            if (!$acte) {
+                return response()->json([
+                    'code' => '400',
+                    'message' => 'Acte non trouvé'
+                ], 400);
+            }
+
+            // Logique de retrait (à adapter selon vos besoins)
+            $acte->update([
+                'retire' => true,
+                'nom_interesse' => $request->nominteresse,
+                'prenom_interesse' => $request->prenominteresse,
+                'telephone_interesse' => $request->telephoneinteresse,
+                'date_retrait' => now()
+            ]);
+
+            return response()->json([
+                'code' => '200',
+                'message' => [
+                    'reponse' => 'Retrait enregistré avec succès'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de l\'enregistrement du retrait: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Affiche la copie d'un acte de mariage
+     */
+    public function copie($id)
+    {
+        $acte = ActeMariage::where("code_declaration_mariage", $id)->orWhere("code_acte_mariage", $id)->first();
+
+        if (!$acte) {
+            abort(404, 'Acte non trouvé');
+        }
+
+        return view('mariage::etats.copie', compact("acte"));
+    }
+
+    /**
+     * Affiche l'extrait d'un acte de mariage
+     */
+    public function displayExtrait($id)
+    {
+        $acte = ActeMariage::where("code_declaration_mariage", $id)->orWhere("code_acte_mariage", $id)->first();
+
+        if (!$acte) {
+            abort(404, 'Acte non trouvé');
+        }
+
+        return view('mariage::etats.extrait', compact("acte"));
+    }
 }

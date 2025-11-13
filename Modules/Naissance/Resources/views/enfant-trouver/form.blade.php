@@ -1,8 +1,10 @@
-<form name="contactUsForm" id="contactUsForm"  method="post" action="javascript:void(0)" class="validation-wizard wizard-circle">
+<form name="contactUsForm" id="contactUsForm"  method="post" action="javascript:void(0)" class="validation-wizard wizard-circle" enctype="multipart/form-data">
     <!-- Step 1 -->
     <h6>Enfant</h6>
     <div class="d-none">
         <input type="text" value="DECLARATION DE NAISSANCE" id="type_declaration">
+        <input type="text" value="Personne morale" id="type_declarant">
+        <input type="text" value="Enfant trouvé" id="personne_declaree">
     </div>
     <section>
 		 <div class="ligne">
@@ -60,24 +62,50 @@
                 <input type="text" value="{{ $dummy }}" id="formation_sanitaire_naissance" name="formation_sanitaire_naissance" class="form-control" readonly>
             </div>
             @endif
+            <div class="mb-2 col-md-3">
+                <label class="form-label">Lieu de survenance <span class="text-danger">*</span></label>
+                <select id="code_lieu_survenance" class="form-control required" readonly>
+                    @foreach ($lieuSurvenances as $item)
+                        <option value="{{ $item->code_lieu_survenance }}" {{ $item->code_lieu_survenance == "LSURV_0007" ? "selected" : "" }}>{{ $item->lib_lieu_survenance }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="mb-2 col-md-3">
+                <label class="form-label">Date déclaration</label>
+                <input type="text" value="{{ date("d-m-Y") }}" class="form-control">
+                <input type="hidden" value="{{ date("Y-d-m") }}" id="date_heure_declaration">
+            </div>
         </div>
 		<div class="ligne">
                 <h4>AUTRES INFORMATIONS</h4>
             </div>
         <div class="row">
-            <div class="mb-2 col-md-4">
+            <div class="mb-2 col-md-4 d-none">
                 <label class="form-label">Situation matrimoniale des parents<span class="text-danger">*</span></label>
                 <select id="code_situation_matrimoniale" name="code_situation_matrimoniale" class="form-control required  @error('code_situation_matrimoniale') is-invalid @enderror" readonly>
                     <option value="SMAT_0008">{{ $dummy }}</option>
                 </select>
             </div>
-            <div class="mb-2 col-md-4">
+            <div class="mb-2 col-md-4 d-none">
                 <label class="form-label">Nombre d'enfants (y compris le sujet)<span class="text-danger">*</span></label>
                 <input type="text" value="1" name="nombre_enfants"class="form-control required  @error('nombre_enfants') is-invalid @enderror " placeholder="0" id="nombre_enfants" readonly>
             </div>
-            <div class="mb-2 col-md-4">
-                <label class="form-label">Date déclaration</label>
-                <input type="text" value="{{ date("d-m-Y") }}" id="date_heure_declaration" name="date_heure_declaration" class="form-control" readonly>
+
+            <div class="mb-2 col-md-3">
+                <label class="form-label">Lieu de placement <span class="text-danger">*</span></label>
+                <input type="text" id="lieu_placement" class="form-control" value="{{ old("lieu_placement") }}">
+            </div>
+            <div class="mb-2 col-md-3 d-none">
+                <label class="form-label">Extrait main courante <span class="text-danger">*</span></label>
+                <input type="file" id="extrait_main_courante" class="form-control" value="{{ old("extrait_main_courante") }}">
+            </div>
+            <div class="mb-2 col-md-3">
+                <label class="form-label">num du fiche de placement <span class="text-danger">*</span></label>
+                <input type="text" id="num_fiche_placement" class="form-control" value="{{ old("num_fiche_placement") }}">
+            </div>
+            <div class="mb-2 col-md-3">
+                <label class="form-label" title="num du jugement de placement provisoir">num du jugement de placement <span class="text-danger">*</span></label>
+                <input type="text" id="num_jugement_placement_provisoir" class="form-control" value="{{ old("num_jugement_placement_provisoir") }}">
             </div>
             <div class="mb-2 col-md-4 d-none">
                 <label class="form-label">Statut <span class="text-danger">*</span></label>

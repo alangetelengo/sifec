@@ -1,22 +1,31 @@
 <style>
     page{
        position: relative;
-       margin-top: 10px;
-       margin-left: 60px;
+       margin-top: 5px;
+       margin-left: 30px;
+       margin-right: 30px;
    }
    td{
-       font-size: 80%;
-       height: 15px;
-       padding-bottom: 2px!important;
+       font-size: 85%;
+       height: 14px;
+       padding-bottom: 1px!important;
+       line-height: 1.3;
    }
    b{
-       font-size: 120%;
+       font-size: 110%;
    }
-
+   .compact {
+       margin: 0;
+       padding: 0;
+       line-height: 1.1;
+   }
+   .small-text {
+       font-size: 10px;
+   }
 </style>
- {{-- <page orientation="portrait" backimg="{{ asset("tpl/back-border.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
+{{-- <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
 
-    <page orientation="portrait" backimg="{{ asset("tpl/back-border.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+   <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
 
     {{-- <page orientation="portrait" backimg="" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
     @php
@@ -30,11 +39,19 @@
         $jugement = "";
         $infos = "";
 
-        if($acte->declaration->titre_requisition != ""){
-            $req = $acte->declaration->titre_requisition;
-            $num = $acte->declaration->numero_dispense;
-            $infos = 'ACTE ETABLIT SUIVANT LA '.$req.' N° '.$num.' DU '.(date("d-m-Y", strtotime($acte->declaration->updated_at)))." AU ".$acte->declaration->institutionUser->institution->institutionParent->lib_institution;
+        if($acte->declaration->requisition != ""){
+            $titre = $acte->declaration->requisition->typeRequisition->lib_type_requisition;
+            $num = $acte->declaration->requisition->num_requisition;
+            $date = $acte->declaration->requisition->date_requisition;
+            $infos = 'ACTE ETABLIT SUIVANT LA '.$titre.' N° '.$num.' DU '.(date("d-m-Y", strtotime($date)))." AU ".$acte->declaration->institution->institutionParent->lib_institution;
 
+        }
+
+        // Fonction utilitaire pour valider les images base64
+        function isValidBase64Image($data) {
+            if (empty($data)) return false;
+            $data = str_replace(['data:image/png;base64,', 'data:image/jpeg;base64,', 'data:image/jpg;base64,'], '', $data);
+            return base64_decode($data, true) !== false;
         }
     @endphp
     @php
@@ -44,112 +61,89 @@
         $institution = $acte->institutionUser->institution;
         $localisation = "";
 
-        if ($institution->code_arrondissement != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-            $localisation = $institution->arrondissement->commune->lib_commune;
-        }
-
-        if ($institution->code_commune != NULL) {
-            $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-            $localite  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-            $localisation = $institution->commune->lib_commune;
-        }
-
-        if ($institution->code_communaute_urbaine != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-
-        if ($institution->code_district != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "DISTRICT DE ".$institution->district->lib_district;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
         // localite concernant les mairies
-        $dept = "DEPARTEMENT DE LA ".$acte->institutionUser->institution->lieu->localiteParent->localiteParent->lib_localite;
+        $dept = "DEPARTEMENT DE ".$acte->institution->lieu->localiteParent->localiteParent->lib_localite;
+        $commune = "COMMUNE DE ".$acte->institution->lieu->localiteParent->lib_localite;
     @endphp
 
-<p style="color: red;text-align:center;font-style:italic"><small>{{ $infos }}</small></p>
+<p style="color: red;text-align:center;font-style:italic"><small style="text-transform: uppercase">{{ $infos }}</small></p>
 
-   <table cellspacing="0" style="width: 100%; font-size: 14pt;margin-top: 10px;">
+   <table cellspacing="0" style="width: 100%; font-size: 13pt;margin-top: 3px;">
        <tr>
            <td style="width:35%; text-align: center;padding-top: -120px;">
             <p>
                 <span>
                     <strong>{{ $dept }}</strong>
                 </span> <br>
-                {{-- <span>{{ $localite}}</span> <br> --}}
+                <span>{{ $commune}}</span> <br>
                 <span>{{ $institution->lib_institution }}</span>
             </p>
            </td>
            <td style="width:30%; text-align: center;">
             {{-- Logo du milieu --}}
-                @if ($acte->approbation_tribunal == 1)
-                    <img src='{{ asset("app/".$acte->sceau_tribunal) }}' alt="" width="100" height="100">
+                @if ($acte->approbation_tribunal == 1 && $acte->sceau_tribunal && file_exists(public_path("app/".$acte->sceau_tribunal)))
+                    <img src='{{ public_path('app/'.$acte->sceau_tribunal) }}' alt="" width="100" height="100">
                 @endif
            </td>
+
            <td style="width:35%; text-align: center;">
                <strong style="margin-top:10px">REPUBLIQUE DU CONGO</strong><br>
                Unit&eacute; - Travail - Progr&egrave;s <br><br>
+               @if ($acte->approbation_mairie != null)
                <qrcode value="{{ env('QRCODE_URL') }}/qrcode?niupp=Je suis Vincent" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
-           </td>
+                @else
+                <br><br><br><br><br><br>
+               @endif
+            </td>
        </tr>
-   </table><br><br>
+   </table><br>
    <table align="center" style="border-radius: 1mm; border: none; width: 100%;">
        <tr style="">
-           {{-- <td style="width:70%; text-align: center; padding-top: -70px;"> --}}
-           <td style="width:70%; text-align: center; padding-top: -250px;">
-            <br><br>
-               <p><strong style="font-size: 150%;">ACTE DE MARIAGE</strong>
+           <td style="width:70%; text-align: center; padding-top: 5px;">
+               <p><strong style="font-size: 140%;">ACTE DE MARIAGE</strong>
                 <br> Année: <strong>{{date("Y", strtotime($acte->created_at))}} </strong> Acte n°:<strong>{{ $acte->code_acte_mariage }}</strong>
             </p>
            </td>
-       </tr><br>
+       </tr>
    </table>
-   <div style="margin-top: 100px;margin-left: 4px;border-radius: 2mm;">
+   <div style="margin-top: 10px;margin-left: 4px;border-radius: 2mm;">
        <div style="width: 150px;text-align: center;">
            {{-- <p>Marge réservée aux mention <br> d'officier(1)</p> --}}
        </div>
-       <div style="position: absolute; left: 15px; top: 230px; width: 1050px; height: 1200px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:20px;">
+       <div style="position: relative; left: 0px; top: 0px; width: 100%; padding: 0px; text-align: left; font-weight: normal; font-size:20px;" class="main-content">
            <table align="left" style="border-radius: 1mm; border: none;">
             <tr style="margin-right: 8px;">
-                <td> <br>
-                    Centre d’état civil principal: {{ $inst }} <br><br>
+                <td class="compact">
+                    Centre d'état civil principal : {{ $institution->lib_institution }} <br>
                     <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong> <br>
-                    Par devant nous {{ $nomcomplet }} Officier de l’Etat Civil ont comparu publiquement : <br><br>
-                    <span style="margin-left: 50px;"><strong>M. {{ $acte->declaration->epoux->nomcomplet() }}</strong></span> <br>
+                    Par devant nous {{ $nomcomplet }} Officier de l'Etat Civil ont comparu publiquement : <br>
+                    <span style="margin-left: 30px;"><strong>M. {{ $acte->declaration->epoux->nomcomplet() }}</strong></span> <br>
                     Né le <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{{ $acte->declaration->epoux->lieu_naissance }}</strong> <br>
                     Acte de naissance n° <strong>{{ $acte->declaration->numero_acte_naissance_epoux }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epoux))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) }}</strong> dressé à la <strong> {{ $acte->declaration->cec_naissance_epoux }}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epoux->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpoux->lib_profession }}</strong> <br>
                     Domicilié : <strong>{{ $acte->declaration->epoux->adresse }}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpoux->lib_situation_matrimoniale }}</strong> <br>
                     Fils de : {{ $acte->declaration->pere_epoux }} <br>
-                    Et de : {{ $acte->declaration->mere_epoux }} <br><br>
-                    <span style="margin-left: 50px;">Et <strong>Mme. {{ $acte->declaration->epouse->nomcomplet() }}</strong></span> <br>
+                    Et de : {{ $acte->declaration->mere_epoux }} <br>
+                    <span style="margin-left: 30px;">Et <strong>Mme. {{ $acte->declaration->epouse->nomcomplet() }}</strong></span> <br>
                     Née le <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{{ $acte->declaration->epouse->lieu_naissance }}</strong> <br>
                     Acte de naissance n° <strong>{{  $acte->declaration->numero_acte_naissance_epouse  }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epouse))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) }}</strong> dressé à la <strong> {{ $acte->declaration->cec_naissance_epouse }}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epouse->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpouse->lib_profession }}</strong> <br>
                     Domiciliée : <strong>{{ $acte->declaration->epouse->adresse }}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpouse->lib_situation_matrimoniale }}</strong> <br>
                     Fille de : {{ $acte->declaration->pere_epouse }} <br>
-                    Et de : {{ $acte->declaration->mere_epouse }} <br> <br>
-                    Sur notre interpellation, les futurs époux ont déclaré l’un après l’autre vouloir se prendre pour mari et femme et nous avons prononcé au nom <br> de la loi
-                    qu’ils sont unis par le mariage légal en présence de : <br>
-                    <!-- M. {{ $acte->declaration->chef_famille }} représentant de l’épouse * <br><br> -->
+                    Et de : {{ $acte->declaration->mere_epouse }} <br>
+                    Sur notre interpellation, les futurs époux ont déclaré l'un après l'autre vouloir se prendre pour mari et femme et nous avons prononcé au nom de la loi
+                    qu'ils sont unis par le mariage légal en présence de : <br>
                     @if ($acte->declaration->nom_prenom_mandant_epouse != "")
-                        <strong style="color:red;margin-top:5px">{{$acte->declaration->nom_prenom_mandant_epouse}}, représentante de l'épouse</strong>
+                        <strong style="color:red;margin-top:2px">{{$acte->declaration->nom_prenom_mandant_epouse}}, représentante de l'épouse</strong>
                     @endif
                     @if ($acte->declaration->nom_prenom_mandant_epoux != "")
-                        <strong style="color:red;margin-top:5px">{{$acte->declaration->nom_prenom_mandant_epoux}}, représentant de l'époux</strong>
+                        <strong style="color:red;margin-top:2px">{{$acte->declaration->nom_prenom_mandant_epoux}}, représentant de l'époux</strong>
                     @endif
-                    <br><br>
+                    <br>
                     <strong><i>Témoins de l'époux</i> </strong><br>
                     Et ce :<br>
                     1° {{ $acte->declaration->temoinHommeEpoux->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinHommeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinHommeEpoux->date_naissance)) ." à ".$acte->declaration->temoinHommeEpoux->lieu_naissance}}, Domicilié au {{ $acte->declaration->temoinHommeEpoux->adresse }}* <br>
-                    2° Mme {{ $acte->declaration->temoinFemmeEpoux->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance)) ." à ".$acte->declaration->temoinFemmeEpoux->lieu_naissance}}* <br><br>
+                    2° Mme {{ $acte->declaration->temoinFemmeEpoux->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance)) ." à ".$acte->declaration->temoinFemmeEpoux->lieu_naissance}}* <br>
                     <strong><i>Témoins de l'épouse</i></strong> <br>
                     1° {{ $acte->declaration->temoinHommeEpouse->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinHommeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinHommeEpouse->date_naissance)) ." à ".$acte->declaration->temoinHommeEpouse->lieu_naissance}}, Domicilié au {{ $acte->declaration->temoinHommeEpouse->adresse }}* <br>
                     2° Mme {{ $acte->declaration->temoinFemmeEpouse->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinFemmeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinFemmeEpouse->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinFemmeEpouse->date_naissance)) ." à ".$acte->declaration->temoinFemmeEpouse->lieu_naissance}}* <br>
@@ -158,7 +152,7 @@
                 </td>
             </tr>
            </table>
-           <table class="historique" cellspacing="0" style="width: 100%; font-size: 20px;">
+           <table class="historique" cellspacing="0" style="width: 100%; font-size: 18px;">
                 <col style="width: 33%">
                 <col style="width: 33%">
                 <col style="width: 33%">
@@ -173,8 +167,8 @@
                 <tbody>
                         <tr>
                             <td style="text-align: center;">L'époux <br>
-                                @if($acte->declaration->signatureActe !=null)
-                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_epoux}}" alt="Base64 Image" width="100" height="80">
+                                @if($acte->declaration->signatureActe !=null && isValidBase64Image($acte->declaration->signatureActe->signature_epoux))
+                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_epoux}}" alt="Signature époux" width="100" height="80">
                                 @endif
 
                                 @if ($acte->declaration->nom_prenom_mandant_epoux != "")
@@ -184,8 +178,8 @@
                             <td></td>
                             <td style="text-align: left;">
                                 L'épouse <br>
-                                @if($acte->declaration->signatureActe !=null)
-                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_epouse}}" alt="Base64 Image" width="100" height="80">
+                                @if($acte->declaration->signatureActe !=null && isValidBase64Image($acte->declaration->signatureActe->signature_epouse))
+                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_epouse}}" alt="Signature épouse" width="100" height="80">
                                 @endif
                                 @if ($acte->declaration->nom_prenom_mandant_epouse != "")
                                     <span style="color:black;margin-top:-25px;font-size:20px">P.O</span>
@@ -201,38 +195,36 @@
                         </tr>
                         <tr>
                             <td style="text-align: center;">
-                                <br> Témoins de l'époux <br>
+                                Témoins de l'époux <br>
 
-                                @if($acte->declaration->signatureActe != null)
-                                    <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_premier_epoux}}" alt="Base64 Image" width="100" height="100">
+                                @if($acte->declaration->signatureActe != null && isValidBase64Image($acte->declaration->signatureActe->signature_temoin_premier_epoux))
+                                    <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_premier_epoux}}" alt="Signature témoin 1 époux" width="100" height="100">
                                @endif
-                               @if($acte->declaration->signatureActe !=null)
-                               <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_deuxieme_epoux}}" alt="Base64 Image" width="100" height="100">
+                               @if($acte->declaration->signatureActe !=null && isValidBase64Image($acte->declaration->signatureActe->signature_temoin_deuxieme_epoux))
+                               <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_deuxieme_epoux}}" alt="Signature témoin 2 époux" width="100" height="100">
 
                                @endif
                             </td>
 
                             <td>
                             </td>
-                            <td style="text-align: left;"><br>Témoins de l'épouse <br>
-                                @if($acte->declaration->signatureActe !=null)
-                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_premier_epouse}}" alt="Base64 Image" width="100" height="80">
+                            <td style="text-align: left;">Témoins de l'épouse <br>
+                                @if($acte->declaration->signatureActe !=null && isValidBase64Image($acte->declaration->signatureActe->signature_temoin_premier_epouse))
+                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_premier_epouse}}" alt="Signature témoin 1 épouse" width="100" height="80">
 
                                 @endif
-                                @if($acte->declaration->signatureActe !=null)
-                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_deuxieme_epouse}}" alt="Base64 Image" width="100" height="80">
+                                @if($acte->declaration->signatureActe !=null && isValidBase64Image($acte->declaration->signatureActe->signature_temoin_deuxieme_epouse))
+                                <img src="data:image/png;base64,{{$acte->declaration->signatureActe->signature_temoin_deuxieme_epouse}}" alt="Signature témoin 2 épouse" width="100" height="80">
                                 @endif
                             </td>
                         </tr>
                         <tr>
                             <td>
                             </td>
-                            <td style="text-align: center;padding-top: 10px;">L'officier d'état civil <br>
+                            <td style="text-align: center;padding-top: 5px;">L'officier d'état civil <br>
 
-                                @if ($acte->approbation_mairie != null)
-                                    {{-- <img src='{{ asset("app/".$acte->signature_maire) }}' width="100" height="100"> --}}
-                                    {{-- <img src="app/signature/}}" alt="Base64 Image" width="100" height="80"> --}}
-
+                                @if ($acte->approbation_mairie != null && $acte->signature_maire && file_exists(public_path("app/".$acte->signature_maire)))
+                                    <img src='{{ public_path('app/'.$acte->signature_maire) }}' width="100" height="100">
                                     {{ $acte->signataire->user->personne->nomcomplet() }}
                                 @endif
                             </td>
@@ -240,13 +232,12 @@
                             </td>
                         </tr>
                 </tbody>
-            </table><br><br><br>
-            <div style="font-size: 12px;text-align: center;">
-            <i><strong>CONDITIONS DE MARIAGE</strong></i> <br><br> Les futurs époux déclarent expressément opter pour la <strong>{{ $acte->declaration->optionMariage->lib_option_mariage }}</strong> et se marie sous le régime matrimonial de <strong>{{ $acte->declaration->regime->lib_regime }}</strong>.
+            </table><br>
+            <div style="font-size: 11px;text-align: center;" class="small-text">
+            <i><strong>CONDITIONS DE MARIAGE</strong></i> <br> Les futurs époux déclarent expressément opter pour la <strong>{{ $acte->declaration->optionMariage->lib_option_mariage }}</strong> et se marie sous le régime matrimonial de <strong>{{ $acte->declaration->regime->lib_regime }}</strong>.
             <br>La dot: Cinquante Mille Francs (50.000 Frs) CFA versés à M. <strong>{{ $acte->declaration->chef_famille }}</strong> , {{ $acte->declaration->filiation->lib_filiation }} de la mariée *
             <br>Coutume présidant à l'union: Congolaise*
-            <br>
-            Stipulations particulières en date du <strong> {{ date("d", strtotime($acte->declaration->date_prevue_mariage)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) ." ".date("Y", strtotime($acte->declaration->date_prevue_mariage)) }} </strong> l'époux déclare expressément le <strong> {{ date("d", strtotime($acte->declaration->date_prevue_mariage)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) ." ".date("Y", strtotime($acte->declaration->date_prevue_mariage)) }} </strong> renonce à prendre une
+            <br>Stipulations particulières en date du <strong> {{ date("d", strtotime($acte->declaration->date_prevue_mariage)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) ." ".date("Y", strtotime($acte->declaration->date_prevue_mariage)) }} </strong> l'époux déclare expressément le <strong> {{ date("d", strtotime($acte->declaration->date_prevue_mariage)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) ." ".date("Y", strtotime($acte->declaration->date_prevue_mariage)) }} </strong> renonce à prendre une
             seconde épouse tant que le présent mariage n'aura pas été dissout par un jugement de divorce ou le décès de sa conjointe
             (Article 179 du code de la famille)
             </div>

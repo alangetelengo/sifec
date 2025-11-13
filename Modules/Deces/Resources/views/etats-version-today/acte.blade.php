@@ -9,7 +9,7 @@
         font-size: 120%;
     }
 </style>
-<page orientation="portrait" backimg="{{ asset("tpl/back-border.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+<page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
     @php
     setlocale(LC_TIME, "fr_FR", "French");
         $departement = "";
@@ -240,7 +240,7 @@
                         <div style="margin-bottom:0;"><qrcode value=" {{ env("QRCODE_URL") }}/qrcode/deces?niupp={{ $acte->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
                     </td>
                     <td style="text-align: left;">
-               
+
                        <p>Fait à {{ ucfirst(strtolower(trans($localisation)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $acte->date_emission)))}}</p>
                         @if ($acte->approbation_pompe_funebre == 1)
                         <p>  {{ $acte->signataire->user->fonction->lib_fonction }},<br></p>

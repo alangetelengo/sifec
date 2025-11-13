@@ -56,7 +56,7 @@
          <div class="mb-2 col-md-4">
             <label class="form-label">Nationalité du père<span class="text-danger">*</span></label>
             <select id="code_nationalite_pere" name="code_nationalite_pere" class="form-control required  @error('code_nationalite_pere') is-invalid @enderror ">
-                    <option disabled selected>Choisissez</option>
+                    {{-- <option disabled selected>Choisissez</option> --}}
                 @foreach ($nationalites as $nationalite)
                     <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
                 @endforeach
@@ -104,13 +104,13 @@
             <div class="mb-2 col-md-3">
                 <label class="form-label">Pays<span class="text-danger"></span></label>
                 <select id="domicile_pays_pere" class="form-control required">
-                    <option value="">Choisissez</option>
+                    {{-- <option value="">Choisissez</option> --}}
                     @foreach ($countries as $countrie)
                         <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="mb-2 col-md-3 domicile_ville_pere d-none">
+            <div class="mb-2 col-md-3 domicile_ville_pere">
                 <label class="form-label">Commune/District<span class="text-danger"></span></label>
                 <select class="form-control" id="domicile_ville_pere">
                     <option value="">Choisir</option>
@@ -170,7 +170,7 @@
                 <div class="col-md-4">
                     <label class="form-label">Indicatif<span class="text-danger">*</span></label>
                     <select name="code_pays_pere" id="code_pays_pere" class="form-control">
-                        <option value="">Selectionnez</option>
+                        {{-- <option value="">Selectionnez</option> --}}
                         @forelse ($countries as $code)
                             <option value="{{ $code->dial_code }}">({{ $code->dial_code }}) {{ $code->name }}</option>
                         @empty
@@ -264,7 +264,7 @@
         <div class="mb-2 col-md-4">
             <label class="form-label">Nationalité Mère<span class="text-danger">*</span></label>
             <select id="code_nationalite_mere" name="code_nationalite_mere" class="form-control required  @error('code_nationalite_mere') is-invalid @enderror ">
-                    <option disabled selected>Choisissez</option>
+                    {{-- <option disabled selected>Choisissez</option> --}}
                 @foreach ($nationalites as $nationalite)
                     <option value="{{ $nationalite->code_nationalite }}">{{ $nationalite->lib_nationalite }}</option>
                 @endforeach
@@ -318,7 +318,7 @@
         <div class="mb-2 col-md-3">
             <label class="form-label">Pays<span class="text-danger"></span></label>
             <select id="domicile_pays_mere" class="form-control required" disabled>
-                <option value="">Choisissez</option>
+                {{-- <option value="">Choisissez</option> --}}
                 @foreach ($countries as $countrie)
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                 @endforeach
@@ -384,7 +384,7 @@
         <div class="col-md-4">
             <label class="form-label">Indicatif<span class="text-danger">*</span></label>
             <select name="code_pays_mere" id="code_pays_mere" class="form-control">
-                <option value="">Selectionnez</option>
+                {{-- <option value="">Selectionnez</option> --}}
                 @forelse ($countries as $code)
                     <option value="{{ $code->dial_code }}">({{ $code->dial_code }}) {{ $code->name }}</option>
                 @empty

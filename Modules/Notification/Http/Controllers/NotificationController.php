@@ -2,9 +2,11 @@
 
 namespace Modules\Notification\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class NotificationController extends Controller
 {
@@ -12,9 +14,29 @@ class NotificationController extends Controller
      * Display a listing of the resource.
      * @return Renderable
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('notification::index');
+        $notifications = Auth::user()->notifications;
+        $perPage = 20;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentItems = $notifications->slice(($currentPage - 1) * $perPage, $perPage)->all();
+        $paginated = new LengthAwarePaginator(
+            $currentItems,
+            $notifications->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+        return view('notification::index', ['notifications' => $paginated]);
+    }
+
+    public function read($id)
+    {
+        $notification = Auth::user()->notifications->find($id);
+        if ($notification) {
+            $notification->markAsRead();
+        }
+        return redirect($notification->data['url'] ?? route('notifications.index'));
     }
 
     /**
@@ -75,5 +97,25 @@ class NotificationController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function unreadCount()
+    {
+        $count = Auth::user()->unreadNotifications->count();
+        return response()->json(['count' => $count]);
+    }
+
+    public function unreadList()
+    {
+        $notifications = Auth::user()->unreadNotifications->take(5);
+        $html = view('notification::partials.dropdown', compact('notifications'))->render();
+        return response()->json(['html' => $html]);
+    }
+
+    public function markAllAsRead()
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+        toastr()->success('Toutes les notifications ont été marquées comme lues');
+        return redirect()->route('notifications.index');
     }
 }

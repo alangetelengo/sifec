@@ -80,6 +80,7 @@
 
                     success: function(response){
 
+
                         if(response.personnes.length > 0)
                         {
                             for( var i=0; i < response.personnes.length ; i++){
@@ -904,9 +905,368 @@
                 return currentIndex > newIndex || !(2 === newIndex && Number($("#age-2").val()) < 18) && (currentIndex < newIndex && (form.find(".body:eq(" + newIndex + ") label.error").remove(), form.find(".body:eq(" + newIndex + ") .error").removeClass("error")), form.validate().settings.ignore = ":disabled,:hidden", form.valid())
             },
             onFinishing: function (event, currentIndex) {
-                return form.validate().settings.ignore = ":disabled", form.valid()
+                //return form.validate().settings.ignore = ":disabled", form.valid()
+
+                var selected = [];
+                for (var option of document.getElementById('code_cause_deces').options)
+                {
+                    if (option.selected) {
+                        selected.push(option.text);
+                    }
+                }
+if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
+{
+    conjoint="<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:5px'>2)CONJOINT </td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_conjoint").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_conjoint").value+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_conjoint").value)+"</span></td><td style='padding:5px'>Acte Mariage<br><span style='font-weight:bold;'>"+document.getElementById("num_acte_mariage").value+"</span></td><td style='padding:5px'>Date Mariage<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_mariage").value)+"</span></td><td style='padding:5px'>CEC<br><span style='font-weight:bold;'>"+document.getElementById("cec_mariage").value+"</span></td></tr>";
+}else{
+    conjoint="";
+}
+                Swal.fire({
+                    width:2500,
+                    position: 'top',
+                    title: "récapitulatif des informations",
+                    icon: 'question',
+                    //text: "Assurez-vous, puis confirmez ! \n\n",
+                    html:
+                        "<input type='button' value='Imprimer cette page' class=\"btn btn-primary\" onClick='printDiv(\"printcontent\")'><div id='printcontent'><br><table style='border:1px solid black; width:100%; padding:10px; text-align:left'>"
+
+                    //DECLARATION
+                        +"<tr><td style='padding:5px'>Date décès</td><td style='padding:5px'><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_deces").value)+" </span></td><td style='padding:5px'>Heure</td><td style='padding:5px'><span style='font-weight:bold;'> "+document.getElementById("heure_deces").value+"</span></td><td style='padding:5px'>Lieu de décès</td><td style='padding:5px'> <span style='font-weight:bold;'>"+document.getElementById("lieu_deces").value+"</span></td></tr>"
+
+                    //DEFUNT
+                        +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:5px'>1)DEFUNT<br></td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_defunt").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_defunt").value+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'>"+document.getElementById( "sexe_defunt" ).options[ document.getElementById( "sexe_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_defunt").value)+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Acte naissance<BR><span style='font-weight:bold;'></span></td><td style='padding:5px'>Mairie<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_defunt" ).options[ document.getElementById( "code_profession_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_defunt").value+"</span></td><td style='padding:5px'></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Sit. Matrimoniale<br><span style='font-weight:bold;'>"+document.getElementById( "code_situation_matrimoniale_defunt" ).options[document.getElementById( "code_situation_matrimoniale_defunt" ).selectedIndex].text +" </span></td><td style='padding:5px'>Réligion<br><span style='font-weight:bold;'> "+document.getElementById( "code_religion_defunt" ).options[ document.getElementById( "code_religion_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalité<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_defunt" ).options[ document.getElementById( "code_nationalite_defunt" ).selectedIndex ].text+"</span></td></tr>"
+
+
+                    //Conjoint
+                    // +conjoint
+                    // +"<tr><td style='font-weight:bold; padding:5px'>3)PERE : </td><td style='padding:5px'>Nom et prénom <br><span style='font-weight:bold;'>"+document.getElementById("nom_pere").value+" "+document.getElementById("prenom_pere").value+"</span></td><td style='font-weight:bold; padding:5px'>4)MERE </td><td style='padding:5px'>Nom et prenom <br><span style='font-weight:bold;'>"+document.getElementById("nom_mere").value+" "+document.getElementById("prenom_mere").value+"</span></td></tr>"
+
+                    //DECLARANT
+                        +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:5px'>3)DECLARANT</td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_declarant").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_declarant").value+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_declarant").value)+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'> "+document.getElementById( "sexe_declarant" ).options[ document.getElementById( "sexe_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("lieu_naissance_declarant").value+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_declarant").value+"</span></td><tr>"
+                        +"<tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Cause de décès <br><span style='font-weight:bold;'>"+selected+"</span></td><td style='padding:5px'>Filiation<br><span style='font-weight:bold;'>"+document.getElementById( "code_filiation_declarant" ).options[ document.getElementById( "code_filiation_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Téléphone<br><span style='font-weight:bold;'>"+document.getElementById("telephone_declarant").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'></span></td><td style='padding:5px'>Nationalite<br><span style='font-weight:bold;'>"+document.getElementById("code_nationalite_declarant").options[ document.getElementById( "code_nationalite_declarant" ).selectedIndex ].text+"</span></tr>"
+
+
+                        +"<tr><td style='padding:5px;' colspan=11><hr style='border:none;'></td></tr></table><bR><br>Assurez-vous, puis confirmez !</div> ",
+                    type: "warning",
+                    showCancelButton: !0,
+                    confirmButtonText: "Oui, Confirmer!",
+                    cancelButtonText: "Non, Annuler!",
+                    reverseButtons: !0
+                }).then(function (e)
+                {
+
+                    if (e.value === true)
+                    {
+
+
+                        let token = $('meta[name="csrf-token"]').attr('content');
+
+                        //récupération du code déclaration décès
+                        var code_declaration = $("#code_declaration_deces").val();
+
+                        //information du défunt
+                        var type_declaration = $("#type_declaration");
+                        var niveau_instruction_defunt = $("#niveau_instruction_defunt");
+
+                        var heure_deces = $("#heure_deces");
+                        var date_deces= $("#date_deces");
+                        var nom_defunt = $("#nom_defunt");
+                        var prenom_defunt = $("#prenom_defunt");
+                        var sexe_defunt = $("#sexe_defunt");
+                        var date_naissance_defunt = $("#date_naissance_defunt");
+                        var lieu_naissance_defunt = $("#lieu_naissance_defunt");
+                        var code_localite_defunt = $("#code_localite_defunt");
+                        var code_profession_defunt = $("#code_profession_defunt");
+                        var code_situation_matrimoniale_defunt= $("#code_situation_matrimoniale_defunt");
+                        var code_nationalite_defunt = $("#code_nationalite_defunt");
+                        var code_religion_defunt = $("#code_religion_defunt");
+                        var lieu_survenance_code = $("#lieu_survenance_code");
+                        var lieu_deces = $("#lieu_deces");
+                        var domicile_pays_defunt = $("#domicile_pays_defunt");
+                        var domicile_numero_defunt = $("#domicile_numero_defunt");
+                        var domicile_nomvoie_defunt = $("#domicile_nomvoie_defunt");
+                        var domicile_quartier_defunt = $("#domicile_quartier_defunt");
+                        var domicile_typevoie_defunt = $("#domicile_typevoie_defunt");
+                        var domicile_arrondissement_defunt = $("#domicile_arrondissement_defunt");
+                        var domicile_ville_defunt = $("#domicile_ville_defunt");
+                        var num_acte_naissance = $("#num_acte_naissance");
+                        var cec_naissance_defunt = $("#cec_naissance_defunt");
+
+
+                        // informations du père
+                        var nom_pere = $("#nom_pere");
+                        var prenom_pere = $("#prenom_pere");
+                        var date_naissance_pere = $("#date_naissance_pere");
+                        var lieu_naissance_pere = $("#lieu_naissance_pere");
+                        var code_localite_pere = $("#code_localite_pere");
+                        var domicile_pere = $("#domicile_pere");
+                        var domicile_pays_pere = $("#domicile_pays_pere");
+                        var telephone_pere = $("#telephone_pere");
+                        var domicile_numero_pere = $("#domicile_numero_pere");
+                        var domicile_nomvoie_pere = $("#domicile_nomvoie_pere");
+                        var domicile_quartier_pere = $("#domicile_quartier_pere");
+                        var domicile_typevoie_pere = $("#domicile_typevoie_pere");
+                        var domicile_arrondissement_pere = $("#domicile_arrondissement_pere");
+                        var domicile_ville_pere = $("#domicile_ville_pere");
+                        var code_profession_pere = $("#profession_pere");
+                        var code_nationalite_pere = $("#code_nationalite_pere");
+                        var niveau_instruction_pere = $("#niveau_instruction_pere");
+                        var code_type_document_pere = $("#code_type_document_pere");
+                        var numero_document_pere = $("#numero_document_pere");
+
+                        //information mère
+                        var nom_mere = $("#nom_mere");
+                        var prenom_mere = $("#prenom_mere");
+                        var date_naissance_mere = $("#date_naissance_mere");
+                        var lieu_naissance_mere = $("#lieu_naissance_mere");
+                        var code_localite_mere = $("#code_localite_mere");
+                        var domicile_pays_mere = $("#domicile_pays_mere");
+                        var telephone_mere = $("#telephone_mere");
+                        var domicile_numero_mere = $("#domicile_numero_mere");
+                        var domicile_nomvoie_mere = $("#domicile_nomvoie_mere");
+                        var domicile_quartier_mere = $("#domicile_quartier_mere");
+                        var domicile_typevoie_mere = $("#domicile_typevoie_mere");
+                        var domicile_arrondissement_mere = $("#domicile_arrondissement_mere");
+                        var domicile_ville_mere = $("#domicile_ville_mere");
+                        var code_profession_mere = $("#profession_mere");
+                        var code_nationalite_mere = $("#code_nationalite_mere");
+                        var niveau_instruction_mere = $("#niveau_instruction_mere");
+                        var code_type_document_mere = $("#code_type_document_mere");
+                        var numero_document_mere = $("#numero_document_mere");
+
+                        //information conjoint
+                        var nom_conjoint = $("#nom_conjoint");
+                        var prenom_conjoint = $("#prenom_conjoint");
+                        var date_mariage = $("#date_mariage");
+                        var cec_mariage = $("#cec_mariage");
+                        var code_regime = $("#code_regime");
+                        var sexe_conjoint = $("#sexe_conjoint");
+                        var domicile_typevoie_conjoint = $("#domicile_typevoie_conjoint");
+                        var code_type_document_conjoint = $("#code_type_document_conjoint");
+                        var statut_personne_conjoint = $("#statut_personne_conjoint");
+                        var num_acte_mariage = $("#num_acte_mariage");
+                        var date_naissance_conjoint = $("#date_naissance_conjoint");
+
+                        var code_nationalite_conjoint =  $("#code_nationalite_conjoint");
+                        var domicile_pays_conjoint = $("#domicile_pays_conjoint");
+                        var telephone_conjoint = $("#telephone_conjoint");
+                        var domicile_numero_conjoint = $("#domicile_numero_conjoint");
+                        var domicile_nomvoie_conjoint = $("#domicile_nomvoie_conjoint");
+                        var domicile_quartier_conjoint = $("#domicile_quartier_conjoint");
+                        var domicile_typevoie_conjoint = $("#domicile_typevoie_conjoint");
+                        var domicile_arrondissement_conjoint = $("#domicile_arrondissement_conjoint");
+                        var domicile_ville_conjoint = $("#domicile_ville_conjoint");
+                        var lieu_naissance_conjoint = $("#lieu_naissance_conjoint");
+                        var code_localite_conjoint = $("#code_localite_conjoint");
+                        var code_profession_conjoint = $("#code_profession_conjoint");
+
+                        //information déclarant
+                        var nom_declarant = $("#nom_declarant");
+                        var prenom_declarant = $("#prenom_declarant");
+                        var date_naissance_declarant = $("#date_naissance_declarant");
+                        var lieu_naissance_declarant = $("#lieu_naissance_declarant");
+                        var code_localite_declarant = $("#code_localite_declarant");
+                        var domicile_pays_declarant = $("#domicile_pays_declarant");
+                        var telephone_declarant = $("#telephone_declarant");
+                        var domicile_numero_declarant = $("#domicile_numero_declarant");
+                        var domicile_nomvoie_declarant = $("#domicile_nomvoie_declarant");
+                        var domicile_quartier_declarant = $("#domicile_quartier_declarant");
+                        var domicile_typevoie_declarant = $("#domicile_typevoie_declarant");
+                        var domicile_arrondissement_declarant = $("#domicile_arrondissement_declarant");
+                        var domicile_ville_declarant = $("#domicile_ville_declarant");
+                        var sexe_declarant = $("#sexe_declarant");
+                        var filiation = $("#code_filiation_declarant");
+                        var telephone_declarant = $("#telephone_declarant");
+                        var code_profession_declarant = $("#code_profession_declarant");
+                        var code_nationalite_declarant = $("#code_nationalite_declarant");
+                        var code_cause_deces = $("#code_cause_deces");
+
+
+                        var statut_personne_pere = $("#statut_personne_pere");
+                        var statut_personne_conjoint = $("#statut_personne_conjoint");
+                        var statut_personne_mere = $("#statut_personne_mere");
+                        var statut_personne_declarant = $("#statut_personne_declarant");
+                        var statut_personne_defunt = $("#statut_personne_defunt");
+
+                        var type_date_naissance_pere = $("#type_date_naissance_pere");
+                        var type_date_naissance_mere = $("#type_date_naissance_mere");
+                        var type_date_naissance_conjoint = $("#type_date_naissance_conjoint");
+                        var type_date_naissance_declarant = $("#type_date_naissance_declarant");
+
+                        $.ajax({
+                            type: 'POST',
+                            url: "{{route('declarationDeces.updateDeclarationDeces')}}",
+                            data:
+                            {
+                                code_declaration: code_declaration,
+                                type_declaration:type_declaration.val(),
+
+                                statut_personne_pere:statut_personne_pere.val(),
+                                niveau_instruction_defunt:niveau_instruction_defunt.val(),
+                                statut_personne_conjoint:statut_personne_conjoint.val(),
+                                statut_personne_mere:statut_personne_mere.val(),
+                                statut_personne_declarant:statut_personne_declarant.val(),
+                                statut_personne_defunt:statut_personne_defunt.val(),
+
+                                type_date_naissance_pere:type_date_naissance_pere.val(),
+                                type_date_naissance_mere :type_date_naissance_mere.val(),
+                                type_date_naissance_conjoint:type_date_naissance_conjoint.val(),
+                                type_date_naissance_declarant:type_date_naissance_declarant.val(),
+
+                                heure_deces:heure_deces.val(),
+                                date_deces: date_deces.val(),
+                                nom_defunt: nom_defunt.val(),
+                                prenom_defunt: prenom_defunt.val(),
+                                sexe_defunt: sexe_defunt.val(),
+                                date_naissance_defunt: date_naissance_defunt.val(),
+                                lieu_naissance_defunt: lieu_naissance_defunt.val(),
+                                code_localite_defunt: code_localite_defunt.val(),
+                                code_profession_defunt: code_profession_defunt.val(),
+                                code_situation_matrimoniale_defunt: code_situation_matrimoniale_defunt.val(),
+                                code_nationalite_defunt: code_nationalite_defunt.val(),
+                                code_religion_defunt: code_religion_defunt.val(),
+                                lieu_survenance_code: lieu_survenance_code.val(),
+                                lieu_deces: lieu_deces.val(),
+                                domicile_numero_defunt:domicile_numero_defunt.val(),
+                                domicile_nomvoie_defunt: domicile_nomvoie_defunt.val(),
+                                domicile_quartier_defunt:domicile_quartier_defunt.val(),
+                                domicile_typevoie_defunt:domicile_typevoie_defunt.val(),
+                                domicile_arrondissement_defunt: domicile_arrondissement_defunt.val(),
+                                domicile_ville_defunt: domicile_ville_defunt.val(),
+                                domicile_pays_defunt: domicile_pays_defunt.val(),
+
+                                sexe_conjoint: sexe_conjoint.val(),
+                                domicile_typevoie_conjoint: domicile_typevoie_conjoint.val(),
+                                domicile_pays_conjoint: domicile_pays_conjoint.val(),
+                                code_type_document_conjoint: code_type_document_conjoint.val(),
+                                statut_personne_conjoint: statut_personne_conjoint.val(),
+                                telephone_conjoint:telephone_conjoint.val(),
+                                domicile_pays_conjoint:domicile_pays_conjoint.val(),
+                                domicile_numero_conjoint:domicile_numero_conjoint.val(),
+                                domicile_nomvoie_conjoint: domicile_nomvoie_conjoint.val(),
+                                domicile_quartier_conjoint:domicile_quartier_conjoint.val(),
+                                domicile_typevoie_conjoint:domicile_typevoie_conjoint.val(),
+                                domicile_arrondissement_conjoint: domicile_arrondissement_conjoint.val(),
+                                domicile_ville_conjoint: domicile_ville_conjoint.val(),
+
+
+                                nom_conjoint: nom_conjoint.val(),
+                                prenom_conjoint: prenom_conjoint.val(),
+                                code_profession_conjoint:code_profession_conjoint.val(),
+                                lieu_naissance_conjoint:lieu_naissance_conjoint.val(),
+                                code_localite_conjoint:code_localite_conjoint.val(),
+                                code_nationalite_conjoint:code_nationalite_conjoint.val(),
+                                date_naissance_conjoint: date_naissance_conjoint.val(),
+                                date_mariage: date_mariage.val(),
+                                cec_mariage: cec_mariage.val(),
+                                code_regime: code_regime.val(),
+                                num_acte_mariage: num_acte_mariage.val(),
+
+                                // données du père
+                                nom_pere:nom_pere.val(),
+                                prenom_pere:prenom_pere.val(),
+                                date_naissance_pere:date_naissance_pere.val(),
+                                lieu_naissance_pere:lieu_naissance_pere.val(),
+                                code_localite_pere:code_localite_pere.val(),
+                                code_profession_pere:code_profession_pere.val(),
+                                code_nationalite_pere:code_nationalite_pere.val(),
+                                niveau_instruction_pere:niveau_instruction_pere.val(),
+
+                                domicile_pays_pere:domicile_pays_pere.val(),
+                                telephone_pere:telephone_pere.val(),
+                                domicile_numero_pere:domicile_numero_pere.val(),
+                                domicile_nomvoie_pere: domicile_nomvoie_pere.val(),
+                                domicile_quartier_pere:domicile_quartier_pere.val(),
+                                domicile_typevoie_pere:domicile_typevoie_pere.val(),
+                                domicile_arrondissement_pere: domicile_arrondissement_pere.val(),
+                                domicile_ville_pere: domicile_ville_pere.val(),
+                                domicile_pays_pere: domicile_pays_pere.val(),
+
+                                code_type_document_pere:code_type_document_pere.val(),
+                                numero_document_pere:numero_document_pere.val(),
+
+                                // données de la mère
+                                nom_mere:nom_mere.val(),
+                                prenom_mere:prenom_mere.val(),
+                                date_naissance_mere:date_naissance_mere.val(),
+                                lieu_naissance_mere:lieu_naissance_mere.val(),
+                                code_localite_mere:code_localite_mere.val(),
+                                code_profession_mere:code_profession_mere.val(),
+                                code_nationalite_mere:code_nationalite_mere.val(),
+                                niveau_instruction_mere:niveau_instruction_mere.val(),
+                                domicile_pays_mere:domicile_pays_mere.val(),
+                                telephone_mere:telephone_mere.val(),
+                                domicile_numero_mere:domicile_numero_mere.val(),
+                                domicile_nomvoie_mere: domicile_nomvoie_mere.val(),
+                                domicile_quartier_mere:domicile_quartier_mere.val(),
+                                domicile_typevoie_mere:domicile_typevoie_mere.val(),
+                                domicile_arrondissement_mere: domicile_arrondissement_mere.val(),
+                                domicile_ville_mere: domicile_ville_mere.val(),
+                                domicile_pays_mere: domicile_pays_mere.val(),
+
+                                code_type_document_mere:code_type_document_mere.val(),
+                                numero_document_mere:numero_document_mere.val(),
+
+                                nom_declarant: nom_declarant.val(),
+                                prenom_declarant: prenom_declarant.val(),
+                                sexe_declarant: sexe_declarant.val(),
+                                date_naissance_declarant: date_naissance_declarant.val(),
+                                lieu_naissance_declarant: lieu_naissance_declarant.val(),
+                                code_localite_declarant: code_localite_declarant.val(),
+                                domicile_pays_declarant:domicile_pays_declarant.val(),
+                                telephone_declarant:telephone_declarant.val(),
+
+                                domicile_numero_declarant:domicile_numero_declarant.val(),
+                                domicile_nomvoie_declarant: domicile_nomvoie_declarant.val(),
+                                domicile_quartier_declarant:domicile_quartier_declarant.val(),
+                                domicile_typevoie_declarant:domicile_typevoie_declarant.val(),
+                                domicile_arrondissement_declarant: domicile_arrondissement_declarant.val(),
+                                domicile_ville_declarant: domicile_ville_declarant.val(),
+                                domicile_pays_declarant: domicile_pays_declarant.val(),
+
+                                filiation: filiation.val(),
+                                code_profession_declarant: code_profession_declarant.val(),
+
+                                code_nationalite_declarant: code_nationalite_declarant.val(),
+                                code_cause_deces: code_cause_deces.val(),
+                                num_acte_naissance: num_acte_naissance.val(),
+                                cec_naissance: cec_naissance_defunt.val()
+                            },
+                        // data: {_token: token},
+                            success: function(response )
+                            {
+
+
+
+                                if (response.success==true)
+                                {
+                                    swal.fire("Enrégistrée!", response.message, "success");
+                                    var url= "{{ route('declarationDeces.index') }}";
+                                    setTimeout(() => {
+                                        window.open(url);
+                                    }, 2000);
+                                } else {
+                                    swal.fire("Erreur!", response.message, "error");
+                                }
+                            },
+                            error: function (resp) {
+                                swal.fire("Erreur!", "Sumething went wrong.", "error");
+                            }
+                        });
+
+                    }else {
+                        e.dismiss;
+                    }
+
+                }, function (dismiss) {
+                    return false;
+                });
+
+
             },
             onFinished: function (event, currentIndex) {
+
+
+
                 var selected = [];
                 for (var option of document.getElementById('code_cause_deces').options)
                 {
@@ -926,26 +1286,26 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                     title: "Enregistrer la modification ?",
                     icon: 'question',
                     //text: "Assurez-vous, puis confirmez ! \n\n",
-html:
-     "<input type='button' value='Imprimer cette page' class=\"btn btn-primary\" onClick='printDiv(\"printcontent\")'><div id='printcontent'><br><table style='border:1px solid black; width:100%; padding:10px; text-align:left'>"
+                    html:
+                        "<input type='button' value='Imprimer cette page' class=\"btn btn-primary\" onClick='printDiv(\"printcontent\")'><div id='printcontent'><br><table style='border:1px solid black; width:100%; padding:10px; text-align:left'>"
 
-//DECLARATION
-    +"<tr><td style='padding:5px'>Date décès</td><td style='padding:5px'><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_deces").value)+" </span></td><td style='padding:5px'>Heure</td><td style='padding:5px'><span style='font-weight:bold;'> "+document.getElementById("heure_deces").value+"</span></td><td style='padding:5px'>Lieu de décès</td><td style='padding:5px'> <span style='font-weight:bold;'>"+document.getElementById("lieu_deces").value+"</span></td></tr>"
+                    //DECLARATION
+                        +"<tr><td style='padding:5px'>Date décès</td><td style='padding:5px'><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_deces").value)+" </span></td><td style='padding:5px'>Heure</td><td style='padding:5px'><span style='font-weight:bold;'> "+document.getElementById("heure_deces").value+"</span></td><td style='padding:5px'>Lieu de décès</td><td style='padding:5px'> <span style='font-weight:bold;'>"+document.getElementById("lieu_deces").value+"</span></td></tr>"
 
-//DEFUNT
-    +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:5px'>1)DEFUNT<br></td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_defunt").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_defunt").value+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'>"+document.getElementById( "sexe_defunt" ).options[ document.getElementById( "sexe_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_defunt").value)+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Acte naissance<BR><span style='font-weight:bold;'>"+document.getElementById("num_acte_naissance").value+"</span></td><td style='padding:5px'>Mairie<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_defunt" ).options[ document.getElementById( "code_profession_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_defunt").value+"</span></td><td style='padding:5px'></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Sit. Matrimoniale<br><span style='font-weight:bold;'>"+document.getElementById( "code_situation_matrimoniale_defunt" ).options[document.getElementById( "code_situation_matrimoniale_defunt" ).selectedIndex].text +" </span></td><td style='padding:5px'>Réligion<br><span style='font-weight:bold;'> "+document.getElementById( "code_religion_defunt" ).options[ document.getElementById( "code_religion_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalité<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_defunt" ).options[ document.getElementById( "code_nationalite_defunt" ).selectedIndex ].text+"</span></td></tr>"
-
-
-//Conjoint
-// +conjoint
-// +"<tr><td style='font-weight:bold; padding:5px'>3)PERE : </td><td style='padding:5px'>Nom et prénom <br><span style='font-weight:bold;'>"+document.getElementById("nom_pere").value+" "+document.getElementById("prenom_pere").value+"</span></td><td style='font-weight:bold; padding:5px'>4)MERE </td><td style='padding:5px'>Nom et prenom <br><span style='font-weight:bold;'>"+document.getElementById("nom_mere").value+" "+document.getElementById("prenom_mere").value+"</span></td></tr>"
-
-  //DECLARANT
-    +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:5px'>3)DECLARANT</td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_declarant").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_declarant").value+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_declarant").value)+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'> "+document.getElementById( "sexe_declarant" ).options[ document.getElementById( "sexe_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("lieu_naissance_declarant").value+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_declarant").value+"</span></td><tr>"
-    +"<tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Cause de décès <br><span style='font-weight:bold;'>"+selected+"</span></td><td style='padding:5px'>Filiation<br><span style='font-weight:bold;'>"+document.getElementById( "code_filiation_declarant" ).options[ document.getElementById( "code_filiation_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Téléphone<br><span style='font-weight:bold;'>"+document.getElementById("telephone_declarant").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_declarant" ).options[ document.getElementById( "code_profession_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalite<br><span style='font-weight:bold;'>"+document.getElementById("code_nationalite_declarant").options[ document.getElementById( "code_nationalite_declarant" ).selectedIndex ].text+"</span></tr>"
+                    //DEFUNT
+                        +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:5px'>1)DEFUNT<br></td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_defunt").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_defunt").value+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'>"+document.getElementById( "sexe_defunt" ).options[ document.getElementById( "sexe_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_defunt").value)+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Acte naissance<BR><span style='font-weight:bold;'>"+document.getElementById("num_acte_naissance").value+"</span></td><td style='padding:5px'>Mairie<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_defunt" ).options[ document.getElementById( "code_profession_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_defunt").value+"</span></td><td style='padding:5px'></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Sit. Matrimoniale<br><span style='font-weight:bold;'>"+document.getElementById( "code_situation_matrimoniale_defunt" ).options[document.getElementById( "code_situation_matrimoniale_defunt" ).selectedIndex].text +" </span></td><td style='padding:5px'>Réligion<br><span style='font-weight:bold;'> "+document.getElementById( "code_religion_defunt" ).options[ document.getElementById( "code_religion_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalité<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_defunt" ).options[ document.getElementById( "code_nationalite_defunt" ).selectedIndex ].text+"</span></td></tr>"
 
 
-    +"<tr><td style='padding:5px;' colspan=11><hr style='border:none;'></td></tr></table><bR><br>Assurez-vous, puis confirmez !</div> ",
+                    //Conjoint
+                    // +conjoint
+                    // +"<tr><td style='font-weight:bold; padding:5px'>3)PERE : </td><td style='padding:5px'>Nom et prénom <br><span style='font-weight:bold;'>"+document.getElementById("nom_pere").value+" "+document.getElementById("prenom_pere").value+"</span></td><td style='font-weight:bold; padding:5px'>4)MERE </td><td style='padding:5px'>Nom et prenom <br><span style='font-weight:bold;'>"+document.getElementById("nom_mere").value+" "+document.getElementById("prenom_mere").value+"</span></td></tr>"
+
+                    //DECLARANT
+                        +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:5px'>3)DECLARANT</td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_declarant").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_declarant").value+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_declarant").value)+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'> "+document.getElementById( "sexe_declarant" ).options[ document.getElementById( "sexe_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("lieu_naissance_declarant").value+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_declarant").value+"</span></td><tr>"
+                        +"<tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Cause de décès <br><span style='font-weight:bold;'>"+selected+"</span></td><td style='padding:5px'>Filiation<br><span style='font-weight:bold;'>"+document.getElementById( "code_filiation_declarant" ).options[ document.getElementById( "code_filiation_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Téléphone<br><span style='font-weight:bold;'>"+document.getElementById("telephone_declarant").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_declarant" ).options[ document.getElementById( "code_profession_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalite<br><span style='font-weight:bold;'>"+document.getElementById("code_nationalite_declarant").options[ document.getElementById( "code_nationalite_declarant" ).selectedIndex ].text+"</span></tr>"
+
+
+                        +"<tr><td style='padding:5px;' colspan=11><hr style='border:none;'></td></tr></table><bR><br>Assurez-vous, puis confirmez !</div> ",
                     type: "warning",
                     showCancelButton: !0,
                     confirmButtonText: "Oui, Confirmer!",
@@ -1087,10 +1447,9 @@ html:
                         var type_date_naissance_conjoint = $("#type_date_naissance_conjoint");
                         var type_date_naissance_declarant = $("#type_date_naissance_declarant");
 
-
                         $.ajax({
                             type: 'POST',
-                            url: "{{route('declarationDeces.store')}}",
+                            url: "{{route('declarationDeces.updateDeclarationDeces')}}",
                             data:
                             {
                                 type_declaration:type_declaration.val(),
@@ -2214,7 +2573,7 @@ html:
                 {
                     $("input.cec_mariage").addClass("d-none");
                     document.getElementById('code_localite_conjoint').disabled = true;
-                    document.getElementById('email_conjoint').disabled = false;
+                    document.getElementById('email_conjoint').disabled = true;
                     document.getElementById('nom_conjoint').disabled = true;
                     document.getElementById('prenom_conjoint').disabled = true;
                     document.getElementById('date_naissance_conjoint').disabled = true;
@@ -2238,10 +2597,12 @@ html:
                     document.getElementById('domicile_arrondissement_conjoint').disabled = true;
                     document.getElementById('domicile_pays_conjoint').disabled = true;
                     document.getElementById('num_acte_mariage').disabled = true;
+                    document.getElementById('lieu_mariage').disabled = true;
+                    document.getElementById('liste_cec').disabled = true;
                     document.getElementById('statut_personne_conjoint').disabled = true;
                     document.getElementById('code_type_document_conjoint').disabled = true;
                     document.getElementById('numero_document_conjoint').disabled = true;
-                    document.getElementById('liste_cec').disabled = false;
+                    // document.getElementById('liste_cec').disabled = false;
                     document.getElementById('search_conjoint').style.visibility = 'hidden';
                     document.getElementById('clear_conjoint').style.visibility = 'hidden';
                     document.getElementById('conjoint_click').style.visibility = 'hidden';
@@ -2249,7 +2610,7 @@ html:
                 }
                 else
                 {
-                    document.getElementById('code_localite_conjoint').disabled = true;
+                    document.getElementById('code_localite_conjoint').disabled = false;
                     document.getElementById('email_conjoint').disabled = false;
                     document.getElementById('nom_conjoint').disabled = false;
                     document.getElementById('prenom_conjoint').disabled = false;
@@ -2277,7 +2638,8 @@ html:
                     document.getElementById('statut_personne_conjoint').disabled = false;
                     document.getElementById('code_type_document_conjoint').disabled = false;
                     document.getElementById('numero_document_conjoint').disabled = false;
-                    document.getElementById('liste_cec').disabled = true;
+                    document.getElementById('liste_cec').disabled = false;
+                    document.getElementById('lieu_mariage').disabled = false;
 
                     document.getElementById('search_conjoint').style.visibility = 'hidden';
                     document.getElementById('clear_conjoint').style.visibility = 'hidden';

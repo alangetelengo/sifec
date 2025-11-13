@@ -5,17 +5,20 @@ namespace Modules\Naissance\Entities;
 use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Referentiel\Entities\Registre;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Referentiel\Entities\RetraitActe;
+use Modules\Rectification\Entities\Rectification;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Modules\Referentiel\Entities\FeuilletRegistre;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Naissance\Entities\Declarationnaissance;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Modules\Referentiel\Entities\FeuilletRegistre;
-use Modules\Referentiel\Entities\RetraitActe;
 
 class ActeNaissance extends Model
 {
     use HasFactory;
-    
+
 
     protected $guarded = [];
     protected $table = "t_acte_naissance";
@@ -61,4 +64,15 @@ class ActeNaissance extends Model
         return $this->hasOne(RetraitActe::class, 'code_acte', 'niupp');
     }
 
+    public function rectifications(): HasMany
+    {
+        return $this->hasMany(Rectification::class, 'numero_acte', 'niupp');
+    }
+
+    //derniere rectification
+    public function lastRectification(): HasOne
+    {
+        return $this->hasOne(Rectification::class, 'numero_acte', 'niupp')
+            ->latest('created_at');
+    }
 }

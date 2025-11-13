@@ -1,6 +1,6 @@
 @extends('layout.app')
 @section('titre')
-Déclarations de naissance
+certificat de non inscription
 @endsection
 @section("styles")
 <!-- Datatable -->
@@ -9,27 +9,37 @@ Déclarations de naissance
     <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
 @endsection
 @section('sous-titre')
-    Liste des déclarations de naissance
+    Liste des certificat de non inscription
 @endsection
 @section('corps')
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
-                <h4>Liste des déclarations de naissance</h4>
+                <h4>Liste des certificat de non inscription</h4>
             </div>
             <div class="card-body">
                 <form id="formdata" class="validation-wizard wizard-circle">
                     @csrf
-                    <h4 id="texte"></h4>
                     <div class="mb-2 col-md-4">
                         <label class="form-label">Date de naissance de l'enfant <span class="text-danger">*</span></label>
-                        <input type="date" name="date_naissance_enfant" max="<?php echo date("Y-m-d"); ?>" onchange="age()" class="form-control" id="date_naissance_enfant">
-                        <button type="submit"><span style="color:red;font-size: 15px;"><div class="validate"></div></span></button>
+                        <input type="date" 
+                               name="date_naissance_enfant" 
+                               max="<?php echo date('Y-m-d'); ?>" 
+                               min="1900-01-01"
+                               class="form-control" 
+                               id="date_naissance_enfant" 
+                               required
+                               onchange="validateDate(this)">
+                        <div class="invalid-feedback" id="date-error"></div>
+                        <div class="form-text">La date ne peut pas être supérieure à aujourd'hui</div>
                     </div>
+                    <div class="mb-2">
+                        <div id="texte"></div>
+                        <div class="validate"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-submit" disabled>Vérifier la possibilité</button>
                 </form>
-                {{-- <div class="card-header"> --}}
-                {{-- </div> --}}
             </div>
 
             <div class="col-12">
@@ -55,6 +65,50 @@ Déclarations de naissance
                                         $i=1;
                                     @endphp
                                     @foreach ($certificats as $certificat)
+                                    @php
+                                        $dernierMouvement = $certificat->mouvements->sortByDesc('created_at')->first();
+                                        $badgeClass = 'badge-secondary';
+                                        $statutLabel = $dernierMouvement && isset($dernierMouvement->lib_mouvement) ? $dernierMouvement->lib_mouvement : 'En cours';
+
+                                        // Déterminer si le certificat a déjà été envoyé au tribunal
+                                        $codesMouvements = $certificat->mouvements->pluck('code_mouvement')->toArray();
+                                        $dejaEnvoyeTribunal = in_array('MOUV_0006', $codesMouvements);
+                                        $dejaTraiteTribunal = in_array('MOUV_0009', $codesMouvements) ||
+                                                             in_array('MOUV_0010', $codesMouvements) ||
+                                                             in_array('MOUV_0011', $codesMouvements);
+
+                                        // Vérifier si le dernier mouvement est un renvoi (MOUV_0004)
+                                        $dernierMouvementRenvoye = $dernierMouvement && $dernierMouvement->code_mouvement == 'MOUV_0004';
+
+                                        // On peut envoyer si jamais envoyé OU si renvoyé (et pas encore traité)
+                                        $peutEnvoyer = (!$dejaEnvoyeTribunal && !$dejaTraiteTribunal) || ($dernierMouvementRenvoye && !$dejaTraiteTribunal);
+
+                                        if ($dernierMouvement) {
+                                            switch ($dernierMouvement->code_mouvement) {
+                                                case 'MOUV_0006': // Certificat envoyé au tribunal
+                                                    $badgeClass = 'badge-info';
+                                                    $statutLabel = $dernierMouvement->lib_mouvement;
+                                                    break;
+                                                case 'MOUV_0004': // Document renvoyé au centre
+                                                    $badgeClass = 'badge-warning';
+                                                    $statutLabel = $dernierMouvement->lib_mouvement;
+                                                    break;
+                                                case 'MOUV_0009': // Réquisition envoyée au centre
+                                                case 'MOUV_0010': // Jugement envoyé au centre
+                                                case 'MOUV_0011': // Document transmis au centre
+                                                    $badgeClass = 'badge-success';
+                                                    $statutLabel = $dernierMouvement->lib_mouvement;
+                                                    break;
+                                                case 'MOUV_0026': // Certificat enregistré
+                                                    $badgeClass = 'badge-success';
+                                                    $statutLabel = $dernierMouvement->lib_mouvement;
+                                                    break;
+                                                default:
+                                                    $badgeClass = 'badge-secondary';
+                                                    $statutLabel = $dernierMouvement->lib_mouvement ?? 'En cours';
+                                            }
+                                        }
+                                    @endphp
                                     <tr width="100%">
                                         <td>{{ $i++ }}</td>
                                         <td>{{ $certificat->declarant->nom.' '.$certificat->Declarant->prenom }}</td>
@@ -62,34 +116,54 @@ Déclarations de naissance
                                         <td>{{ $certificat->enfant->prenom }}</td>
                                         <td>{{ date("d-m-Y", strtotime($certificat->enfant->date_naissance)) }}</td>
                                         <td>{{ $certificat->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-
-                                        @if($certificat->mouvements()->get("statut")->last()->statut == "En cours")
-                                        <td><span class="badge light badge-danger" style="font-size: 13px;font-weight:600;">{{ $certificat->mouvements()->get("statut")->last()->statut }} de saisie</span></td>
-                                        @endif
-                                        @if($certificat->mouvements()->get("statut")->last()->statut == "Envoyée")
-                                        <td><span class="badge light badge-success" style="font-size: 13px;font-weight:600;">Transférée à l'institution supérieure </span></td>
-                                        @endif
-                                        @if($certificat->mouvements->last()->statut == "Envoye au tribunal")
-                                        <td><span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
-                                            Transféré au tribunal </span>
+                                        <td>
+                                            <span class="badge {{ $badgeClass }}" style="font-size: 13px;font-weight:600;">{{ $statutLabel }}</span>
+                                            @if($dernierMouvement && $dernierMouvement->observation)
+                                                <br><small>Observation : {{ $dernierMouvement->observation }}</small>
+                                            @endif
+                                            @if($dejaTraiteTribunal)
+                                                <br><small class="text-success"><i class="fas fa-gavel me-1"></i>Prêt pour la transcription de l'acte</small>
+                                            @endif
                                         </td>
-                                        @endif
                                         <td>{{ $certificat->type_declaration  }}</td>
                                         <td>
-                                            @if($certificat->mouvements()->get("statut")->last()->statut == "En cours" || $certificat->mouvements()->get("statut")->last()->statut == "Renvoyée")
                                             <div class="btn-group btn-group-xs">
-                                                <a href="{{ $certificat->code_declaration_naissance }}" class="btn btn-warning show-to-send shadow btn-xs sharp me-1" title="Envoyer" ><i class="fas fa-plane"></i></a>
-                                            </div>
-                                            @endif
-                                            <div class="btn-group btn-group-xs">
-                                                {{-- <a href="{{ route('certificatNonInscription.etat',$certificat->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir"><i class="fas fa-print"></i></a> --}}
+                                                <a href="{{ route('certificatNonInscription.show', $certificat->code_declaration_naissance) }}"
+                                                    class="btn btn-primary shadow btn-xs sharp me-1"
+                                                    title="Voir détail">
+                                                    <i class="fas fa-eye"></i>
+                                                 </a>
                                                 <a href="{{ route('declarationNaissance.etat',$certificat->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
-                                                <a href="{{ route('declarationNaissance.edit',$certificat->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1"><i class="fas fa-pencil-alt"></i></a>
-                                               <form  action="{{ route('declarationNaissance.destroy',$certificat->code_declaration_naissance) }}" method="POST" style="display: inline-block">
+                                                @if($dernierMouvement && in_array($dernierMouvement->code_mouvement, ['MOUV_0026', 'MOUV_0004']))
+                                                    <a href="{{ route('declarationNaissance.edit',$certificat->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier"><i class="fas fa-pencil-alt"></i></a>
+                                                    <form action="{{ route('declarationNaissance.destroy',$certificat->code_declaration_naissance) }}" method="POST" style="display: inline-block">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-danger shadow btn-xs sharp"><i class="fa fa-trash"></i></button>
+                                                        <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
                                                 </form>
+                                                @endif
+                                                @if($peutEnvoyer)
+                                                    <button class="btn btn-primary btn-envoyer-tribunal shadow btn-xs sharp"
+                                                        data-code="{{ $certificat->code_declaration_naissance }}"
+                                                        data-piece-declarant="{{ $certificat->piece_declarant }}"
+                                                        data-piece-pere="{{ $certificat->piece_pere }}"
+                                                        data-piece-mere="{{ $certificat->piece_mere }}"
+                                                        data-identiteDeclarant="{{ $certificat->declarant->nomcomplet() }}"
+                                                        data-identitePere="{{ $certificat->pere->nomcomplet() }}"
+                                                        data-identiteMere="{{ $certificat->mere->nomcomplet() }}"
+                                                        title="{{ $dernierMouvementRenvoye ? 'Réenvoyer au tribunal' : 'Envoyer au tribunal' }}">
+                                                        <i class="fas fa-paper-plane"></i>
+                                                    </button>
+                                                @elseif($dejaTraiteTribunal)
+
+                                                     {{-- Télécharger le document importé (si déjà importé) --}}
+                                                        @if($certificat->requisition != null)
+                                                        <a href="{{ route('tribunal.voir_document', ['type' => 'naissance', 'id' => $certificat->code_declaration_naissance]) }}"
+                                                            class="btn btn-info btn-xs text-start me-1" title="Télécharger le document importé">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                    @endif
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -117,33 +191,78 @@ Déclarations de naissance
     </div>
 </div>
 
-{{-- DEBUT ENVOIS DECLARATION --}}
-<div class="modal fade" id="modal-declaration-send" data-bs-backdrop="static">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><span class="module-title"> </span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="mb-2 col-md-12">
-                        {{-- <input type="hidden" id="code_declaration_naissance"> --}}
-                        <label class="form-label">Transmission de la déclaration N°</label>
-                        <input type="text" readonly class="form-control"  placeholder="" id="codedeclaration">
+{{-- Modal Envoi au tribunal (hors boucle) --}}
+<div class="modal fade" id="modal-envoyer-tribunal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="form-envoyer-tribunal">
+            @csrf
+            <input type="hidden" name="code_declaration_naissance" id="input-code-tribunal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Envoyer le dossier au tribunal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        Cette action va transmettre le dossier au tribunal pour une demande d'une réquisition ou d'un jugement.<br>
+                        <strong>Êtes-vous sûr de vouloir continuer ?</strong>
                     </div>
-
+                    <div class="mb-3">
+                        <h6>Pièces d'identité requises</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Personne</th>
+                                        <th>Nom</th>
+                                        <th>Pièce jointe</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="piece-declarant-tribunal">
+                                        <td><strong>Déclarant</strong></td>
+                                        <td id="declarant-nom-tribunal">-</td>
+                                        <td id="declarant-piece-tribunal">-</td>
+                                        <td id="declarant-status-tribunal"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-pere-tribunal">
+                                        <td><strong>Père</strong></td>
+                                        <td id="pere-nom-tribunal">-</td>
+                                        <td id="pere-piece-tribunal">-</td>
+                                        <td id="pere-status-tribunal"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                    <tr id="piece-mere-tribunal">
+                                        <td><strong>Mère</strong></td>
+                                        <td id="mere-nom-tribunal">-</td>
+                                        <td id="mere-piece-tribunal">-</td>
+                                        <td id="mere-status-tribunal"><span class="badge badge-warning">Manquante</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="alert-pieces-manquantes-tribunal" class="alert alert-warning d-none">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Attention :</strong> Certaines pièces d'identité sont manquantes.
+                        Il est recommandé de les ajouter avant l'envoi au tribunal.
+                    </div>
+                    <div class="mb-2">
+                        <label for="observation-tribunal" class="form-label">Observation (optionnel)</label>
+                        <textarea id="observation-tribunal" name="observation" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning" id="btn-envoyer-tribunal-final">
+                        <i class="fas fa-gavel"></i> Envoyer
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-info btn-sm text-white" id="btn-send">Envoyer</button>
-                <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
-{{-- FIN ENVOIS DECLARATION --}}
+
 @endsection
 @section("scripts")
 
@@ -154,6 +273,40 @@ Déclarations de naissance
 
     $("#noninscript").hide();
     $("#inscript").hide();
+
+    // Fonction de validation de date
+    function validateDate(input) {
+        const selectedDate = new Date(input.value);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // Fin de journée pour permettre la date d'aujourd'hui
+        
+        const errorDiv = document.getElementById('date-error');
+        
+        // Réinitialiser les classes
+        input.classList.remove('is-valid', 'is-invalid');
+        errorDiv.textContent = '';
+        
+        if (!input.value) {
+            return false;
+        }
+        
+        if (selectedDate > today) {
+            input.classList.add('is-invalid');
+            errorDiv.textContent = 'La date de naissance ne peut pas être supérieure à aujourd\'hui';
+            return false;
+        }
+        
+        // Vérifier que la date n'est pas trop ancienne (optionnel)
+        const minDate = new Date('1900-01-01');
+        if (selectedDate < minDate) {
+            input.classList.add('is-invalid');
+            errorDiv.textContent = 'La date de naissance ne peut pas être antérieure à 1900';
+            return false;
+        }
+        
+        input.classList.add('is-valid');
+        return true;
+    }
 
     function calculAge(datenais){
         // var datechoisie = $("#date_naissance_enfant").val();
@@ -206,43 +359,143 @@ Déclarations de naissance
         // }
     }
 
-    $(function(){
-        $("a.show-to-send").on("click", function(){
+    $(function() {
+        $('#btn-submit').prop('disabled', true);
 
-            var codeDeclaration = $(this).attr('href');
+        $('#date_naissance_enfant').on('change', function() {
+            const dateNaissance = $(this).val();
+            if (!dateNaissance) {
+                $('#texte').html('<div class="alert alert-warning"><strong>⚠️ Attention :</strong> Veuillez choisir une date de naissance.</div>');
+                $('#btn-submit').prop('disabled', true);
+                return;
+            }
+            
+            // Validation de la date
+            if (!validateDate(this)) {
+                $('#texte').html('<div class="alert alert-danger"><strong>❌ Erreur :</strong> Date invalide. Veuillez corriger la date de naissance.</div>');
+                $('#btn-submit').prop('disabled', true);
+                return;
+            }
+            const today = moment();
+            const naissance = moment(dateNaissance, 'YYYY-MM-DD');
+            const age_jours = today.diff(naissance, 'days');
+            const age_mois = today.diff(naissance, 'months');
+            const age_annee = today.diff(naissance, 'years');
 
-            // $("#code_declaration_naissance").val(codeDeclaration);
-            $("#codedeclaration").val(codeDeclaration);
-
-            $("#modal-declaration-send").modal("show");
-            return false;
+            let message = '';
+            let lien = '';
+            let type = '';
+            if (age_jours > 30) {
+                message = '<div class="alert alert-danger"><strong>⏰ Délai dépassé !</strong> Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.<br>\
+                <span style="color:#b94a48;">Le délai légal de déclaration est dépassé.</span></div>';
+                lien = '<div class="alert alert-warning"><strong>⚠️ Action requise :</strong> Vous devez créer un <b>certificat de non inscription</b>.<br>Une réquisition est requise conformément à l\'article 80 du code de la famille.</div>';
+                type = 'certificat';
+            }
+            if (age_mois > 3) {
+                message = '<div class="alert alert-danger"><strong>⏰ Délai largement dépassé !</strong> Nombre de mois sans déclarer : <b>' + age_mois + ' mois</b>.<br>\
+                <span style="color:#b94a48;">Une réquisition ou un jugement est requis.</span></div>';
+                lien = '<div class="alert alert-warning"><strong>⚠️ Action requise :</strong> Vous devez créer un <b>certificat de non inscription</b>.<br>Conformément à l\'article 80 du code de la famille.</div>';
+                type = 'certificat';
+            }
+            if (age_jours <= 30 && age_mois <= 3) {
+                message = '<div class="alert alert-info"><strong>ℹ️ Information :</strong> Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.</div>';
+                lien = '<div class="alert alert-success"><strong>✅ Bonne nouvelle :</strong> Vous pouvez créer une <b>déclaration de naissance classique</b>.</div>';
+                type = 'declaration';
+            }
+            $('#texte').html(message);
+            $('.validate').html(lien);
+            $('#btn-submit').prop('disabled', false);
+            $('#formdata').data('type', type);
         });
 
-        $("#btn-send").on("click",function(){
-            var cdn = $("#codedeclaration").val();
-            var route = "{{ route('declarationNaissance.mouvement') }}";
-            var data = {
-                code_declaration_naissance:cdn
-            };
+        $('#formdata').on('submit', function(e) {
+            e.preventDefault();
+            const type = $(this).data('type');
+            const dateNaissance = $('#date_naissance_enfant').val();
+            const dateInput = document.getElementById('date_naissance_enfant');
+            
+            if (!dateNaissance) {
+                $('#texte').html('<div class="alert alert-warning"><strong>⚠️ Attention :</strong> Veuillez choisir une date de naissance.</div>');
+                return;
+            }
+            
+            // Validation finale de la date
+            if (!validateDate(dateInput)) {
+                $('#texte').html('<div class="alert alert-danger"><strong>❌ Erreur :</strong> Date invalide. Veuillez corriger la date de naissance.</div>');
+                return;
+            }
+            $('#btn-submit').prop('disabled', true).text('Redirection...');
+            let url = '';
+            if (type === 'certificat') {
+                url = "{{ route('certificatNonInscription.create') }}";
+            } else {
+                url = "{{ route('declarationNaissance.create') }}";
+            }
+            // Redirection GET avec la date en query string
+            window.location.href = url + '?date_naissance_enfant=' + encodeURIComponent(dateNaissance);
+        });
 
-            $(this).attr("disabled",true);
-            $(this).html("Traitement en cours ...");
-            $.post(route, data, function(response){
+        let codeTribunal = null;
+        $('.btn-envoyer-tribunal').on('click', function(){
+            codeTribunal = $(this).data('code');
+            $('#input-code-tribunal').val(codeTribunal);
 
-                if(response.code == "200"){
-                    // notification("success",response.message);
-                    flashAlert("Réponse","success",response.message);
-                    $("#modal-declaration-send").modal('hide');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 2000);
-                }else{
-                    // notification("error",response.message);
-                    flashAlert("Réponse","error",response.message);
+            // Récupération des infos de la ligne sélectionnée
+            // On suppose que les attributs data-* sont ajoutés sur le bouton (à faire côté Blade)
+            const declarantNom = $(this).attr('data-identiteDeclarant');
+            const pereNom = $(this).attr('data-identitePere');
+            const mereNom = $(this).attr('data-identiteMere');
+            // Pour les pièces, il faut ajouter des data-piece-* sur le bouton côté Blade si possible
+            const pieceDeclarant = $(this).data('piece-declarant') || '';
+            const piecePere = $(this).data('piece-pere') || '';
+            const pieceMere = $(this).data('piece-mere') || '';
+
+            // Remplir le tableau du modal
+            $('#declarant-nom-tribunal').text(declarantNom);
+            $('#declarant-piece-tribunal').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+            $('#declarant-status-tribunal').html(pieceDeclarant ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+            $('#pere-nom-tribunal').text(pereNom);
+            $('#pere-piece-tribunal').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+            $('#pere-status-tribunal').html(piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+            $('#mere-nom-tribunal').text(mereNom);
+            $('#mere-piece-tribunal').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+            $('#mere-status-tribunal').html(pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+
+            // Vérification des pièces
+            let piecesManquantes = false;
+            if (!pieceDeclarant || !piecePere || !pieceMere) {
+                piecesManquantes = true;
+                $('#alert-pieces-manquantes-tribunal').removeClass('d-none');
+            } else {
+                $('#alert-pieces-manquantes-tribunal').addClass('d-none');
+            }
+            // Désactiver le bouton si pièce manquante
+            $('#btn-envoyer-tribunal-final').prop('disabled', piecesManquantes);
+
+            $('#modal-envoyer-tribunal').modal('show');
+        });
+        $('#form-envoyer-tribunal').on('submit', function(e){
+            e.preventDefault();
+            let url = "{{ route('certificatNonInscription.mouvement') }}";
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function(resp){
+                    if(resp.code == "200"){
+                        flashAlert("Réponse","success",resp.message);
+                        $('#modal-envoyer-tribunal').modal('hide');
+                        setTimeout(()=>location.reload(), 1000);
+                    }else{
+                        flashAlert("Réponse","error",resp.message);
+                    }
+                },
+                error: function(xhr){
+                    flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
                 }
             });
-
-            return false;
         });
     });
 </script>

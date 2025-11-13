@@ -14,6 +14,64 @@
     <link rel="stylesheet" type="text/css" href="{{ URL::to('carte/css/demo1.css') }}" />
      <!-- css de la carte -->
      <script src="{{ URL::to('carte/js/modernizr.custom.js') }}"></script>
+
+    <!-- Styles pour la reliure spirale noire -->
+    <style>
+        .spiral-binding {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            height: 670px;
+            width: 25px;
+            background: repeating-linear-gradient(
+                0deg,
+                #333 0px,
+                #333 8px,
+                #666 8px,
+                #666 12px,
+                #333 12px,
+                #333 20px
+            );
+            z-index: 10;
+            transform: translateX(-50%);
+            box-shadow:
+                0 0 10px rgba(0, 0, 0, 0.3),
+                inset 0 0 5px rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .spiral-binding::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                #555 0px,
+                #555 4px,
+                #999 4px,
+                #999 8px
+            );
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        /* Espacement pour éviter le chevauchement */
+        .col-sm-6:first-child {
+            padding-right: 10px;
+        }
+
+        .col-sm-6:last-child {
+            padding-left: 10px;
+        }
+    </style>
+
 @endsection
 
 @section("corps")
@@ -25,7 +83,9 @@
 
             <!-- page 2 -->
             <div class="bb-item">
-                <div class="row">
+                <div class="row position-relative">
+                    <!-- Reliure spirale noire -->
+                    <div class="spiral-binding"></div>
 
                     <div class="col-sm-6">
                         <div class="card" style="height: 670px; border: 2px solid">

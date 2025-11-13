@@ -38,8 +38,9 @@ class CertificatTranscriptionController extends Controller
      */
     public function index()
     {
-        $certificatTranscription = DeclarationDeces::where('type_declaration','CERTIFICAT DE TRANSCRIPTION')->get();
-        return view('deces::certificat-transcription.index',compact('certificatTranscription'));
+
+        $certificats = DeclarationDeces::where('type_declaration','CERTIFICAT DE TRANSCRIPTION')->get();
+        return view('deces::certificat-transcription.index',compact('certificats'));
     }
 
     public function create()

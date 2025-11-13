@@ -4,23 +4,24 @@ namespace Modules\Referentiel\Http\Controllers;
 
 use Exception;
 use App\Sifec\Sifec;
+use App\Sifec\SifecFacade;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use App\Sifec\SifecFacade;
+use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Support\Facades\Validator;
+use Modules\Mariage\Entities\ActeMariage;
 use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Referentiel\Entities\Registre;
 use Illuminate\Contracts\Support\Renderable;
-use Modules\Deces\Entities\ActeDeces;
-use Modules\Mariage\Entities\ActeMariage;
 use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\TypeRegistre;
 use Modules\Notification\Jobs\CreationRegistreJob;
 use Modules\Notification\Jobs\ValidationRegistreJob;
+use Modules\Notification\Services\NotificationService;
 
 class RegistreController extends Controller
 {
@@ -160,6 +161,7 @@ class RegistreController extends Controller
             $temp = str_replace(":code_otp",$otp,$temp);
 
 
+            // SifecFacade::sendSms($registre->institutionUser->institution->institutionParent->telephone(), $temp);
             SifecFacade::sendSms($registre->institutionUser->institution->institutionParent->telephone(), $temp);
             dispatch(new SendSmsJob($registre->institutionUser->institution->institutionParent->telephone(),$temp));
 
@@ -500,14 +502,29 @@ class RegistreController extends Controller
         try {
 
             $reg->nombre_acte_prevu = $nbrefeuillets + $reg->nombre_acte_prevu;
+            $reg->statut = 1;
             $reg->save();
 
             //type de registre
             $typeRegistre = $reg->typeRegistre->lib_type_registre;
+
+
+            //envoyer la notification au tribunal
+            // $tribunal = $reg->institutionUser->institution->institutionParent;
+            // $notificationService = new NotificationService();
+            // $notificationService->notifierAgentsInstitution(
+            //     $tribunal->code_institution,
+            //     new \Modules\Notification\Notifications\RegistreAjouteNotification($reg)
+            // );
+
+
+
             return response()->json([
                 "code"=>"200",
                 "message"=>"REGISTRE DE $typeRegistre $nbrefeuillets feuillets ajouté avec succès"
             ]);
+
+
 
 
         } catch (Exception $e) {

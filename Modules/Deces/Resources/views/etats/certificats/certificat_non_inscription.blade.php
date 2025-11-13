@@ -70,14 +70,17 @@
     </table>
 
     <div style="margin-top: 3%;margin-left: 2%;margin-right: 6%;border-radius: 2mm;">
-        <div style="position: absolute; left: 20px; top: 180px; width: 700px; height: 700px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:20px;">
-            <P style="text-align: justify;">Je soussigné, {{$certificat->institutionUser->user->personne->nom." ".$certificat->institutionUser->user->personne->prenom." (".$certificat->institutionUser->fonction->lib_fonction.")"}}, officier d'Etat Civil informons la déclaration de décès:
+        <div style="position: absolute; left: 20px; top: 185px; width: 700px; height: 500px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:16px;">
+            {{-- <P style="text-align: justify;">Je soussigné, {{$certificat->institutionUser->user->personne->nomcomplet()." (".$certificat->institutionUser->fonction->lib_fonction.")"}} --}}
+            <P style="text-align: justify;">Je soussigné, MALONGA Alfonse
+
+                , Directeur des Pompes Funèbres Municipales de BRAZZAVILLE, la déclaration de décès:
             </P>
             <table align="left" style="border-radius: 1mm; border: none;">
-                <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td>Par le centre d'Etat Civil de: <strong>{{$certificat->institutionUser->institution->lib_institution}}</strong></td>
+                <tr style="width:100%; text-align: left; padding-bottom: 2px;">
+                                         <td>Par les <strong>{{ Str::ucfirst($certificat->institutionUser->institution->lib_institution) }}</strong></td>
                 </tr>
-                <tr style="width:100%; text-align: left; padding-bottom: 4px;">
+                <tr style="width:100%; text-align: left; padding-bottom: 2px;">
                     <td>Défunt : <strong>{{$certificat->defunt->nom}} {{$certificat->defunt->prenom}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
@@ -96,7 +99,7 @@
                     <td>Niveau d'instruction: <strong>{{ $certificat->defunt->niveau_instruction }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Domicile: <strong>{{ Sifec::adressepersonne($certificat->defunt->code_personne) }} </strong></td>
+                    <td>Domicile: <strong>{{$certificat->defunt->adresse ?? "NON DÉCLARÉ" }} </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Cause du décès:
@@ -142,7 +145,7 @@
                         <td>Centre d'état civil de mariage: <strong>{{ $certificat->cec_mariage }}</strong></td>
                     </tr>
 
-                    @else
+                    {{-- @else
                     <tr style="width:100%; text-align: left;">
                         <td>Option de mariage: <strong>AUCUN</strong></td>
                     </tr>
@@ -157,16 +160,16 @@
                     </tr>
                     <tr style="width:100%; text-align: left;">
                         <td>Centre d'état civil de mariage: <strong>AUCUN</strong></td>
-                    </tr>
+                    </tr> --}}
                 @endif
 
             </table>
-            <p style="text-align: justify;font-size: 90%;margin-right: 6%;">Certifions que l'acte de décès dudit défunt n'a pas été dressé. <br>
+            <p style="text-align: justify;font-size: 85%;margin-right: 6%;margin-top: 10px;">Certifions que l'acte de décès dudit défunt n'a pas été dressé. <br>
                 En foi de quoi, le présent certificat lui est établi, pour servir et valoir ce que de droit. /-
             </p>
         </div>
     </div>
-    <div style="margin-top: 600px; bottom:0;margin-left:10px;">
+    <div style="margin-top: 480px; bottom:0;margin-left:10px;">
         <table class="historique" cellspacing="0" style="width: 95%; font-size: 100%;">
             <col style="width: 25%">
             <col style="width: 25%">
@@ -192,6 +195,9 @@
                   </tr>
             </tbody>
         </table>
+
     </div>
+    <p style="text-align: left; font-style:italic; font-size:11px"><span style="color:red">(*)</span> Ce document requiert une réquisition ou un jugement</p>
+
 
 </page>

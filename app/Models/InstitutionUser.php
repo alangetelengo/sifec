@@ -7,6 +7,7 @@ use App\Models\Jugement;
 use App\Models\Requisition;
 use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\Notifiable;
 use Modules\Mobile\Entities\Tarificatrion;
 use Modules\Referentiel\Entities\Fonction;
 use Modules\Referentiel\Entities\Localite;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class InstitutionUser extends Model
 {
-    use HasFactory;
+    use HasFactory,Notifiable;
 
     protected $guarded = [];
     protected $table="tr_ins_user";
@@ -136,7 +137,7 @@ class InstitutionUser extends Model
     {
         return $this->hasMany(Jugement::class, 'cui', 'cui');
     }
-    
+
     public function requisitions(): HasMany
     {
         return $this->hasMany(Requisition::class, 'cui', 'cui');

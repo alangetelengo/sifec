@@ -3,25 +3,27 @@
 namespace Modules\Deces\Entities;
 
 
+use App\Models\Jugement;
+use App\Models\Requisition;
 use App\Models\InstitutionUser;
-use Modules\Deces\Entities\Document;
 use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Referentiel\Entities\Regime;
 use Modules\Deces\Entities\MouvementDeces;
+use Modules\Referentiel\Entities\Document;
 use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Religion;
 use Modules\Referentiel\Entities\Filiation;
 use Modules\Referentiel\Entities\CauseDeces;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Referentiel\Entities\Institution;
+use Modules\Referentiel\Entities\Arrondissement;
 use Modules\Referentiel\Entities\LieuSurvenance;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Modules\Referentiel\Entities\Arrondissement;
-use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 
 class DeclarationDeces extends Model
@@ -136,7 +138,31 @@ class DeclarationDeces extends Model
             return $this->belongsTo(Localite::class, 'lieu_deces', 'code_localite');
         }
 
-        
+        /**
+         * Permet de savoir l'institution dont la déclaration a été envoyée
+         */
+        public function institutionDestinataire(): BelongsTo
+        {
+            return $this->belongsTo(Institution::class, 'code_institution_destinataire', 'code_institution');
+        }
+        //pour retracer le jugement venant du tribunal
+        public function jugement(): HasOne
+        {
+            return $this->hasOne(Jugement::class, 'code_declaration', 'code_declaration_deces');
+        }
+
+        //pour retracer la réquisition venant du tribunal
+        public function requisition(): HasOne
+        {
+            return $this->hasOne(Requisition::class, 'code_declaration', 'code_declaration_deces');
+        }
+
+        //institution appartement le document
+        public function institution(): BelongsTo
+        {
+            return $this->belongsTo(Institution::class, 'code_institution','code_institution');
+        }
+
 
     }
 

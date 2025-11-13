@@ -266,7 +266,11 @@
             <p style="margin-left: 40%;">Fait à {{$localisation}}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $certificat->date_heure_declaration)))}}<br><br>
                 L'Officier de l'Etat Civil</p>
             <div style="position:absolute; margin-left:570px;top:80px;">
-                <qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/certificat?niupp={{ $certificat->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+                @isset($qrCode)
+                <div style="width: 30mm;">
+                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                </div>
+                @endisset
             </div>
 
     </div>

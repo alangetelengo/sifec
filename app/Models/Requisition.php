@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use App\Models\InstitutionUser;
+use App\Models\TypeRequisition;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Referentiel\Entities\Institution;
+use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Rectification\Entities\Rectification;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Naissance\Entities\Declarationnaissance;
@@ -29,9 +32,20 @@ class Requisition extends Model
     }
 
 
-    public function declarationNaissance(): HasOne
+    /**
+     * Relation correcte : une Réquisition appartient à une déclaration de naissance
+     */
+    public function declarationNaissance(): BelongsTo
     {
-        return $this->hasOne(Declarationnaissance::class, 'code_requisition', 'code_requisition');
+        return $this->belongsTo(Declarationnaissance::class, 'code_declaration', 'code_declaration_naissance');
+    }
+    public function declarationDeces(): BelongsTo
+    {
+        return $this->belongsTo(DeclarationDeces::class, 'code_declaration', 'code_declaration_deces');
+    }
+    public function declarationMariage(): BelongsTo
+    {
+        return $this->belongsTo(DeclarationMariage::class, 'code_declaration', 'code_declaration_mariage');
     }
 
     /**
@@ -48,5 +62,15 @@ class Requisition extends Model
     public function rectification(): HasOne
     {
         return $this->hasOne(Rectification::class, 'code_requisition', 'code_requisition');
+    }
+
+    /**
+     * Get the typeRequisition that owns the Requisition
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function typeRequisition(): BelongsTo
+    {
+        return $this->belongsTo(TypeRequisition::class, 'code_type_requisition', 'code_type_requisition');
     }
 }

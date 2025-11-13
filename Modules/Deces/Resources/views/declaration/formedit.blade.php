@@ -4,10 +4,12 @@
         <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".defunt-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche du défunt</button>
     </div>
     <hr>
+     <input type="hidden" name="code_declaration_deces" id="code_declaration_deces" value="{{ $dd->code_declaration_deces }}">
     <div class="ligne">
         <h4>INFORMATIONS SUR L'IDENTITE DU DEFUNT</h4>
     </div>
     <div class="row">
+
         <div class="col-md-3">
             <label class="form-label">Nom(s) défunt <span class="text-danger">*</span></label>
             <input type="text" class="form-control required  @error('nom_defunt') is-invalid @enderror" value="{{ $dd->defunt->nom }}" placeholder="" id="nom_defunt" name="nom_defunt" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()">
@@ -81,7 +83,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Numéro d'acte de naissance <span class="text-danger">*</span></label>
-                <input type="text" class="form-control  @error('num_acte_naissance_defunt') is-invalid @enderror" value="{{ $dd->num_acte_naissance }}" id="num_acte_naissance_defunt" name="num_acte_naissance" required onkeyup="this.value=this.value.toUpperCase()">
+                <input type="text" class="form-control"  value="{{ $dd->num_acte_naissance }}" id="num_acte_naissance_defunt" name="num_acte_naissance_defunt"  onkeyup="this.value=this.value.toUpperCase()">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Profession <span class="text-danger">*</span></label>

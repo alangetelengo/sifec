@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Referentiel\Entities\FeuilletRegistre;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Modules\Referentiel\Entities\Institution;
 
 class ActeMariage extends Model
 {
@@ -48,6 +49,16 @@ class ActeMariage extends Model
     public function signataire(): BelongsTo
     {
         return $this->belongsTo(InstitutionUser::class, 'approbation_mairie', 'cui');
+    }
+
+    /**
+     * Get the institution that owns the ActeMariage
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class, 'code_institution', 'code_institution');
     }
 
 

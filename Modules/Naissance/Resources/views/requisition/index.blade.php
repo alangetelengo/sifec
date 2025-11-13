@@ -38,6 +38,10 @@ réquisition
                                 <tbody>
                                     @php
                                         $i=1;
+                                        $dernierMouvement = null;
+                                        if (isset($item->declarationNaissance->mouvements) && $item->declarationNaissance->mouvements && $item->declarationNaissance->mouvements->count()) {
+                                            $dernierMouvement = $item->declarationNaissance->mouvements->sortByDesc('created_at')->first();
+                                        }
                                     @endphp
                                     @foreach ($requisitions as $item)
                                     {{-- @isset($item->declarationNaissance) --}}

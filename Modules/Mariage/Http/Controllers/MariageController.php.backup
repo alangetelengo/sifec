@@ -1,0 +1,477 @@
+<?php
+
+namespace Modules\Mariage\Http\Controllers;
+
+use Exception;
+use App\Sifec\Sifec;
+use App\Sifec\SifecFacade;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Modules\Referentiel\Entities\Regime;
+use Illuminate\Support\Facades\Validator;
+use Modules\Referentiel\Entities\Localite;
+use Modules\Referentiel\Entities\Personne;
+use Modules\Referentiel\Entities\Filiation;
+use Illuminate\Contracts\Support\Renderable;
+use Locale;
+use Modules\Referentiel\Entities\Profession;
+use Modules\Naissance\Entities\ActeNaissance;
+use Modules\Referentiel\Entities\Departement;
+use Modules\Referentiel\Entities\Institution;
+use Modules\Referentiel\Entities\Nationalite;
+use Modules\Mariage\Entities\MouvementMariage;
+use Modules\Referentiel\Entities\TypeDocument;
+use Modules\Referentiel\Entities\OptionMariage;
+use Modules\Mariage\Entities\DeclarationMariage;
+use Modules\Mariage\Entities\DetailLivretFamille;
+use Modules\Mariage\Entities\LivretFamille;
+use Modules\Referentiel\Entities\SituationMatrimoniale;
+use Modules\Mariage\Services\DeclarationMariageService;
+
+class MariageController extends Controller
+{
+
+    public function index()
+    {
+        $dms = Auth::user()->institution()->declarationsMariages();
+
+        return view('mariage::declaration.index',compact("dms"));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     * @return Renderable
+     */
+    public function create()
+    {
+        $countries = collect( json_decode(file_get_contents(public_path("codes_pays.json"))));
+
+        $localiteInstitut = Auth::user()->institution()->localite();
+
+
+        $cecNaissances = Institution::where("code_type_institution","TPINS_0002")->get();
+        $regimes = Regime::all();
+        $optionmariages = OptionMariage::all();
+        $LieuCeremonie = Sifec::LieuCeremonie();
+        $nationalites = Nationalite::all();
+        $filiations = Filiation::all();
+        $typedocuments = TypeDocument::all();
+        $situationMatrimoniales = SituationMatrimoniale::all();
+        $professions = Profession::all();
+        $departements = Departement::all();
+        $lieuNaissances = Localite::where('code_type_localite','TPLOC_0002')->Orwhere('code_type_localite','TPLOC_0003')->get();
+        $arrondissement = Localite::where('code_type_localite','TPLOC_0004')->Orwhere('code_type_localite','TPLOC_0005')->get();
+        $quartierVillages = Localite::where('code_type_localite','TPLOC_0007')->Orwhere('code_type_localite','TPLOC_0008')->get();
+
+
+        return view('mariage::declaration.create',compact("arrondissement","quartierVillages","situationMatrimoniales", "filiations", "typedocuments","regimes","optionmariages","LieuCeremonie","professions","nationalites","countries","lieuNaissances","cecNaissances"));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     * @param Request $request
+     * @return Renderable
+     */
+    public function store(Request $request)
+    {
+
+
+
+        $rules = [
+            "nom_epoux"=>["required","string","min:2"],
+            "date_naissance_epoux"=>["required","date"],
+            // "lieu_naissance_epoux"=>["required","string"],
+            "num_acte_naissance_epoux"=>["required","string"],
+            "code_profession_epoux"=>["required"],
+            "sit_matrimoniale_epoux"=>["required"],
+            "nom_pere_epoux"=>["required","string","min:2"],
+            "nom_mere_epoux"=>["required","string","min:2"],
+            "nom_epouse"=>["required","string","min:2"],
+            "date_naissance_epouse"=>["required","date"],
+            // "lieu_naissance_epouse"=>["required","string"],
+            "num_acte_naissance_epouse"=>["required","string"],
+            "code_profession_epouse"=>["required"],
+            "sit_matrimoniale_epouse"=>["required"],
+            "nom_pere_epouse"=>["required","string","min:2"],
+            "nom_mere_epouse"=>["required","string","min:2"],
+            "chef_famille"=>["required","string","min:2"],
+            "filiation"=>["required"],
+            //temoins epoux 1 et 2
+            "nom_t_epoux_1"=>["required","string","min:2"],
+            "date_naissance_t_epoux_1"=>["required"],
+            "lieu_naissance_t_epoux_1"=>["required","string"],
+            "code_profession_t_epoux_1"=>["required"],
+            "code_nationalite_t_epoux_1"=>["required"],
+            "nom_t_epoux_2"=>["required","string","min:2"],
+            "date_naissance_t_epoux_2"=>["required"],
+            "lieu_naissance_t_epoux_2"=>["required","string"],
+            "code_profession_t_epoux_2"=>["required"],
+            "code_nationalite_t_epoux_2"=>["required"],
+            //temoins epouse 1 et 2
+            "nom_t_epouse_1"=>["required","string","min:2"],
+            "date_naissance_t_epouse_1"=>["required"],
+            "lieu_naissance_t_epouse_1"=>["required","string"],
+            "code_profession_t_epouse_1"=>["required"],
+            "code_nationalite_t_epouse_1"=>["required"],
+            "nom_t_epouse_2"=>["required","string","min:2"],
+            "date_naissance_t_epouse_2"=>["required"],
+            "lieu_naissance_t_epouse_2"=>["required","string"],
+            "code_profession_t_epouse_2"=>["required"],
+            "code_nationalite_t_epouse_2"=>["required"],
+            "date_ceremonie_mariage"=>["required"]
+        ];
+
+
+
+        $validator = Validator::make($request->all(),$rules);
+
+        if($validator->fails()){
+            return response()->json([
+                "code"=>"150",
+                "message"=>$validator->errors()
+            ]);
+        }
+
+        $dateNaissanceEpoux = Carbon::parse($request->date_naissance_epoux)->age;
+        $dateNaissanceEpouse = Carbon::parse($request->date_naissance_epouse)->age;
+
+        if($dateNaissanceEpoux < 18){
+
+            return response()->json([
+                "code"=>"99",
+                "message"=>["age_pere"=>"L'âge du future marié doit être supérieur ou égale à 18 ans"]
+            ]);
+        }
+
+        if($dateNaissanceEpouse < 17){
+            return response()->json([
+                "code"=>"99",
+                "message"=>["age_mere"=>"L'âge du future mariée doit être supérieur ou égale à 17 ans"]
+            ]);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            //find epoux et epouse
+            $epouxUniqueString = Sifec::uniqueString($request,"_epoux","M");
+            $epouseUniqueString = Sifec::uniqueString($request,"_epouse","F");
+
+            $epoux = Personne::where("personne_string",$epouxUniqueString)->first();
+            $epouse = Personne::where("personne_string",$epouseUniqueString)->first();
+
+            //find temoins epoux 1 et 2
+            $tEpoux1UniqueString = Sifec::uniqueString($request,"_t_epoux_1","M");
+            $tEpoux2UniqueString = Sifec::uniqueString($request,"_t_epoux_2","F");
+            //find temoins epouse 1 et 2
+            $tEpouse1UniqueString = Sifec::uniqueString($request,"_t_epouse_1","M");
+            $tEpouse2UniqueString = Sifec::uniqueString($request,"_t_epouse_2","F");
+
+            $tEpouse1 = Personne::where("personne_string",$tEpouse1UniqueString)->first();
+            $tEpouse2 = Personne::where("personne_string",$tEpouse2UniqueString)->first();
+
+            $tEpoux1 = Personne::where("personne_string",$tEpoux1UniqueString)->first();
+            $tEpoux2 = Personne::where("personne_string",$tEpoux2UniqueString)->first();
+
+
+            if($epoux == null){
+                $epoux = Sifec::savePersonne($request,"_epoux","M",$epouxUniqueString);
+            }
+
+
+
+            if($tEpoux1 == null){
+                $tepoux1 = Sifec::savePersonne($request,"_t_epoux_1","M",$tEpoux1UniqueString);
+            }
+
+            if($tEpoux2 == null){
+                $tepoux2 = Sifec::savePersonne($request,"_t_epoux_2","M",$tEpoux2UniqueString);
+            }
+
+            if($epouse == null){
+                $epouse = Sifec::savePersonne($request,"_epouse","F",$epouseUniqueString);
+            }
+
+
+
+            if($tEpouse1 == null){
+                $tepouse1 = Sifec::savePersonne($request,"_t_epouse_1","M",$tEpouse1UniqueString);
+            }
+            if($tEpouse2 == null){
+                $tepouse2 = Sifec::savePersonne($request,"_t_epouse_2","M",$tEpouse2UniqueString);
+            }
+
+
+
+            if($epoux != null && $epouse != null){
+                $dm = DeclarationMariage::where("code_epoux",$epoux->code_personne)->where('code_epouse',$epouse->code_personne)->first();
+                if($dm != null){
+                    return response()->json([
+                        "code"=>"99",
+                        "message"=>["declaration_exist"=>"Cette déclaration de mariage existe déjà dans le système"]
+                    ]);
+                }
+            }
+
+            //adresse de la cérémonie
+            $qv = $request->lib_quartier_ceremonie ?? $request->lib_village_ceremonie ?? $request->new_quartier_ceremonie ?? $request->new_village_ceremonie;
+
+            $adresse =  $request->domicile_numero_ceremonie.", ".$request->domicile_ceremonie. " ".$request->domicile_nomvoie_ceremonie." ".$qv;
+
+            $typeDeclaration = "DECLARATION DE MARIAGE";
+            $numeroDispense = "";
+            $dateDeclaration = Carbon::create($request->date_declaration_mariage);
+            $dateMariage = Carbon::create($request->date_ceremonie_mariage);
+            $diffJours = $dateMariage->diffInDays($dateDeclaration);
+
+
+
+
+
+
+
+            $dm = new DeclarationMariage;
+
+            // if($diffJours < 60 || $request->lieu_ceremonie_mariage == "Hors centre d'état civil" ){
+            //     $typeDeclaration = "DISPENSE";
+            // }
+            if($diffJours > 60 || $request->lieu_ceremonie_mariage == "Hors centre d'état civil"){
+                $typeDeclaration = "DISPENSE";
+            }
+
+            // Log::channel("sifec")->info([
+            //     "diffJour est : "=>$diffJours ,
+            //     "TypeDeclaration est :"=>$typeDeclaration]);
+            // dd("ok");
+            $dm->code_declaration_mariage = Sifec::genererCodeUniqueReferentiel($dm, "code_declaration_mariage",8,"CDM_");
+            $dm->date_declaration_mariage = $request->date_declaration_mariage ?? date("Y-m-d");
+            $dm->date_prevue_mariage = $request->date_ceremonie_mariage;
+            // $dm->date_celebration_dot = $request->date_celebration_dot;
+            $dm->lieu_ceremonie_mariage = $request->lieu_ceremonie_mariage;
+            $dm->type_declaration   = $typeDeclaration;
+
+            $dm->autorisation_ambassade_epoux = $request->autorisation_ambassade_epoux;
+            $dm->autorisation_ambassade_epouse = $request->autorisation_ambassade_epouse;
+            $dm->date_autorisation_ambassade_epoux = $request->date_autorisation_ambassade_epoux;
+            $dm->date_autorisation_ambassade_epouse = $request->date_autorisation_ambassade_epouse;
+            $dm->cec_naissance_epoux  = $request->cec_naissance_epoux ?? $request->new_cec_naissance_epoux;
+            $dm->cec_naissance_epouse = $request->cec_naissance_epouse ?? $request->new_cec_naissance_epouse;
+            $dm->certificat_residence_epoux = $request->certificat_residence_epoux;
+            $dm->certificat_residence_epouse = $request->certificat_residence_epouse;
+            $dm->date_emission_certificat_residence_epoux = $request->date_emission_certificat_residence_epoux;
+            $dm->date_emission_certificat_residence_epouse = $request->date_emission_certificat_residence_epouse;
+            $dm->pere_epoux = $request->nom_pere_epoux;
+            $dm->mere_epoux = $request->nom_mere_epoux;
+            $dm->pere_epouse = $request->nom_pere_epouse;
+            $dm->mere_epouse = $request->nom_mere_epouse;
+            $dm->code_epouse = $epouse->code_personne;
+            $dm->code_profession_epoux = $request->code_profession_epoux;
+            $dm->code_profession_epouse = $request->code_profession_epouse;
+            $dm->code_profession_temoin_h_epoux = $request->code_profession_t_epoux_1;
+            $dm->code_profession_temoin_f_epoux = $request->code_profession_t_epoux_2;
+            $dm->code_profession_temoin_h_epouse = $request->code_profession_t_epouse_1;
+            $dm->code_profession_temoin_f_epouse = $request->code_profession_t_epouse_2;
+            $dm->code_epoux  = $epoux->code_personne;
+            $dm->adresse_celebration_mariage  = $adresse;
+            $dm->code_temoin_homme_epoux  = $tepoux1->code_personne;
+            $dm->code_temoin_femme_epoux  = $tepoux2->code_personne;
+            $dm->code_temoin_homme_epouse = $tepouse1->code_personne;
+            $dm->code_temoin_femme_epouse = $tepouse2->code_personne;
+            $dm->code_filiation_chef_famille = $request->filiation;
+            $dm->chef_famille = $request->chef_famille;
+            $dm->date_emission_acte_naissance_epoux  = $request->date_emission_acte_naissance_epoux;
+            $dm->date_emission_acte_naissance_epouse = $request->date_emission_acte_naissance_epouse;
+            $dm->numero_acte_naissance_epoux  = $request->num_acte_naissance_epoux;
+            $dm->numero_acte_naissance_epouse = $request->num_acte_naissance_epouse;
+            $dm->numero_jugement_divorce_epoux = $request->numero_jugement_divorce_epoux;
+            $dm->numero_jugement_divorce_epouse = $request->numero_jugement_divorce_epouse;
+            $dm->numero_acte_mariage_epoux = $request->numero_acte_mariage_epoux;
+            $dm->numero_acte_mariage_epouse = $request->numero_acte_mariage_epouse;
+            $dm->numero_acte_deces_epoux = $request->numero_acte_deces_epoux;
+            $dm->numero_acte_deces_epouse = $request->numero_acte_deces_epouse;
+
+
+            //Ajout après recommandation du client
+            $dm->examens_prenuptiaux = $request->examens_prenuptiaux;
+            $dm->date_pre_mariage_epoux = $request->date_pre_mariage_epoux;
+            $dm->parent_paternel_epoux = $request->parent_paternel_epoux;
+            $dm->parent_maternel_epoux = $request->parent_maternel_epoux;
+            $dm->date_pre_mariage_epouse = $request->date_pre_mariage_epouse;
+            $dm->montant_dot = 50000;
+            $dm->parent_paternel_epouse = $request->parent_paternel_epouse;
+            $dm->parent_maternel_epouse = $request->parent_maternel_epouse;
+            $dm->type_mariage   = $request->type_mariage;
+
+            //persistance des données relatives aux mandants
+            $dm->nom_prenom_mandant_epoux   = $request->nom_prenom_mandant_epoux;
+            $dm->nom_prenom_mandant_epouse   = $request->nom_prenom_mandant_epouse;
+
+            //Fin Ajout après recommandation du client
+
+            // $dm->numero_acte_naissance_h_epoux = "AMDFTUU256";
+            // $dm->numero_acte_naissance_h_epouse = "STGHD0236";
+            // $dm->date_emission_acte_naissance_h_epoux = "";
+            // $dm->date_emission_acte_naissance_h_epouse = "";
+
+
+            $dm->code_option_mariage = $request->option_mariage;
+            $dm->code_regime  = $request->regime_mariage;
+            $dm->code_situation_mat_epoux  = $request->sit_matrimoniale_epoux;
+            $dm->code_situation_mat_epouse = $request->sit_matrimoniale_epouse;
+            if($request->enfants != null && $request->enfants != 0) {
+                $dm->nbre_enfant = count($request->enfants);
+             }
+
+            $dm->cui = Auth::user()->affectationActive()->cui;
+            $dm->save();
+
+            $transaction = new MouvementMariage;
+            $transaction->code_mouvement_mariage = Sifec::genererCodeUniqueReferentiel($transaction,"code_mouvement_mariage",4,"MDM_");
+            $transaction->statut = "En cours";
+            $transaction->code_declaration_mariage = $dm->code_declaration_mariage;
+            $transaction->cui = Auth::user()->affectationActive()->cui;
+            $transaction->save();
+
+            // Log::channel("sifec")->error(["epoux"=>$epoux]);
+            // dd("ok");
+
+             //Traitement des infos de
+             if($request->enfants != null && $request->enfants != 0){
+                if(count($request->enfants) > 0){
+                    // dd(collect($request->enfants));
+
+                    foreach(collect($request->enfants) as $request){
+
+                        $enfantString = Sifec::uniqueStringEnfant($request,$request['sexe']);
+
+                        $enfantExist = Personne::where("personne_string",$enfantString);
+
+
+                        // if($enfantExist == null){
+                        //    $enfant =  Sifec::savePersonne($request,"_enfant",$request['sexe']);
+                           $enfant =  new Personne;
+                           $enfant->code_personne = Sifec::genererCodeUniqueReferentiel($enfant, "code_personne",8,"PRS_");
+                           $enfant->nom = $request["nom"];
+                           $enfant->prenom = $request["prenom"];
+                           $enfant->date_naissance = $request["date_naissance"];
+                        //    $enfant->lieu_naissance = Sifec::locate($request["lieu_naissance"]);
+                           $enfant->lieu_naissance = Localite::find($request["lieu_naissance"])->lib_localite;
+                           $enfant->code_localite = $request["lieu_naissance"];
+
+
+                           $enfant->code_profession =  "PROF_0010";
+                           $enfant->code_nationalite = "NAT_0001";
+                           $enfant->niveau_instruction = "NON DECLARE";
+                           $enfant->sexe = $request['sexe'];
+                            //$enfant->personne_string = $enfantExist;
+                           $enfant->statut_personne = "VIVANT";
+                           $enfant->type_date_naissance = "EXACTE";
+                           $enfant->niveau_instruction = "NON DECLARE";
+                           $enfant->code_profession=="PROF_0010";
+                           $enfant->code_nationalite=="NAT_0001";
+                           $enfant->save();
+
+
+
+                            //creation livret famille
+                            // Avec les nouvelles identifications
+                            $livret = new LivretFamille;
+                            $livret->code_livret_famille =Sifec::genererCodeUniqueReferentiel($livret, "code_livret_famille",4,"CLF_");
+                            $livret->code_declaration_mariage = $dm->code_declaration_mariage;
+                            $livret->save();
+
+                            $detailLivret = new DetailLivretFamille;
+                            $detailLivret->code_detail_livret = Sifec::genererCodeUniqueReferentiel($detailLivret, "code_detail_livret",4,"CDLF_");
+                            $detailLivret->code_livret_famille = $livret->code_livret_famille;
+                            $detailLivret->code_enfant = $enfant->code_personne;
+                            $detailLivret->code_type_extrait = 'TEX_0001';
+                            $detailLivret->numero_extrait = 'AN1000';
+                            $detailLivret->save();
+
+                    }
+                }
+             }
+
+            Log::channel("sifec")->info($dm);
+            DB::commit();
+
+            return response()->json([
+                "code"=>"200",
+                "message"=>"La déclaration de mariage est enregistrée avec succès"
+            ]);
+
+        }catch(Exception $e){
+            DB::rollBack();
+            Log::channel("sifec")->error($e->getMessage());
+            return response()->json([
+                "code"=>"99",
+                "message"=>["error" =>$e->getMessage()]
+            ]);
+        }
+    }
+
+    /**
+     * Show the specified resource.
+     * @param int $id
+     * @return Renderable
+     */
+    public function show($id)
+    {
+        return view('mariage::show');
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     * @param int $id
+     * @return Renderable
+     */
+    public function edit($id)
+    {
+        return view('mariage::edit');
+    }
+
+    /**
+     * Update the specified resource in storage.
+     * @param Request $request
+     * @param int $id
+     * @return Renderable
+     */
+    public function update(Request $request, $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     * @param int $id
+     * @return Renderable
+     */
+    public function destroy($id)
+    {
+        //
+    }
+
+    public function recherchePersonne(Request $request)
+    {
+       $niupp = $request->numero_acte_naissance;
+        return   SifecFacade::rechercheIdentite($niupp);
+    }
+
+    public function getRegime()
+    {
+        $id = request('optionmariage');
+        $regimes = [];
+        if($id == "OMRG_0001"){
+            $regimes = Regime::where("code_regime","RGIM_0002")->get();
+        }
+        if($id == "OMRG_0002"){
+           $regimes = Regime::all();
+        }
+
+        return $regimes;
+    }
+}

@@ -80,9 +80,16 @@ class InstitutionController extends Controller
             // $institution->$column_chosen = $localite;
             $institution->code_institution_parent = $request->code_institution_parent;
            $institution->code_localite = $request->code_localite;
-           if($request->sceau){
-                $sceau = $request->sceau->store("sceau");
-                $institution->sceau = $sceau;
+           if($request->hasFile('sceau')){
+                $file = $request->file('sceau');
+                if ($file->isValid()) {
+                    $sceau = $file->store("sceau");
+                    $institution->sceau = $sceau;
+                } else {
+                    toastr()->error("Le fichier du sceau est corrompu ou inaccessible.");
+                    DB::rollBack();
+                    return redirect()->back()->withInput();
+                }
             }
             $institution->save();
 
@@ -123,9 +130,15 @@ class InstitutionController extends Controller
             $institution->code_institution_parent = $request->code_institution_parent;
             $institution->code_localite = $request->code_localite;
 
-            if($request->sceau){
-                $sceau = $request->sceau->store("sceau");
-                $institution->sceau = $sceau;
+            if($request->hasFile('sceau')){
+                $file = $request->file('sceau');
+                if ($file->isValid()) {
+                    $sceau = $file->store("sceau");
+                    $institution->sceau = $sceau;
+                } else {
+                    toastr()->error("Le fichier du sceau est corrompu ou inaccessible.");
+                    return redirect()->back()->withInput();
+                }
             }
             $institution->save();
 
