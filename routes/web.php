@@ -95,10 +95,13 @@ Route::middleware(['auth'])->group(function () {
 
         // Activation
         Route::get('/enable', [TwoFactorController::class, 'enable'])->name('enable');
+        Route::get('/csrf-token', [TwoFactorController::class, 'getCsrfToken'])->name('csrf-token');
         Route::post('/confirm', [TwoFactorController::class, 'confirm'])->name('confirm');
 
         // Codes de récupération
         Route::get('/recovery-codes', [TwoFactorController::class, 'showRecoveryCodes'])->name('recovery-codes');
+        Route::get('/recovery-codes/download', [TwoFactorController::class, 'downloadRecoveryCodesPdf'])->name('recovery-codes.download');
+        Route::get('/recovery-codes/print', [TwoFactorController::class, 'printRecoveryCodesPdf'])->name('recovery-codes.print');
         Route::post('/recovery-codes/regenerate', [TwoFactorController::class, 'regenerateRecoveryCodes'])->name('recovery-codes.regenerate');
 
         // Désactivation

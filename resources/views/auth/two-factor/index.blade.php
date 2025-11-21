@@ -67,7 +67,7 @@
                                         <i class="fas fa-qrcode fa-3x text-warning mb-3"></i>
                                         <h5>Reconfigurer</h5>
                                         <p class="text-muted">Obtenir un nouveau QR code</p>
-                                        <a href="{{ route('two-factor.enable') }}" class="btn btn-warning">
+                                        <a href="{{ route('two-factor.enable', ['reset' => 1]) }}" class="btn btn-warning">
                                             <i class="fas fa-qrcode"></i> Reconfigurer
                                         </a>
                                     </div>

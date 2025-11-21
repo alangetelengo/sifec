@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use PragmaRX\Google2FA\Google2FA;
 
 class Debug2FA extends Command
 {
@@ -53,28 +54,41 @@ class Debug2FA extends Command
         // État de la 2FA
         $this->info("🔐 ÉTAT DE LA 2FA");
         $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
+
         $enabled = $user->google2fa_enabled ? '<fg=green>✅ OUI</>' : '<fg=red>❌ NON</>';
         $this->line("Activée        : {$enabled}");
-        
+
         $hasSecret = !empty($user->google2fa_secret) ? '<fg=green>✅ OUI</>' : '<fg=red>❌ NON</>';
         $this->line("Secret présent : {$hasSecret}");
-        
+
         if (!empty($user->google2fa_secret)) {
             try {
                 $decrypted = decrypt($user->google2fa_secret);
                 $secretLength = strlen($decrypted);
                 $this->line("Longueur secret: <fg=green>{$secretLength} caractères</>");
+                $this->line("Secret (clair)  : <fg=yellow>{$decrypted}</>");
+
+                // Générer le code TOTP actuel pour comparaison
+                $google2fa = new Google2FA();
+                $currentCode = $google2fa->getCurrentOtp($decrypted);
+                $this->line("");
+                $this->info("🔢 CODE TOTP ACTUEL (pour test)");
+                $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                $this->line("Code attendu    : <fg=cyan>{$currentCode}</>");
+                $this->line("Temps restant   : " . (30 - (time() % 30)) . " secondes");
+                $this->line("");
+                $this->line("<fg=yellow>💡 Comparez ce code avec celui affiché par Google Authenticator</>");
             } catch (\Exception $e) {
                 $this->line("Longueur secret: <fg=red>❌ Erreur de décryptage</>");
+                $this->line("Erreur: " . $e->getMessage());
             }
         }
-        
-        $verified = $user->two_factor_verified_at 
+
+        $verified = $user->two_factor_verified_at
             ? '<fg=green>✅ ' . $user->two_factor_verified_at->format('d/m/Y H:i:s') . '</>'
             : '<fg=red>❌ Jamais</>';
         $this->line("Vérifié le     : {$verified}");
-        
+
         // Codes de récupération
         $recoveryCodes = $user->getRecoveryCodes();
         $codesCount = count($recoveryCodes);
@@ -92,28 +106,33 @@ class Debug2FA extends Command
             $this->line("");
         }
 
-        // Sessions actives
-        $this->info("💻 SESSIONS ACTIVES");
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $sessions = DB::table('sessions')
-            ->where('user_id', $user->id)
-            ->get();
-        
-        if ($sessions->isEmpty()) {
-            $this->line("<fg=yellow>Aucune session active</>");
-        } else {
-            foreach ($sessions as $session) {
-                $lastActivity = date('d/m/Y H:i:s', $session->last_activity);
-                $this->line("Session : {$session->id}");
-                $this->line("  └─ Dernière activité : {$lastActivity}");
+        // Sessions actives (si la table existe)
+        try {
+            $this->info("💻 SESSIONS ACTIVES");
+            $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            $sessions = DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->get();
+
+            if ($sessions->isEmpty()) {
+                $this->line("<fg=yellow>Aucune session active</>");
+            } else {
+                foreach ($sessions as $session) {
+                    $lastActivity = date('d/m/Y H:i:s', $session->last_activity);
+                    $this->line("Session : {$session->id}");
+                    $this->line("  └─ Dernière activité : {$lastActivity}");
+                }
             }
+            $this->line("");
+        } catch (\Exception $e) {
+            // Table sessions n'existe pas, ignorer
+            $this->line("");
         }
-        $this->line("");
 
         // Historique des actions 2FA
         $this->info("📋 HISTORIQUE 2FA (dernières actions)");
         $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
+
         $auditLogs = DB::table('tr_user_audit_trail')
             ->where('code_user', $user->code_user)
             ->whereIn('action', ['2fa_enabled', '2fa_disabled', '2fa_reset', '2fa_verified', 'recovery_codes_regenerated'])
@@ -135,7 +154,7 @@ class Debug2FA extends Command
         // Recommandations
         $this->info("💡 RECOMMANDATIONS");
         $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
+
         if (!$user->google2fa_enabled && empty($user->google2fa_secret)) {
             $this->line("✅ État normal : Prêt pour une nouvelle activation");
             $this->line("   Commande : <fg=cyan>php artisan user:2fa-enable {$email}</>");
@@ -148,7 +167,7 @@ class Debug2FA extends Command
         } else {
             $this->line("✅ État normal : 2FA activée et fonctionnelle");
         }
-        
+
         $this->line("");
         $this->info("═══════════════════════════════════════════════════════");
 

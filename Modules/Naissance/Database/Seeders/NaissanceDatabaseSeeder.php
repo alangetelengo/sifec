@@ -16,6 +16,9 @@ class NaissanceDatabaseSeeder extends Seeder
     {
         Model::unguard();
 
-        // $this->call("OthersTableSeeder");
+        $this->call([
+            DeclarationNaissanceSeeder::class,
+            ActeNaissanceFromDeclarationsSeeder::class,
+        ]);
     }
 }

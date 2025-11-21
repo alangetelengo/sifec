@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\DB;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Services\DeclarationNaissanceService;
 use Modules\Referentiel\Entities\Personne;
+use Modules\Referentiel\Entities\Localite;
 
 class DeclarationNaissanceSeeder extends Seeder
 {
-    private const TOTAL_DECLARATIONS = 20;
+    private const TOTAL_DECLARATIONS = 3000;
     private const UNIQUE_RATIO = 0.80; // 80 % de familles uniques
 
     private int $personCounter = 0;
@@ -37,6 +38,35 @@ class DeclarationNaissanceSeeder extends Seeder
         if (!$affectation) {
             $this->command?->warn("Affectation active introuvable pour sandrine@gmail.com (seeder abandonné).");
             return;
+        }
+
+        $institutionLocaliteLib = 'BRAZZAVILLE';
+        $institutionLocaliteCode = 'LOC_0026';
+        $institution = $affectation->institution;
+        $localite = null;
+
+        if ($institution && $institution->lalocalite) {
+            $localite = $institution->lalocalite;
+        }
+
+        if (!$localite) {
+            $localite = Localite::find('LOC_0026');
+        }
+
+        if ($localite) {
+            $birthLocalite = $localite;
+            while ($birthLocalite && !in_array($birthLocalite->code_type_localite, ['TPLOC_0002', 'TPLOC_0003'])) {
+                $birthLocalite = $birthLocalite->localiteParent;
+            }
+
+            if (!$birthLocalite) {
+                $birthLocalite = Localite::find('LOC_0026');
+            }
+
+            if ($birthLocalite) {
+                $institutionLocaliteLib = mb_strtoupper($birthLocalite->lib_localite ?? 'BRAZZAVILLE', 'UTF-8');
+                $institutionLocaliteCode = $birthLocalite->code_localite ?? 'LOC_0026';
+            }
         }
 
         $surnames = array_values(array_unique(array_map(fn ($value) => mb_strtoupper($value, 'UTF-8'), [
@@ -170,7 +200,6 @@ class DeclarationNaissanceSeeder extends Seeder
 
             $payload = array_merge($basePayload, $familyData);
 
-            $suffix = str_pad($i + 1, 4, '0', STR_PAD_LEFT);
             $dateNaissanceEnfant = Carbon::create(2025, 1, 1)->addDays($i);
             $heureNaissance = Carbon::createFromTime(7, 30)->addMinutes($i % 1440)->format('H:i');
             $joursDelai = rand(0, 29);
@@ -180,12 +209,13 @@ class DeclarationNaissanceSeeder extends Seeder
             $payload['date_naissance_enfant'] = $dateNaissanceEnfant->format('Y-m-d');
             $payload['heure_naissance_enfant'] = $heureNaissance;
             $payload['date_heure_declaration'] = $dateDeclaration->format('Y-m-d H:i');
-            $payload['prenom_enfant'] = mb_strtoupper($childNames[$i % count($childNames)], 'UTF-8') . ' ' . $suffix;
+            $payload['prenom_enfant'] = mb_strtoupper($childNames[$i % count($childNames)], 'UTF-8');
             $payload['nom_enfant'] = $payload['nom_pere'];
+            $payload['lieu_naissance_enfant'] = $institutionLocaliteLib;
             $payload['domicile_numero_enfant'] = $payload['domicile_numero_pere'];
             $payload['domicile_nomvoie_enfant'] = $payload['domicile_nomvoie_pere'];
             $payload['domicile_typevoie_enfant'] = $payload['domicile_typevoie_pere'];
-            $payload['code_localite_enfant'] = $payload['code_localite_pere'];
+            $payload['code_localite_enfant'] = $institutionLocaliteCode;
 
             $request = new Request($payload);
 
@@ -326,29 +356,33 @@ class DeclarationNaissanceSeeder extends Seeder
         $this->personCounter++;
         $mod = $this->personCounter % 100;
 
-        $surnameCount = $mod < 60 ? rand(2, 3) : 1;
-        if ($mod < 3) {
-            $surnameCount = max($surnameCount, 2);
-        }
+        $patterns = [
+            ['noms' => 2, 'prenoms' => 2],
+            ['noms' => 2, 'prenoms' => 1],
+            ['noms' => 3, 'prenoms' => 1],
+            ['noms' => 3, 'prenoms' => 0],
+            ['noms' => 1, 'prenoms' => 2],
+            ['noms' => 2, 'prenoms' => 1],
+            ['noms' => 1, 'prenoms' => 3],
+            ['noms' => 1, 'prenoms' => 1],
+            ['noms' => 2, 'prenoms' => 0],
+        ];
+
+        $pattern = $patterns[$mod % count($patterns)];
+
+        $surnameCount = max(1, min($pattern['noms'], count($surnames)));
         $surnameParts = $this->pickUniqueElements($surnames, $surnameCount);
         $nom = $this->formatParts($surnameParts);
 
-        $prenomCount = 1;
-        if ($mod < 3) {
-            $prenomCount = 0;
-        } elseif ($mod < 33) {
-            $prenomCount = rand(2, 3);
-        } elseif ($mod < 53) {
-            $prenomCount = 1;
-        } else {
-            $prenomCount = 1;
-        }
-
         $firstNamePool = $gender === 'M' ? $maleNames : $femaleNames;
+        $prenomCount = min($pattern['prenoms'], count($firstNamePool));
+
         $prenom = '';
         if ($prenomCount > 0) {
             $prenomParts = $this->pickUniqueElements($firstNamePool, $prenomCount);
             $prenom = $this->formatParts($prenomParts);
+        } else {
+            $prenom = $gender === 'M' ? '—' : '—';
         }
 
         return [

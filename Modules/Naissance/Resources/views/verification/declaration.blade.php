@@ -96,7 +96,7 @@
             </div>
 
             <div class="card-footer bg-light py-3 text-center">
-                <small class="text-muted">Service intégré de formalités de l’état civil (SIFEC)</small>
+                <small class="text-muted">Système Intégré des Faits d'État Civil (SIFEC)</small>
             </div>
         </div>
     </div>

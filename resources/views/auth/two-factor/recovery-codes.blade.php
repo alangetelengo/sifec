@@ -80,9 +80,9 @@
                     <!-- Actions -->
                     <div class="row mt-4">
                         <div class="col-md-4">
-                            <button onclick="printCodes()" class="btn btn-primary w-100">
-                                <i class="fas fa-print"></i> Imprimer
-                            </button>
+                            <a href="{{ route('two-factor.recovery-codes.print') }}" target="_blank" class="btn btn-primary w-100">
+                                <i class="fas fa-print"></i> Imprimer (PDF)
+                            </a>
                         </div>
                         <div class="col-md-4">
                             <button onclick="copyCodes()" class="btn btn-secondary w-100">
@@ -90,9 +90,9 @@
                             </button>
                         </div>
                         <div class="col-md-4">
-                            <button onclick="downloadCodes()" class="btn btn-info w-100">
-                                <i class="fas fa-download"></i> Télécharger
-                            </button>
+                            <a href="{{ route('two-factor.recovery-codes.download') }}" class="btn btn-info w-100">
+                                <i class="fas fa-download"></i> Télécharger (PDF)
+                            </a>
                         </div>
                     </div>
                     <!-- Régénération -->
@@ -169,91 +169,10 @@ function copyCodes() {
     }
 }
 
-// Imprimer les codes
-function printCodes() {
-    // Créer une nouvelle fenêtre pour l'impression
-    const printWindow = window.open('', '_blank');
-    const printContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Codes de Récupération 2FA</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .codes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-                .code-item { 
-                    border: 1px solid #ddd; 
-                    padding: 15px; 
-                    text-align: center;
-                    border-radius: 5px;
-                }
-                .code-number { font-weight: bold; color: #007bff; }
-                .code-value { font-family: monospace; font-size: 18px; font-weight: bold; }
-                .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 20px 0; border-radius: 5px; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Codes de Récupération - Double Authentification</h1>
-                <p>Générés le : ${new Date().toLocaleDateString('fr-FR')}</p>
-            </div>
-            
-            <div class="warning">
-                <h3>⚠️ IMPORTANT</h3>
-                <ul>
-                    <li>Sauvegardez ces codes dans un endroit sûr</li>
-                    <li>Chaque code ne peut être utilisé qu'une seule fois</li>
-                    <li>Utilisez-les si vous perdez l'accès à votre téléphone</li>
-                    <li><strong>Ne partagez jamais ces codes !</strong></li>
-                </ul>
-            </div>
-            
-            <div class="codes">
-                ${recoveryCodes.map((code, index) => `
-                    <div class="code-item">
-                        <div class="code-number">Code ${index + 1}</div>
-                        <div class="code-value">${code}</div>
-                    </div>
-                `).join('')}
-            </div>
-        </body>
-        </html>
-    `;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.print();
-    
-    flashAlert('Information', 'info', 'Fenêtre d\'impression ouverte');
-}
-
-// Télécharger les codes
-function downloadCodes() {
-    const content = `Codes de Récupération - Double Authentification
-Générés le : ${new Date().toLocaleDateString('fr-FR')}
-
-IMPORTANT :
-- Sauvegardez ces codes dans un endroit sûr
-- Chaque code ne peut être utilisé qu'une seule fois
-- Utilisez-les si vous perdez l'accès à votre téléphone
-- Ne partagez jamais ces codes !
-
-CODES :
-${recoveryCodes.map((code, index) => `${index + 1}. ${code}`).join('\n')}`;
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'codes-recuperation-2fa.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    flashAlert('Succès', 'success', 'Fichier téléchargé avec succès !');
-}
+// Note: Les fonctions printCodes() et downloadCodes() ont été remplacées par des routes PDF
+// L'impression et le téléchargement utilisent maintenant dompdf via les routes :
+// - route('two-factor.recovery-codes.print') pour l'impression
+// - route('two-factor.recovery-codes.download') pour le téléchargement
 
 // Confirmer la régénération des codes
 function confirmRegenerate() {

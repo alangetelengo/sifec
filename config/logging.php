@@ -66,6 +66,12 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
         ],
 
+        'ecole' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/ecole.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
