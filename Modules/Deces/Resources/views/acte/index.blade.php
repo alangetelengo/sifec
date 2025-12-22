@@ -1,4 +1,4 @@
-@extends('layout.app')
+﻿@extends('layout.app')
 @section('titre')
 Actes de décès
 @endsection
@@ -87,6 +87,68 @@ Actes de décès
                                 <div class="tab-content">
                                     <div id="liste-documents" class="tab-pane fade active show">
                                         <div class="pt-3">
+                                            <!-- Formulaire de recherche pour Documents à contrôler -->
+                                            <div class="card mb-3">
+                                                <div class="card-header">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="fas fa-search me-2"></i>Recherche
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <form id="form-search-documents">
+                                                        <div class="row">
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">N° Déclaration</label>
+                                                                <input type="text" class="form-control" name="numero_declaration" id="filter-numero-declaration-documents" placeholder="Rechercher...">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date début</label>
+                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-documents">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date fin</label>
+                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-documents">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Sexe</label>
+                                                                <select class="form-control" name="sexe" id="filter-sexe-documents">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="M">Masculin</option>
+                                                                    <option value="F">Féminin</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Type de déclaration</label>
+                                                                <select class="form-control" name="type_declaration" id="filter-type-documents">
+                                                                    <option value="">Tous</option>
+                                                                    @foreach($typesDeclaration ?? [] as $type)
+                                                                        <option value="{{ $type }}">{{ $type }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Statut</label>
+                                                                <select class="form-control" name="statut" id="filter-statut-documents">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="dossier_recu">Dossier reçu</option>
+                                                                    <option value="confirme">Confirmé</option>
+                                                                    <option value="en_attente">En attente</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-3">
+                                                            <div class="col-md-12">
+                                                                <button type="submit" class="btn btn-primary">
+                                                                    <i class="fas fa-search me-1"></i> Rechercher
+                                                                </button>
+                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-documents">
+                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
                                             <div class="table-responsive">
                                                 <table id="table-documents-controle" class="table table-bordered table-hover">
                                                     <thead>
@@ -101,118 +163,20 @@ Actes de décès
                                                             <th>Actions</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        @foreach ($documentsAControler as $dd)
-                                                            @php
-                                                                $dernierMouvement = null;
-                                                                if (isset($dd->mouvements) && $dd->mouvements && $dd->mouvements->count()) {
-                                                                    $dernierMouvement = $dd->mouvements->sortByDesc('created_at')->first();
-                                                                }
-                                                                $codesMouvements = $dd->mouvements->pluck('code_mouvement')->toArray();
-                                                                $acteProduit = collect(['MOUV_0014','MOUV_0015','MOUV_0016','MOUV_0017','MOUV_0023'])->intersect($codesMouvements)->isNotEmpty();
-                                                                $acteValide = $dd->acte && $dd->acte->statut == 1 && $dd->acte->approbation_pompe_funebre;
-                                                                $dejaConfirme = in_array('MOUV_0019', $codesMouvements);
-                                                            @endphp
-                                                            <tr width="100%" @if($dejaConfirme) style="background: #f5f5f5; color: #aaa;" @endif>
-                                                                <td>
-                                                                    @if(!$dejaConfirme)
-                                                                        <input type="checkbox" class="checkbox-document" value="{{ $dd->code_declaration_deces }}">
-                                                                    @else
-                                                                        -
-                                                                    @endif
-                                                                </td>
-                                                                <td>{{ $dd->code_declaration_deces }}</td>
-                                                                <td>{{ $dd->defunt->nomcomplet() }}</td>
-                                                                <td>{{ isset($dd->date_heure_deces) ? date('d/m/Y', strtotime($dd->date_heure_deces)) : '' }}</td>
-                                                                <td>{{ $dd->defunt->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-                                                                <td>{{ $dd->type_declaration }}</td>
-                                                                <td style="width: 15%">
-                                                                    @if($dernierMouvement)
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0002' || $dernierMouvement->code_mouvement == 'MOUV_2006')
-                                                                            <span class="badge light badge-warning" style="font-size: 13px;font-weight:600;">
-                                                                                Dossier reçu
-                                                                            </span>
-                                                                        @else
-                                                                            <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement }}
-                                                                            </span>
-                                                                        @endif
-
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0004')
-                                                                            <span class="badge light badge-info" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement }}
-                                                                            </span>
-                                                                        @endif
-
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0016')
-                                                                            <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement }}
-                                                                            </span>
-                                                                        @endif
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0017')
-                                                                            <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement}}
-                                                                            </span>
-                                                                        @endif
-                                                                        <br>
-                                                                        @if($dernierMouvement->observation)
-                                                                            <small>Observation : {{ $dernierMouvement->observation }}</small>
-                                                                        @endif
-                                                                        @if($dernierMouvement->motif_renvoi)
-                                                                            <br><small>Motif : {{ $dernierMouvement->motif_renvoi }}</small>
-                                                                        @endif
-                                                                    @else
-                                                                        {{-- <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
-                                                                            En cours
-                                                                        </span> --}}
-
-                                                                    @endif
-                                                                </td>
-                                                                <td>
-                                                                    <div class="btn-group btn-group-xs">
-                                                                        <a href="{{ route('declarationDeces.show', $dd->code_declaration_deces) }}"
-                                                                           class="btn btn-info shadow btn-xs sharp me-1" title="Voir détail">
-                                                                            <i class="fas fa-eye"></i>
-                                                                        </a>
-                                                                        <a href="{{ route('declarationDeces.etat', $dd->code_declaration_deces) }}"
-                                                                           target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir la déclaration ou le certificat">
-                                                                            <i class="fas fa-file-pdf"></i>
-                                                                        </a>
-                                                                        @if(isset($dd->requisition) && $dd->requisition || isset($dd->jugement) && $dd->jugement)
-                                                                                {{-- <a href="{{ route('requisition.show', $dd->requisition->code_requisition) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir la réquisition">
-                                                                                    <i class="fas fa-file-contract"></i>
-                                                                                </a> --}}
-
-                                                                                <a href="{{ route('tribunal.voir_document', ['type' => "deces", 'id' =>  $dd->code_declaration_deces]) }}"
-                                                                                    class="btn btn-info btn-xs text-start me-1" title="Télécharger {{ $dd->requisition ? "la requisition importée" : "le jugement importé" }} par le tribunal">
-                                                                                    <i class="fas fa-download"></i>
-                                                                                </a>
-                                                                            @endif
-                                                                        @if(!$dejaConfirme)
-                                                                        <button class="btn btn-success shadow btn-xs sharp me-1 btn-confirmer-document"
-                                                                                data-id="{{ $dd->code_declaration_deces }}" title="Confirmer le dossier">
-                                                                            <i class="fas fa-check"></i>
-                                                                        </button>
-
-                                                                        <button class="btn btn-warning shadow btn-xs sharp btn-renvoyer-document"
-                                                                                data-id="{{ $dd->code_declaration_deces }}" title="Renvoyer">
-                                                                            <i class="fas fa-undo"></i>
-                                                                        </button>
-                                                                        @endif
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
+                                                    <tbody id="tbody-documents-controle">
+                                                        @include('deces::acte.partials.table-documents', ['documents' => $documentsAControler])
                                                     </tbody>
                                                     <tfoot>
-                                                        <th>#</th>
-                                                        <th>N° Déclaration</th>
-                                                        <th>Défunt</th>
-                                                        <th>Date décès</th>
-                                                        <th>Sexe</th>
-                                                        <th>Type Document</th>
-                                                        <th>Statut</th>
-                                                        <th>Actions</th>
+                                                        <tr>
+                                                            <th>#</th>
+                                                            <th>N° Déclaration</th>
+                                                            <th>Défunt</th>
+                                                            <th>Date décès</th>
+                                                            <th>Sexe</th>
+                                                            <th>Type Document</th>
+                                                            <th>Statut</th>
+                                                            <th>Actions</th>
+                                                        </tr>
                                                     </tfoot>
                                                 </table>
                                             </div>
@@ -221,6 +185,61 @@ Actes de décès
 
                                     <div id="gestion-actes" class="tab-pane fade">
                                         <div class="pt-3">
+                                            <!-- Formulaire de recherche pour Gestion des actes -->
+                                            <div class="card mb-3">
+                                                <div class="card-header">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="fas fa-search me-2"></i>Recherche
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <form id="form-search-actes">
+                                                        <div class="row">
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Code Acte</label>
+                                                                <input type="text" class="form-control" name="code_acte" id="filter-code-acte-actes" placeholder="Rechercher...">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date début</label>
+                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-actes">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date fin</label>
+                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-actes">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Sexe</label>
+                                                                <select class="form-control" name="sexe" id="filter-sexe-actes">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="M">Masculin</option>
+                                                                    <option value="F">Féminin</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Statut</label>
+                                                                <select class="form-control" name="statut" id="filter-statut-actes">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="en_attente_generation">En attente de génération</option>
+                                                                    <option value="en_attente_validation">En attente de validation</option>
+                                                                    <option value="valide_non_retire">Validé, non rétiré</option>
+                                                                    <option value="retire">Rétiré</option>
+                                                                    <option value="annule">Annulé</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-3">
+                                                            <div class="col-md-12">
+                                                                <button type="submit" class="btn btn-primary">
+                                                                    <i class="fas fa-search me-1"></i> Rechercher
+                                                                </button>
+                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-actes">
+                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
                                             <div class="table-responsive">
                                                 <table id="table-actes-gestion" class="table table-bordered table-hover">
                                                     <thead>
@@ -234,150 +253,19 @@ Actes de décès
                                                             <th>Actions</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        @foreach ($actesGestion as $dd)
-                                                            @php
-                                                                $dernierMouvement = null;
-                                                                if (isset($dd->mouvements) && $dd->mouvements && $dd->mouvements->count()) {
-                                                                    $dernierMouvement = $dd->mouvements->sortByDesc('created_at')->first();
-                                                                }
-                                                                $codesMouvements = $dd->mouvements->pluck('code_mouvement')->toArray();
-                                                                $acteGenere = $dd->acte != null;
-                                                                $acteValide = $dd->acte && $dd->acte->approbation_pompe_funebre;
-                                                            @endphp
-                                                            <tr width="100%" @if($acteValide) style="background: #f5f5f5; color: #aaa;" @endif>
-                                                                <td>
-                                                                    @if($acteValide)
-                                                                        <span class="badge bg-success" style="font-size: 13px;font-weight:600;">Acte déjà validé</span>
-                                                                    @elseif($acteGenere)
-                                                                        <input type="checkbox" class="checkbox-acte" value="{{ $dd->code_declaration_deces }}-1" disabled>
-                                                                    @else
-                                                                        <input type="checkbox" class="checkbox-acte" value="{{ $dd->code_declaration_deces }}-0">
-                                                                    @endif
-                                                                </td>
-                                                                <td>{{ $dd->acte ? $dd->acte->code_acte_deces : '//' }}</td>
-                                                                <td>{{ $dd->defunt->nomcomplet() }}</td>
-                                                                <td>{{ isset($dd->date_heure_deces) ? date('d/m/Y', strtotime($dd->date_heure_deces)) : '' }}</td>
-                                                                <td>{{ $dd->defunt->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-                                                                <td style="width: 15%">
-                                                                    @if(!$dd->acte)
-                                                                        <span class="badge badge-danger">En attente de génération de l'acte</span>
-                                                                    @elseif($dd->acte && !$dd->acte->approbation_pompe_funebre)
-                                                                        <span class="badge badge-warning">Acte généré, en attente de validation de l'officier</span>
-                                                                    @elseif($dd->acte && $dd->acte->approbation_pompe_funebre && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0016")
-                                                                        <span class="badge badge-success">Acte rétiré</span>
-                                                                    @elseif($dd->acte && $dd->acte->approbation_pompe_funebre && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0017")
-                                                                        <span class="badge badge-danger">Acte annulé</span>
-                                                                    @elseif($dd->acte && $dd->acte->approbation_pompe_funebre)
-                                                                        <span class="badge badge-info">Acte validé, non rétiré</span>
-                                                                    @endif
-                                                                </td>
-                                                                <td>
-                                                                    <div class="btn-group btn-group-xs">
-                                                                        @if(!$dd->acte)
-                                                                            @can('module.acteDeces.generate')
-                                                                                <button class="btn btn-success shadow btn-xs sharp me-1 btn-generer-single"
-                                                                                        data-id="{{ $dd->code_declaration_deces }}" title="Générer acte">
-                                                                                    <i class="fas fa-file-alt"></i>
-                                                                                </button>
-                                                                            @endcan
-
-                                                                            @if($dd->type_declaration == "CERTIFICAT DE NON INSCRIPTION")
-                                                                                <a href="{{ route('certificatNonInscriptionDeces.displayCertificat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
-                                                                                @if($dd->requisition != null)
-                                                                                <a href="{{ route('tribunal.voir_document', ['type' => 'deces', 'id' => $dd->code_declaration_deces]) }}"
-                                                                                    class="btn btn-info btn-xs text-start me-1" title="Télécharger le document importé">
-                                                                                    <i class="fas fa-download"></i>
-                                                                                </a>
-                                                                                @endif
-                                                                            @else
-                                                                                <a href="{{ route('declarationDeces.etat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
-                                                                            @endif
-                                                                            {{-- <a href="{{ route('declarationDeces.etat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a> --}}
-                                                                        @elseif($dd->acte && !$dd->acte->approbation_pompe_funebre)
-                                                                            <a href="{{ route('acteDeces.print.acte',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                            @can('module.acteDeces.signature')
-                                                                                <button class="btn btn-primary shadow btn-xs sharp me-1 btn-validate-single"
-                                                                                        data-id="{{ $dd->code_declaration_deces }}" title="Valider acte">
-                                                                                    <i class="fas fa-check-circle"></i>
-                                                                                </button>
-                                                                            @endcan
-                                                                        @elseif($dd->acte && $dd->acte->approbation_pompe_funebre && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0016")
-                                                                            <a href="{{ route('acteDeces.print.acte',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteDeces.displayCopie',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-info shadow btn-xs sharp me-1"
-                                                                               title="Voir copie">
-                                                                                <i class="fas fa-copy"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteDeces.displayExtrait',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-warning shadow btn-xs sharp me-1"
-                                                                               title="Voir extrait">
-                                                                                <i class="fas fa-file-alt"></i>
-                                                                            </a>
-                                                                            @if(!isset($dernierMouvement) || $dernierMouvement->code_mouvement != "MOUV_0016")
-                                                                                <button class="btn btn-secondary shadow btn-xs sharp btn-retrait-acte"
-                                                                                        data-id="{{ $dd->acte->code_acte_deces }}" title="Enregistrer le retrait">
-                                                                                    <i class="fas fa-archive"></i>
-                                                                                </button>
-                                                                            @endif
-                                                                        @elseif($dd->acte && $dd->acte->approbation_pompe_funebre && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0017")
-                                                                            <a href="{{ route('acteDeces.print.acte',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                        @elseif($dd->acte && $dd->acte->approbation_pompe_funebre)
-                                                                            <a href="{{ route('acteDeces.print.acte',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteDeces.displayCopie',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-info shadow btn-xs sharp me-1"
-                                                                               title="Voir copie">
-                                                                                <i class="fas fa-copy"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteDeces.displayExtrait',$dd->code_declaration_deces) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-warning shadow btn-xs sharp me-1"
-                                                                               title="Voir extrait">
-                                                                                <i class="fas fa-file-alt"></i>
-                                                                            </a>
-                                                                            @if(!isset($dernierMouvement) || $dernierMouvement->code_mouvement != "MOUV_0016")
-                                                                                <button class="btn btn-danger shadow btn-xs sharp btn-retrait-acte"
-                                                                                        data-id="{{ $dd->acte->code_acte_deces }}" title="Enregistrer le retrait">
-                                                                                    <i class="fas fa-archive"></i>
-                                                                                </button>
-                                                                            @endif
-                                                                        @endif
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
+                                                    <tbody id="tbody-actes-gestion">
+                                                        @include('deces::acte.partials.table-actes', ['actes' => $actesGestion])
                                                     </tbody>
                                                     <tfoot>
-                                                        <th>#</th>
-                                                        <th>N° Acte</th>
-                                                        <th>Défunt</th>
-                                                        <th>Date décès</th>
-                                                        <th>Sexe</th>
-                                                        <th>Statut</th>
-                                                        <th>Actions</th>
+                                                        <tr>
+                                                            <th>#</th>
+                                                            <th>N° Acte</th>
+                                                            <th>Défunt</th>
+                                                            <th>Date décès</th>
+                                                            <th>Sexe</th>
+                                                            <th>Statut</th>
+                                                            <th>Actions</th>
+                                                        </tr>
                                                     </tfoot>
                                                 </table>
                                             </div>
@@ -907,22 +795,33 @@ Actes de décès
     var actesGeneres = [];
     var actesNonGeneres = [];
 
-    // Initialisation des DataTables
-    $('#table-documents-controle').DataTable({
+    // Initialisation des DataTables sans pagination
+    var tableDocuments = $('#table-documents-controle').DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        }
+        },
+        "paging": false,
+        "searching": true,
+        "info": false,
+        "ordering": true
     });
-    $('#table-actes-gestion').DataTable({
+
+    var tableActes = $('#table-actes-gestion').DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        }
+        },
+        "paging": false,
+        "searching": true,
+        "info": false,
+        "ordering": true
     });
+
     $('#table-actes-annules').DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
         }
     });
+
     $(function() {
 
     // Gestion des checkboxes pour les documents à contrôler
@@ -939,7 +838,7 @@ Actes de décès
         }
         updateDocumentButtons();
     });
-    $(".checkbox-document").on("change", function() {
+    $(document).on("change", ".checkbox-document", function() {
         codesDocuments = [];
         $(".checkbox-document:checked").each(function() {
             codesDocuments.push($(this).val());
@@ -971,7 +870,7 @@ Actes de décès
         }
         updateActeButtons();
     });
-    $(".checkbox-acte").on("change", function() {
+    $(document).on("change", ".checkbox-acte", function() {
         codesActes = [];
         actesGeneres = [];
         actesNonGeneres = [];

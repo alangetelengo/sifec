@@ -61,6 +61,8 @@ Route::prefix('centreHygiene')->group(function() {
 
 Route::middleware('auth')->prefix('acteDeces')->group(function() {
     Route::get('/', [ActeDecesController::class,'index'])->name("acteDeces.index");
+    Route::post('filter-documents', [ActeDecesController::class, 'filterDocuments'])->name('acteDeces.filter.documents');
+    Route::post('filter-actes', [ActeDecesController::class, 'filterActes'])->name('acteDeces.filter.actes');
     Route::post('send-otp', [ActeDecesController::class,'sendOtp'])->name('acteDeces.send.otp');
     Route::post("validate-otp", [ActeDecesController::class,'validateOtp'])->name("acteDeces.validate.otp");
     Route::get('{id}/generate',[ActeDecesController::class,"displayActe"])->name('acteDeces.display');
@@ -83,7 +85,6 @@ Route::middleware('auth')->prefix('acteDeces')->group(function() {
     Route::post('confirmer', [ActeDecesController::class, 'confirmerDossier'])->name('acteDeces.confirmer');
     Route::post('confirmer/bulk', [ActeDecesController::class, 'confirmerDossiersBulk'])->name('acteDeces.confirmer.bulk');
     Route::post('renvoyer/bulk', [ActeDecesController::class, 'renvoyerDossiersBulk'])->name('acteDeces.renvoyer.bulk');
-    Route::post('renvoyer', [ActeDecesController::class, 'renvoyerDossier'])->name('acteDeces.renvoyer');
     Route::get('{id}/print/acte',[ActeDecesController::class,"printActe"])->name('acteDeces.print.acte');
 
 });

@@ -34,8 +34,8 @@ Registre Etat civil
                                             <th>Type registre</th>
                                             <th>Date ouverture</th>
                                             <th>Date fermeture</th>
-                                            <th>Nombre d'acte transcrit</th>
                                             <th>Nombre d'acte prévu</th>
+                                            <th>Nombre d'acte transcrit</th>
                                             <th>Statut</th>
                                             <th>Action</th>
                                         </tr>
@@ -49,9 +49,8 @@ Registre Etat civil
                                             <td>{{ $registre->typeRegistre->lib_type_registre }}</td>
                                             <td>{{ date("d-m-Y", strtotime($registre->date_ouverture)) }}</td>
                                             <td>{{ date("d-m-Y", strtotime($registre->date_fermeture)) }}</td>
-                                            <td>{{ $registre->nombre_acte_transcrit }}</td>
                                             <td>{{ $registre->nombre_acte_prevu}}</td>
-
+                                            <td>{{ $registre->nombre_acte_transcrit }}</td>
                                             <td>
                                                 @if($registre->statut == "0" && $registre->approbation_tribunal == null)
                                                     <span class="badge light badge-danger" style="font-size: 13px;font-weight:600;" title="registre en attente de validation">Encours de validation</span>
@@ -107,8 +106,8 @@ Registre Etat civil
                                             <th>Type registre</th>
                                             <th>Date ouverture</th>
                                             <th>Date fermeture</th>
-                                            {{-- <th>Nombre d'acte transcrit</th> --}}
                                             <th>Nombre d'acte prévu</th>
+                                            <th>Nombre d'acte transcrit</th>
                                             <th>Statut</th>
                                             <th>Action</th>
                                         </tr>

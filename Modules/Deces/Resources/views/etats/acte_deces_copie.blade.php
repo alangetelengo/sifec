@@ -68,7 +68,7 @@
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
-                <p><strong style="font-size: 150%;">COPIE INTEGRALE ACTE DE DECES</strong><br> Année: <strong>{{date("Y", strtotime($acte->declaration->date_heure_declaration))}}</strong> Acte n°:<strong style="color: red">{{ $acte->code_acte_deces }}</strong></p>
+                <p><strong style="font-size: 150%;">COPIE D'ACTE DE DECES</strong><br> Année: <strong>{{date("Y", strtotime($acte->declaration->date_heure_declaration))}}</strong> Acte n°:<strong style="color: red">{{ $acte->code_acte_deces }}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
 
@@ -79,7 +79,7 @@
         <div style="position: absolute; left: 5px; top: 250px; width: 700px; height: 550px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:18px;">
             <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td style="height: 15px;"><br>Centre d'état civil communal: <strong>
+                    <td style="height: 15px;"><br>Centre d'état civil secondaire: <strong>
                         {{ $acte->institutionUser->institution->lib_institution }}
                     </strong></td><br><br>
                 </tr>
@@ -113,7 +113,7 @@
                         {{ $acte->declaration->lieu_deces }}
                     </strong></td>
                 </tr>
-                {{-- <tr style="width:100%; text-align: left;">
+                <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Cause du décès:
                         @php
                             $causesd = $acte->declaration->DDecesCauses;
@@ -130,7 +130,7 @@
                                 @endif
                         </strong>
                     </td>
-                </tr> --}}
+                </tr>
 
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Sexe: <strong>{{ $acte->declaration->defunt->sexe== "M" ? "Masculin" : "Féminin" }}</strong></td>

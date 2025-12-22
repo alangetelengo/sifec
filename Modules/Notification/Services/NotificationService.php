@@ -65,5 +65,31 @@ class NotificationService
                 // ]);
             }
         });
+
+
+    }
+
+    /**
+     * Notifie le président du tribunal lorsqu'un centre d'état civil ajoute des feuillets à un registre
+     * Le code fonction du président du tribunal est FONC_0009 (selon FonctionSeeder)
+     * @param \App\Models\Institution|string $tribunal L'objet Institution du tribunal ou son code
+     * @param \Illuminate\Notifications\Notification $notification La notification à envoyer
+     */
+    public static function notifierFeuilletRegistreAjoute($tribunal, $notification)
+    {
+        $codeInstitution = is_object($tribunal) && isset($tribunal->code_institution)
+            ? $tribunal->code_institution
+            : $tribunal;
+
+        // Le président du tribunal a le code fonction FONC_0009 (voir FonctionSeeder et Registre::validateur())
+        $president = User::whereHas('affectations', function($q) use ($codeInstitution) {
+            $q->where('code_institution', $codeInstitution)
+              ->where('active', 1)
+              ->where('code_fonction', 'FONC_0009');
+        })->first();
+
+        if ($president) {
+            $president->notify($notification);
+        }
     }
 }

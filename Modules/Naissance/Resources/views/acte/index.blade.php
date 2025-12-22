@@ -87,6 +87,68 @@ Actes de naissance
                                 <div class="tab-content">
                                     <div id="liste-documents" class="tab-pane fade active show">
                                         <div class="pt-3">
+                                            <!-- Formulaire de recherche pour Documents à contrôler -->
+                                            <div class="card mb-3">
+                                                <div class="card-header">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="fas fa-search me-2"></i>Recherche
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <form id="form-search-documents">
+                                                        <div class="row">
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">N° Déclaration</label>
+                                                                <input type="text" class="form-control" name="numero_declaration" id="filter-numero-declaration-documents" placeholder="Rechercher...">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date début</label>
+                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-documents">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date fin</label>
+                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-documents">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Sexe</label>
+                                                                <select class="form-control" name="sexe" id="filter-sexe-documents">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="M">Masculin</option>
+                                                                    <option value="F">Féminin</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Type de déclaration</label>
+                                                                <select class="form-control" name="type_declaration" id="filter-type-documents">
+                                                                    <option value="">Tous</option>
+                                                                    @foreach($typesDeclaration ?? [] as $type)
+                                                                        <option value="{{ $type }}">{{ $type }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Statut</label>
+                                                                <select class="form-control" name="statut" id="filter-statut-documents">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="dossier_recu">Dossier reçu</option>
+                                                                    <option value="confirme">Confirmé</option>
+                                                                    <option value="en_attente">En attente</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-3">
+                                                            <div class="col-md-12">
+                                                                <button type="submit" class="btn btn-primary">
+                                                                    <i class="fas fa-search me-1"></i> Rechercher
+                                                                </button>
+                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-documents">
+                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
                                             <div class="table-responsive">
                                                 <table id="table-documents-controle" class="table table-bordered table-hover">
                                                     <thead>
@@ -101,109 +163,8 @@ Actes de naissance
                                                             <th>Actions</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        @foreach ($documentsAControler as $dn)
-                                                            @php
-                                                                $dernierMouvement = null;
-                                                                if (isset($dn->mouvements) && $dn->mouvements && $dn->mouvements->count()) {
-                                                                    $dernierMouvement = $dn->mouvements->sortByDesc('created_at')->first();
-                                                                }
-                                                                $codesMouvements = $dn->mouvements->pluck('code_mouvement')->toArray();
-                                                                $acteProduit = collect(['MOUV_0014','MOUV_0015','MOUV_0016','MOUV_0017','MOUV_0023'])->intersect($codesMouvements)->isNotEmpty();
-                                                                $acteValide = $dn->acte && $dn->acte->statut == 1 && $dn->acte->approbation_mairie;
-                                                                $dejaConfirme = in_array('MOUV_0019', $codesMouvements);
-                                                            @endphp
-                                                            <tr width="100%" @if($dejaConfirme) style="background: #f5f5f5; color: #aaa;" @endif>
-                                                                <td>
-                                                                    @if(!$dejaConfirme)
-                                                                        <input type="checkbox" class="checkbox-document" value="{{ $dn->code_declaration_naissance }}">
-                                                                    @else
-                                                                        <span class="badge bg-success" style="font-size: 13px;font-weight:600;">Déjà validé</span>
-                                                                    @endif
-                                                                </td>
-                                                                <td>{{ $dn->code_declaration_naissance }}</td>
-                                                                <td>{{ $dn->enfant->nomcomplet() }}</td>
-                                                                <td>{{ isset($dn->enfant->date_naissance) ? date('d/m/Y', strtotime($dn->enfant->date_naissance)) : '' }}</td>
-                                                                <td>{{ $dn->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-                                                                <td>{{ $dn->type_declaration }}</td>
-                                                                <td style="width: 15%">
-                                                                    @if($dernierMouvement)
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0001' || $dernierMouvement->code_mouvement == 'MOUV_0011' || $dernierMouvement->code_mouvement == 'MOUV_0024')
-                                                                            <span class="badge light badge-warning" style="font-size: 13px;font-weight:600;">
-                                                                                Dossier reçu
-                                                                            </span>
-                                                                        @endif
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0004')
-                                                                            <span class="badge light badge-info" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement }}
-                                                                            </span>
-                                                                        @endif
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0016')
-                                                                            <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement }}
-                                                                            </span>
-                                                                        @endif
-
-                                                                        @if($dernierMouvement->code_mouvement == 'MOUV_0017')
-                                                                            <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
-                                                                                {{ $dernierMouvement->lib_mouvement}}
-                                                                            </span>
-                                                                        @endif
-                                                                        <br>
-                                                                        @if($dernierMouvement->observation)
-                                                                            <small>Observation : {{ $dernierMouvement->observation }}</small>
-                                                                        @endif
-                                                                        @if($dernierMouvement->motif_renvoi)
-                                                                            <br><small>Motif : {{ $dernierMouvement->motif_renvoi }}</small>
-                                                                        @endif
-                                                                    @else
-                                                                        {{-- <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
-                                                                            En cours {{ $dernierMouvement->code_mouvement }}
-                                                                        </span> --}}
-                                                                    @endif
-                                                                </td>
-                                                                <td>
-                                                                    <div class="btn-group btn-group-xs">
-                                                                        <a href="{{ route('declarationNaissance.show', $dn->code_declaration_naissance) }}"
-                                                                           class="btn btn-info shadow btn-xs sharp me-1" title="Voir détail">
-                                                                            <i class="fas fa-eye"></i>
-                                                                        </a>
-                                                                        {{-- <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}"
-                                                                           target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="{{ $dn->type_declaration == "DECLARATION DE NAISSANCE" ? "Voir la déclaration" : "Voir le certificat"  }}">
-                                                                            <i class="fas fa-file-pdf"></i>
-                                                                        </a> --}}
-
-                                                                        <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
-                                                                            <i class="fas fa-print"></i>
-                                                                        </a>
-
-                                                                        @if($dn->type_declaration != 'DECLARATION DE NAISSANCE')
-                                                                            @if(isset($dn->requisition) && $dn->requisition || isset($dn->jugement) && $dn->jugement)
-                                                                                {{-- <a href="{{ route('requisition.show', $dn->requisition->code_requisition) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir la réquisition">
-                                                                                    <i class="fas fa-file-contract"></i>
-                                                                                </a> --}}
-
-                                                                                <a href="{{ route('tribunal.voir_document', ['type' => "naissance", 'id' =>  $dn->code_declaration_naissance]) }}"
-                                                                                    class="btn btn-info btn-xs text-start me-1" title="Télécharger {{ $dn->requisition ? "la requisition importée" : "le jugement importé" }} par le tribunal">
-                                                                                    <i class="fas fa-download"></i>
-                                                                                </a>
-                                                                            @endif
-                                                                        @endif
-                                                                        @if(!$dejaConfirme)
-                                                                        <button class="btn btn-success shadow btn-xs sharp me-1 btn-confirmer-document"
-                                                                                data-id="{{ $dn->code_declaration_naissance }}" title="Confirmer le dossier">
-                                                                            <i class="fas fa-check"></i>
-                                                                        </button>
-
-                                                                        <button class="btn btn-warning shadow btn-xs sharp btn-renvoyer-document"
-                                                                                data-id="{{ $dn->code_declaration_naissance }}" title="Renvoyer">
-                                                                            <i class="fas fa-undo"></i>
-                                                                        </button>
-                                                                        @endif
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
+                                                    <tbody id="tbody-documents-controle">
+                                                        @include('naissance::acte.partials.table-documents', ['documents' => $documentsAControler])
                                                     </tbody>
                                                     <tfoot>
                                                         <th>#</th>
@@ -222,6 +183,62 @@ Actes de naissance
 
                                     <div id="gestion-actes" class="tab-pane fade">
                                         <div class="pt-3">
+                                            <!-- Formulaire de recherche pour Gestion des actes -->
+                                            <div class="card mb-3">
+                                                <div class="card-header">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="fas fa-search me-2"></i>Recherche
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <form id="form-search-actes">
+                                                        <div class="row">
+
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">NIUPP</label>
+                                                                <input type="text" class="form-control" name="niupp" id="filter-niupp-actes" placeholder="Rechercher...">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date début</label>
+                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-actes">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Date fin</label>
+                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-actes">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Sexe</label>
+                                                                <select class="form-control" name="sexe" id="filter-sexe-actes">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="M">Masculin</option>
+                                                                    <option value="F">Féminin</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Statut</label>
+                                                                <select class="form-control" name="statut" id="filter-statut-actes">
+                                                                    <option value="">Tous</option>
+                                                                    <option value="en_attente_generation">En attente de génération</option>
+                                                                    <option value="en_attente_validation">En attente de validation</option>
+                                                                    <option value="valide_non_retire">Validé, non rétiré</option>
+                                                                    <option value="retire">Rétiré</option>
+                                                                    <option value="annule">Annulé</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-3">
+                                                            <div class="col-md-12">
+                                                                <button type="submit" class="btn btn-primary">
+                                                                    <i class="fas fa-search me-1"></i> Rechercher
+                                                                </button>
+                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-actes">
+                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
                                             <div class="table-responsive">
                                                 <table id="table-actes-gestion" class="table table-bordered table-hover">
                                                     <thead>
@@ -235,125 +252,8 @@ Actes de naissance
                                                             <th>Actions</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        @foreach ($actesGestion as $dn)
-                                                            @php
-                                                                $dernierMouvement = null;
-                                                                if (isset($dn->mouvements) && $dn->mouvements && $dn->mouvements->count()) {
-                                                                    $dernierMouvement = $dn->mouvements->sortByDesc('created_at')->first();
-                                                                }
-                                                                $codesMouvements = $dn->mouvements->pluck('code_mouvement')->toArray();
-                                                                $acteGenere = $dn->acte != null;
-                                                                $acteValide = $dn->acte && $dn->acte->approbation_mairie;
-                                                            @endphp
-                                                            <tr width="100%" @if($acteValide) style="background: #f5f5f5; color: #aaa;" @endif>
-                                                                <td>
-                                                                    @if($acteValide)
-                                                                        <span class="badge bg-success" style="font-size: 13px;font-weight:600;">Acte déjà validé</span>
-                                                                    @elseif($acteGenere)
-                                                                        <input type="checkbox" class="checkbox-acte" value="{{ $dn->code_declaration_naissance }}-1" disabled>
-                                                                    @else
-                                                                        <input type="checkbox" class="checkbox-acte" value="{{ $dn->code_declaration_naissance }}-0">
-                                                                    @endif
-                                                                </td>
-                                                                <td>{{ $dn->acte ? $dn->acte->niupp : '//' }}</td>
-                                                                <td>{{ $dn->enfant->nomcomplet() }}</td>
-                                                                <td>{{ isset($dn->enfant->date_naissance) ? date('d/m/Y', strtotime($dn->enfant->date_naissance)) : '' }}</td>
-                                                                <td>{{ $dn->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-                                                                <td style="width: 15%">
-                                                                    @if(!$dn->acte)
-                                                                        <span class="badge badge-danger">En attente de génération de l'acte</span>
-                                                                    @elseif($dn->acte && !$dn->acte->approbation_mairie)
-                                                                        <span class="badge badge-warning">Acte généré, en attente de validation de l'officier</span>
-                                                                    @elseif($dn->acte && $dn->acte->approbation_mairie && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0016")
-                                                                        <span class="badge badge-success">Acte rétiré</span>
-                                                                    @elseif($dn->acte && $dn->acte->approbation_mairie && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0017")
-                                                                        <span class="badge badge-danger">Acte annulé</span>
-                                                                    @elseif($dn->acte && $dn->acte->approbation_mairie)
-                                                                        <span class="badge badge-info">Acte validé, non rétiré</span>
-                                                                    @endif
-                                                                </td>
-                                                                <td>
-                                                                    <div class="btn-group btn-group-xs">
-                                                                        @if(!$dn->acte)
-                                                                            @can('module.acteNaissance.generate')
-                                                                                <button class="btn btn-success shadow btn-xs sharp me-1 btn-generer-single"
-                                                                                        data-id="{{ $dn->code_declaration_naissance }}" title="Générer acte">
-                                                                                    <i class="fas fa-file-alt"></i>
-                                                                                </button>
-                                                                                @if(isset($dn->requisition) && $dn->requisition || isset($dn->jugement) && $dn->jugement)
-                                                                                    <a href="{{ route('tribunal.voir_document', ['type' => "naissance", 'id' =>  $dn->code_declaration_naissance]) }}"
-                                                                                        class="btn btn-info btn-xs text-start me-1" title="Télécharger {{ $dn->requisition ? "la requisition importée" : "le jugement importé" }} par le tribunal">
-                                                                                        <i class="fas fa-download"></i>
-                                                                                    </a>
-                                                                                @endif
-                                                                            @endcan
-                                                                            <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
-                                                                        @elseif($dn->acte && !$dn->acte->approbation_mairie)
-                                                                            <a href="{{ route('acteNaissance.print.acte',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                            @can('module.acteNaissance.signature')
-                                                                                <button class="btn btn-primary shadow btn-xs sharp me-1 btn-validate-single"
-                                                                                        data-id="{{ $dn->code_declaration_naissance }}" title="Valider acte">
-                                                                                    <i class="fas fa-check-circle"></i>
-                                                                                </button>
-                                                                            @endcan
-                                                                        @elseif($dn->acte && $dn->acte->approbation_mairie && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0016")
-                                                                            <a href="{{ route('acteNaissance.print.acte',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteNaissance.copie',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-info shadow btn-xs sharp me-1"
-                                                                               title="Voir copie">
-                                                                                <i class="fas fa-copy"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteNaissance.displayExtrait',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-warning shadow btn-xs sharp me-1"
-                                                                               title="Voir extrait">
-                                                                                <i class="fas fa-file-alt"></i>
-                                                                            </a>
-
-                                                                        @elseif($dn->acte && $dn->acte->approbation_mairie && isset($dernierMouvement) && $dernierMouvement->code_mouvement == "MOUV_0017")
-                                                                            <a href="{{ route('acteNaissance.print.acte',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                        @elseif($dn->acte && $dn->acte->approbation_mairie)
-                                                                            <a href="{{ route('acteNaissance.print.acte',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-primary shadow btn-xs sharp me-1"
-                                                                               title="Voir l'acte">
-                                                                                <i class="fas fa-eye"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteNaissance.copie',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-info shadow btn-xs sharp me-1"
-                                                                               title="Voir copie">
-                                                                                <i class="fas fa-copy"></i>
-                                                                            </a>
-                                                                            <a href="{{ route('acteNaissance.displayExtrait',$dn->code_declaration_naissance) }}"
-                                                                               target="_blank"
-                                                                               class="btn btn-warning shadow btn-xs sharp me-1"
-                                                                               title="Voir extrait">
-                                                                                <i class="fas fa-file-alt"></i>
-                                                                            </a>
-
-                                                                        @endif
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
+                                                    <tbody id="tbody-actes-gestion">
+                                                        @include('naissance::acte.partials.table-actes', ['actes' => $actesGestion])
                                                     </tbody>
                                                     <tfoot>
                                                         <th>#</th>
@@ -855,16 +755,299 @@ Actes de naissance
     var actesGeneres = [];
     var actesNonGeneres = [];
 
-    // Initialisation des DataTables
-    $('#table-documents-controle').DataTable({
+    // Initialisation des DataTables sans pagination
+    var tableDocuments = $('#table-documents-controle').DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        }
+        },
+        "paging": false,
+        "searching": true,
+        "info": false,
+        "ordering": true
     });
-    $('#table-actes-gestion').DataTable({
+
+    var tableActes = $('#table-actes-gestion').DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        }
+        },
+        "paging": false,
+        "searching": true,
+        "info": false,
+        "ordering": true
+    });
+
+    // Fonction pour rechercher les documents côté serveur
+    function searchDocumentsServer() {
+        var formData = $('#form-search-documents').serialize();
+        formData += '&_token={{ csrf_token() }}';
+
+        $.ajax({
+            url: "{{ route('acteNaissance.filter.documents') }}",
+            type: 'POST',
+            data: formData,
+            beforeSend: function() {
+                $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
+            },
+            success: function(response) {
+                try {
+                    if (response.code === '200') {
+                        // Détruire DataTables complètement avant de modifier le contenu
+                        if ($.fn.DataTable.isDataTable('#table-documents-controle')) {
+                            try {
+                                tableDocuments.destroy();
+                            } catch(e) {
+                                console.log('Erreur lors de la destruction de DataTables:', e);
+                            }
+                            tableDocuments = null;
+                        }
+                        // Vider complètement le tbody et le remplacer par les nouvelles données
+                        $('#tbody-documents-controle').empty().html(response.data);
+
+                        // Réinitialiser les checkboxes après le chargement
+                        codesDocuments = [];
+                        if (typeof updateDocumentButtons === 'function') {
+                            updateDocumentButtons();
+                        }
+
+                        // Réinitialiser DataTables avec les nouvelles données (même si vide)
+                        setTimeout(function() {
+                            try {
+                                // Vérifier si la table a des données (plus d'une ligne ou pas de classe text-center)
+                                var rows = $('#tbody-documents-controle tr');
+                                var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+
+                                if (hasData && rows.length > 0) {
+                                    tableDocuments = $('#table-documents-controle').DataTable({
+                                        "language": {
+                                            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+                                        },
+                                        "paging": false,
+                                        "searching": true,
+                                        "info": false,
+                                        "ordering": true,
+                                        "destroy": true
+                                    });
+                                } else {
+                                    // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
+                                    console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
+                                }
+                            } catch(e) {
+                                console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                            }
+                        }, 100);
+
+                        var message = response.count + " résultat(s) trouvé(s)";
+                        if (response.limite_atteinte) {
+                            message += " (affichage limité à " + response.count_affiché + " résultats). Affinez vos critères pour voir tous les résultats.";
+                            flashAlert("Attention", "warning", message);
+                        } else {
+                            flashAlert("Succès", "success", message);
+                        }
+                    } else {
+                        flashAlert("Erreur", "error", response.message || "Erreur lors de la recherche");
+                        $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
+                    }
+                } catch(e) {
+                    console.error('Erreur dans le callback success:', e);
+                    flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
+                    $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du traitement</td></tr>');
+                }
+            },
+            error: function(xhr) {
+                console.error('Erreur AJAX:', xhr);
+                try {
+                    if ($.fn.DataTable.isDataTable('#table-documents-controle')) {
+                        tableDocuments.destroy();
+                        tableDocuments = null;
+                    }
+                } catch(e) {
+                    console.log('Erreur lors de la destruction de DataTables:', e);
+                }
+                $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du chargement</td></tr>');
+
+                // Réinitialiser DataTables même en cas d'erreur
+                setTimeout(function() {
+                    try {
+                        tableDocuments = $('#table-documents-controle').DataTable({
+                            "language": {
+                                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+                            },
+                            "paging": false,
+                            "searching": true,
+                            "info": false,
+                            "ordering": true,
+                            "destroy": true
+                        });
+                    } catch(e) {
+                        console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                    }
+                }, 100);
+
+                var errorMessage = "Erreur lors de la recherche des documents";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var jsonResponse = JSON.parse(xhr.responseText);
+                        if (jsonResponse.message) {
+                            errorMessage = jsonResponse.message;
+                        }
+                    } catch(e) {}
+                }
+                flashAlert("Erreur", "error", errorMessage);
+            }
+        });
+    }
+
+    // Fonction pour rechercher les actes côté serveur
+    function searchActesServer() {
+        var formData = $('#form-search-actes').serialize();
+        formData += '&_token={{ csrf_token() }}';
+
+        $.ajax({
+            url: "{{ route('acteNaissance.filter.actes') }}",
+            type: 'POST',
+            data: formData,
+            beforeSend: function() {
+                $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
+            },
+            success: function(response) {
+                try {
+                    if (response.code === '200') {
+                        // Détruire DataTables complètement avant de modifier le contenu
+                        if ($.fn.DataTable.isDataTable('#table-actes-gestion')) {
+                            try {
+                                tableActes.destroy();
+                            } catch(e) {
+                                console.log('Erreur lors de la destruction de DataTables:', e);
+                            }
+                            tableActes = null;
+                        }
+                        // Vider complètement le tbody et le remplacer par les nouvelles données
+                        $('#tbody-actes-gestion').empty().html(response.data);
+
+                        // Réinitialiser les checkboxes après le chargement
+                        codesActes = [];
+                        actesGeneres = [];
+                        actesNonGeneres = [];
+                        if (typeof updateActeButtons === 'function') {
+                            updateActeButtons();
+                        }
+
+                        // Réinitialiser DataTables avec les nouvelles données (même si vide)
+                        setTimeout(function() {
+                            try {
+                                // Vérifier si la table a des données (plus d'une ligne ou pas de classe text-center)
+                                var rows = $('#tbody-actes-gestion tr');
+                                var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+
+                                if (hasData && rows.length > 0) {
+                                    tableActes = $('#table-actes-gestion').DataTable({
+                                        "language": {
+                                            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+                                        },
+                                        "paging": false,
+                                        "searching": true,
+                                        "info": false,
+                                        "ordering": true,
+                                        "destroy": true
+                                    });
+                                } else {
+                                    // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
+                                    console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
+                                }
+                            } catch(e) {
+                                console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                            }
+                        }, 100);
+
+                        var message = response.count + " résultat(s) trouvé(s)";
+                        if (response.limite_atteinte) {
+                            message += " (affichage limité à " + response.count_affiché + " résultats). Affinez vos critères pour voir tous les résultats.";
+                            flashAlert("Attention", "warning", message);
+                        } else {
+                            flashAlert("Succès", "success", message);
+                        }
+                    } else {
+                        flashAlert("Erreur", "error", response.message || "Erreur lors de la recherche");
+                        $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
+                    }
+                } catch(e) {
+                    console.error('Erreur dans le callback success:', e);
+                    flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
+                    $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors du traitement</td></tr>');
+                }
+            },
+            error: function(xhr) {
+                console.error('Erreur AJAX:', xhr);
+                try {
+                    if ($.fn.DataTable.isDataTable('#table-actes-gestion')) {
+                        tableActes.destroy();
+                        tableActes = null;
+                    }
+                } catch(e) {
+                    console.log('Erreur lors de la destruction de DataTables:', e);
+                }
+                $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors du chargement</td></tr>');
+
+                // Réinitialiser DataTables même en cas d'erreur
+                setTimeout(function() {
+                    try {
+                        tableActes = $('#table-actes-gestion').DataTable({
+                            "language": {
+                                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+                            },
+                            "paging": false,
+                            "searching": true,
+                            "info": false,
+                            "ordering": true,
+                            "destroy": true
+                        });
+                    } catch(e) {
+                        console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                    }
+                }, 100);
+
+                var errorMessage = "Erreur lors de la recherche des actes";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var jsonResponse = JSON.parse(xhr.responseText);
+                        if (jsonResponse.message) {
+                            errorMessage = jsonResponse.message;
+                        }
+                    } catch(e) {}
+                }
+                flashAlert("Erreur", "error", errorMessage);
+            }
+        });
+    }
+
+    // Soumission du formulaire de recherche Documents
+    $('#form-search-documents').on('submit', function(e) {
+        e.preventDefault();
+        searchDocumentsServer();
+    });
+
+    // Soumission du formulaire de recherche Actes
+    $('#form-search-actes').on('submit', function(e) {
+        e.preventDefault();
+        searchActesServer();
+    });
+
+    // Réinitialiser les filtres Documents
+    $('#btn-reset-filters-documents').on('click', function() {
+        $('#form-search-documents')[0].reset();
+        // Recharger les données initiales (20 derniers)
+        location.reload();
+    });
+
+    // Réinitialiser les filtres Actes
+    $('#btn-reset-filters-actes').on('click', function() {
+        $('#form-search-actes')[0].reset();
+        // Recharger les données initiales (20 derniers)
+        location.reload();
     });
     $('#table-actes-annules').DataTable({
         "language": {
@@ -887,7 +1070,8 @@ Actes de naissance
         }
         updateDocumentButtons();
     });
-    $(".checkbox-document").on("change", function() {
+    // Utiliser la délégation d'événements pour les éléments dynamiques
+    $(document).on("change", ".checkbox-document", function() {
         codesDocuments = [];
         $(".checkbox-document:checked").each(function() {
             codesDocuments.push($(this).val());
@@ -919,7 +1103,8 @@ Actes de naissance
         }
         updateActeButtons();
     });
-    $(".checkbox-acte").on("change", function() {
+    // Utiliser la délégation d'événements pour les éléments dynamiques
+    $(document).on("change", ".checkbox-acte", function() {
         codesActes = [];
         actesGeneres = [];
         actesNonGeneres = [];

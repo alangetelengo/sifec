@@ -166,7 +166,7 @@
 
                                 <div class="row">
                                     <div class="col-xl-12">
-                                        <p><strong style="font-size: 150%;">ACTE DE DECES</strong><br> Année : <strong>{{date("Y", strtotime($acteReg->declaration->date_heure_declaration))}}</strong> Acte n°:<strong>{{ $acteReg->code_acte_deces }}</strong> Du: <strong>{{date("d/m/Y", strtotime($acteReg->declaration->date_heure_declaration))}}</strong></p>
+                                        <p><strong style="font-size: 100%;">ACTE DE DECES</strong><br> N° : <strong style="color: red">{{ $acteReg->code_declaration_deces }}</strong> Du : <strong>{{date("d/m/Y", strtotime($acteReg->updated_at))}}</strong></p>
                                         <br>
                                     </div>
 
@@ -175,26 +175,8 @@
                                     le: <strong> {{ Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
                                     S'est présenté(e) <strong> {{ $acteReg->declaration->declarant->nom.' '.$acteReg->declaration->declarant->prenom }}</strong>, &ensp; Filiation: <strong>{{ $acteReg->declaration->filiation->lib_filiation }} </strong><br>
                                     Domicilié(e) : <strong>{{ $acteReg->declaration->declarant->adresse }}</strong><br>
-                                    qui a déclaré le décès de : <b>{{ $acteReg->declaration->defunt->nom." ".$acteReg->declaration->defunt->prenom }} </b><br>
+                                    qui a déclaré le décès de : <strong style="color: red">{{ $acteReg->declaration->defunt->nom." ".$acteReg->declaration->defunt->prenom }} </strong><br>
                                     Lieu de décès : <strong> {{ $acteReg->declaration->lieu_deces }} </strong><br>
-                                    Cause du décès :
-
-
-                                        @php
-                                            $causesd = $acteReg->declaration->DDecesCauses;
-                                            $v = "";
-                                        @endphp
-                                        <strong>
-                                            @if ($causesd != NULL)
-                                                @foreach ($causesd as $item)
-                                                    {{$v.$item->causeDeces->lib_cause_deces}}
-                                                    @php
-                                                        $v = ", ";
-                                                    @endphp
-                                                @endforeach
-                                            @endif
-                                        </strong><br>
-
                                     Sexe: <strong>{{ $acteReg->declaration->defunt->sexe== "M" ? "Masculin" : "Féminin" }}</strong><br>
                                     Nationalité : <strong>{{ $acteReg->declaration->defunt->nationalite->lib_nationalite }}</strong><br>
                                     Profession : <strong>{{ $acteReg->declaration->defunt->profession->lib_profession }}</strong><br>
@@ -242,7 +224,12 @@
                             </div>
                             <div class="col-xl-12" style="padding-left: 500px">
                                 <br><br><br><br><br>
-                            <strong> {{substr($acteReg->numeroActe->numero_acte,10)."/".$acteReg->registre->nombre_acte_transcrit}} </strong>
+                            @php
+                            // Récupérer la position depuis les 8 derniers caractères du code_acte_deces
+                            // Les 8 derniers caractères du code_acte_deces représentent la position dans le registre
+                            $positionActe = (int) substr($acteReg->code_acte_deces, -8);
+                            @endphp
+                            <strong> {{$positionActe.'/'.$acteReg->registre->nombre_acte_transcrit}} </strong>
                             </div>
                         </div>
                     </div>
@@ -253,6 +240,12 @@
             <!-- / page 2 -->
 
         </div>
+        @if($acteReg->registre)
+        <a href="{{ route('registre.deces', $acteReg->registre->code_registre) }}" class="btn btn-primary mb-2" style="float: right; margin-top: 20px;">
+            <i class="fas fa-arrow-left me-1"></i>
+            Retour au registre
+        </a>
+        @endif
 
         {{-- <nav id="btn_footer">
             <a id="bb-nav-first" href="#" class="bb-custom-icon bb-custom-icon-first">First page</a>

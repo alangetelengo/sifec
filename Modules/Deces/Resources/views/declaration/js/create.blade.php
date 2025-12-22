@@ -229,6 +229,11 @@
                 });
         });
 
+        // Style CSS pour les champs en lecture seule
+        if ($('#defunt-readonly-style').length === 0) {
+            $('head').append('<style id="defunt-readonly-style">.defunt-readonly, .parent-readonly { background-color: #f8f9fa !important; cursor: not-allowed; } .defunt-readonly:read-only, .parent-readonly:read-only { background-color: #e9ecef !important; } select.defunt-readonly, select.parent-readonly, select:disabled { pointer-events: none; background-color: #e9ecef !important; opacity: 1; }</style>');
+        }
+
         $("#rechercherDefunt").on("click", function(event){
             event.preventDefault();
             numero_acte_naissance = $("#numero_acte_naissance_defunt").val();
@@ -239,23 +244,161 @@
 
             if(response.code == "200"){
 
-                console.log(response.lieu_naissance);
+                console.log("Réponse de recherche défunt:", response);
 
                 $(".defunt-search-modal-lg").modal("hide");
-                $("#nom_defunt").val(response.nom);
-                $("#prenom_defunt").val(response.prenom);
-                $("#sexe_defunt").val(response.sexe);
-                $("#date_naissance_defunt").val(response.date_naissance);
-                $("#lieu_naissance_defunt").val(response.lieu_naissance);
-                $("#num_acte_naissance").val(numero_acte_naissance);
-                $("#code_nationalite_defunt").val(response.code_nationalite);
-                $("#date_emission_acte_naissance_defunt").val(response.dateEmisAN);
-                $("#niveau_instruction_defunt").val(response.niveau_instruction);
-                $("#code_profession_defunt").val(response.code_profession);
-                // $("#cec_naissance_defunt").val(response.cec_naissance_defunt);
-                $("#code_cec_defunt").val(response.cec_naissance_defunt);
-                $("#nom_pere_defunt").val(response.pere);
-                $("#nom_mere_defunt").val(response.mere);
+
+                // ===== INFORMATIONS DU DÉFUNT (en lecture seule) =====
+                $("#nom_defunt").val(response.nom).prop('readonly', true).addClass('defunt-readonly');
+                $("#prenom_defunt").val(response.prenom).prop('readonly', true).addClass('defunt-readonly');
+                $("#sexe_defunt").val(response.sexe).prop('disabled', true).addClass('defunt-readonly');
+                $("#date_naissance_defunt").val(response.date_naissance).prop('readonly', true).addClass('defunt-readonly');
+                // Mettre le lieu de naissance et déclencher le change pour charger les CEC
+                var codeLocaliteDefunt = response.lieu_naissance;
+                if (codeLocaliteDefunt) {
+                    $("#code_localite_defunt").val(codeLocaliteDefunt);
+                    // Déclencher manuellement le changement pour charger les centres d'état civil
+                    var route = "{{ route('declarationNaissance.search.institution') }}";
+                    $.ajax({
+                        url: route,
+                        data: 'id=' + codeLocaliteDefunt,
+                        dataType: 'json',
+                        success: function(json) {
+                            var option = "<option value=''>Selectionnez</option>";
+                            $.each(json, function (index, value) {
+                                option += '<option value="'+value.code_institution+'">'+value.lib_institution+'</option>';
+                            });
+                            $("#code_cec_defunt").html(option);
+
+                            // Sélectionner la valeur si disponible
+                            if (response.code_cec_naissance) {
+                                $("#code_cec_defunt").val(response.code_cec_naissance);
+                            }
+                            // Mettre le select en lecture seule (disabled pour les select)
+                            $("#code_cec_defunt").prop('disabled', true).addClass('defunt-readonly');
+
+                            // Mettre à jour le champ texte avec le libellé
+                            var cecText = $("#code_cec_defunt option:selected").text();
+                            if (cecText && cecText !== "Selectionnez") {
+                                $("#cec_naissance_defunt").val(cecText);
+                            } else if (response.cec_naissance) {
+                                $("#cec_naissance_defunt").val(response.cec_naissance);
+                            }
+                        },
+                        error: function() {
+                            console.error("Erreur lors du chargement des centres d'état civil");
+                            if (response.cec_naissance) {
+                                $("#cec_naissance_defunt").val(response.cec_naissance);
+                            }
+                        }
+                    });
+                } else if (response.cec_naissance) {
+                    // Si pas de code localite mais qu'on a le libellé CEC
+                    $("#cec_naissance_defunt").val(response.cec_naissance);
+                }
+
+                $("#code_localite_defunt").prop('readonly', true).addClass('defunt-readonly');
+                $("#num_acte_naissance").val(numero_acte_naissance).prop('readonly', true).addClass('defunt-readonly');
+                $("#code_nationalite_defunt").val(response.code_nationalite).prop('disabled', true).addClass('defunt-readonly');
+
+                $("#type_date_naissance_defunt").prop('disabled', true);
+
+                // Champs modifiables du défunt (date/heure décès, profession, etc.)
+                // Ces champs restent modifiables - on les rempli seulement s'ils sont vides
+                if (!$("#code_profession_defunt").val()) {
+                    $("#code_profession_defunt").val(response.code_profession);
+                }
+                if (!$("#niveau_instruction_defunt").val()) {
+                    $("#niveau_instruction_defunt").val(response.niveau_instruction);
+                }
+                if (!$("#code_situation_matrimoniale_defunt").val() && response.code_situation_matrimoniale) {
+                    $("#code_situation_matrimoniale_defunt").val(response.code_situation_matrimoniale);
+                }
+                if (!$("#code_religion_defunt").val() && response.code_religion) {
+                    $("#code_religion_defunt").val(response.code_religion);
+                }
+
+                // ===== INFORMATIONS DU PÈRE (en lecture seule) =====
+                if (response.nom_pere) {
+                    $("#nom_pere").val(response.nom_pere).prop('readonly', true).addClass('parent-readonly');
+                }
+                if (response.prenom_pere) {
+                    $("#prenom_pere").val(response.prenom_pere).prop('readonly', true).addClass('parent-readonly');
+                }
+                if (response.date_naissance_pere) {
+                    $("#date_naissance_pere").val(response.date_naissance_pere).prop('readonly', true).addClass('parent-readonly');
+                    $("#type_date_naissance_pere").prop('disabled', true);
+                }
+                if (response.code_localite_pere) {
+                    $("#code_localite_pere").val(response.code_localite_pere).prop('disabled', true).addClass('parent-readonly');
+                    // Déclencher le change event pour remplir automatiquement lieu_naissance_pere
+                    // Cela utilise la logique existante qui est déjà dans le code (ligne ~1950)
+                    $("#code_localite_pere").trigger('change');
+                }
+                if (response.code_nationalite_pere) {
+                    $("#code_nationalite_pere").val(response.code_nationalite_pere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.code_profession_pere) {
+                    $("#profession_pere").val(response.code_profession_pere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.niveau_instruction_pere) {
+                    $("#niveau_instruction_pere").val(response.niveau_instruction_pere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.code_type_document_pere) {
+                    $("#code_type_document_pere").val(response.code_type_document_pere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.numero_document_pere) {
+                    $("#numero_document_pere").val(response.numero_document_pere).prop('readonly', true).addClass('parent-readonly');
+                }
+                // Le téléphone reste modifiable (peut être changé à tout moment)
+                if (response.telephone_pere) {
+                    $("#telephone_pere").val(response.telephone_pere);
+                }
+                if (response.email_pere) {
+                    $("#email_pere").val(response.email_pere).prop('readonly', true).addClass('parent-readonly');
+                }
+
+                // ===== INFORMATIONS DE LA MÈRE (en lecture seule) =====
+                if (response.nom_mere) {
+                    $("#nom_mere").val(response.nom_mere).prop('readonly', true).addClass('parent-readonly');
+                }
+                if (response.prenom_mere) {
+                    $("#prenom_mere").val(response.prenom_mere).prop('readonly', true).addClass('parent-readonly');
+                }
+                if (response.date_naissance_mere) {
+                    $("#date_naissance_mere").val(response.date_naissance_mere).prop('readonly', true).addClass('parent-readonly');
+                    $("#type_date_naissance_mere").prop('disabled', true);
+                }
+                if (response.code_localite_mere) {
+                    $("#code_localite_mere").val(response.code_localite_mere).prop('disabled', true).addClass('parent-readonly');
+                    // Déclencher le change event pour remplir automatiquement lieu_naissance_mere
+                    // Cela utilise la logique existante qui est déjà dans le code (ligne ~1956)
+                    $("#code_localite_mere").trigger('change');
+                }
+                if (response.code_nationalite_mere) {
+                    $("#code_nationalite_mere").val(response.code_nationalite_mere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.code_profession_mere) {
+                    $("#profession_mere").val(response.code_profession_mere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.niveau_instruction_mere) {
+                    $("#niveau_instruction_mere").val(response.niveau_instruction_mere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.code_type_document_mere) {
+                    $("#code_type_document_mere").val(response.code_type_document_mere).prop('disabled', true).addClass('parent-readonly');
+                }
+                if (response.numero_document_mere) {
+                    $("#numero_document_mere").val(response.numero_document_mere).prop('readonly', true).addClass('parent-readonly');
+                }
+                // Le téléphone reste modifiable (peut être changé à tout moment)
+                if (response.telephone_mere) {
+                    $("#telephone_mere").val(response.telephone_mere);
+                }
+                if (response.email_mere) {
+                    $("#email_mere").val(response.email_mere).prop('readonly', true).addClass('parent-readonly');
+                }
+
+                flashAlert("Recherche réussie","success","Les informations du défunt ont été chargées en mode lecture.");
 
             }else{
                 flashAlert("Opération échouée","error",response.message);
@@ -1698,21 +1841,24 @@ html:
 
 
 
-            function getCentreEtatCivil(codelocalite,cle){
+            function getCentreEtatCivil(codelocalite,cle,callback){
                 var route = "{{ route('declarationNaissance.search.institution') }}";
                 var option = "<option value=''>Selectionnez</option>";
 
                 $.ajax({
                     url: route,
                     data: 'id=' +codelocalite,
-                    dataType:
-                        'json',
+                    dataType: 'json',
                     success: function(json) {
                         $.each(json, function (index, value) {
                             console.log(value.lib_institution);
                             option += '<option value="'+value.code_institution+'">'+value.lib_institution+'</option>';
                         });
                         $("#"+cle).html(option);
+                        // Exécuter le callback si fourni
+                        if (typeof callback === 'function') {
+                            callback();
+                        }
                         // console.log(json); code_cec
                     }
                 });

@@ -17,7 +17,7 @@ Actes Décès
         <div class="card">
             <div class="card-header">
                 <h4>Liste des déclarations de deces</h4>
-                <a href="{{ route("declarationDeces.create") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >Créer déclaration  <i class="fa fa-plus-circle"></i></button></a>
+                <a href="{{ route("declarationDeces.create") }}"><button type="button" class="btn btn-warning m-t-2 float-end text-white" >Créer déclaration  <i class="fa fa-plus-circle"></i></button></a>
             </div>
             <div class="col-12">
                 <div class="card">

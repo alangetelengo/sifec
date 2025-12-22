@@ -80,7 +80,7 @@
         <div style="position: absolute; left: 5px; top: 250px; width: 700px; height: 550px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:18px;">
             <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td style="height: 15px;">Centre d'état civil communal: <strong>
+                    <td style="height: 15px;">Centre d'état civil secondaire: <strong>
                         {{ $acte->institutionUser->institution->lib_institution }}
                     </strong></td>
                 </tr>
@@ -114,7 +114,7 @@
                         {{ $acte->declaration->lieu_deces }}
                     </strong></td>
                 </tr>
-                <tr style="width:100%; text-align: left;">
+                {{-- <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Cause du décès:
                         @php
                             $causesd = $acte->declaration->DDecesCauses;
@@ -131,7 +131,7 @@
                                 @endif
                         </strong>
                     </td>
-                </tr>
+                </tr> --}}
 
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;">Sexe: <strong>{{ $acte->declaration->defunt->sexe== "M" ? "Masculin" : "Féminin" }}</strong></td>
@@ -220,7 +220,15 @@
                 <tr>
                     <td style="text-align: center;">Le déclarant</td>
                     <td style="text-align: left;">
-                        <div style="margin-bottom:0;"><qrcode value=" {{ env("QRCODE_URL") }}/qrcode/deces?niupp={{ $acte->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
+                         @if($acte->approbation_pompe_funebre != "")
+                         <div style="margin-bottom:0;">
+                             @isset($qrCode)
+                                <div style="width: 30mm;">
+                                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                                </div>
+                             @endisset
+                         </div>
+                         @endif
                     </td>
                     <td style="text-align: left;">
 

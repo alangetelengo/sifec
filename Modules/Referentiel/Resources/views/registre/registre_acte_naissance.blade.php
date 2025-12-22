@@ -162,6 +162,96 @@
         .col-sm-6:last-child {
             padding-left: 10px;
         }
+
+        /* Styles pour le tableau scrollable dans le registre */
+        .registre-table-container {
+            max-height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .registre-table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .registre-table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .registre-table-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .registre-table-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Fixer le header du tableau lors du scroll */
+        .registre-table-wrapper {
+            position: relative;
+        }
+
+        .registre-table-wrapper table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .registre-table-wrapper table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Ajuster le card-body pour le scroll */
+        .card-body-scrollable {
+            padding: 15px;
+            height: calc(100% - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header-registre {
+            flex-shrink: 0;
+            padding: 15px !important;
+        }
+
+        .table-responsive {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Styles pour la barre de recherche */
+        #search-acte-input {
+            border-radius: 0 5px 5px 0;
+        }
+
+        #search-acte-input:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25);
+        }
+
+        #clear-search-btn {
+            border-radius: 0 5px 5px 0;
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        #clear-search-btn:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+
+        #search-result-count {
+            display: block;
+            margin-top: 5px;
+            font-style: italic;
+        }
     </style>
 @endsection
 
@@ -229,55 +319,68 @@
                         </div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="card" style="height: 670px; border: 2px solid">
+                        <div class="card" style="height: 670px; border: 2px solid; display: flex; flex-direction: column;">
                             @if (count($actesRegistre) > 0 )
-                                <div class="card-header border-0 pb-0">
+                                <div class="card-header border-0 pb-0 card-header-registre" style="flex-shrink: 0;">
                                     <h3><strong> Liste des actes de naissance du registre </strong></h3>
+                                    <div class="input-group mt-2" style="max-width: 100%;">
+                                        <span class="input-group-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" id="search-acte-input" class="form-control" placeholder="Rechercher par nom, prénom, feuillet..." style="border: 1px solid #667eea;">
+                                        <button class="btn btn-secondary" type="button" id="clear-search-btn" style="display: none;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted" id="search-result-count" style="display: none;"></small>
                                 </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table id="example" class="display table table-hover table-striped modern-table">
-                                            <thead class="table-header-custom">
-                                                <tr class="text-center">
-                                                    <th><i class="fas fa-file-alt me-2"></i>Feuillet</th>
-                                                    <th><i class="fas fa-user me-2"></i>Nom</th>
-                                                    <th><i class="fas fa-user-tag me-2"></i>Prénom</th>
-                                                    <th><i class="fas fa-venus-mars me-2"></i>Sexe</th>
-                                                    <th><i class="fas fa-eye me-2"></i>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @php
-                                                $i=1;
-                                                @endphp
-                                                @foreach ($actesRegistre as $act)
-                                                <tr class="table-row-hover">
-                                                    <td class="fw-bold text-primary">{{ $i++}}</td>
-                                                    <td class="fw-semibold">{{$act->declaration->enfant->nom}}</td>
-                                                    <td class="fw-semibold">{{$act->declaration->enfant->prenom}}</td>
-                                                    <td class="text-center">
-                                                        @if($act->declaration->enfant->sexe == "M")
-                                                            <span class="badge bg-primary fs-6 px-3 py-2">
-                                                                <i class="fas fa-mars me-1"></i>Masculin
-                                                            </span>
-                                                        @else
-                                                            <span class="badge bg-pink fs-6 px-3 py-2">
-                                                                <i class="fas fa-venus me-1"></i>Féminin
-                                                            </span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <a href="{{route('registre.feuillet.registre.naissance', $act->niupp )}}"
-                                                           class="modern-btn"
-                                                           title="Consulter l'acte"
-                                                           target="_blank">
-                                                            <i class="fas fa-eye me-1"></i>Consulter
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
+                                <div class="card-body card-body-scrollable" style="flex: 1; overflow: hidden; padding: 15px;">
+                                    <div class="registre-table-container">
+                                        <div class="registre-table-wrapper">
+                                            <table id="example" class="table table-hover table-striped modern-table" style="margin-bottom: 0;">
+                                                <thead class="table-header-custom">
+                                                    <tr class="text-center">
+                                                        <th><i class="fas fa-file-alt me-2"></i>Feuillet</th>
+                                                        <th><i class="fas fa-user me-2"></i>Nom</th>
+                                                        <th><i class="fas fa-user-tag me-2"></i>Prénom</th>
+                                                        <th><i class="fas fa-venus-mars me-2"></i>Sexe</th>
+                                                        <th><i class="fas fa-eye me-2"></i>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="actes-tbody">
+                                                    @foreach ($actesRegistre as $act)
+                                                    @php
+                                                    // Récupérer la position depuis les 4 derniers caractères du niupp (code_acte)
+                                                    $position = (int) substr($act->niupp, -4);
+                                                    @endphp
+                                                    <tr class="table-row-hover acte-row" data-nom="{{ strtolower($act->declaration->enfant->nom) }}" data-prenom="{{ strtolower($act->declaration->enfant->prenom) }}" data-feuillet="{{ $position }}">
+                                                        <td class="fw-bold text-primary">{{ $position }}</td>
+                                                        <td class="fw-semibold">{{$act->declaration->enfant->nom}}</td>
+                                                        <td class="fw-semibold">{{$act->declaration->enfant->prenom}}</td>
+                                                        <td class="text-center">
+                                                            @if($act->declaration->enfant->sexe == "M")
+                                                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                                                    <i class="fas fa-mars me-1"></i>Masculin
+                                                                </span>
+                                                            @else
+                                                                <span class="badge bg-pink fs-6 px-3 py-2">
+                                                                    <i class="fas fa-venus me-1"></i>Féminin
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <a href="{{route('registre.feuillet.registre.naissance', $act->niupp )}}"
+                                                               class="modern-btn"
+                                                               title="Consulter l'acte"
+                                                               target="_blank">
+                                                                <i class="fas fa-eye me-1"></i>Consulter
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             @endif
@@ -287,8 +390,6 @@
             </div>
 
             <!-- / page 2 -->
-            {{-- @php $i=1; @endphp --}}
-            @php $i=1; @endphp
             @foreach ($actesRegistre as $acte)
 
             <div class="bb-item">
@@ -402,9 +503,9 @@
                                           Est informé que le: <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong><br>
                                         Est né(e), un enfant de sexe: <strong>{{$acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin" }}</strong><br>
                                         @if($acte->declaration->type_declarant == "Personne physique")
-                                        Nom(s): <strong>{{ $acte->declaration->enfant->nom }}</strong><br>
+                                        Nom(s): <strong style="color: red">{{ $acte->declaration->enfant->nom }}</strong><br>
                                         @endif
-                                        Prénom(s): <strong>{{ $acte->declaration->enfant->prenom }}</strong><br>
+                                        Prénom(s): <strong style="color: red">{{ $acte->declaration->enfant->prenom }}</strong><br>
                                         Lieu de naissance: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong><br>
                                         Déclaré par: <strong>{{$acte->declaration->declarant->nom. " ".$acte->declaration->declarant->prenom }}</strong><br>
                                         Filiation: <strong>{{$acte->declaration->type_declarant == "Personne physique" ? $acte->declaration->filiation->lib_filiation : $dummy }}</strong><br>
@@ -455,7 +556,11 @@
                             </div>
                             <div class="col-xl-12" style="padding-left: 500px">
                                 <br><br><br><br><br>
-                                <strong> {{$i++.'/'.count($actesRegistre)}}</strong>
+                                @php
+                                // Récupérer la position depuis les 4 derniers caractères du niupp (code_acte)
+                                $positionActe = (int) substr($acte->niupp, -4);
+                                @endphp
+                                <strong> {{$positionActe.'/'.count($actesRegistre)}}</strong>
                             </div>
                         </div>
                     </div>
@@ -519,8 +624,9 @@
 @endsection
 
 @section("scripts")
-<script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
-<script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+{{-- DataTables désactivé pour cette page car nous utilisons un scroll personnalisé --}}
+{{-- <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script> --}}
+{{-- <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script> --}}
 
 <script src="{{ URL::to('carte/js/jquerypp.custom.js') }}"></script>
 <script src="{{ URL::to('carte/js/jquery.bookblock.js') }}"></script>
@@ -604,6 +710,62 @@
     })();
 
     Page.init();
+
+    // Fonctionnalité de recherche dans le tableau des actes
+    $(document).ready(function() {
+        var $searchInput = $('#search-acte-input');
+        var $clearBtn = $('#clear-search-btn');
+        var $actesRows = $('.acte-row');
+        var $searchResultCount = $('#search-result-count');
+        var totalRows = $actesRows.length;
+
+        function performSearch() {
+            var searchTerm = $searchInput.val().toLowerCase().trim();
+            var visibleCount = 0;
+
+            if (searchTerm === '') {
+                $actesRows.show();
+                $clearBtn.hide();
+                $searchResultCount.hide();
+                visibleCount = totalRows;
+            } else {
+                $actesRows.each(function() {
+                    var $row = $(this);
+                    var nom = $row.data('nom') || '';
+                    var prenom = $row.data('prenom') || '';
+                    var feuillet = $row.data('feuillet') || '';
+                    var searchableText = (nom + ' ' + prenom + ' ' + feuillet).toLowerCase();
+
+                    if (searchableText.indexOf(searchTerm) !== -1) {
+                        $row.show();
+                        visibleCount++;
+                    } else {
+                        $row.hide();
+                    }
+                });
+
+                $clearBtn.show();
+                $searchResultCount.show().text(visibleCount + ' résultat(s) trouvé(s) sur ' + totalRows);
+            }
+        }
+
+        // Recherche en temps réel
+        $searchInput.on('keyup', function() {
+            performSearch();
+        });
+
+        // Bouton pour effacer la recherche
+        $clearBtn.on('click', function() {
+            $searchInput.val('');
+            performSearch();
+            $searchInput.focus();
+        });
+
+        // Recherche au focus
+        $searchInput.on('focus', function() {
+            $(this).select();
+        });
+    });
 
 </script>
 

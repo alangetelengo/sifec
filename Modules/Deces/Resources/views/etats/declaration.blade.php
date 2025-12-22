@@ -117,14 +117,7 @@
                 <col style="width: 25%">
 
                 <tr>
-                    {{-- <td style="border: none; padding:5px 0px;text-align: left" colspan="3">L'officier du centre d'état civil de : <strong>LA {{ $ddc->institutionUser->institution->pompeFunebre ? $ddc->institutionUser->institution->pompeFunebre->lib_institution : $ddc->institutionUser->institution->institutionParent->lib_institution }}</strong></td> --}}
-                    <td style="border: none; padding:5px 0px;text-align: left" colspan="3">
-
-                        {{-- @if($diffJour < 15)
-                        <strong>
-                            {{ $ddc->institutionUser->institution->lib_institution }}
-                        </strong>
-                        @endif --}}
+                    {{-- <td style="border: none; padding:5px 0px;text-align: left" colspan="3">
                         @if($ddc->institutionUser->institution->institutionParent->code_institution == "INS_0193")
                         <strong>
                             {{ $ddc->institutionUser->institution->institutionParent->lib_institution }}
@@ -137,8 +130,15 @@
                             {{ $ddc->institutionUser->institution->institutionParent->lib_institution }}
                         </strong>
                         @endif
+                    </td> --}}
+                    <td style="border: none; padding:5px 0px;text-align: left" colspan="3">L'Officier du centre d'état civil secondaire des :
+                        @if($ddc->institution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
+                        {{ $ddc->institutionUser->institution->institutionParent->lib_institution }}
 
+                        @else
+                        {{ $ddc->institution->lib_institution }}
 
+                        @endif
 
                     </td>
                     <td style="border: none; padding:5px 0px;text-align: center">&nbsp;</td>

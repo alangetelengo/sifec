@@ -31,6 +31,7 @@ use Modules\Deces\Services\MouvementDecesService;
 use Modules\Deces\Services\DeclarationDecesService;
 use Modules\Notification\Services\NotificationService;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
+use Modules\Deces\Entities\ActeDeces;
 
 class DecesController extends Controller
 {
@@ -678,26 +679,63 @@ class DecesController extends Controller
                 "message"=>"Aucun numéro d'acte trouvé"
             ]);
         }
-        // $lieuNaiss = Localite::where("lib_localite",$personne->declaration->enfant->lieu_naissance)->where("code_type_localite","TPLOC_0002")->orWhere("code_type_localite","TPLOC_0003")->first();
-        $lieuNaiss = Localite::where("lib_localite",$personne->declaration->enfant->lieu_naissance)->first();
 
+        $enfant = $personne->declaration->enfant ?? null;
+        $pere = $personne->declaration->pere ?? null;
+        $mere = $personne->declaration->mere ?? null;
+        $institution = ($personne->institutionUser && $personne->institutionUser->institution) ? $personne->institutionUser->institution : null;
+
+        if (!$enfant) {
+            return response()->json([
+                "code"=>"99",
+                "message"=>"Informations de l'enfant introuvables"
+            ]);
+        }
 
         return response()->json([
             "code"=>"200",
-            "nom"=>$personne->declaration->enfant->nom,
-            "prenom"=>$personne->declaration->enfant->prenom,
-            "sexe"=>$personne->declaration->enfant->sexe,
-            "date_naissance"=>$personne->declaration->enfant->date_naissance,
-            "niveau_instruction"=>$personne->declaration->enfant->niveau_instruction,
-            // "lieu_naissance"=>'LOC_0026',
-            "lieu_naissance"=> $personne->declaration->enfant->code_localite,
-            // "dateEmisAN"=>$date_emis_acte_nais,
-            "dateEmisAN"=>$personne->declaration->enfant->date_naissance,
-            "cec_naissance"=>$personne->institutionUser->institution->lib_institution,
-            "code_nationalite"=>$personne->declaration->enfant->nationalite->code_nationalite,
-            "code_profession"=>$personne->declaration->enfant->profession->code_profession,
-            "pere"=>$personne->declaration->pere->nomcomplet(),
-            "mere"=>$personne->declaration->mere->nomcomplet()
+            // Informations du défunt
+            "nom"=>$enfant->nom ?? null,
+            "prenom"=>$enfant->prenom ?? null,
+            "sexe"=>$enfant->sexe ?? null,
+            "date_naissance"=>$enfant->date_naissance ?? null,
+            "niveau_instruction"=>$enfant->niveau_instruction ?? null,
+            "lieu_naissance"=>$enfant->code_localite ?? null,
+            "dateEmisAN"=>$enfant->date_naissance ?? null,
+            "cec_naissance"=>$institution ? $institution->lib_institution : null,
+            "code_cec_naissance"=>$institution ? $institution->code_institution : null,
+            "code_nationalite"=>($enfant->nationalite ?? null) ? $enfant->nationalite->code_nationalite : null,
+            "code_profession"=>($enfant->profession ?? null) ? $enfant->profession->code_profession : null,
+            "code_situation_matrimoniale"=>($enfant->situationMatrimoniale ?? null) ? $enfant->situationMatrimoniale->code_situation_matrimoniale : null,
+            "code_religion"=>($enfant->religion ?? null) ? $enfant->religion->code_religion : null,
+
+            // Informations du père (détaillées)
+            "nom_pere"=>$pere ? $pere->nom : null,
+            "prenom_pere"=>$pere ? $pere->prenom : null,
+            "date_naissance_pere"=>$pere ? $pere->date_naissance : null,
+            "code_localite_pere"=>$pere ? $pere->code_localite : null,
+            "code_nationalite_pere"=>($pere && $pere->nationalite) ? $pere->nationalite->code_nationalite : null,
+            "code_profession_pere"=>($pere && $pere->profession) ? $pere->profession->code_profession : null,
+            "niveau_instruction_pere"=>$pere ? $pere->niveau_instruction : null,
+            "code_type_document_pere"=>$pere ? $pere->code_type_document : null,
+            "numero_document_pere"=>$pere ? $pere->numero_document : null,
+            "telephone_pere"=>$pere ? $pere->telephone : null,
+            "email_pere"=>$pere ? $pere->email : null,
+            "pere"=>$pere ? $pere->nomcomplet() : null,
+
+            // Informations de la mère (détaillées)
+            "nom_mere"=>$mere ? $mere->nom : null,
+            "prenom_mere"=>$mere ? $mere->prenom : null,
+            "date_naissance_mere"=>$mere ? $mere->date_naissance : null,
+            "code_localite_mere"=>$mere ? $mere->code_localite : null,
+            "code_nationalite_mere"=>($mere && $mere->nationalite) ? $mere->nationalite->code_nationalite : null,
+            "code_profession_mere"=>($mere && $mere->profession) ? $mere->profession->code_profession : null,
+            "niveau_instruction_mere"=>$mere ? $mere->niveau_instruction : null,
+            "code_type_document_mere"=>$mere ? $mere->code_type_document : null,
+            "numero_document_mere"=>$mere ? $mere->numero_document : null,
+            "telephone_mere"=>$mere ? $mere->telephone : null,
+            "email_mere"=>$mere ? $mere->email : null,
+            "mere"=>$mere ? $mere->nomcomplet() : null
         ]);
     }
 
@@ -760,6 +798,23 @@ class DecesController extends Controller
                 'message' => 'Erreur lors de l\'enregistrement de la pièce: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function verificationActe(Request $request, $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $acte = ActeDeces::with(['declaration.defunt', 'declaration.declarant', 'declaration.pere', 'declaration.mere'])
+            ->where('code_acte_deces', $code)
+            ->first();
+
+        if (!$acte) {
+            abort(404);
+        }
+
+        return view('deces::verification.acte', compact('acte'));
     }
 
 }

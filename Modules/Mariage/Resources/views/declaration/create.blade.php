@@ -923,13 +923,17 @@
                 type_personne: 'epoux'  // Ajouter le type de personne
             };
 
-            $.post("{{ route('declarationMariage.recherchePersonne') }}", data, function (response) {
+            $.ajax({
+                url: "{{ route('declarationMariage.recherchePersonne') }}",
+                method: 'POST',
+                data: data,
+                dataType: 'json',
+                success: function (response) {
+                    // Restaurer le bouton
+                    $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
+                    $("#rechercherEpoux").prop('disabled', false);
 
-                // Restaurer le bouton
-                $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
-                $("#rechercherEpoux").prop('disabled', false);
-
-                if(response.code == "200"){
+                    if(response.code == "200"){
 
                     // Stocker les données pour utilisation ultérieure
                     donneesEpouxTrouvees = response;
@@ -997,15 +1001,58 @@
                     $("#rechercherEpoux").hide();
 
                 } else {
-                    // Masquer les résultats en cas d'erreur
-                    $("#resultats_epoux").hide();
-                    $("#confirmer_epoux").hide();
-                    flashAlert("Recherche échouée", "error", response.message);
+                        // Masquer les résultats en cas d'erreur
+                        $("#resultats_epoux").hide();
+                        $("#confirmer_epoux").hide();
+
+                        // Vérifier si c'est une erreur d'âge
+                        if(response.code == "400" && response.age_actuel !== undefined) {
+                            const messageErreur = response.message || `L'âge minimum requis pour un(e) époux est de ${response.age_minimum || 21} ans. L'âge actuel est de ${response.age_actuel} an(s).`;
+                            flashAlert("Âge insuffisant", "error", messageErreur);
+                        } else {
+                            flashAlert("Recherche échouée", "error", response.message || "Une erreur s'est produite lors de la recherche.");
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
+                    $("#rechercherEpoux").prop('disabled', false);
+
+                    // Essayer de lire le JSON de la réponse même en cas d'erreur HTTP
+                    let errorMessage = "Erreur de connexion lors de la recherche";
+
+                    try {
+                        if(xhr.responseJSON) {
+                            const response = xhr.responseJSON;
+
+                            // Vérifier si c'est une erreur d'âge
+                            if(response.code == "400" && response.age_actuel !== undefined) {
+                                errorMessage = response.message || `L'âge minimum requis pour un(e) époux est de ${response.age_minimum || 21} ans. L'âge actuel est de ${response.age_actuel} an(s).`;
+                                flashAlert("Âge insuffisant", "error", errorMessage);
+                                return;
+                            } else if(response.message) {
+                                errorMessage = response.message;
+                            }
+                        } else if(xhr.responseText) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                if(response.code == "400" && response.age_actuel !== undefined) {
+                                    errorMessage = response.message || `L'âge minimum requis pour un(e) époux est de ${response.age_minimum || 21} ans. L'âge actuel est de ${response.age_actuel} an(s).`;
+                                    flashAlert("Âge insuffisant", "error", errorMessage);
+                                    return;
+                                } else if(response.message) {
+                                    errorMessage = response.message;
+                                }
+                            } catch(e) {
+                                // Si le parsing échoue, utiliser le message par défaut
+                            }
+                        }
+                    } catch(e) {
+                        console.error('Erreur lors du traitement de la réponse:', e);
+                    }
+
+                    flashAlert("Erreur", "error", errorMessage);
                 }
-            }).fail(function() {
-                $("#rechercherEpoux").html('<i class="fa fa-search"></i> Rechercher');
-                $("#rechercherEpoux").prop('disabled', false);
-                flashAlert("Erreur", "error", "Erreur de connexion lors de la recherche");
             });
 
             return false;
@@ -1170,15 +1217,21 @@
             $(this).prop('disabled', true);
 
             var data = {
-                numero_acte_naissance: numero_acte_naissance
+                numero_acte_naissance: numero_acte_naissance,
+                type_personne: 'epouse'  // Ajouter le type de personne
             };
 
-            $.post("{{ route('declarationMariage.recherchePersonne') }}", data, function (response) {
-                // Restaurer le bouton
-                $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
-                $("#rechercherEpouse").prop('disabled', false);
+            $.ajax({
+                url: "{{ route('declarationMariage.recherchePersonne') }}",
+                method: 'POST',
+                data: data,
+                dataType: 'json',
+                success: function (response) {
+                    // Restaurer le bouton
+                    $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
+                    $("#rechercherEpouse").prop('disabled', false);
 
-                if(response.code == "200"){
+                    if(response.code == "200"){
                     // Stocker les données pour utilisation ultérieure
                     donneesEpouseTrouvees = response;
 
@@ -1207,15 +1260,58 @@
                     $("#rechercherEpouse").hide();
 
                 } else {
-                    // Masquer les résultats en cas d'erreur
-                    $("#resultats_epouse").hide();
-                    $("#confirmer_epouse").hide();
-                    flashAlert("Recherche échouée", "error", response.message);
+                        // Masquer les résultats en cas d'erreur
+                        $("#resultats_epouse").hide();
+                        $("#confirmer_epouse").hide();
+
+                        // Vérifier si c'est une erreur d'âge
+                        if(response.code == "400" && response.age_actuel !== undefined) {
+                            const messageErreur = response.message || `L'âge minimum requis pour un(e) épouse est de ${response.age_minimum || 18} ans. L'âge actuel est de ${response.age_actuel} an(s).`;
+                            flashAlert("Âge insuffisant", "error", messageErreur);
+                        } else {
+                            flashAlert("Recherche échouée", "error", response.message || "Une erreur s'est produite lors de la recherche.");
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
+                    $("#rechercherEpouse").prop('disabled', false);
+
+                    // Essayer de lire le JSON de la réponse même en cas d'erreur HTTP
+                    let errorMessage = "Erreur de connexion lors de la recherche";
+
+                    try {
+                        if(xhr.responseJSON) {
+                            const response = xhr.responseJSON;
+
+                            // Vérifier si c'est une erreur d'âge
+                            if(response.code == "400" && response.age_actuel !== undefined) {
+                                errorMessage = response.message || `L'âge minimum requis pour un(e) épouse est de ${response.age_minimum || 18} ans. L'âge actuel est de ${response.age_actuel} an(s).`;
+                                flashAlert("Âge insuffisant", "error", errorMessage);
+                                return;
+                            } else if(response.message) {
+                                errorMessage = response.message;
+                            }
+                        } else if(xhr.responseText) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                if(response.code == "400" && response.age_actuel !== undefined) {
+                                    errorMessage = response.message || `L'âge minimum requis pour un(e) épouse est de ${response.age_minimum || 18} ans. L'âge actuel est de ${response.age_actuel} an(s).`;
+                                    flashAlert("Âge insuffisant", "error", errorMessage);
+                                    return;
+                                } else if(response.message) {
+                                    errorMessage = response.message;
+                                }
+                            } catch(e) {
+                                // Si le parsing échoue, utiliser le message par défaut
+                            }
+                        }
+                    } catch(e) {
+                        console.error('Erreur lors du traitement de la réponse:', e);
+                    }
+
+                    flashAlert("Erreur", "error", errorMessage);
                 }
-            }).fail(function() {
-                $("#rechercherEpouse").html('<i class="fa fa-search"></i> Rechercher');
-                $("#rechercherEpouse").prop('disabled', false);
-                flashAlert("Erreur", "error", "Erreur de connexion lors de la recherche");
             });
 
             return false;

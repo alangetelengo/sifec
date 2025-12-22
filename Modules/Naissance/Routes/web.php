@@ -58,6 +58,8 @@ Route::middleware('auth')->prefix('declarationNaissance')->group(function() {
 
 Route::middleware('auth')->prefix('acteNaissance')->group(function() {
     Route::get('/', [ActeNaissanceController::class,'index'])->name("acteNaissance.index");
+    Route::post('filter-documents', [ActeNaissanceController::class,'filterDocuments'])->name("acteNaissance.filter.documents");
+    Route::post('filter-actes', [ActeNaissanceController::class,'filterActes'])->name("acteNaissance.filter.actes");
     Route::post("send-otp", [ActeNaissanceController::class,'sendOtp'])->name("acteNaissance.send.otp");
     Route::post("send-otp-bulk", [ActeNaissanceController::class,'sendOtpBulk'])->name("acteNaissance.send.otp.bulk");
     Route::post("validate-otp", [ActeNaissanceController::class,'validateOtp'])->name("acteNaissance.validate.otp");

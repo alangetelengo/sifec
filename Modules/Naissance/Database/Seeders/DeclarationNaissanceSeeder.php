@@ -11,13 +11,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Services\DeclarationNaissanceService;
+use Modules\Naissance\Services\ActeNaissanceService;
+use Modules\Naissance\Services\MouvementService;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Localite;
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class DeclarationNaissanceSeeder extends Seeder
 {
-    private const TOTAL_DECLARATIONS = 3000;
+    private const TOTAL_DECLARATIONS = 50;
     private const UNIQUE_RATIO = 0.80; // 80 % de familles uniques
+    private const FILLE_RATIO = 0.36; // 36 % de filles
 
     private int $personCounter = 0;
 
@@ -99,9 +104,9 @@ class DeclarationNaissanceSeeder extends Seeder
         ])));
 
         $streetNames = array_values(array_unique(array_map(fn ($value) => mb_strtoupper($value, 'UTF-8'), [
-            'RUE MASSA', 'RUE NGO', 'RUE DJAMBALA', 'AVENUE MARIEN NGOUABI', 'AVENUE 31 JUILLET',
-            'AVENUE DE LA PAIX', 'AVENUE MOE POATY', 'RUE LIRANGA', 'RUE BOUNDJI',
-            'AVENUE DE LA LIBERTE', 'RUE MPOUYA', 'AVENUE DU CONGO', 'AVENUE MALONGA', 'RUE BAKONGO'
+            'MASSA', 'NGO', 'DJAMBALA', 'MARIEN NGOUABI', '31 JUILLET',
+            'DE LA PAIX', 'MOE POATY', 'LIRANGA', 'BOUNDJI',
+            'DE LA LIBERTE', 'MPOUYA', 'DU CONGO', 'MALONGA', 'BAKONGO'
         ])));
 
         $localiteCodes = ['LOC_0001', 'LOC_0016', 'LOC_0013', 'LOC_0008'];
@@ -109,9 +114,16 @@ class DeclarationNaissanceSeeder extends Seeder
 
         $totalUnique = (int) round(self::TOTAL_DECLARATIONS * self::UNIQUE_RATIO);
 
+        // Calculer le nombre de filles à créer (36% du total)
+        $nombreFilles = (int) round(self::TOTAL_DECLARATIONS * self::FILLE_RATIO);
+        $nombreGarcons = self::TOTAL_DECLARATIONS - $nombreFilles;
+
+        // Créer un tableau avec le nombre exact de 'F' et 'M'
+        $sexes = array_fill(0, $nombreFilles, 'F') + array_fill($nombreFilles, $nombreGarcons, 'M');
+        shuffle($sexes); // Mélanger pour randomiser l'ordre
+
         $basePayload = [
-            'code_situation_matrimoniale' => 'SMAT_0001',
-            'sexe_enfant' => 'M',
+            'code_situation_matrimoniale' => 'SMAT_0003',
             'nombre_enfant' => '1',
             'statut_personne_enfant' => 'VIVANT',
 
@@ -172,6 +184,10 @@ class DeclarationNaissanceSeeder extends Seeder
 
         /** @var DeclarationNaissanceService $service */
         $service = app(DeclarationNaissanceService::class);
+        /** @var MouvementService $mouvementService */
+        $mouvementService = app(MouvementService::class);
+        /** @var ActeNaissanceService $acteService */
+        $acteService = app(ActeNaissanceService::class);
 
         $refMouvement = DB::table('tr_mouvement')->where('code_mouvement', 'MOUV_0024')->first();
         if (!$refMouvement) {
@@ -179,7 +195,23 @@ class DeclarationNaissanceSeeder extends Seeder
             return;
         }
 
+        // Récupérer l'utilisateur du centre d'état civil pour l'approbation et la génération des actes
+        $centreEtatCivilUser = User::where('email', 'stephanie@gmail.com')
+            ->with(['affectations' => fn ($q) => $q->where('active', 1)])
+            ->first();
+
+        $affectationCentre = null;
+        $registre = null;
+        if ($centreEtatCivilUser && $centreEtatCivilUser->affectationActive()) {
+            $affectationCentre = $centreEtatCivilUser->affectationActive();
+            $registre = $affectationCentre->registres()
+                ->where('code_type_registre', 'TPRG_0001')
+                ->where('statut', 1)
+                ->first();
+        }
+
         $created = 0;
+        $actesGeneres = 0;
 
         for ($i = 0; $i < self::TOTAL_DECLARATIONS; $i++) {
             $isSharedFamily = $i >= $totalUnique;
@@ -200,7 +232,22 @@ class DeclarationNaissanceSeeder extends Seeder
 
             $payload = array_merge($basePayload, $familyData);
 
-            $dateNaissanceEnfant = Carbon::create(2025, 1, 1)->addDays($i);
+            // Assigner le sexe selon la proportion (36% filles)
+            $payload['sexe_enfant'] = $sexes[$i];
+
+            // Générer une date de naissance en 2025
+            // Pour 2025 : du 1er janvier 2025 au 31 décembre 2025 (ou date actuelle si antérieure)
+            $debutAnnee = Carbon::create(2025, 1, 1);
+            $finAnnee = Carbon::create(2025, 12, 31);
+            $aujourdhui = Carbon::now();
+
+            // La date maximale est soit la fin de l'année 2025, soit aujourd'hui (le plus petit)
+            $dateMax = $finAnnee->isBefore($aujourdhui) ? $finAnnee : $aujourdhui;
+            $joursDisponibles = $debutAnnee->diffInDays($dateMax);
+
+            // Générer une date aléatoire dans la plage de l'année 2025
+            $joursAleatoires = $i % ($joursDisponibles + 1);
+            $dateNaissanceEnfant = $debutAnnee->copy()->addDays((int)$joursAleatoires);
             $heureNaissance = Carbon::createFromTime(7, 30)->addMinutes($i % 1440)->format('H:i');
             $joursDelai = rand(0, 29);
             $minutesDelai = rand(0, 1439);
@@ -209,7 +256,11 @@ class DeclarationNaissanceSeeder extends Seeder
             $payload['date_naissance_enfant'] = $dateNaissanceEnfant->format('Y-m-d');
             $payload['heure_naissance_enfant'] = $heureNaissance;
             $payload['date_heure_declaration'] = $dateDeclaration->format('Y-m-d H:i');
-            $payload['prenom_enfant'] = mb_strtoupper($childNames[$i % count($childNames)], 'UTF-8');
+
+            // Choisir le prénom selon le sexe de l'enfant (36% filles, 64% garçons)
+            $sexeEnfant = $payload['sexe_enfant'];
+            $prenomsPool = $sexeEnfant === 'F' ? $femaleNames : $maleNames;
+            $payload['prenom_enfant'] = mb_strtoupper($prenomsPool[$i % count($prenomsPool)], 'UTF-8');
             $payload['nom_enfant'] = $payload['nom_pere'];
             $payload['lieu_naissance_enfant'] = $institutionLocaliteLib;
             $payload['domicile_numero_enfant'] = $payload['domicile_numero_pere'];
@@ -241,12 +292,90 @@ class DeclarationNaissanceSeeder extends Seeder
 
             $created++;
 
+            // Envoyer la déclaration au centre d'état civil et générer l'acte
+            if ($affectationCentre && $registre) {
+                try {
+                    // 1. Envoyer la déclaration au centre d'état civil (MOUV_0001)
+                    if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0001')->exists()) {
+                        [$ok, $message] = $mouvementService->envoyerDeclaration(
+                            $user,
+                            $declaration,
+                            'MOUV_0001',
+                            'Envoyée',
+                            'Envoi automatique via seeder'
+                        );
+
+                        if (!$ok) {
+                            $this->command?->warn("Envoi impossible pour {$declaration->code_declaration_naissance} : {$message}");
+                        } else {
+                            $declaration->refresh();
+                        }
+                    }
+
+                    // 2. Approuver la déclaration
+                    $declaration->cec_approuver = 'OUI';
+                    $declaration->cec_approuve_par = $affectationCentre->cui ?? 'CUI_00000004';
+                    $declaration->cec_approuve_le = now();
+                    $declaration->declarant_approuver = 'OUI';
+                    $declaration->code_institution_destinataire = $affectationCentre->code_institution ?? 'INS_0047';
+                    $declaration->save();
+
+                    // 3. Confirmer la déclaration (MOUV_0019)
+                    if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0019')->exists()) {
+                        [$ok, $message] = $mouvementService->confirmerDeclarationNaissance(
+                            $affectationCentre,
+                            $declaration,
+                            'Confirmée',
+                            null,
+                            'Confirmation automatique via seeder'
+                        );
+
+                        if (!$ok) {
+                            $this->command?->warn("Confirmation impossible pour {$declaration->code_declaration_naissance} : {$message}");
+                        }
+                    }
+
+                    // 4. Vérifier que le registre n'est pas saturé
+                    $registre->refresh();
+                    if ($registre->statut == 0 || ($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) <= 0) {
+                        $this->command?->warn("Registre saturé, arrêt de la génération des actes.");
+                        break;
+                    }
+
+                    // 5. Générer l'acte de naissance
+                    DB::beginTransaction();
+                    try {
+                        $acteService->genererActe($declaration, $registre, $centreEtatCivilUser);
+                        $mouvementService->ajouterEvenementActe(
+                            $centreEtatCivilUser,
+                            $declaration,
+                            'attente_approbation',
+                            'Acte généré automatiquement via seeder'
+                        );
+                        DB::commit();
+                        $actesGeneres++;
+                    } catch (Exception $e) {
+                        DB::rollBack();
+                        Log::channel("sifec")->error("Échec génération acte {$declaration->code_declaration_naissance} : {$e->getMessage()}");
+                        $this->command?->warn("Échec génération acte {$declaration->code_declaration_naissance} : {$e->getMessage()}");
+                    }
+
+                    $registre->refresh();
+                } catch (Exception $e) {
+                    Log::channel("sifec")->error("Erreur lors du traitement de la déclaration {$declaration->code_declaration_naissance} : {$e->getMessage()}");
+                    $this->command?->warn("Erreur lors du traitement de la déclaration {$declaration->code_declaration_naissance} : {$e->getMessage()}");
+                }
+            } else {
+                $this->command?->warn("Centre d'état civil ou registre introuvable, les actes ne seront pas générés.");
+            }
+
             if ($created % 100 === 0) {
-                $this->command?->info("$created déclarations enregistrées");
+                $this->command?->info("$created déclarations enregistrées, $actesGeneres actes générés");
             }
         }
 
         $this->command?->info("Total déclarations créées: $created");
+        $this->command?->info("Total actes générés: $actesGeneres");
     }
 
     private function createFamilyData(
@@ -265,8 +394,15 @@ class DeclarationNaissanceSeeder extends Seeder
         $fatherNames = $this->makeNomPrenom('M', $surnames, $maleNames, $femaleNames);
         $motherNames = $this->makeNomPrenom('F', $surnames, $maleNames, $femaleNames);
 
-        $fatherBirth = Carbon::create(1975, 1, 1)->addDays($seed % 8000);
-        $motherBirth = Carbon::create(1978, 1, 1)->addDays(($seed * 7) % 8000);
+        // Le père doit avoir au moins 18 ans en 2025 (né au plus tard en 2007)
+        // Le père doit avoir au maximum 50 ans en 2025 (né au plus tôt en 1975)
+        $maxDaysFather = Carbon::create(2007, 12, 31)->diffInDays(Carbon::create(1975, 1, 1));
+        $fatherBirth = Carbon::create(1975, 1, 1)->addDays($seed % ($maxDaysFather + 1));
+
+        // La mère doit avoir au moins 14 ans en 2025 (née au plus tard en 2011)
+        // La mère doit avoir au maximum 47 ans en 2025 (née au plus tôt en 1978)
+        $maxDaysMother = Carbon::create(2011, 12, 31)->diffInDays(Carbon::create(1978, 1, 1));
+        $motherBirth = Carbon::create(1978, 1, 1)->addDays(($seed * 7) % ($maxDaysMother + 1));
 
         $lieuNaissancePere = $lieuxNaissance[$seed % count($lieuxNaissance)];
         $lieuNaissanceMere = $lieuxNaissance[($seed + 2) % count($lieuxNaissance)];

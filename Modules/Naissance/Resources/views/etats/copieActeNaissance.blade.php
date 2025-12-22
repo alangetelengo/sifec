@@ -81,9 +81,9 @@
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
-                <p><strong style="font-size: 18px;">COPIE INTEGRALE D'ACTE DE NAISSANCE</strong>
+                <p><strong style="font-size: 18px;">COPIE D'ACTE DE NAISSANCE </strong>
                     {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
-                    <br>Acte n°: <strong style="color: red">{{ $acte->niupp }}</strong></p>
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}

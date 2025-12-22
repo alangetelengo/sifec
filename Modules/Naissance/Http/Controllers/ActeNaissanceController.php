@@ -42,48 +42,419 @@ class ActeNaissanceController extends Controller
         $affectation = $user->affectationActive();
         $institution = $affectation->institution;
 
-        // Documents à contrôler (cec_approuver = 'NON')
-        $documentsAControler = $institution->getDocumentsAControler("naissance");
+        // Documents à contrôler (cec_approuver = 'NON') - Afficher les 20 derniers par défaut
+        $documentsAControler = $institution->getDocumentsAControler("naissance")
+            ->take(20)
+            ->values();
 
-        // dd($documentsAControler);
-
-        // Gestion des actes (cec_approuver = 'OUI')
-        $actesGestion = $institution->getActesGestion("naissance");
-
-        // $registre = Registre::where("statut",1)->where("code_type_registre","TPRG_0001")->first();
+        // Gestion des actes (cec_approuver = 'OUI') - Afficher les 20 derniers par défaut
+        $actesGestion = $institution->getActesGestion("naissance")
+            ->take(20)
+            ->values();
 
         $registre = Registre::where("cui",$affectation->cui)->where("statut",1)->where("code_type_registre","TPRG_0001")->first();
+
+        // Récupérer les types de déclaration uniques pour les filtres
+        $typesDeclaration = \Modules\Naissance\Entities\Declarationnaissance::distinct()
+            ->pluck('type_declaration')
+            ->filter()
+            ->sort()
+            ->values();
 
         return view(
             'naissance::acte.index', compact(
             "documentsAControler",
             "actesGestion",
-            "registre"
+            "registre",
+            "typesDeclaration"
         ));
+    }
+
+    /**
+     * Filtrer les documents à contrôler côté serveur
+     */
+    public function filterDocuments(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $affectation = $user->affectationActive();
+            $institution = $affectation->institution;
+
+            // Logger les critères de recherche
+            Log::channel('sifec')->info('=== RECHERCHE DOCUMENTS À CONTRÔLER ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'criteres' => [
+                    'numero_declaration' => $request->input('numero_declaration'),
+                    'date_debut' => $request->input('date_debut'),
+                    'date_fin' => $request->input('date_fin'),
+                    'sexe' => $request->input('sexe'),
+                    'type_declaration' => $request->input('type_declaration'),
+                    'statut' => $request->input('statut'),
+                ]
+            ]);
+
+            // Si on recherche par numéro de déclaration ou type de déclaration spécifique,
+            // chercher directement dans la base pour éviter les limitations de getDocumentsAControler
+            $rechercheDirecte = false;
+            if (($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) ||
+                ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0)) {
+                $rechercheDirecte = true;
+
+                // Recherche directe dans tous les documents accessibles à l'institution
+                $query = Declarationnaissance::with(['mouvements', 'enfant', 'acte', 'requisition', 'jugement'])
+                    ->where(function($query) use ($institution) {
+                        // Documents où l'institution est destinataire OU où l'institution est l'institution source
+                        $query->where('code_institution_destinataire', $institution->code_institution)
+                              ->orWhere('code_institution', $institution->code_institution);
+                    })
+                    ->where('declarant_approuver', 'OUI');
+
+                // Ajouter le filtre par numéro de déclaration si fourni
+                if ($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) {
+                    $query->where('code_declaration_naissance', 'LIKE', '%' . $request->numero_declaration . '%');
+                }
+
+                // Ajouter le filtre par type de déclaration si fourni
+                if ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0) {
+                    $query->where('type_declaration', $request->type_declaration);
+                }
+
+                $documentsAControler = $query->get();
+                $countInitial = $documentsAControler->count();
+            } else {
+                // Utiliser la même méthode que getDocumentsAControler pour garantir la cohérence
+                $documentsAControler = $institution->getDocumentsAControler("naissance");
+                $countInitial = $documentsAControler->count();
+            }
+
+        // Filtre par période (date de déclaration de naissance)
+        if ($request->filled('date_debut')) {
+            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
+                $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
+                if ($dateDeclaration) {
+                    return date('Y-m-d', strtotime($dateDeclaration)) >= $request->date_debut;
+                }
+                return false;
+            });
+        }
+        if ($request->filled('date_fin')) {
+            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
+                $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
+                if ($dateDeclaration) {
+                    return date('Y-m-d', strtotime($dateDeclaration)) <= $request->date_fin;
+                }
+                return false;
+            });
+        }
+
+        // Filtre par sexe
+        if ($request->filled('sexe')) {
+            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                return $doc->enfant && $doc->enfant->sexe === $request->sexe;
+            });
+        }
+
+        // Filtre par type de déclaration (si pas déjà appliqué dans la recherche directe)
+        if (!$rechercheDirecte && $request->filled('type_declaration')) {
+            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                return $doc->type_declaration === $request->type_declaration;
+            });
+        }
+
+        // Filtre par statut (basé sur les mouvements)
+        if ($request->filled('statut')) {
+            $statut = $request->statut;
+            $documentsAControler = $documentsAControler->filter(function($doc) use ($statut) {
+                $codesMouvements = $doc->mouvements ? $doc->mouvements->pluck('code_mouvement')->toArray() : [];
+                if ($statut === 'dossier_recu') {
+                    return in_array('MOUV_0001', $codesMouvements) ||
+                           in_array('MOUV_0011', $codesMouvements) ||
+                           in_array('MOUV_0024', $codesMouvements);
+                } elseif ($statut === 'confirme') {
+                    return in_array('MOUV_0019', $codesMouvements);
+                } elseif ($statut === 'en_attente') {
+                    return in_array('MOUV_0004', $codesMouvements);
+                }
+                return true;
+            });
+        }
+
+        $documents = $documentsAControler->values();
+
+        // Les relations sont déjà chargées via getDocumentsAControler (avec 'with')
+        // Il n'est pas nécessaire de les recharger
+
+        $countResultat = $documents->count();
+
+        // Limiter les résultats à 500 maximum pour éviter les problèmes de performance
+        // Si l'utilisateur a besoin de voir plus, il peut affiner ses critères de recherche
+        $maxResults = 500;
+        if ($countResultat > $maxResults) {
+            $documents = $documents->take($maxResults);
+            Log::channel('sifec')->warning('=== RECHERCHE DOCUMENTS - LIMITE ATTEINTE ===', [
+                'user_id' => $user->code_user ?? null,
+                'count_total' => $countResultat,
+                'count_affiché' => $maxResults,
+                'message' => "Plus de {$maxResults} résultats trouvés. Affinez vos critères de recherche pour voir tous les résultats."
+            ]);
+        }
+
+            // Logger les résultats de la recherche
+            Log::channel('sifec')->info('=== RÉSULTATS RECHERCHE DOCUMENTS À CONTRÔLER ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'count_initial' => $countInitial,
+                'count_resultat' => $countResultat,
+                'count_affiché' => $documents->count(),
+                'filtres_appliques' => $request->only(['numero_declaration', 'date_debut', 'date_fin', 'sexe', 'type_declaration', 'statut'])
+            ]);
+
+            return response()->json([
+                'code' => '200',
+                'data' => view('naissance::acte.partials.table-documents', compact('documents'))->render(),
+                'count' => $countResultat,
+                'count_affiché' => $documents->count(),
+                'limite_atteinte' => $countResultat > $maxResults
+            ]);
+        } catch (\Exception $e) {
+            Log::channel('sifec')->error('=== ERREUR RECHERCHE DOCUMENTS À CONTRÔLER ===', [
+                'user_id' => Auth::user()->code_user ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'criteres' => $request->only(['numero_declaration', 'date_debut', 'date_fin', 'sexe', 'type_declaration', 'statut'])
+            ]);
+
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de la recherche des documents',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Filtrer les actes à gérer côté serveur
+     */
+    public function filterActes(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $affectation = $user->affectationActive();
+            $institution = $affectation->institution;
+
+            // Logger les critères de recherche
+            Log::channel('sifec')->info('=== RECHERCHE ACTES À GÉRER ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'criteres' => [
+                    'numero_declaration' => $request->input('numero_declaration'),
+                    'niupp' => $request->input('niupp'),
+                    'date_debut' => $request->input('date_debut'),
+                    'date_fin' => $request->input('date_fin'),
+                    'sexe' => $request->input('sexe'),
+                    'statut' => $request->input('statut'),
+                ]
+            ]);
+
+            // Utiliser la même méthode que getActesGestion pour garantir la cohérence
+            $actesGestion = $institution->getActesGestion("naissance");
+            $countInitial = $actesGestion->count();
+
+        // Filtre par numéro de déclaration
+        if ($request->filled('numero_declaration')) {
+            $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                return stripos($acte->code_declaration_naissance, $request->numero_declaration) !== false;
+            });
+        }
+
+        // Filtre par NIUPP (numéro d'acte)
+        if ($request->filled('niupp')) {
+            $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                return $acte->acte && stripos($acte->acte->niupp, $request->niupp) !== false;
+            });
+        }
+
+        // Filtre par période (date de déclaration de naissance)
+        if ($request->filled('date_debut')) {
+            $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
+                $dateDeclaration = $acte->date_heure_declaration ?? $acte->created_at;
+                if ($dateDeclaration) {
+                    return date('Y-m-d', strtotime($dateDeclaration)) >= $request->date_debut;
+                }
+                return false;
+            });
+        }
+        if ($request->filled('date_fin')) {
+            $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
+                $dateDeclaration = $acte->date_heure_declaration ?? $acte->created_at;
+                if ($dateDeclaration) {
+                    return date('Y-m-d', strtotime($dateDeclaration)) <= $request->date_fin;
+                }
+                return false;
+            });
+        }
+
+        // Filtre par sexe
+        if ($request->filled('sexe')) {
+            $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                return $acte->enfant && $acte->enfant->sexe === $request->sexe;
+            });
+        }
+
+        // Filtre par statut
+        if ($request->filled('statut')) {
+            $statut = $request->statut;
+            $actesGestion = $actesGestion->filter(function($acte) use ($statut) {
+                $codesMouvements = $acte->mouvements ? $acte->mouvements->pluck('code_mouvement')->toArray() : [];
+                $dernierMouvement = $acte->mouvements ? $acte->mouvements->sortByDesc('created_at')->first() : null;
+
+                if ($statut === 'en_attente_generation') {
+                    return !$acte->acte;
+                } elseif ($statut === 'en_attente_validation') {
+                    return $acte->acte && (!$acte->acte->approbation_mairie || $acte->acte->approbation_mairie === '');
+                } elseif ($statut === 'valide_non_retire') {
+                    return $acte->acte && $acte->acte->approbation_mairie &&
+                           (!$dernierMouvement || ($dernierMouvement->code_mouvement !== 'MOUV_0016' && $dernierMouvement->code_mouvement !== 'MOUV_0017'));
+                } elseif ($statut === 'retire') {
+                    return $dernierMouvement && $dernierMouvement->code_mouvement === 'MOUV_0016';
+                } elseif ($statut === 'annule') {
+                    return $dernierMouvement && $dernierMouvement->code_mouvement === 'MOUV_0017';
+                }
+                return true;
+            });
+        }
+
+        $actes = $actesGestion->values();
+
+        $countResultat = $actes->count();
+
+        // Limiter les résultats à 500 maximum pour éviter les problèmes de performance
+        // Si l'utilisateur a besoin de voir plus, il peut affiner ses critères de recherche
+        $maxResults = 500;
+        if ($countResultat > $maxResults) {
+            $actes = $actes->take($maxResults);
+            Log::channel('sifec')->warning('=== RECHERCHE ACTES - LIMITE ATTEINTE ===', [
+                'user_id' => $user->code_user ?? null,
+                'count_total' => $countResultat,
+                'count_affiché' => $maxResults,
+                'message' => "Plus de {$maxResults} résultats trouvés. Affinez vos critères de recherche pour voir tous les résultats."
+            ]);
+        }
+
+            // Logger les résultats de la recherche
+            Log::channel('sifec')->info('=== RÉSULTATS RECHERCHE ACTES À GÉRER ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'count_initial' => $countInitial,
+                'count_resultat' => $countResultat,
+                'count_affiché' => $actes->count(),
+                'filtres_appliques' => $request->only(['numero_declaration', 'niupp', 'date_debut', 'date_fin', 'sexe', 'statut'])
+            ]);
+
+            return response()->json([
+                'code' => '200',
+                'data' => view('naissance::acte.partials.table-actes', compact('actes'))->render(),
+                'count' => $countResultat,
+                'count_affiché' => $actes->count(),
+                'limite_atteinte' => $countResultat > $maxResults
+            ]);
+        } catch (\Exception $e) {
+            Log::channel('sifec')->error('=== ERREUR RECHERCHE ACTES À GÉRER ===', [
+                'user_id' => Auth::user()->code_user ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'criteres' => $request->only(['numero_declaration', 'niupp', 'date_debut', 'date_fin', 'sexe', 'statut'])
+            ]);
+
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de la recherche des actes',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function displayActe($id)
     {
-
-
         try {
-            $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
-            $dummy = "XXXXXXXXXXXXXXXX";
+            // Charger l'acte avec ses relations nécessaires
+            $acte = ActeNaissance::with([
+                'declaration.enfant',
+                'declaration.pere.nationalite',
+                'declaration.pere.profession',
+                'declaration.mere.nationalite',
+                'declaration.mere.profession',
+                'declaration.declarant',
+                'declaration.adoptant',
+                'declaration.jugement.institutionUser.institution.institutionParent',
+                'declaration.institutionUser.institution.institutionParent',
+                'declaration.institutionUser.institution.lieu.localiteParent',
+                'declaration.requisition.typeRequisition',
+                'declaration.institution.institutionParent',
+                'institutionUser.institution',
+                'institutionUser.institution.institutionParent.lieu.localiteParent'
+            ])->where("code_declaration_naissance", $id)->first();
 
             if($acte == null){
-                toastr()->error("Vous ne pouvez pas généré un acte de naissance");
+                Log::channel('sifec')->error("Acte de naissance introuvable pour code_declaration_naissance: {$id}");
+                toastr()->error("Vous ne pouvez pas générer un acte de naissance. Acte introuvable.");
                 return back();
             }
-            $acteannuler = Declarationnaissance::where("numero_ancien_acte",$acte->niupp)->first();
+
+            // Vérifier que la déclaration existe
+            if(!$acte->declaration) {
+                Log::channel('sifec')->error("Déclaration manquante pour acte: {$acte->code_acte_naissance}");
+                throw new Exception("Données incomplètes pour générer l'acte. Déclaration manquante.");
+            }
+
+            $dummy = "XXXXXXXXXXXXXXXX";
+
+            // Recherche de l'acte annulé (si existe)
+            $acteannuler = Declarationnaissance::where("numero_ancien_acte", $acte->niupp)->first();
+
+            // Recherche de déclaration de décès (si existe)
             $declarationDeces = DeclarationDeces::where("num_acte_naissance", $acte->niupp)->first();
 
+            // Recherche de mariage (si existe)
             $mariage = null;
-            if (DeclarationMariage::where('numero_acte_naissance_epoux',$acte->niupp)->first() != null) {
-                $mariage = DeclarationMariage::where('numero_acte_naissance_epoux',$acte->niupp)->first();
+            $mariageEpoux = DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first();
+            if($mariageEpoux) {
+                $mariage = $mariageEpoux;
+            } else {
+                $mariageEpouse = DeclarationMariage::where('numero_acte_naissance_epouse', $acte->niupp)->first();
+                if($mariageEpouse) {
+                    $mariage = $mariageEpouse;
+                }
             }
-            if (DeclarationMariage::where('numero_acte_naissance_epouse',$acte->niupp)->first() != null) {
-                $mariage = DeclarationMariage::where('numero_acte_naissance_epouse',$acte->niupp)->first();
+
+            // Compter le nombre total de mentions
+            $nombreMentions = 0;
+            if ($mariage != null) {
+                $nombreMentions++;
             }
+            if ($declarationDeces != null) {
+                $nombreMentions++;
+            }
+            if ($acte->declaration->jugement != null) {
+                $nombreMentions++;
+            }
+            if ($acteannuler != null) {
+                $nombreMentions++;
+            }
+            // Charger les rectifications si nécessaire pour le comptage
+            if (!$acte->relationLoaded('rectifications')) {
+                $acte->load('rectifications');
+            }
+            if ($acte->rectifications && $acte->rectifications->count() > 0) {
+                $nombreMentions += $acte->rectifications->count();
+            }
+
+            DB::beginTransaction();
 
             view()->share("tester", "Alange");
             $html2pdf = new Html2Pdf('P', 'A4', 'fr');
@@ -91,13 +462,35 @@ class ActeNaissanceController extends Controller
 
             $verificationUrl = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
             $qrCode = $verificationUrl;
-            $html2pdf->writeHTML(view('naissance::etats.acte', compact("acte","dummy","acteannuler","declarationDeces","mariage","qrCode"))->render());
+
+            // Rendre la vue avec gestion d'erreur
+            $htmlContent = view('naissance::etats.acte', compact("acte","dummy","acteannuler","declarationDeces","mariage","qrCode","nombreMentions"))->render();
+
+            if(empty($htmlContent)) {
+                throw new Exception("Le contenu HTML de l'acte est vide.");
+            }
+
+            $html2pdf->writeHTML($htmlContent);
+            DB::commit();
 
             return $html2pdf->output($acte->code_acte_naissance.".pdf");
+
         } catch (Exception $e) {
-            Log::channel("sifec")->info("Erreur lors de la génération de l'acte de naissance: " . $e->getMessage());
-            toastr()->error("Une erreur est survenue lors de la génération de l'acte de naissance: " . $e->getMessage());
-            return back();
+            DB::rollBack();
+            Log::channel('sifec')->error("Erreur génération PDF acte de naissance ID: {$id} - Message: " . $e->getMessage());
+            Log::channel('sifec')->error("Stack trace: " . $e->getTraceAsString());
+
+            // Si c'est une requête AJAX ou PDF, renvoyer une réponse JSON ou une erreur HTTP
+            if (request()->expectsJson() || request()->wantsJson()) {
+                return response()->json([
+                    'error' => true,
+                    'message' => "Erreur lors de la génération du PDF: " . $e->getMessage()
+                ], 500);
+            }
+
+            // Sinon, renvoyer une réponse HTML d'erreur pour le PDF Viewer
+            return response("Erreur lors de la génération du PDF: " . $e->getMessage(), 500)
+                ->header('Content-Type', 'text/plain');
         }
     }
 
@@ -906,7 +1299,6 @@ class ActeNaissanceController extends Controller
 
             if (!$ok) {
                 DB::rollBack();
-                Log::channel('sifec')->info($result);
                 throw new Exception($result ?: "Erreur lors de la confirmation du dossier");
             }
 
@@ -1009,7 +1401,6 @@ class ActeNaissanceController extends Controller
 
             if (!$ok) {
                 DB::rollBack();
-                Log::channel('sifec')->info($result);
                 throw new Exception($result ?: "Erreur lors du renvoi du dossier");
             }
 

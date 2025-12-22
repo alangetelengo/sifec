@@ -15,16 +15,28 @@
   <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 14px">
     @php
     $infos = "";
-    $tribunal = $acte->declaration->institutionUser->institution->tribunal;
-    if ($tribunal != NULL) {
-        $tribunal = $acte->declaration->institutionUser->institution->tribunal->lib_tribunal;
+    $tribunal = null;
+    try {
+        // Vérifier si la relation tribunal existe et est accessible
+        $institution = $acte->declaration->institutionUser->institution ?? null;
+        if ($institution && method_exists($institution, 'tribunal')) {
+            $tribunal = $institution->tribunal;
+            if ($tribunal != null && isset($tribunal->lib_tribunal)) {
+                $tribunal = $tribunal->lib_tribunal;
+            }
+        }
+    } catch (\Exception $e) {
+        // Si la relation n'existe pas, on continue avec $tribunal = null
+        $tribunal = null;
     }
 
     $num = "";
+    if ($tribunal) {
     if (str_contains($tribunal, "TRIBUNAL D'INSTANCE")) {
         $num = str_replace("TRIBUNAL D'INSTANCE","TI ",$tribunal);
     } else {
         $num = str_replace("TRIBUNAL DE GRANDE INSTANCE","TGI ",$tribunal);
+        }
     }
 
     if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
@@ -93,7 +105,7 @@
     </table>
     <div style="margin-top: 60px;margin-left: 6%;margin-right: 6%;border-radius: 2mm;">
         <div style="width: 150px;text-align: center;">
-            <p>Marge réservée aux mentions <br> d'officier(0) <br><br>
+            <p>Marge réservée aux mentions <br> d'officier({{ $nombreMentions ?? 0 }}) <br><br>
             </p>
 
             @if ($mariage != null)

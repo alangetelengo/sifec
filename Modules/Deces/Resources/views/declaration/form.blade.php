@@ -10,7 +10,7 @@
     <div class="row">
         <div class="col-md-3">
             <label class="form-label">Nom(s) défunt <span class="text-danger">*</span></label>
-            <input type="text" class="form-control required  @error('nom_defunt') is-invalid @enderror" value="{{ old("nom_defunt") }}" placeholder="" id="nom_defunt" name="nom_defunt" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()">
+            <input type="text" class="form-control required @error('nom_defunt') is-invalid @enderror" value="{{ old("nom_defunt") }}" placeholder="" id="nom_defunt" name="nom_defunt" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()">
             @error("nom_defunt")
             <div class="invalid-feedback">
                 {{ $message }}
@@ -37,7 +37,7 @@
         </div>
         <div class="col-md-3">
             <label class="form-label">Date de naissance <span class="text-danger">*</span></label>
-            <input type="date" class="form-control  @error('date_naissance_defunt') is-invalid @enderror" value="{{ old("date_naissance_defunt") }}" id="date_naissance_defunt" name="date_naissance_defunt" max="{{ \Carbon\Carbon::now()->format('Y-m-d'); }}">
+            <input type="date" class="form-control @error('date_naissance_defunt') is-invalid @enderror" value="{{ old("date_naissance_defunt") }}" id="date_naissance_defunt" name="date_naissance_defunt" max="{{ \Carbon\Carbon::now()->format('Y-m-d'); }}">
             <input type="checkbox" id="type_date_naissance_defunt" value="ESTIME" name="type_date_naissance_defunt"><label for="type_date_naissance_defunt">date estimée</label>
             @error("date_naissance_defunt")
             <div class="invalid-feedback">
@@ -89,7 +89,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Numéro d'acte de naissance <span class="text-danger">*</span></label>
-                <input type="text" class="form-control  @error('num_acte_naissance') is-invalid @enderror" value="{{ old("num_acte_naissance") }}" id="num_acte_naissance" name="num_acte_naissance" required onkeyup="this.value=this.value.toUpperCase()">
+                <input type="text" class="form-control @error('num_acte_naissance') is-invalid @enderror" value="{{ old("num_acte_naissance") }}" id="num_acte_naissance" name="num_acte_naissance" required onkeyup="this.value=this.value.toUpperCase()">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Profession <span class="text-danger">*</span></label>

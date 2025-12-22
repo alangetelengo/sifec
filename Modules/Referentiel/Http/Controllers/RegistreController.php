@@ -114,7 +114,7 @@ class RegistreController extends Controller
         $code_cec = Auth::user()->affectationActive()->cui;
 
        //$prefix = $request->prefix.$code_cec;
-       // $coderegistre =   Sifec::genererCodeUniqueReferentiel(new Registre(),"code_registre",3,$request->prefix);
+       // $coderegistre =   Sifec::genererCodeUfniqueReferentiel(new Registre(),"code_registre",3,$request->prefix);
 
         $request->validate([
             "lib_registre" => ["string"],
@@ -403,8 +403,15 @@ class RegistreController extends Controller
     {
         $registre = Registre::find($id);
         $dummy = "XXXXXXXXXXXXXXXX";
-        $actesRegistre = ActeNaissance::where("code_registre",$id)->orderBy("code_declaration_naissance")->get();
-        // dd($actesRegistre);
+
+        // Récupérer les actes triés par position dans le registre (4 derniers caractères du code_acte dans t_feuillet_registre)
+        // Les 4 derniers caractères du code_acte représentent la position dans le registre
+        $actesRegistre = ActeNaissance::where("code_registre", $id)
+            ->join('t_feuillet_registre', 't_acte_naissance.niupp', '=', 't_feuillet_registre.code_acte')
+            ->select('t_acte_naissance.*')
+            ->orderByRaw('CAST(RIGHT(t_feuillet_registre.code_acte, 4) AS UNSIGNED) ASC')
+            ->get();
+
         return view('referentiel::registre.registre_acte_naissance', compact('registre','actesRegistre','dummy'));
     }
 
@@ -443,7 +450,15 @@ class RegistreController extends Controller
     public function registreDeces($id)
     {
         $registre = Registre::find($id);
-        $actesRegistre = ActeDeces::where("code_registre",$id)->get();
+
+        // Récupérer les actes triés par position dans le registre (8 derniers caractères du code_acte_deces dans t_feuillet_registre)
+        // Les 8 derniers caractères du code_acte_deces représentent la position dans le registre (ex: AD_00000001 → position 1)
+        $actesRegistre = ActeDeces::where("code_registre", $id)
+            ->join('t_feuillet_registre', 't_acte_deces.code_acte_deces', '=', 't_feuillet_registre.code_acte')
+            ->select('t_acte_deces.*')
+            ->orderByRaw('CAST(RIGHT(t_feuillet_registre.code_acte, 8) AS UNSIGNED) ASC')
+            ->get();
+
         return view('referentiel::registre.registre_acte_deces', compact('registre','actesRegistre'));
     }
 
@@ -508,24 +523,18 @@ class RegistreController extends Controller
             //type de registre
             $typeRegistre = $reg->typeRegistre->lib_type_registre;
 
-
-            //envoyer la notification au tribunal
-            // $tribunal = $reg->institutionUser->institution->institutionParent;
-            // $notificationService = new NotificationService();
-            // $notificationService->notifierAgentsInstitution(
-            //     $tribunal->code_institution,
-            //     new \Modules\Notification\Notifications\RegistreAjouteNotification($reg)
-            // );
-
-
+            //notifier le président du tribunal pour des feuillets ajoutés au registre (notification à titre d'information)
+            if ($reg->institutionUser && $reg->institutionUser->institution && $reg->institutionUser->institution->institutionParent) {
+                NotificationService::notifierFeuilletRegistreAjoute(
+                    $reg->institutionUser->institution->institutionParent,
+                    new \Modules\Notification\Notifications\FeuilletRegistreAjouteNotification($reg, $nbrefeuillets)
+                );
+            }
 
             return response()->json([
                 "code"=>"200",
                 "message"=>"REGISTRE DE $typeRegistre $nbrefeuillets feuillets ajouté avec succès"
             ]);
-
-
-
 
         } catch (Exception $e) {
             return response()->json([

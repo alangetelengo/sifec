@@ -228,7 +228,7 @@ class TribunalController extends Controller
             return redirect()->back();
         }
 
-        dd($type);
+        // dd($type);
 
         // Exemple : message de succès si besoin
         // toastr()->success('Déclaration chargée avec succès !');

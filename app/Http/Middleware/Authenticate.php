@@ -19,7 +19,7 @@ class Authenticate extends Middleware
     {
         // Logger avant la vérification d'authentification
         if ($request->is('two-factor/*')) {
-            Log::channel('ecole')->info('=== AUTHENTICATE MIDDLEWARE - AVANT VÉRIFICATION ===', [
+            Log::channel('sifec')->info('=== AUTHENTICATE MIDDLEWARE - AVANT VÉRIFICATION ===', [
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
                 'route' => $request->route()?->getName(),
@@ -36,7 +36,7 @@ class Authenticate extends Middleware
 
             // Logger après la vérification (si succès)
             if ($request->is('two-factor/*')) {
-                Log::channel('ecole')->info('=== AUTHENTICATE MIDDLEWARE - APRÈS VÉRIFICATION (SUCCÈS) ===', [
+                Log::channel('sifec')->info('=== AUTHENTICATE MIDDLEWARE - APRÈS VÉRIFICATION (SUCCÈS) ===', [
                     'url' => $request->fullUrl(),
                     'auth_check' => auth()->check(),
                     'auth_id' => auth()->id(),
@@ -46,7 +46,7 @@ class Authenticate extends Middleware
             return $response;
         } catch (\Illuminate\Auth\AuthenticationException $e) {
             // Logger en cas d'échec d'authentification
-            Log::channel('ecole')->error('=== AUTHENTICATE MIDDLEWARE - ÉCHEC AUTHENTIFICATION ===', [
+            Log::channel('sifec')->error('=== AUTHENTICATE MIDDLEWARE - ÉCHEC AUTHENTIFICATION ===', [
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
                 'session_id' => $request->session()?->getId(),

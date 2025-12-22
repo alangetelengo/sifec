@@ -6,7 +6,7 @@
         font-size: 100%;
     } */
 </style>
-<page orientation="portrait" backimg="{{asset('tpl/armoirie_congo.png')}}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+<page orientation="portrait" backimg="{{ str_replace('\\', '/', public_path('tpl/armoirie_congo.png')) }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
     @php
         setlocale(LC_TIME, "fr_FR", "French");
 

@@ -31,11 +31,11 @@
                     <h4>{{ $title }}</h4>
                       <!-- retour à la liste selon le type de declaration -->
                       @if($type_declaration == 'CERTIFICAT DE NON INSCRIPTION' || $type_declaration == 'DECLARATION TARDIVE')
-                      <a href="{{ route('certificatNonInscriptionDeces.index') }}" class="btn btn-info float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
+                      <a href="{{ route('certificatNonInscriptionDeces.index') }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
                       @elseif($type_declaration == 'CERTIFICAT DE DESTRUCTION DE L\'ACTE')
-                      <a href="{{ route('certificatDestructionDeces.index') }}" class="btn btn-info float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
+                      <a href="{{ route('certificatDestructionDeces.index') }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
                       @else
-                      <a href="{{ route('declarationDeces.index') }}" class="btn btn-info float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
+                      <a href="{{ route('declarationDeces.index') }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
                       @endif
                     <form  name="contactUsForm" id="contactUsForm" class="validation-wizard wizard-circle" method="post" action="javascript:void(0)">
                         <!-- Step 1 -->

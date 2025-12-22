@@ -7,7 +7,7 @@ use Exception;
 use App\Sifec\Sifec;
 use App\Sifec\SifecFacade;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -804,6 +804,17 @@ class MariageController extends Controller
             return $identite; // Retourner l'erreur de base
         }
 
+        // Vérifier l'âge minimum requis
+        $verificationAge = $this->verifierAgeMinimum($identiteData['date_naissance'] ?? null, $type_personne);
+        if (!$verificationAge['valide']) {
+            return response()->json([
+                'code' => '400',
+                'message' => $verificationAge['message'],
+                'age_actuel' => $verificationAge['age_actuel'] ?? null,
+                'age_minimum' => $verificationAge['age_minimum'] ?? null
+            ], 400);
+        }
+
         // Vérifier d'abord si la personne est décédée
         $statutPersonne = $this->verifierStatutPersonne($niupp);
 
@@ -825,6 +836,75 @@ class MariageController extends Controller
         $identiteData['situation_matrimoniale'] = $situationMatrimoniale;
 
         return response()->json($identiteData);
+    }
+
+    /**
+     * Vérifier l'âge minimum requis pour le mariage
+     * Époux : >= 21 ans
+     * Épouse : >= 18 ans
+     */
+    private function verifierAgeMinimum($dateNaissance, $type_personne)
+    {
+        if (!$dateNaissance) {
+            return [
+                'valide' => false,
+                'message' => 'La date de naissance est requise pour vérifier l\'âge.',
+                'age_actuel' => null,
+                'age_minimum' => null
+            ];
+        }
+
+        try {
+            // Log pour déboguer
+            Log::info('Vérification âge - Date de naissance reçue: ' . $dateNaissance);
+
+            // Parser la date de naissance
+            $dateNaissanceCarbon = \Carbon\Carbon::parse($dateNaissance);
+
+            // Vérifier que la date est valide (pas dans le futur)
+            if ($dateNaissanceCarbon->isFuture()) {
+                return [
+                    'valide' => false,
+                    'message' => 'La date de naissance ne peut pas être dans le futur.',
+                    'age_actuel' => 0,
+                    'age_minimum' => $type_personne === 'epoux' ? 21 : 18
+                ];
+            }
+
+            // Calculer l'âge
+            $ageActuel = $dateNaissanceCarbon->diffInYears(\Carbon\Carbon::now());
+
+            // Log pour déboguer
+            Log::info('Vérification âge - Âge calculé: ' . $ageActuel);
+
+            // Définir l'âge minimum selon le type de personne
+            $ageMinimum = $type_personne === 'epoux' ? 21 : 18;
+            $typePersonneLibelle = $type_personne === 'epoux' ? 'époux' : 'épouse';
+
+            if ($ageActuel < $ageMinimum) {
+                return [
+                    'valide' => false,
+                    'message' => "L'âge minimum requis pour un(e) {$typePersonneLibelle} est de {$ageMinimum} ans. L'âge actuel est de {$ageActuel} an(s).",
+                    'age_actuel' => $ageActuel,
+                    'age_minimum' => $ageMinimum
+                ];
+            }
+
+            return [
+                'valide' => true,
+                'message' => "L'âge est conforme ({$ageActuel} ans, minimum requis : {$ageMinimum} ans).",
+                'age_actuel' => $ageActuel,
+                'age_minimum' => $ageMinimum
+            ];
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la vérification de l\'âge: ' . $e->getMessage());
+            return [
+                'valide' => false,
+                'message' => 'Erreur lors de la vérification de l\'âge. Veuillez vérifier la date de naissance.',
+                'age_actuel' => null,
+                'age_minimum' => null
+            ];
+        }
     }
 
     /**
@@ -910,81 +990,134 @@ class MariageController extends Controller
 
     /**
      * Vérifier la situation matrimoniale d'une personne
+     * Vérifie directement dans t_declaration_mariage si la personne est déjà mariée
      */
     private function verifierSituationMatrimoniale($niupp, $type_personne)
     {
         try {
-            // Rechercher les actes de mariage de cette personne
-            $actesMariage = $this->rechercherActesMariageParPersonne($niupp);
+            // Rechercher l'acte de naissance pour obtenir le code_personne
+            $acteNaissance = \App\Sifec\Sifec::rechercherPersonne($niupp);
 
-            if (empty($actesMariage)) {
+            if (!$acteNaissance || !$acteNaissance->declaration || !$acteNaissance->declaration->enfant) {
+                // Si on ne trouve pas la personne, on considère qu'elle est célibataire
                 return [
                     'statut' => 'celibataire',
-                    'message' => 'Aucun acte de mariage trouvé. La personne est célibataire.',
+                    'message' => 'Aucune déclaration de mariage trouvée. La personne est célibataire.',
                     'actes' => [],
                     'conjoint' => null
                 ];
             }
 
-            // Analyser les actes de mariage
-            $dernierActe = $actesMariage->first();
-            $optionMariage = $dernierActe->declaration->optionMariage;
+            // Récupérer le code de la personne depuis l'acte de naissance
+            $codePersonne = $acteNaissance->declaration->enfant->code_personne ?? null;
+
+            if (!$codePersonne) {
+                // Pas de code personne, considérer comme célibataire
+                return [
+                    'statut' => 'celibataire',
+                    'message' => 'Aucune déclaration de mariage trouvée. La personne est célibataire.',
+                    'actes' => [],
+                    'conjoint' => null
+                ];
+            }
+
+            // Rechercher directement dans t_declaration_mariage si la personne est déjà mariée
+            $declarationsMariage = \Modules\Mariage\Entities\DeclarationMariage::with(['optionMariage', 'epoux', 'epouse'])
+                ->where(function($query) use ($codePersonne) {
+                    $query->where('code_epoux', $codePersonne)
+                          ->orWhere('code_epouse', $codePersonne);
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Si aucune déclaration trouvée, la personne est célibataire
+            if ($declarationsMariage->isEmpty()) {
+                return [
+                    'statut' => 'celibataire',
+                    'message' => 'Aucune déclaration de mariage trouvée. La personne est célibataire.',
+                    'actes' => [],
+                    'conjoint' => null
+                ];
+            }
+
+            // Prendre la déclaration la plus récente
+            $derniereDeclaration = $declarationsMariage->first();
 
             // Déterminer le nom du conjoint
-            $conjoint = $this->determinerConjoint($dernierActe, $type_personne);
+            $conjoint = null;
+            if ($type_personne === 'epoux' && $derniereDeclaration->epouse) {
+                $conjoint = $derniereDeclaration->epouse->nom . ' ' . $derniereDeclaration->epouse->prenom;
+            } else if ($type_personne === 'epouse' && $derniereDeclaration->epoux) {
+                $conjoint = $derniereDeclaration->epoux->nom . ' ' . $derniereDeclaration->epoux->prenom;
+            }
 
-            if ($optionMariage->code_option_mariage == "OMRG_0002") {
-                // Monogamie - vérifier si divorcé ou veuf
-                $situation = $this->determinerSituationMonogamie($dernierActe);
+            // Vérifier l'option de mariage
+            $optionMariage = $derniereDeclaration->optionMariage;
+
+            // Si pas d'option de mariage, considérer comme célibataire (données incomplètes)
+            if (!$optionMariage) {
+                Log::warning('Déclaration de mariage sans option de mariage: ' . $derniereDeclaration->code_declaration_mariage);
                 return [
-                    'statut' => $situation['statut'],
-                    'message' => $situation['message'],
+                    'statut' => 'celibataire',
+                    'message' => 'Aucune déclaration de mariage valide trouvée. La personne est considérée comme célibataire.',
+                    'actes' => [],
+                    'conjoint' => null
+                ];
+            }
+
+            // Vérifier le type de mariage
+            if ($optionMariage->code_option_mariage == "OMRG_0002") {
+                // Monogamie - empêcher un nouveau mariage
+                return [
+                    'statut' => 'marie_monogamie',
+                    'message' => 'La personne est déjà mariée en monogamie. Un nouveau mariage nécessite un divorce ou un décès de l\'époux/épouse actuel(le).',
                     'conjoint' => $conjoint,
-                    'acte_mariage_actuel' => [
-                        'code_acte' => $dernierActe->code_acte_mariage,
-                        'date_emission' => $dernierActe->date_emission,
-                        'option_mariage' => $dernierActe->declaration->optionMariage->lib_option_mariage,
-                        'code_option_mariage' => $dernierActe->declaration->optionMariage->code_option_mariage,
-                        'statut' => $dernierActe->statut ?? 'actif'
+                    'declaration_mariage' => [
+                        'code_declaration' => $derniereDeclaration->code_declaration_mariage,
+                        'date_prevue_mariage' => $derniereDeclaration->date_prevue_mariage,
+                        'option_mariage' => $optionMariage->lib_option_mariage,
+                        'code_option_mariage' => $optionMariage->code_option_mariage,
                     ],
-                    'actes' => $actesMariage->map(function($acte) {
+                    'actes' => $declarationsMariage->map(function($declaration) {
                         return [
-                            'code_acte' => $acte->code_acte_mariage,
-                            'date_emission' => $acte->date_emission,
-                            'option_mariage' => $acte->declaration->optionMariage->lib_option_mariage,
-                            'statut' => $acte->statut ?? 'actif'
+                            'code_declaration' => $declaration->code_declaration_mariage,
+                            'date_prevue_mariage' => $declaration->date_prevue_mariage,
+                            'option_mariage' => $declaration->optionMariage ? $declaration->optionMariage->lib_option_mariage : 'Non spécifiée',
                         ];
                     })
                 ];
             } else {
-                // Polygamie - OK pour un nouveau mariage
+                // Polygamie - permettre un nouveau mariage
                 return [
                     'statut' => 'polygame',
                     'message' => 'La personne est déjà mariée en polygamie. Un nouveau mariage est possible.',
                     'conjoint' => $conjoint,
-                    'acte_mariage_actuel' => [
-                        'code_acte' => $dernierActe->code_acte_mariage,
-                        'date_emission' => $dernierActe->date_emission,
-                        'option_mariage' => $dernierActe->declaration->optionMariage->lib_option_mariage,
-                        'code_option_mariage' => $dernierActe->declaration->optionMariage->code_option_mariage,
-                        'statut' => $dernierActe->statut ?? 'actif'
+                    'declaration_mariage' => [
+                        'code_declaration' => $derniereDeclaration->code_declaration_mariage,
+                        'date_prevue_mariage' => $derniereDeclaration->date_prevue_mariage,
+                        'option_mariage' => $optionMariage->lib_option_mariage,
+                        'code_option_mariage' => $optionMariage->code_option_mariage,
                     ],
-                    'actes' => $actesMariage->map(function($acte) {
+                    'actes' => $declarationsMariage->map(function($declaration) {
                         return [
-                            'code_acte' => $acte->code_acte_mariage,
-                            'date_emission' => $acte->date_emission,
-                            'option_mariage' => $acte->declaration->optionMariage->lib_option_mariage,
-                            'statut' => $acte->statut ?? 'actif'
+                            'code_declaration' => $declaration->code_declaration_mariage,
+                            'date_prevue_mariage' => $declaration->date_prevue_mariage,
+                            'option_mariage' => $declaration->optionMariage ? $declaration->optionMariage->lib_option_mariage : 'Non spécifiée',
                         ];
                     })
                 ];
             }
 
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la vérification de la situation matrimoniale: ' . $e->getMessage());
+            Log::error('Erreur lors de la vérification de la situation matrimoniale: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'niupp' => $niupp,
+                'type_personne' => $type_personne
+            ]);
+            // En cas d'erreur, considérer comme célibataire pour permettre le processus
             return [
-                'statut' => 'erreur',
-                'message' => 'Erreur lors de la vérification de la situation matrimoniale.',
+                'statut' => 'celibataire',
+                'message' => 'Impossible de vérifier la situation matrimoniale. La personne est considérée comme célibataire.',
                 'actes' => [],
                 'conjoint' => null
             ];
@@ -996,22 +1129,35 @@ class MariageController extends Controller
      */
     private function rechercherActesMariageParPersonne($niupp)
     {
-        // Rechercher l'acte de naissance par son numéro d'acte de naissance
-        $acteNaissance = \App\Sifec\Sifec::rechercherPersonne($niupp);
+        try {
+            // Rechercher l'acte de naissance par son numéro d'acte de naissance
+            $acteNaissance = \App\Sifec\Sifec::rechercherPersonne($niupp);
 
-        if (!$acteNaissance) {
-            return collect([]);
-        }
+            if (!$acteNaissance) {
+                return collect([]);
+            }
 
-        // Récupérer le code de la personne depuis l'acte de naissance
-        $codePersonne = $acteNaissance->declaration->enfant->code_personne ?? null;
+            // Vérifier que la déclaration existe
+            if (!$acteNaissance->declaration) {
+                Log::warning('Acte de naissance sans déclaration: ' . $niupp);
+                return collect([]);
+            }
 
-        if (!$codePersonne) {
-            return collect([]);
-        }
+            // Récupérer le code de la personne depuis l'acte de naissance
+            $codePersonne = $acteNaissance->declaration->enfant->code_personne ?? null;
 
-        // Rechercher les actes de mariage où cette personne est époux ou épouse
-        $actesMariage = \Modules\Mariage\Entities\ActeMariage::with(['declaration.optionMariage', 'declaration.epoux', 'declaration.epouse'])
+            if (!$codePersonne) {
+                Log::warning('Code personne introuvable pour l\'acte de naissance: ' . $niupp);
+                return collect([]);
+            }
+
+            // Rechercher les actes de mariage où cette personne est époux ou épouse
+            // Charger toutes les relations nécessaires
+            $actesMariage = \Modules\Mariage\Entities\ActeMariage::with([
+                'declaration.optionMariage',
+                'declaration.epoux',
+                'declaration.epouse'
+            ])
             ->whereHas('declaration', function($query) use ($codePersonne) {
                 $query->where('code_epoux', $codePersonne)
                       ->orWhere('code_epouse', $codePersonne);
@@ -1019,7 +1165,14 @@ class MariageController extends Controller
             ->orderBy('date_emission', 'desc')
             ->get();
 
-        return $actesMariage;
+            return $actesMariage;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la recherche des actes de mariage: ' . $e->getMessage(), [
+                'niupp' => $niupp,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return collect([]);
+        }
     }
 
     /**
@@ -1043,7 +1196,11 @@ class MariageController extends Controller
     private function determinerConjoint($acte, $type_personne)
     {
         try {
-            $declaration = $acte->declaration;
+            $declaration = $acte->declaration ?? null;
+
+            if (!$declaration) {
+                return null;
+            }
 
             if ($type_personne === 'epoux') {
                 // Si on recherche l'époux, retourner le nom de l'épouse
@@ -1059,7 +1216,10 @@ class MariageController extends Controller
 
             return null;
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la détermination du conjoint: ' . $e->getMessage());
+            Log::error('Erreur lors de la détermination du conjoint: ' . $e->getMessage(), [
+                'code_acte' => $acte->code_acte_mariage ?? 'inconnu',
+                'type_personne' => $type_personne
+            ]);
             return null;
         }
     }

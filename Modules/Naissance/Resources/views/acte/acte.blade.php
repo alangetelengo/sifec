@@ -346,9 +346,44 @@ Acte de naissance
             var retirer = $("#retirer").val();
 
             if(cdn) {
-                // kendo.alert("ok");
                 var route = "{{ route('acteNaissance.display', ':id') }}";
-                route = route.replace(':id',cdn);
+                route = route.replace(':id', cdn);
+
+                console.log("Tentative de chargement du PDF depuis:", route);
+
+                // Vérifier que la route est accessible avant de charger le PDF Viewer
+                $.ajax({
+                    url: route,
+                    method: 'HEAD',
+                    success: function(data, textStatus, jqXHR) {
+                        console.log("Route PDF accessible, Content-Type:", jqXHR.getResponseHeader('Content-Type'));
+                        loadPDFViewer(route, retirer);
+                    },
+                    error: function(xhr, textStatus, errorThrown) {
+                        console.error("Erreur lors de la vérification de la route PDF:", textStatus, errorThrown);
+                        var errorMsg = 'Impossible de charger le PDF';
+                        if (xhr.status === 404) {
+                            errorMsg = 'Acte introuvable (404)';
+                        } else if (xhr.status === 500) {
+                            errorMsg = 'Erreur serveur lors de la génération du PDF (500)';
+                        } else if (xhr.status === 0) {
+                            errorMsg = 'Impossible de se connecter au serveur';
+                        }
+                        $("#pdfViewer").html(
+                            '<div class="alert alert-danger m-4" role="alert">' +
+                            '<h4 class="alert-heading">Erreur lors du chargement du PDF</h4>' +
+                            '<p>' + errorMsg + '</p>' +
+                            '<hr>' +
+                            '<p class="mb-0">Statut HTTP: ' + (xhr.status || 'Inconnu') + '</p>' +
+                            '<p class="mb-0 mt-2">Veuillez vérifier les logs ou contacter l\'administrateur.</p>' +
+                            '<p class="mb-0 mt-2"><small>Route: ' + route + '</small></p>' +
+                            '</div>'
+                        );
+                    }
+                });
+            }
+
+            function loadPDFViewer(route, retirer) {
                 $.when(
                     $.getScript("{{ asset('kendo-library/pdf.js') }}"),
                     $.getScript("{{ asset('kendo-library/kendo-style/worker.js') }}")
@@ -356,9 +391,32 @@ Acte de naissance
                 .done(function () {
                     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('kendo-library/kendo-style/worker.js') }}";
                 }).then(function(){
+                    console.log("Initialisation du PDF Viewer pour:", route);
                     $("#pdfViewer").kendoPDFViewer({
                         pdfjsProcessing: {
-                            file: route
+                            file: route,
+                            error: function(e) {
+                                console.error("Erreur lors du traitement du PDF:", e);
+                                var errorMessage = 'Erreur inconnue';
+                                if (e.error) {
+                                    errorMessage = e.error.message || e.error.toString();
+                                } else if (e.xhr) {
+                                    errorMessage = 'Erreur HTTP: ' + (e.xhr.status || 'Inconnu');
+                                }
+
+                                // Afficher un message d'erreur à l'utilisateur
+                                $("#pdfViewer").html(
+                                    '<div class="alert alert-danger m-4" role="alert">' +
+                                    '<h4 class="alert-heading">Erreur lors du traitement du PDF</h4>' +
+                                    '<p>Le PDF n\'a pas pu être traité par le visualiseur.</p>' +
+                                    '<hr>' +
+                                    '<p class="mb-0"><strong>Erreur:</strong> ' + errorMessage + '</p>' +
+                                    '<p class="mb-0 mt-2">Veuillez vérifier les logs dans <code>storage/logs/sifec.log</code> ou contacter l\'administrateur.</p>' +
+                                    '<p class="mb-0 mt-2"><small>Route: ' + route + '</small></p>' +
+                                    '<p class="mb-0 mt-2"><small>Code déclaration: ' + cdn + '</small></p>' +
+                                    '</div>'
+                                );
+                            }
                         },
                         width: "100%",
                         height: 1200
@@ -372,6 +430,17 @@ Acte de naissance
                         $('a[title="Print"]').hide();
                         $(".k-toolbar").hide();
                     }
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error("Erreur lors du chargement des scripts PDF:", textStatus, errorThrown);
+                    $("#pdfViewer").html(
+                        '<div class="alert alert-danger m-4" role="alert">' +
+                        '<h4 class="alert-heading">Erreur lors du chargement des bibliothèques PDF</h4>' +
+                        '<p>Impossible de charger les bibliothèques nécessaires pour afficher le PDF.</p>' +
+                        '<hr>' +
+                        '<p class="mb-0">Erreur: ' + textStatus + ' - ' + errorThrown + '</p>' +
+                        '<p class="mb-0 mt-2">Veuillez rafraîchir la page ou contacter l\'administrateur.</p>' +
+                        '</div>'
+                    );
                 });
             }
 

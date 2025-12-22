@@ -13,22 +13,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Support\Facades\Validator;
 use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Deces\Entities\MouvementDeces;
 use Modules\Referentiel\Entities\Registre;
 use Modules\Deces\Services\OtpDecesService;
-use Illuminate\Contracts\Support\Renderable;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Deces\Services\ActeDecesService;
 use Modules\Deces\Services\MouvementService;
 use Modules\Referentiel\Entities\RetraitActe;
-use Modules\Referentiel\Entities\ActeRegistre;
-use Modules\Referentiel\Entities\FeuilletRegistre;
-use Modules\Notification\Jobs\ValidationacteDecesJob;
 use Modules\Notification\Services\NotificationService;
-use Modules\Referentiel\Entities\TypeDeclarationDeces;
 use Modules\Notification\Notifications\ActeDecesAValiderNotification;
 
 
@@ -41,35 +37,17 @@ class ActeDecesController extends Controller
         $affectation = $user->affectationActive();
         $institution = $affectation->institution;
 
-        // Documents à contrôler (cec_approuver = 'NON')
-        $documentsAControler = DeclarationDeces::where(function($query) use ($institution) {
-                                    $query->where("code_institution_destinataire", $institution->code_institution)
-                                          ->orWhere("code_institution", $institution->code_institution);
-                                })
-                                ->where("cec_approuver", "NON")
-                                ->where(function($query) {
-                                    $query->where("type_declaration", "!=", "CERTIFICAT DE NON INSCRIPTION")
-                                          ->orWhere(function($subQuery) {
-                                              $subQuery->where("type_declaration", "CERTIFICAT DE NON INSCRIPTION")
-                                                       ->where("tribunal_approuver", "OUI")
-                                                       ->where(function($requisitionQuery) {
-                                                           $requisitionQuery->whereHas('requisition', function($reqQuery) {
-                                                                               $reqQuery->where('statut', 'envoyée');
-                                                                           })
-                                                                           ->orWhereHas('jugement', function($jugQuery) {
-                                                                               $jugQuery->where('statut', 'envoyée');
-                                                                           });
-                                                       });
-                                          });
-                                })
-                                ->get();
+        // Documents à contrôler (cec_approuver = 'NON') - Afficher les 20 derniers par défaut
+        // getDocumentsAControler retourne déjà un tri par date_heure_declaration décroissante
+        $documentsAControler = $institution->getDocumentsAControler("deces")
+            ->take(20)
+            ->values();
 
-        // Gestion des actes (cec_approuver = 'OUI')
-        $actesGestion = DeclarationDeces::where(function($query) use ($institution) {
-                                    $query->where("code_institution_destinataire", $institution->code_institution)
-                                          ->orWhere("code_institution", $institution->code_institution);
-                                })
-                                ->where("cec_approuver", "OUI")->get();
+        // Gestion des actes (cec_approuver = 'OUI') - Afficher les 20 derniers par défaut
+        // getActesGestion retourne déjà un tri par date_heure_declaration décroissante
+        $actesGestion = $institution->getActesGestion("deces")
+            ->take(20)
+            ->values();
 
         $registre = \Modules\Referentiel\Entities\Registre::where("cui", $affectation->cui)
             ->where("statut", 1)
@@ -81,59 +59,417 @@ class ActeDecesController extends Controller
             ? $institution->getStatistiquesDocuments('deces')
             : [];
 
+        // Récupérer les types de déclaration uniques pour les filtres
+        $typesDeclaration = DeclarationDeces::distinct()
+            ->pluck('type_declaration')
+            ->filter()
+            ->sort()
+            ->values();
+
         return view(
             'deces::acte.index', compact(
                 "documentsAControler",
                 "actesGestion",
                 "registre",
-                "statistiquesDocuments"
+                "statistiquesDocuments",
+                "typesDeclaration"
             )
         );
     }
 
+    /**
+     * Filtrer les documents à contrôler côté serveur
+     */
+    public function filterDocuments(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $affectation = $user->affectationActive();
+            $institution = $affectation->institution;
+
+            // Logger les critères de recherche
+            Log::channel('sifec')->info('=== RECHERCHE DOCUMENTS À CONTRÔLER (DÉCÈS) ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'criteres' => [
+                    'numero_declaration' => $request->input('numero_declaration'),
+                    'date_debut' => $request->input('date_debut'),
+                    'date_fin' => $request->input('date_fin'),
+                    'sexe' => $request->input('sexe'),
+                    'type_declaration' => $request->input('type_declaration'),
+                    'statut' => $request->input('statut'),
+                ]
+            ]);
+
+            // Si on recherche par numéro de déclaration ou type de déclaration spécifique,
+            // chercher directement dans la base pour éviter les limitations de getDocumentsAControler
+            $rechercheDirecte = false;
+            if (($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) ||
+                ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0)) {
+                $rechercheDirecte = true;
+
+                // Recherche directe dans tous les documents accessibles à l'institution
+                $query = DeclarationDeces::with(['mouvements', 'defunt', 'acte'])
+                    ->where(function($query) use ($institution) {
+                        $query->where('code_institution_destinataire', $institution->code_institution)
+                              ->orWhere('code_institution', $institution->code_institution);
+                    });
+
+                // Ajouter le filtre par numéro de déclaration si fourni
+                if ($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) {
+                    $query->where('code_declaration_deces', 'LIKE', '%' . $request->numero_declaration . '%');
+                }
+
+                // Ajouter le filtre par type de déclaration si fourni
+                if ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0) {
+                    $query->where('type_declaration', $request->type_declaration);
+                }
+
+                $documentsAControler = $query->get();
+                $countInitial = $documentsAControler->count();
+            } else {
+                // Utiliser la même méthode que getDocumentsAControler pour garantir la cohérence
+                $documentsAControler = $institution->getDocumentsAControler("deces");
+                $countInitial = $documentsAControler->count();
+            }
+
+            // Filtre par période (date de déclaration de décès)
+            if ($request->filled('date_debut')) {
+                $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                    $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
+                    if ($dateDeclaration) {
+                        return date('Y-m-d', strtotime($dateDeclaration)) >= $request->date_debut;
+                    }
+                    return false;
+                });
+            }
+            if ($request->filled('date_fin')) {
+                $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                    $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
+                    if ($dateDeclaration) {
+                        return date('Y-m-d', strtotime($dateDeclaration)) <= $request->date_fin;
+                    }
+                    return false;
+                });
+            }
+
+            // Filtre par sexe
+            if ($request->filled('sexe')) {
+                $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                    return $doc->defunt && $doc->defunt->sexe === $request->sexe;
+                });
+            }
+
+            // Filtre par type de déclaration (si pas déjà appliqué dans la recherche directe)
+            if (!$rechercheDirecte && $request->filled('type_declaration')) {
+                $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
+                    return $doc->type_declaration === $request->type_declaration;
+                });
+            }
+
+            // Filtre par statut (basé sur les mouvements)
+            if ($request->filled('statut')) {
+                $statut = $request->statut;
+                $documentsAControler = $documentsAControler->filter(function($doc) use ($statut) {
+                    $codesMouvements = $doc->mouvements ? $doc->mouvements->pluck('code_mouvement')->toArray() : [];
+                    if ($statut === 'dossier_recu') {
+                        return in_array('MOUV_0002', $codesMouvements) ||
+                               in_array('MOUV_2006', $codesMouvements);
+                    } elseif ($statut === 'confirme') {
+                        return in_array('MOUV_0019', $codesMouvements);
+                    } elseif ($statut === 'en_attente') {
+                        return in_array('MOUV_0004', $codesMouvements);
+                    }
+                    return true;
+                });
+            }
+
+            $documents = $documentsAControler
+                ->sortByDesc('date_heure_declaration')
+                ->values();
+
+            $countResultat = $documents->count();
+
+            // Limiter les résultats à 500 maximum
+            $maxResults = 500;
+            if ($countResultat > $maxResults) {
+                $documents = $documents->take($maxResults);
+                Log::channel('sifec')->warning('=== RECHERCHE DOCUMENTS - LIMITE ATTEINTE (DÉCÈS) ===', [
+                    'user_id' => $user->code_user ?? null,
+                    'count_total' => $countResultat,
+                    'count_affiché' => $maxResults,
+                ]);
+            }
+
+            Log::channel('sifec')->info('=== RÉSULTATS RECHERCHE DOCUMENTS À CONTRÔLER (DÉCÈS) ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'count_initial' => $countInitial,
+                'count_resultat' => $countResultat,
+                'count_affiché' => $documents->count(),
+            ]);
+
+            return response()->json([
+                'code' => '200',
+                'data' => view('deces::acte.partials.table-documents', compact('documents'))->render(),
+                'count' => $countResultat,
+                'count_affiché' => $documents->count(),
+                'limite_atteinte' => $countResultat > $maxResults
+            ]);
+        } catch (\Exception $e) {
+            Log::channel('sifec')->error('=== ERREUR RECHERCHE DOCUMENTS À CONTRÔLER (DÉCÈS) ===', [
+                'user_id' => Auth::user()->code_user ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de la recherche des documents',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Filtrer les actes à gérer côté serveur
+     */
+    public function filterActes(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $affectation = $user->affectationActive();
+            $institution = $affectation->institution;
+
+            // Logger les critères de recherche
+            Log::channel('sifec')->info('=== RECHERCHE ACTES À GÉRER (DÉCÈS) ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'criteres' => [
+                    'numero_declaration' => $request->input('numero_declaration'),
+                    'code_acte' => $request->input('code_acte'),
+                    'date_debut' => $request->input('date_debut'),
+                    'date_fin' => $request->input('date_fin'),
+                    'sexe' => $request->input('sexe'),
+                    'statut' => $request->input('statut'),
+                ]
+            ]);
+
+            // Utiliser la même méthode que getActesGestion pour garantir la cohérence
+            $actesGestion = $institution->getActesGestion("deces");
+            $countInitial = $actesGestion->count();
+
+            // Filtre par numéro de déclaration
+            if ($request->filled('numero_declaration')) {
+                $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                    return stripos($acte->code_declaration_deces, $request->numero_declaration) !== false;
+                });
+            }
+
+            // Filtre par code acte
+            if ($request->filled('code_acte')) {
+                $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                    return $acte->acte && stripos($acte->acte->code_acte_deces, $request->code_acte) !== false;
+                });
+            }
+
+            // Filtre par période (date de déclaration de décès)
+            if ($request->filled('date_debut')) {
+                $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                    $dateDeclaration = $acte->date_heure_declaration ?? $acte->created_at;
+                    if ($dateDeclaration) {
+                        return date('Y-m-d', strtotime($dateDeclaration)) >= $request->date_debut;
+                    }
+                    return false;
+                });
+            }
+            if ($request->filled('date_fin')) {
+                $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                    $dateDeclaration = $acte->date_heure_declaration ?? $acte->created_at;
+                    if ($dateDeclaration) {
+                        return date('Y-m-d', strtotime($dateDeclaration)) <= $request->date_fin;
+                    }
+                    return false;
+                });
+            }
+
+            // Filtre par sexe
+            if ($request->filled('sexe')) {
+                $actesGestion = $actesGestion->filter(function($acte) use ($request) {
+                    return $acte->defunt && $acte->defunt->sexe === $request->sexe;
+                });
+            }
+
+            // Filtre par statut
+            if ($request->filled('statut')) {
+                $statut = $request->statut;
+                $actesGestion = $actesGestion->filter(function($acte) use ($statut) {
+                    $codesMouvements = $acte->mouvements ? $acte->mouvements->pluck('code_mouvement')->toArray() : [];
+                    $dernierMouvement = $acte->mouvements ? $acte->mouvements->sortByDesc('created_at')->first() : null;
+                    $approbationPompeFunebre = $acte->acte ? ($acte->acte->approbation_pompe_funebre ?? null) : null;
+
+                    if ($statut === 'en_attente_generation') {
+                        return !$acte->acte;
+                    } elseif ($statut === 'en_attente_validation') {
+                        return $acte->acte && (is_null($approbationPompeFunebre) || $approbationPompeFunebre === '' || $approbationPompeFunebre === '0');
+                    } elseif ($statut === 'valide_non_retire') {
+                        return $acte->acte && $approbationPompeFunebre && $approbationPompeFunebre !== '' &&
+                               (!$dernierMouvement || ($dernierMouvement->code_mouvement !== 'MOUV_0016' && $dernierMouvement->code_mouvement !== 'MOUV_0017'));
+                    } elseif ($statut === 'retire') {
+                        return $dernierMouvement && $dernierMouvement->code_mouvement === 'MOUV_0016';
+                    } elseif ($statut === 'annule') {
+                        return $dernierMouvement && $dernierMouvement->code_mouvement === 'MOUV_0017';
+                    }
+                    return true;
+                });
+            }
+
+            $actes = $actesGestion
+                ->sortByDesc('date_heure_declaration')
+                ->values();
+
+            $countResultat = $actes->count();
+
+            // Limiter les résultats à 500 maximum
+            $maxResults = 500;
+            if ($countResultat > $maxResults) {
+                $actes = $actes->take($maxResults);
+                Log::channel('sifec')->warning('=== RECHERCHE ACTES - LIMITE ATTEINTE (DÉCÈS) ===', [
+                    'user_id' => $user->code_user ?? null,
+                    'count_total' => $countResultat,
+                    'count_affiché' => $maxResults,
+                ]);
+            }
+
+            Log::channel('sifec')->info('=== RÉSULTATS RECHERCHE ACTES À GÉRER (DÉCÈS) ===', [
+                'user_id' => $user->code_user ?? null,
+                'institution' => $institution->code_institution ?? null,
+                'count_initial' => $countInitial,
+                'count_resultat' => $countResultat,
+                'count_affiché' => $actes->count(),
+            ]);
+
+            return response()->json([
+                'code' => '200',
+                'data' => view('deces::acte.partials.table-actes', compact('actes'))->render(),
+                'count' => $countResultat,
+                'count_affiché' => $actes->count(),
+                'limite_atteinte' => $countResultat > $maxResults
+            ]);
+        } catch (\Exception $e) {
+            Log::channel('sifec')->error('=== ERREUR RECHERCHE ACTES À GÉRER (DÉCÈS) ===', [
+                'user_id' => Auth::user()->code_user ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de la recherche des actes',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function displayActe($id)
     {
+        try {
+            Log::channel('sifec')->info("Début génération PDF acte de décès pour ID: {$id}");
 
-        $acte = ActeDeces::where("code_declaration_deces",$id)->first();
-        $codefonction = $acte->institutionUser->fonction->code_fonction;
-        $nomcomplet = "";
-        $libfonction = "";
+            // Charger l'acte avec ses relations nécessaires
+            $acte = ActeDeces::with([
+                'institutionUser.fonction',
+                'declaration.institutionUser.institution',
+                'declaration.institution.institutionParent.lieu.localiteParent',
+                'declaration.institution.lieu.localiteParent',
+                'declaration.requisition.typeRequisition',
+                'declaration.defunt',
+                'declaration.pere',
+                'declaration.mere',
+                'declaration.declarant',
+                'declaration.DDecesCauses.causeDeces'
+            ])->where("code_declaration_deces", $id)->first();
 
-        //agent mairie
-        if($codefonction == "FONC_0004" || $codefonction == "FONC_0017" || $codefonction == "FONC_0018"){
-            $f = $acte->institutionUser->where("code_fonction","FONC_0002")->first();
-            $nomcomplet = $f->user->personne->nomcomplet();
-            $libfonction = $f->fonction->lib_fonction;
-        }
-        //agent pompe funebre
-        if($codefonction == "FONC_0005"){
+            if($acte == null){
+                Log::channel('sifec')->error("Acte de décès introuvable pour code_declaration_deces: {$id}");
+                toastr()->error("Vous ne pouvez pas générer un acte de décès. Acte introuvable.");
+                return back();
+            }
 
-            $f = $acte->institutionUser->where("code_fonction","FONC_0012")->first();
-            $nomcomplet = $f->user->personne->nomcomplet();
-            $libfonction = $f->fonction->lib_fonction;
-        }
+            Log::channel('sifec')->info("Acte trouvé: {$acte->code_acte_deces}");
 
-        if($acte == null){
-            toastr()->error("Vous ne pouvez pas généré un acte de décès");
-            return back();
-        }
+            // Vérifier que les relations nécessaires existent
+            if(!$acte->institutionUser || !$acte->institutionUser->fonction) {
+                Log::channel('sifec')->error("Relation institutionUser ou fonction manquante pour acte: {$acte->code_acte_deces}");
+                throw new Exception("Données incomplètes pour générer l'acte. Relations manquantes.");
+            }
 
-        DB::beginTransaction();
+            $codefonction = $acte->institutionUser->fonction->code_fonction;
+            $nomcomplet = "";
+            $libfonction = "";
 
-       try {
-        view()->share("tester", "Alange");
-        $html2pdf = new Html2Pdf('P', 'A4', 'fr');
-        $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('deces::etats.acte', compact("acte","nomcomplet","libfonction"))->render());
-        DB::commit();
+            //agent mairie
+            if($codefonction == "FONC_0004" || $codefonction == "FONC_0017" || $codefonction == "FONC_0018"){
+                $f = $acte->institutionUser->where("code_fonction","FONC_0002")->first();
+                if($f && $f->user && $f->user->personne) {
+                    $nomcomplet = $f->user->personne->nomcomplet();
+                    $libfonction = $f->fonction->lib_fonction ?? "";
+                }
+            }
+            //agent pompe funebre
+            if($codefonction == "FONC_0005"){
+                $f = $acte->institutionUser->where("code_fonction","FONC_0012")->first();
+                if($f && $f->user && $f->user->personne) {
+                    $nomcomplet = $f->user->personne->nomcomplet();
+                    $libfonction = $f->fonction->lib_fonction ?? "";
+                }
+            }
 
-        return $html2pdf->output($acte->code_acte_deces.".pdf");
+            Log::channel('sifec')->info("Préparation génération PDF pour acte: {$acte->code_acte_deces}");
 
-       } catch (Exception $e) {
+            DB::beginTransaction();
+
+            view()->share("tester", "Alange");
+            $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+            $html2pdf->setDefaultFont('Arial');
+
+            // Générer l'URL de vérification pour le QR code
+            $verificationUrl = URL::signedRoute('verification.acte.deces', ['code' => $acte->code_acte_deces]);
+            $qrCode = $verificationUrl;
+
+            // Rendre la vue avec gestion d'erreur
+            $htmlContent = view('deces::etats.acte', compact("acte","nomcomplet","libfonction","qrCode"))->render();
+
+            if(empty($htmlContent)) {
+                throw new Exception("Le contenu HTML de l'acte est vide.");
+            }
+
+            Log::channel('sifec')->info("Contenu HTML généré pour acte: {$acte->code_acte_deces}, taille: " . strlen($htmlContent) . " caractères");
+
+            $html2pdf->writeHTML($htmlContent);
+            DB::commit();
+
+            Log::channel('sifec')->info("PDF généré avec succès pour acte: {$acte->code_acte_deces}");
+
+            return $html2pdf->output($acte->code_acte_deces.".pdf");
+
+        } catch (Exception $e) {
             DB::rollBack();
-            toastr()->error($e->getMessage());
-            return back();
-       }
+            Log::channel('sifec')->error("Erreur génération PDF acte de décès ID: {$id} - Message: " . $e->getMessage());
+            Log::channel('sifec')->error("Stack trace: " . $e->getTraceAsString());
+
+            // Si c'est une requête AJAX ou PDF, renvoyer une réponse JSON ou une erreur HTTP
+            if (request()->expectsJson() || request()->wantsJson()) {
+                return response()->json([
+                    'error' => true,
+                    'message' => "Erreur lors de la génération du PDF: " . $e->getMessage()
+                ], 500);
+            }
+
+            // Sinon, renvoyer une réponse HTML d'erreur pour le PDF Viewer
+            return response("Erreur lors de la génération du PDF: " . $e->getMessage(), 500)
+                ->header('Content-Type', 'text/plain');
+        }
     }
 
 
@@ -1102,10 +1438,11 @@ class ActeDecesController extends Controller
 
     public function printActe($id)
     {
+
         $acte = ActeDeces::where("code_declaration_deces", $id)->orWhere("code_acte_deces", $id)->first();
 
         // Log pour déboguer
-        Log::channel("sifec")->info("printActe called with id: $id, acte found: " . ($acte ? 'yes' : 'no'));
+        // Log::channel("sifec")->info("printActe called with id: $id, acte found: " . ($acte ? 'yes' : 'no'));
 
         // Pas besoin de redirection ici, la vue gère le cas où $acte est null
         return view('deces::acte.acte', compact("acte"));

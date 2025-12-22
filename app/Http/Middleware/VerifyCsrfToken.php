@@ -27,7 +27,7 @@ class VerifyCsrfToken extends Middleware
     {
         // Logger les informations de la requête pour debug
         if ($request->is('two-factor/*')) {
-            Log::channel('ecole')->info('=== CSRF MIDDLEWARE ===', [
+            Log::channel('sifec')->info('=== CSRF MIDDLEWARE ===', [
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
                 'route' => $request->route()?->getName(),
@@ -45,7 +45,7 @@ class VerifyCsrfToken extends Middleware
         try {
             return parent::handle($request, $next);
         } catch (\Illuminate\Session\TokenMismatchException $e) {
-            Log::channel('ecole')->error('=== CSRF TOKEN MISMATCH ===', [
+            Log::channel('sifec')->error('=== CSRF TOKEN MISMATCH ===', [
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
                 'session_id' => $request->session()?->getId(),

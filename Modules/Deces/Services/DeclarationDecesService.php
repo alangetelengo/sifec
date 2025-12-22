@@ -156,6 +156,7 @@ class DeclarationDecesService
 
     /**
      * Gère la création/récupération des personnes
+     * Si une personne existe déjà, met à jour uniquement les informations modifiables
      */
     private function gererPersonnes($request, $uniqueStrings)
     {
@@ -165,24 +166,36 @@ class DeclarationDecesService
         $personnes['defunt'] = Personne::where("personne_string", $uniqueStrings['defunt'])->first();
         if (!$personnes['defunt']) {
             $personnes['defunt'] = Sifec::savePersonne($request, "_defunt", $request->sexe_defunt, $uniqueStrings['defunt']);
+        } else {
+            // Personne existe déjà : mettre à jour uniquement les informations modifiables
+            $this->mettreAJourInformationsModifiables($request, $personnes['defunt'], "_defunt");
         }
 
         // Gestion du déclarant
         $personnes['declarant'] = Personne::where("personne_string", $uniqueStrings['declarant'])->first();
         if (!$personnes['declarant']) {
             $personnes['declarant'] = Sifec::savePersonne($request, "_declarant", $request->sexe_declarant, $uniqueStrings['declarant']);
+        } else {
+            // Personne existe déjà : mettre à jour uniquement les informations modifiables
+            $this->mettreAJourInformationsModifiables($request, $personnes['declarant'], "_declarant");
         }
 
         // Gestion du père
         $personnes['pere'] = Personne::where("personne_string", $uniqueStrings['pere'])->first();
         if (!$personnes['pere']) {
             $personnes['pere'] = Sifec::savePersonne($request, "_pere", "M", $uniqueStrings['pere']);
+        } else {
+            // Personne existe déjà : mettre à jour uniquement les informations modifiables (téléphone, email, adresse, etc.)
+            $this->mettreAJourInformationsModifiables($request, $personnes['pere'], "_pere");
         }
 
         // Gestion de la mère
         $personnes['mere'] = Personne::where("personne_string", $uniqueStrings['mere'])->first();
         if (!$personnes['mere']) {
             $personnes['mere'] = Sifec::savePersonne($request, "_mere", "F", $uniqueStrings['mere']);
+        } else {
+            // Personne existe déjà : mettre à jour uniquement les informations modifiables (téléphone, email, adresse, etc.)
+            $this->mettreAJourInformationsModifiables($request, $personnes['mere'], "_mere");
         }
 
         // Gestion du conjoint (optionnel)
@@ -191,10 +204,96 @@ class DeclarationDecesService
             $personnes['conjoint'] = Personne::where("personne_string", $uniqueStrings['conjoint'])->first();
             if (!$personnes['conjoint']) {
                 $personnes['conjoint'] = Sifec::savePersonne($request, "_conjoint", $request->sexe_conjoint, $uniqueStrings['conjoint']);
+            } else {
+                // Personne existe déjà : mettre à jour uniquement les informations modifiables
+                $this->mettreAJourInformationsModifiables($request, $personnes['conjoint'], "_conjoint");
             }
         }
 
         return $personnes;
+    }
+
+    /**
+     * Met à jour uniquement les informations modifiables d'une personne existante
+     * Les informations d'identité (nom, prénom, date de naissance, lieu de naissance) ne sont PAS modifiées
+     *
+     * Informations modifiables :
+     * - Pour le défunt : profession, niveau d'instruction, situation matrimoniale, religion, adresse
+     * - Pour le père/mère : téléphone (modifiable à tout moment), email
+     */
+    private function mettreAJourInformationsModifiables($request, $personne, $suffixe)
+    {
+        // Informations modifiables pour le défunt : profession, niveau d'instruction, situation matrimoniale, religion, adresse
+        if ($suffixe === "_defunt") {
+            // Mettre à jour la profession si fournie
+            if ($request->has("code_profession_defunt")) {
+                $personne->code_profession = $request->input("code_profession_defunt") ?? $personne->code_profession;
+            }
+
+            // Mettre à jour le niveau d'instruction si fourni
+            if ($request->has("niveau_instruction_defunt")) {
+                $personne->niveau_instruction = $request->input("niveau_instruction_defunt") ?? $personne->niveau_instruction;
+            }
+
+            // Mettre à jour l'adresse du défunt si fournie (peut changer avec le temps)
+            // Note: updateAdresse crée une nouvelle adresse, ce qui est normal pour garder l'historique
+            if ($request->has("domicile_ville_defunt") || $request->has("domicile_numero_defunt") || $request->has("domicile_nomvoie_defunt")) {
+                try {
+                    $sifec = new Sifec();
+                    $sifec->updateAdresse($request, $suffixe, $personne->personne_string);
+                } catch (\Exception $e) {
+                    Log::channel("sifec")->warning("Erreur lors de la mise à jour de l'adresse du défunt pour {$personne->code_personne}: " . $e->getMessage());
+                }
+            }
+
+            // Note: La situation matrimoniale (code_situation_matrimoniale_defunt) et la religion (code_religion_defunt)
+            // sont stockées dans la déclaration (t_declaration_deces), pas dans Personne.
+            // Elles sont déjà gérées dans creerDeclaration() et seront toujours mises à jour avec les nouvelles valeurs du formulaire.
+        }
+
+        // Pour le père et la mère : mettre à jour uniquement le téléphone (modifiable à tout moment)
+        if ($suffixe === "_pere" || $suffixe === "_mere") {
+            // Mettre à jour le téléphone dans la table Personne
+            if ($request->has("telephone" . $suffixe)) {
+                $personne->telephone = $request->input("telephone" . $suffixe);
+            }
+        }
+
+        $personne->save();
+
+        // Mettre à jour le contact (téléphone, email) - principalement pour père/mère
+        $contact = \Modules\Referentiel\Entities\ContactPersonne::where('code_personne', $personne->code_personne)->first();
+        if ($contact) {
+            // Mettre à jour le téléphone si fourni (toujours modifiable pour père/mère)
+            if (($suffixe === "_pere" || $suffixe === "_mere") && $request->has("telephone" . $suffixe)) {
+                $contact->telephone = $request->input("telephone" . $suffixe);
+            }
+            // Mettre à jour l'email si fourni
+            if ($request->has("email" . $suffixe)) {
+                $contact->email_personnelle = $request->input("email" . $suffixe);
+            }
+            // Mettre à jour l'indicatif si fourni
+            if ($request->has("code_pays" . $suffixe)) {
+                $contact->indicatif = $request->input("code_pays" . $suffixe);
+            }
+            $contact->save();
+        } else if (($suffixe === "_pere" || $suffixe === "_mere") && ($request->has("telephone" . $suffixe) || $request->has("email" . $suffixe))) {
+            // Créer le contact s'il n'existe pas mais qu'on a des données pour père/mère
+            $contact = new \Modules\Referentiel\Entities\ContactPersonne();
+            $contact->code_personne = $personne->code_personne;
+            if ($request->has("telephone" . $suffixe)) {
+                $contact->telephone = $request->input("telephone" . $suffixe);
+            }
+            if ($request->has("email" . $suffixe)) {
+                $contact->email_personnelle = $request->input("email" . $suffixe);
+            }
+            if ($request->has("code_pays" . $suffixe)) {
+                $contact->indicatif = $request->input("code_pays" . $suffixe);
+            }
+            $contact->save();
+        }
+
+        return $personne;
     }
 
     /**
@@ -250,19 +349,76 @@ class DeclarationDecesService
      */
     private function traiterCausesDeces($request, $declaration)
     {
-            $causes = $request->code_cause_deces;
-        if ($causes != null) {
-            foreach ($causes as $cause) {
+            $causes = $request->input('code_cause_deces');
+        // Vérifier que les causes existent et forment un tableau non vide
+        if ($causes != null && is_array($causes) && !empty($causes)) {
+            // Filtrer les causes vides
+            $causesValides = array_filter($causes, function($cause) {
+                return !empty($cause);
+            });
+
+            if (!empty($causesValides)) {
+                // La première cause devient la cause principale dans t_declaration_deces
+                $premiereCause = reset($causesValides);
+                $declaration->code_cause_deces = $premiereCause;
+                $declaration->save();
+
+                // Insérer toutes les causes dans t_ddecescause (relation many-to-many)
+                foreach ($causesValides as $cause) {
                     DDecesCause::create([
-                    'code_declaration_deces' => $declaration->code_declaration_deces,
+                        'code_declaration_deces' => $declaration->code_declaration_deces,
                         'code_cause_deces' => $cause
                     ]);
                 }
             }
+        }
 
         // Génération du numéro de certificat si nécessaire
         if ($declaration->type_declaration != "DECLARATION DE DECES" && $declaration->type_declaration != "DECLARATION TARDIVE") {
             $declaration->numero_certificat = Sifec::genererCodeUniqueReferentiel($declaration, "numero_certificat", 4, "");
+            $declaration->save();
+        }
+    }
+
+    /**
+     * Traite les causes de décès lors d'une mise à jour
+     * Supprime les anciennes causes et insère les nouvelles
+     */
+    private function traiterCausesDecesUpdate($request, $declaration)
+    {
+        $causes = $request->input('code_cause_deces');
+
+        // Supprimer les anciennes causes
+        DDecesCause::where('code_declaration_deces', $declaration->code_declaration_deces)->delete();
+
+        // Vérifier que les nouvelles causes existent et forment un tableau non vide
+        if ($causes != null && is_array($causes) && !empty($causes)) {
+            // Filtrer les causes vides
+            $causesValides = array_filter($causes, function($cause) {
+                return !empty($cause);
+            });
+
+            if (!empty($causesValides)) {
+                // La première cause devient la cause principale dans t_declaration_deces
+                $premiereCause = reset($causesValides);
+                $declaration->code_cause_deces = $premiereCause;
+                $declaration->save();
+
+                // Insérer toutes les causes dans t_ddecescause (relation many-to-many)
+                foreach ($causesValides as $cause) {
+                    DDecesCause::create([
+                        'code_declaration_deces' => $declaration->code_declaration_deces,
+                        'code_cause_deces' => $cause
+                    ]);
+                }
+            } else {
+                // Si aucune cause valide, mettre code_cause_deces à NULL
+                $declaration->code_cause_deces = null;
+                $declaration->save();
+            }
+        } else {
+            // Si aucune cause fournie, mettre code_cause_deces à NULL
+            $declaration->code_cause_deces = null;
             $declaration->save();
         }
     }
@@ -297,6 +453,9 @@ class DeclarationDecesService
             $declaration->code_institution = $user->affectationActive()->code_institution;
             // ... autres champs à mettre à jour selon le modèle
             $declaration->save();
+
+            // Mettre à jour les causes de décès
+            $this->traiterCausesDecesUpdate($request, $declaration);
 
             DB::commit();
             return $declaration;

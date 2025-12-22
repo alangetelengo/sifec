@@ -202,9 +202,9 @@
                                         Est informé que le : <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong><br>
                                         Est né(e), un enfant de sexe: <strong>{{$acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin" }}</strong><br>
                                         @if($acte->declaration->type_declarant == "Personne physique")
-                                        Nom(s): <strong>{{ $acte->declaration->enfant->nom }}</strong><br>
+                                        Nom(s): <strong style="color: red">{{ $acte->declaration->enfant->nom }}</strong><br>
                                         @endif
-                                        Prénom(s): <strong>{{ $acte->declaration->enfant->prenom }}</strong><br>
+                                        Prénom(s): <strong style="color: red">{{ $acte->declaration->enfant->prenom }}</strong><br>
                                         Lieu de naissance: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong><br>
                                         Déclaré par: <strong>{{$acte->declaration->declarant->nom. " ".$acte->declaration->declarant->prenom }}</strong><br>
                                         Filiation: <strong>{{$acte->declaration->type_declarant == "Personne physique" ? $acte->declaration->filiation->lib_filiation : $dummy }}</strong><br>
@@ -258,7 +258,12 @@
                             </div>
                             <div class="col-xl-12" style="padding-left: 500px">
                                 <br><br><br><br><br>
-                                <strong> {{substr($acte->numeroActe->numero_acte,10)."/".$acte->registre->nombre_acte_transcrit}} </strong>
+                                @php
+                                // Récupérer la position depuis les 4 derniers caractères du niupp (code_acte)
+                                // Les 4 derniers caractères du code_acte représentent la position dans le registre
+                                $positionActe = (int) substr($acte->niupp, -4);
+                                @endphp
+                                <strong> {{$positionActe.'/'.$acte->registre->nombre_acte_transcrit}} </strong>
                             </div>
                         </div>
                     </div>
@@ -268,6 +273,12 @@
             <!-- / page 2 -->
 
         </div>
+        @if($acte->registre)
+        <a href="{{ route('registre.naissance', $acte->registre->code_registre) }}" class="btn btn-primary mb-2" style="float: right; margin-top: 20px;">
+            <i class="fas fa-arrow-left me-1"></i>
+            Retour au registre
+        </a>
+        @endif
     </div>
 </div><!-- /container -->
 

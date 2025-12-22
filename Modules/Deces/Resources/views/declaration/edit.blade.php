@@ -27,8 +27,12 @@
         <div class="col-12">
             <div class="card wizard-content">
                 <div class="card-body">
-
-                    <h4>Modification de {{ $dd->type_declaration }}</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">Modification de {{ $dd->type_declaration }}</h4>
+                        <a href="{{ url()->previous() }}" class="btn btn-warning btn-sm">
+                            <i class="fa fa-arrow-left"></i> Retour
+                        </a>
+                    </div>
                     <form  name="contactUsForm" id="contactUsForm" class="validation-wizard wizard-circle" method="post" action="javascript:void(0)">
                         <!-- Step 1 -->
                         <h6>Défunt</h6>

@@ -24,8 +24,8 @@
                     $('#code_nationalite_pere').val('{{ $dd->pere->code_nationalite }}');
                     $('#profession_pere').val('{{ $dd->pere->profession->code_profession }}');
                     $('#niveau_instruction_pere').val('{{ $dd->pere->niveau_instruction }}');
-                    $('#code_type_document_pere').val('{{ $dd->pere->document->typeDocument->code_type_document }}');
-                    $('#numero_document_pere').val('{{ $dd->pere->document->numero_document }}');
+                    $('#code_type_document_pere').val('{{ $dd->pere->document?->typeDocument->code_type_document }}');
+                    $('#numero_document_pere').val('{{ $dd->pere->document?->numero_document }}');
                     $('#domicile_pays_pere').val('{{ $dd->pere->adresses->last()->lib_pays }}');
                     $('#domicile_ville_pere').val('{{ $dd->pere->adresses->last()->code_localite }}');
                     //alert("Code localité père: " + '{{ $dd->pere->adresses->last()->code_localite }}');
@@ -35,7 +35,7 @@
                     $('#domicile_numero_pere').val('{{ $dd->pere->adresses->last()->numero_rue }}');
                     $('#domicile_nomvoie_pere').val('{{ $dd->pere->adresses->last()->nom_voie }}');
                     $('#code_pays_pere').val('{{ $dd->pere->contacts->last()->indicatif }}');
-                   
+
                     $('#telephone_pere').val('{{ $dd->pere->telephone }}');
                     $('#email_pere').val('{{ $dd->pere->contacts->last()->email_personnelle }}');
                     $('#statut_personne_pere').val('{{ $dd->pere->statut_personne }}');
@@ -66,7 +66,7 @@
                         $('#domicile_numero_mere').val('{{ $dd->mere->adresses->last()->numero_rue }}');
                         $('#domicile_nomvoie_mere').val('{{ $dd->mere->adresses->last()->nom_voie }}');
                         $('#code_pays_mere').val('{{ $dd->mere->contacts->last()->indicatif }}');
-                   
+
                     $('#telephone_mere').val('{{ $dd->mere->telephone }}');
                     $('#email_mere').val('{{ $dd->mere->contacts->last()->email_personnelle}}');
                         $('#statut_personne_mere').val('{{ $dd->mere->statut_personne }}');
@@ -172,15 +172,15 @@
                 <label class="form-label">Pays<span class="text-danger"></span></label>
                 <select id="domicile_pays_pere" class="form-control required">
                    @foreach ($countries as $countrie)
-                    
+
                     {{-- @if($dd->pere->adresses->last() != null)
                         <option value="{{ $countrie->name }}" {{ $dd->pere->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
                     @else --}}
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                     {{-- @endif --}}
-                
+
                 {{-- <option value="">Choisissez</option>
-             
+
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>--}}
                 @endforeach
             </select>
@@ -244,7 +244,7 @@
             <div class="row">
                 <div class="col-md-4">
                     <label class="form-label">Indicatif<span class="text-danger">*</span></label>
-                    
+
                     <select name="code_pays_pere" id="code_pays_pere" class="form-control">
                         <option value="">Selectionnez</option>
                         @forelse ($countries as $code)
@@ -395,13 +395,13 @@
             <label class="form-label">Pays<span class="text-danger"></span></label>
              <select id="domicile_pays_mere" class="form-control required" disabled>
                 @foreach ($countries as $countrie)
-           
+
                     {{-- @if($dd->mere->adresses->last() != null)
                         <option value="{{ $countrie->name }}" {{ $dd->mere->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
                     @else --}}
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>
                     {{-- @endif --}}
-                
+
                 {{-- <option value="">Choisissez</option>
                 @foreach ($countries as $countrie)
                     <option value="{{ $countrie->name }}">{{ $countrie->name }}</option>--}}

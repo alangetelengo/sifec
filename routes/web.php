@@ -121,6 +121,10 @@ Route::middleware(['signed','throttle:10,1'])
     ->name('verification.acte');
 
 Route::middleware(['signed','throttle:10,1'])
+    ->get('/verification/acte/deces/{code}', [\Modules\Deces\Http\Controllers\DecesController::class, 'verificationActe'])
+    ->name('verification.acte.deces');
+
+Route::middleware(['signed','throttle:10,1'])
     ->get('/verification/declaration/{code}', [NaissanceController::class, 'verificationDeclaration'])
     ->name('verification.declaration');
 

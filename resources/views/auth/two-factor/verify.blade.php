@@ -1,90 +1,91 @@
-@extends('layout.app')
+@php
+	$date = date("Y");
+@endphp
+<html lang="en">
 
-@section('titre', 'Vérification 2FA')
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title> SIFEC | Vérification 2FA</title>
+	<link href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="{{asset('assets-login/images/fav.png')}}">
+    <link rel="stylesheet" href="{{asset('assets-login/css/bootstrap.min.css')}}">
+	<link rel="stylesheet" href="{{asset('assets-login/css/style.css')}}">
 
-@section('styles')
-<style>
-    .breadcrumb-item a {
-        color: #007bff !important;
-        text-decoration: none;
-    }
-    .breadcrumb-item a:hover {
-        color: #0056b3 !important;
-        text-decoration: underline;
-    }
-    .breadcrumb-item.active {
-        color: #6c757d;
-    }
-</style>
-@endsection
+</head>
+<body>
+    <div class="container-fluid bg-login">
+        <div class="container" style="">
+            <div class="row">
+                <div class="col-md-12 login-card">
+                    <div class="row">
 
-@section('corps')
-<div class="container-fluid">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('login') }}"><i class="fas fa-sign-in-alt"></i> Connexion</a></li>
-            <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-shield-alt"></i> Vérification 2FA</li>
-        </ol>
-    </nav>
+                              <div class="col-md-12 mx-auto">
+                                  <div class="logo-cover" style="width: 100%">
+										<center>
+                                       <img src="assets/images/logo-sifec.gif" class="logo-mobile">
+									   </center>
+                                   </div>
+                                    <div class="form-cover" style="width: 100%">
+										<h2 style="color:green; border-bottom: 2px solid green; margin-bottom:20px">Vérification en Deux Étapes </h2>
+										<form class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST">
+                                        @csrf
 
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title"><i class="fas fa-shield-alt"></i> Vérification en Deux Étapes</h4>
-                </div>
-                <div class="card-body">
+										<p class="text-center text-muted mb-4" style="margin-bottom: 20px;">
+											<i class="fa fa-mobile-alt"></i> Entrez le code à 6 chiffres de votre application d'authentification
+										</p>
 
-                    <p class="text-center text-muted mb-4">
-                        <i class="fas fa-mobile-alt"></i> Entrez le code à 6 chiffres de votre application d'authentification
-                    </p>
+                                        <div class="form-group">
+											<h6>Code de vérification <br>
+												<input type="text"
+													   name="one_time_password"
+													   class="form-control @error('one_time_password') is-invalid @enderror"
+													   placeholder="000000"
+													   maxlength="6"
+													   pattern="[0-9]{6}"
+													   style="font-size: 1.5em; letter-spacing: 0.3em; font-weight: bold; text-align: center;"
+													   autofocus
+													   required>
+											</h6>
+											@error('one_time_password')
+                                                <div class="invalid-feed-back">
+                                                <span class="text-danger">{{ $message }}</span>
+                                                </div>
+                                             @enderror
+											<small class="form-text text-muted text-center d-block mt-2">
+												<i class="fa fa-clock"></i> Code valide pendant 30 secondes
+											</small>
+										</div>
+                                         <div class="row form-footer">
+											 <div class="col-md-12 button-div">
+                                                <button type="submit" class="btn btn-primary btn-block"> <i class="fa fa-shield-alt"></i> Vérifier et Se Connecter</button>
+                                             </div>
+                                             <div class="col-md-12 forget-paswd" style="margin-top:20px">
+                                                 <button type="button" class="btn btn-link" style="text-decoration: none; color: #007bff; border: none; background: none; padding: 0;" data-toggle="modal" data-target="#recoveryModal">
+													<i class="fa fa-key"></i> Utiliser un code de récupération
+												 </button>
+											 </div>
+											 <div class="col-md-12 forget-paswd" style="margin-top:10px">
+                                                 <a href="{{ route('login') }}" style="text-decoration: none; color: #6c757d;"> <i class="fa fa-arrow-left"></i> Retour à la connexion</a>
+											 </div>
 
+                                         </div>
+										</form>
+                                    </div>
 
-                    <form method="POST" action="{{ route('two-factor.verify.post') }}">
-                        @csrf
-                        <div class="form-group mb-4">
-                            <input type="text"
-                                   name="one_time_password"
-                                   class="form-control form-control-lg text-center"
-                                   placeholder="000000"
-                                   maxlength="6"
-                                   pattern="[0-9]{6}"
-                                   style="font-size: 2.5em; letter-spacing: 0.5em; font-weight: bold;"
-                                   autofocus
-                                   required>
-                            <small class="form-text text-muted text-center d-block mt-2">
-                                <i class="fas fa-clock"></i> Code valide pendant 30 secondes
-                            </small>
-                        </div>
+                          </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt"></i> Vérifier et Se Connecter
-                            </button>
-                        </div>
-                    </form>
-
-                    <hr class="my-4">
-
-                    <div class="text-center">
-                        <p class="text-muted small mb-2">
-                            <i class="fas fa-question-circle"></i> Vous ne pouvez pas accéder à votre application ?
-                        </p>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#recoveryModal">
-                            <i class="fas fa-key"></i> Utiliser un code de récupération
-                        </button>
-                    </div>
-
-                    <div class="text-center mt-3">
-                        <a href="{{ route('login') }}" class="text-muted small">
-                            <i class="fas fa-arrow-left"></i> Retour à la connexion
-                        </a>
                     </div>
                 </div>
+
+				<center><a href="#" class="text-copyright" style="text-align:center; text-transform:uppercase">© {{$date}} - république du congo - Ministère de l'intérieur et de la décentralisation. Tous droits réservés.</a></center>
+
+
             </div>
+
+
         </div>
     </div>
-</div>
 
 <!-- Modal Code de Récupération -->
 <div class="modal fade" id="recoveryModal" tabindex="-1">
@@ -93,13 +94,15 @@
             <form method="POST" action="{{ route('two-factor.verify-recovery') }}">
                 @csrf
                 <div class="modal-header bg-warning">
-                    <h5 class="modal-title"><i class="fas fa-key"></i> Code de Récupération</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title"><i class="fa fa-key"></i> Code de Récupération</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <small>
-                            <i class="fas fa-info-circle"></i> Entrez l'un de vos codes de récupération à 8 caractères que vous avez sauvegardés lors de l'activation de la 2FA.
+                            <i class="fa fa-info-circle"></i> Entrez l'un de vos codes de récupération à 8 caractères que vous avez sauvegardés lors de l'activation de la 2FA.
                         </small>
                     </div>
                     <div class="form-group">
@@ -113,16 +116,16 @@
                                style="font-size: 1.5em; letter-spacing: 0.2em;"
                                required>
                         <small class="form-text text-muted">
-                            <i class="fas fa-exclamation-triangle"></i> Ce code ne pourra plus être utilisé après cette connexion
+                            <i class="fa fa-exclamation-triangle"></i> Ce code ne pourra plus être utilisé après cette connexion
                         </small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Annuler
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fa fa-times"></i> Annuler
                     </button>
                     <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-sign-in-alt"></i> Vérifier
+                        <i class="fa fa-sign-in-alt"></i> Vérifier
                     </button>
                 </div>
             </form>
@@ -130,6 +133,10 @@
     </div>
 </div>
 
+</body>
+<script src="{{ asset('assets-login/js/jquery-3.2.1.min.js')}}"></script>
+<script src="{{ asset('assets-login/js/popper.min.js')}}"></script>
+<script src="{{asset('assets-login/js/bootstrap.min.js')}}"></script>
 <script>
 // Auto-format pour le code 2FA
 document.querySelector('input[name="one_time_password"]').addEventListener('input', function(e) {
@@ -137,9 +144,10 @@ document.querySelector('input[name="one_time_password"]').addEventListener('inpu
 });
 
 // Auto-format pour le code de récupération
-document.getElementById('recovery_code').addEventListener('input', function(e) {
-    this.value = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-});
+if(document.getElementById('recovery_code')) {
+    document.getElementById('recovery_code').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    });
+}
 </script>
-@endsection
-
+</html>

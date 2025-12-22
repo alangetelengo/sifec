@@ -71,7 +71,21 @@ Acte de décès
                 }).then(function(){
                     $("#pdfViewer").kendoPDFViewer({
                         pdfjsProcessing: {
-                            file: route
+                            file: route,
+                            error: function(e) {
+                                console.error("Erreur lors du traitement du PDF:", e);
+                                // Afficher un message d'erreur à l'utilisateur
+                                $("#pdfViewer").html(
+                                    '<div class="alert alert-danger m-4" role="alert">' +
+                                    '<h4 class="alert-heading">Erreur lors du chargement du PDF</h4>' +
+                                    '<p>Impossible de charger le PDF de l\'acte de décès.</p>' +
+                                    '<hr>' +
+                                    '<p class="mb-0">Erreur: ' + (e.error ? e.error.message : 'Erreur inconnue') + '</p>' +
+                                    '<p class="mb-0 mt-2">Veuillez réessayer ou contacter l\'administrateur.</p>' +
+                                    '<p class="mb-0 mt-2"><small>Route: ' + route + '</small></p>' +
+                                    '</div>'
+                                );
+                            }
                         },
                         width: "100%",
                         height: 1200
@@ -85,6 +99,17 @@ Acte de décès
                         $('a[title="Print"]').hide();
                         $(".k-toolbar").hide();
                     }
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error("Erreur lors du chargement des scripts PDF:", textStatus, errorThrown);
+                    $("#pdfViewer").html(
+                        '<div class="alert alert-danger m-4" role="alert">' +
+                        '<h4 class="alert-heading">Erreur lors du chargement des bibliothèques PDF</h4>' +
+                        '<p>Impossible de charger les bibliothèques nécessaires pour afficher le PDF.</p>' +
+                        '<hr>' +
+                        '<p class="mb-0">Erreur: ' + textStatus + ' - ' + errorThrown + '</p>' +
+                        '<p class="mb-0 mt-2">Veuillez rafraîchir la page ou contacter l\'administrateur.</p>' +
+                        '</div>'
+                    );
                 });
             }
         @endif

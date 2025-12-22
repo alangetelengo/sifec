@@ -33,7 +33,7 @@
 
 
 
-<page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ asset("tpl/armoirie_congo.png") }}"  backimgw="100%"
+<page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ str_replace('\\', '/', public_path('tpl/armoirie_congo.png')) }}"  backimgw="100%"
 	  backtop="10mm"
 	  backbottom="15mm"
 	  backleft="10mm"

@@ -2141,10 +2141,20 @@ function afficherSituationMatrimoniale(typePersonne, situationData) {
             icon = 'fa-info-circle';
             title = 'Personne polygame';
             break;
+        case 'decede':
+            alertClass = 'alert-danger';
+            icon = 'fa-times-circle';
+            title = 'Personne décédée';
+            break;
         case 'erreur':
             alertClass = 'alert-danger';
             icon = 'fa-exclamation-circle';
             title = 'Erreur de vérification';
+            break;
+        default:
+            alertClass = 'alert-warning';
+            icon = 'fa-question-circle';
+            title = 'Situation matrimoniale';
             break;
     }
 
@@ -2264,13 +2274,66 @@ function rechercherPersonneAvecVerification(numeroActe, typePersonne) {
             type_personne: typePersonne
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`);
+    .then(async response => {
+        let data;
+        try {
+            // Lire le JSON même en cas d'erreur HTTP pour récupérer le message
+            const text = await response.text();
+            try {
+                data = JSON.parse(text);
+            } catch (parseError) {
+                // Si le parsing JSON échoue, c'est une vraie erreur de connexion
+                throw new Error('Erreur lors du traitement de la réponse du serveur');
+            }
+        } catch (error) {
+            // Si la lecture de la réponse échoue complètement
+            throw error;
         }
-        return response.json();
-    })
-    .then(data => {
+
+        // Vérifier si c'est une erreur d'âge (code 400 avec informations d'âge)
+        // Vérifier à la fois le code string "400" et le code numérique 400
+        const isAgeError = data && (data.code === "400" || data.code === 400) && (data.age_actuel !== undefined || data.age_actuel === 0);
+
+        if (isAgeError) {
+            // Construire le message d'erreur d'âge
+            const messageErreur = data.message || `L'âge minimum requis pour un(e) ${typePersonne === 'epoux' ? 'époux' : 'épouse'} est de ${data.age_minimum || (typePersonne === 'epoux' ? 21 : 18)} ans. L'âge actuel est de ${data.age_actuel} an(s).`;
+
+            const resultatDiv = document.getElementById(`resultat_recherche_${typePersonne}`);
+            if (resultatDiv) {
+                resultatDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Âge insuffisant</h6>
+                        <p><strong>${messageErreur}</strong></p>
+                        <p><small>Âge actuel : <strong>${data.age_actuel} an(s)</strong></p>
+                        <p><small>Âge minimum requis : <strong>${data.age_minimum || (typePersonne === 'epoux' ? 21 : 18)} ans</strong></small></p>
+                    </div>
+                `;
+            }
+
+            // Afficher aussi dans la zone de notification
+            const notificationDiv = document.getElementById(`notification_situation_${typePersonne}`);
+            if (notificationDiv) {
+                notificationDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Âge insuffisant</h6>
+                        <p><strong>${messageErreur}</strong></p>
+                    </div>
+                `;
+            }
+
+            // Afficher notification flash avec le message d'erreur d'âge - PRIORITÉ ABSOLUE
+            if (typeof flashAlert !== 'undefined') {
+                flashAlert("Âge insuffisant", "error", messageErreur);
+            } else if (typeof toastr !== 'undefined') {
+                toastr.error(messageErreur, "Âge insuffisant");
+            } else {
+                alert("❌ ÂGE INSUFFISANT\n\n" + messageErreur);
+            }
+
+            // Arrêter l'exécution pour éviter d'aller dans le catch
+            return;
+        }
+
         if (data.code === "200") {
             // Vérifier le sexe selon le type de personne
             const sexeValide = validerSexePersonne(typePersonne, data.sexe);
@@ -2325,6 +2388,32 @@ function rechercherPersonneAvecVerification(numeroActe, typePersonne) {
 
                 let situationMatrimonialeHtml = '';
                 if (data.situation_matrimoniale) {
+                    let alertClass = 'alert-info';
+                    let icon = 'fa-info-circle';
+
+                    // Déterminer la classe d'alerte et l'icône selon le statut
+                    switch(data.situation_matrimoniale.statut) {
+                        case 'celibataire':
+                            alertClass = 'alert-success';
+                            icon = 'fa-check-circle';
+                            break;
+                        case 'marie_monogamie':
+                            alertClass = 'alert-warning';
+                            icon = 'fa-exclamation-triangle';
+                            break;
+                        case 'polygame':
+                            alertClass = 'alert-info';
+                            icon = 'fa-info-circle';
+                            break;
+                        case 'erreur':
+                            alertClass = 'alert-danger';
+                            icon = 'fa-exclamation-circle';
+                            break;
+                        case 'decede':
+                            alertClass = 'alert-danger';
+                            icon = 'fa-times-circle';
+                            break;
+                    }
 
                     let conjointInfo = '';
                     if (data.situation_matrimoniale.conjoint) {
@@ -2334,8 +2423,8 @@ function rechercherPersonneAvecVerification(numeroActe, typePersonne) {
                     situationMatrimonialeHtml = `
                         <div class="mt-3">
                             <h6><i class="fa fa-heart"></i> Situation matrimoniale :</h6>
-                            <div class="alert alert-${data.situation_matrimoniale.statut === 'celibataire' ? 'success' : (data.situation_matrimoniale.statut === 'marie_monogamie' ? 'warning' : 'info')}">
-                                <strong>${data.situation_matrimoniale.message}</strong>${conjointInfo}
+                            <div class="alert ${alertClass}">
+                                <i class="fa ${icon}"></i> <strong>${data.situation_matrimoniale.message}</strong>${conjointInfo}
                             </div>
                         </div>
                     `;
@@ -2367,17 +2456,23 @@ function rechercherPersonneAvecVerification(numeroActe, typePersonne) {
                         </div>
                         ${situationMatrimonialeHtml}
                         <div class="mt-3">
-                            <button type="button" class="btn btn-success" onclick="confirmer${typePersonne.charAt(0).toUpperCase() + typePersonne.slice(1)}({
-                                nom: '${data.nom}',
-                                prenom: '${data.prenom}',
-                                date_naissance: '${data.date_naissance}',
-                                lieu_naissance: '${data.lieu_naissance}',
-                                numero_acte_naissance: '${data.numero_acte_naissance}',
-                                sexe: '${data.sexe}',
-                                situation_matrimoniale: ${data.situation_matrimoniale ? JSON.stringify(data.situation_matrimoniale) : 'null'}
-                            })">
-                                <i class="fa fa-check"></i> Confirmer et remplir le formulaire
-                            </button>
+                            ${data.situation_matrimoniale && (data.situation_matrimoniale.statut === 'marie_monogamie' || data.situation_matrimoniale.statut === 'decede')
+                                ? `<button type="button" class="btn btn-danger" disabled>
+                                    <i class="fa fa-ban"></i> Confirmation impossible
+                                   </button>
+                                   <p class="text-danger mt-2"><small>${data.situation_matrimoniale.message}</small></p>`
+                                : `<button type="button" class="btn btn-success" onclick="confirmer${typePersonne.charAt(0).toUpperCase() + typePersonne.slice(1)}(${JSON.stringify({
+                                    nom: data.nom,
+                                    prenom: data.prenom,
+                                    date_naissance: data.date_naissance,
+                                    lieu_naissance: data.lieu_naissance,
+                                    numero_acte_naissance: data.numero_acte_naissance,
+                                    sexe: data.sexe,
+                                    situation_matrimoniale: data.situation_matrimoniale
+                                })})">
+                                    <i class="fa fa-check"></i> Confirmer et remplir le formulaire
+                                </button>`
+                            }
                         </div>
                     </div>
                 `;
@@ -2400,20 +2495,57 @@ function rechercherPersonneAvecVerification(numeroActe, typePersonne) {
                     </div>
                 `;
             }
+        } else if (data && data.code) {
+            // Autre erreur (code différent de 200 et pas d'erreur d'âge)
+            const resultatDiv = document.getElementById(`resultat_recherche_${typePersonne}`);
+            if (resultatDiv) {
+                resultatDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fa fa-exclamation-circle"></i> Erreur de recherche</h6>
+                        <p><strong>${data.message || 'Une erreur s\'est produite lors de la recherche.'}</strong></p>
+                    </div>
+                `;
+            }
+
+            if (typeof flashAlert !== 'undefined') {
+                flashAlert("Erreur", "error", data.message || 'Une erreur s\'est produite lors de la recherche.');
+            }
         }
     })
     .catch(error => {
         console.error('Erreur lors de la recherche:', error);
 
+        // Ne pas afficher d'erreur si c'est une erreur d'âge (déjà gérée)
+        if (error.message && error.message.includes('âge')) {
+            return;
+        }
+
         const resultatDiv = document.getElementById(`resultat_recherche_${typePersonne}`);
         if (resultatDiv) {
+            // Vérifier si c'est une erreur réseau ou une erreur de parsing
+            let messageErreur = 'Une erreur s\'est produite lors de la recherche. Veuillez réessayer.';
+            let titreErreur = 'Erreur de recherche';
+
+            if (error.message && error.message.includes('HTTP')) {
+                messageErreur = 'Erreur de connexion au serveur. Veuillez vérifier votre connexion et réessayer.';
+                titreErreur = 'Erreur de connexion';
+            } else if (error.message && error.message.includes('JSON') || error.message.includes('traitement')) {
+                messageErreur = 'Erreur lors du traitement de la réponse. Veuillez réessayer.';
+                titreErreur = 'Erreur de traitement';
+            }
+
             resultatDiv.innerHTML = `
                 <div class="alert alert-danger">
-                    <h6><i class="fa fa-exclamation-circle"></i> Erreur de recherche</h6>
-                    <p>Une erreur s'est produite lors de la recherche. Veuillez réessayer.</p>
-                    <p><strong>Détails :</strong> ${error.message}</p>
+                    <h6><i class="fa fa-exclamation-circle"></i> ${titreErreur}</h6>
+                    <p>${messageErreur}</p>
+                    <p><small><strong>Détails techniques :</strong> ${error.message}</small></p>
                 </div>
             `;
+        }
+
+        // Afficher notification flash seulement pour les vraies erreurs de connexion
+        if (typeof flashAlert !== 'undefined') {
+            flashAlert("Erreur", "error", messageErreur);
         }
     });
 }
@@ -2612,6 +2744,40 @@ function viderRechercheEpouse() {
 
 // Fonction pour confirmer et remplir le formulaire époux
 function confirmerEpoux(personne) {
+    // Vérifier la situation matrimoniale avant de remplir
+    if (personne.situation_matrimoniale) {
+        const statut = personne.situation_matrimoniale.statut;
+
+        // Si la personne est mariée en monogamie, empêcher le remplissage
+        if (statut === 'marie_monogamie') {
+            const message = personne.situation_matrimoniale.message ||
+                'La personne est déjà mariée en monogamie. Un nouveau mariage nécessite un divorce ou un décès de l\'époux/épouse actuel(le).';
+
+            if (typeof flashAlert !== 'undefined') {
+                flashAlert("Mariage impossible", "error", message);
+            } else {
+                alert('❌ MARIAGE IMPOSSIBLE\n\n' + message);
+            }
+
+            // Ne pas remplir le formulaire
+            return false;
+        }
+
+        // Si la personne est décédée, empêcher aussi
+        if (statut === 'decede') {
+            const message = personne.situation_matrimoniale.message ||
+                'Cette personne est décédée. Un mariage posthume n\'est pas autorisé.';
+
+            if (typeof flashAlert !== 'undefined') {
+                flashAlert("Mariage impossible", "error", message);
+            } else {
+                alert('❌ MARIAGE IMPOSSIBLE\n\n' + message);
+            }
+
+            return false;
+        }
+    }
+
     // Remplir les champs du formulaire principal
     const nomField = document.getElementById('nom_epoux');
     const prenomField = document.getElementById('prenom_epoux');
@@ -2688,6 +2854,40 @@ function confirmerEpoux(personne) {
 
 // Fonction pour confirmer et remplir le formulaire épouse
 function confirmerEpouse(personne) {
+    // Vérifier la situation matrimoniale avant de remplir
+    if (personne.situation_matrimoniale) {
+        const statut = personne.situation_matrimoniale.statut;
+
+        // Si la personne est mariée en monogamie, empêcher le remplissage
+        if (statut === 'marie_monogamie') {
+            const message = personne.situation_matrimoniale.message ||
+                'La personne est déjà mariée en monogamie. Un nouveau mariage nécessite un divorce ou un décès de l\'époux/épouse actuel(le).';
+
+            if (typeof flashAlert !== 'undefined') {
+                flashAlert("Mariage impossible", "error", message);
+            } else {
+                alert('❌ MARIAGE IMPOSSIBLE\n\n' + message);
+            }
+
+            // Ne pas remplir le formulaire
+            return false;
+        }
+
+        // Si la personne est décédée, empêcher aussi
+        if (statut === 'decede') {
+            const message = personne.situation_matrimoniale.message ||
+                'Cette personne est décédée. Un mariage posthume n\'est pas autorisé.';
+
+            if (typeof flashAlert !== 'undefined') {
+                flashAlert("Mariage impossible", "error", message);
+            } else {
+                alert('❌ MARIAGE IMPOSSIBLE\n\n' + message);
+            }
+
+            return false;
+        }
+    }
+
     // Remplir les champs du formulaire principal
     const nomField = document.getElementById('nom_epouse');
     const prenomField = document.getElementById('prenom_epouse');
