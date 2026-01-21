@@ -17,8 +17,9 @@ class CreateTrTypeLocaliteTable extends Migration
             $table->primary("code_type_localite");
             $table->string('code_type_localite',16);
             $table->string('lib_type_localite',150)->unique();
-            $table->boolean('supprimer')->default(false);
+            $table->string("type_cec",4)->nullable()->comment("Codification officiel du centre d'état civil");
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

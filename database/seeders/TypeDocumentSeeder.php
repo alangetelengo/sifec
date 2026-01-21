@@ -18,7 +18,7 @@ class TypeDocumentSeeder extends Seeder
         DB::statement('set foreign_key_checks = 0');
         DB::statement('truncate tr_type_document');
 
-        $donnes = ["Carte nationale d'identité","Passport","Permis de conduire","Carte d'étudiant","Carte scolaire","Carte consulaire"];
+        $donnes = ["Carte nationale d'identité","Passport","Permis de conduire","Carte d'étudiant","Carte scolaire","Carte consulaire","Non déclaré"];
 
         $data = [];
         for($i = 0; $i < count($donnes); $i++){

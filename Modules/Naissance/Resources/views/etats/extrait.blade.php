@@ -31,17 +31,18 @@
         <td style="width:40%; text-align: center;">
             @php
                 $institution = $acte->institutionUser->institution;
-                $departement = $institution->lieu->localiteParent->localiteParent;
-                $communeDistrict = $institution->lieu->localiteParent;
+                $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+                $departement = $localisationData['localiteParent'];
+                $communeDistrict = $localisationData['localite'];
             @endphp
             @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
             <p>
                 <span>
-                {{ "DEPARTEMENT DE ".$departement->lib_localite }}
+                {{ $departement }}
                     <br>
-                    {{ "COMMUNE DE ".$communeDistrict->lib_localite }}
+                    {{ $communeDistrict }}
                 </span> <br>
-                <span><strong>{{ $institution->lib_institution }}</strong></span>
+                <span><strong>{{ $localisationData['inst'] }}</strong></span>
             </p>
             @else
             <p>

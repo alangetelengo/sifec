@@ -529,6 +529,33 @@ class ActeDecesController extends Controller
        }
     }
 
+    public function displayExtrait($id)
+    {
+        $acte = ActeDeces::where("code_declaration_deces",$id)->first();
+
+        if($acte == null){
+            toastr()->error("Vous ne pouvez pas générer un extrait d'acte de décès");
+            return back();
+        }
+
+        DB::beginTransaction();
+
+       try {
+        view()->share("tester", "Vincent");
+        $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+        $html2pdf->setDefaultFont('Arial');
+        $html2pdf->writeHTML(view('deces::etats.acte_deces_extrait', compact("acte"))->render());
+        DB::commit();
+
+        return $html2pdf->output($acte->code_acte_deces.".pdf");
+
+       } catch (Exception $e) {
+            DB::rollBack();
+            toastr()->error($e->getMessage());
+            return back();
+       }
+    }
+
     public function searchActe()
     {
         $nom = request('nom') ?  "%".request('nom')."%"  : "";
@@ -1037,6 +1064,13 @@ class ActeDecesController extends Controller
         $retire_par = $request->nominteresse." ".$request->prenominteresse;
         $acte = ActeDeces::find($request->codeactedeces);
 
+        if($acte == null){
+            return response()->json([
+                "code"=> "201",
+                "message"=> ["error"=> "Acte de décès introuvable"]
+            ]);
+        }
+
         // if(! Gate::allows("module.acteDeces.retrait")){
 
         //     return response()->json([
@@ -1049,7 +1083,7 @@ class ActeDecesController extends Controller
         try {
             $retrait = new RetraitActe;
             $retrait->code_retrait_acte = Sifec::genererCodeUniqueReferentiel($retrait, "code_retrait_acte", 8, "RET_");
-            $retrait->code_acte = $acte->codeactedeces;
+            $retrait->code_acte = $acte->code_acte_deces;
             $retrait->retirer_par = $retire_par;
             $retrait->telephone = $request->telephoneinteresse;
             $retrait->save();

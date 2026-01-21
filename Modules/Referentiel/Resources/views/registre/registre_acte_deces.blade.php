@@ -421,60 +421,47 @@
 
                                 <div class="row" style="font-size: 12px">
                                     <div class="col-sm-5">
-                                       @php
-                                        $departement = "";
-                                        $communeDistrict = "";
-                                        $institution = $acteReg->declaration->institutionUser->institution;
-                                        $libInstitution = $institution->lib_institution;
+                                        @php
+                                            setlocale(LC_TIME, "fr_FR", "French");
+                                                $departement = "";
+                                                $communeDistrict = "";
+                                                $institution = $acteReg->declaration->institutionUser->institution;
+                                                $libInstitution = $institution->lib_institution;
 
-                                        $infos = "";
-                                        if($acteReg->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-                                            $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acteReg->declaration->numero_req.' /2022';
-                                        }
+                                                $infos = "";
+                                                // if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+                                                //     $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
+                                                // }
 
-                                        if($acteReg->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
-                                            $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acteReg->declaration->numero_req.' /2022';
-                                        }
+                                                // if($acte->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
+                                                //     $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acte->declaration->numero_req.' /'.date("Y", strtotime($acte->declaration->date_heure_declaration));
+                                                // }
 
-                                        if($acteReg->declaration->type_declaration == "CERTIFICAT DE TRANSCRIPTION"){
-                                            $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acteReg->declaration->numero_req.' /2022';
-                                        }
 
-                                        if($acteReg->declaration->type_declaration == "CERTIFICAT DE CONSTATATION DE DECES"){
-                                            $infos = 'ACTE EMIS SUIVANT LA CONSTATATION  N° '.$acteReg->declaration->numero_certificat.' /2022 DU MEDECIN '.$acteReg->declaration->nom_medecin;
-                                        }
+                                                // if($acte->declaration->type_declaration == "DECLARATION TARDIVE"){
+                                                //     $infos = 'ACTE TRANSCRIT SUIVANT LA DECLARATION TARDIVE';
+                                                // }
 
-                                        if ($institution->code_arrondissement != NULL) {
-                                            $communeDistrict = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-                                            $departement  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-                                            $localisation = $institution->arrondissement->commune->lib_commune;
-                                        }
+                                                if($acteReg->declaration->requisition != ""){
+                                                    $titre = $acteReg->declaration->requisition->typeRequisition->lib_type_requisition;
+                                                    $num = $acteReg->declaration->requisition->num_requisition;
+                                                    $date = $acteReg->declaration->requisition->date_requisition;
+                                                    $infos = 'ACTE ETABLIT SUIVANT LA '.$titre.' N° '.$num.' DU '.(date("d-m-Y", strtotime($date)))." AU ".$acteReg->declaration->institutionUser->institution->institutionParent->lib_institution;
 
-                                        if ($institution->code_commune != NULL) {
-                                            $communeDistrict = "COMMUNE DE ".$institution->commune->lib_commune;
-                                            $departement  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-                                            $localisation = $institution->commune->lib_commune;
-                                        }
+                                                }
 
-                                        if ($institution->code_communaute_urbaine != NULL) {
-                                            $communeDistrict = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-                                            $departement  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-                                            $localisation = $institution->communauteUrbaine->district->lib_district;
-                                        }
 
-                                        if ($institution->code_district != NULL) {
-                                            $communeDistrict = "DISTRICT DE ".$institution->district->lib_district;
-                                            $departement  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-                                            $localisation = $institution->communauteUrbaine->district->lib_district;
-                                        }
-                                        @endphp
+                                                $commune = "COMMUNE DE ".$acteReg->declaration->institutionUser->institution->lieu->localiteParent->lib_localite;
+                                                $departement = "DEPARTEMENT DE ".$institution->institutionParent->lieu->localiteParent->localiteParent->lib_localite;
+                                            @endphp
 
-                                        <p>
+                                        <p><strong>
                                             <span>
-                                                {{-- <strong>{{ $departement }}</strong><br> --}}
-                                                <strong>{{ $communeDistrict }}</strong><br>
+                                                {{ $departement }}<br>
+                                                {{ $commune }}<br>
                                             </span>
-                                            <span><strong>{{$acteReg->institutionUser->institution->lib_institution}}</strong></span>
+                                            <span>{{$acteReg->institutionUser->institution->lib_institution}}</span>
+                                            </strong>
                                         </p>
                                     </div>
 
@@ -496,11 +483,11 @@
                                         <br>
                                     </div>
                                     <div class="col-xl-12" style="text-align:left; font-size:14px">
-                                        Centre d'état civil communal :  <strong> {{ $acteReg->institutionUser->institution->lib_institution }}</strong><br>
+                                        Centre d'état civil secondaire :  <strong> {{ $acteReg->institutionUser->institution->lib_institution }}</strong><br>
                                         le <strong> {{ Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
                                         S'est présenté(e) <strong> {{ $acteReg->declaration->declarant->nom.' '.$acteReg->declaration->declarant->prenom }}</strong>, &ensp; Filiation: <strong>{{ $acteReg->declaration->filiation->lib_filiation }} </strong><br>
                                         Domicilié(e) : <strong>{{ $acteReg->declaration->declarant->adresse }}</strong><br>
-                                        qui a déclaré le décès de : <strong style="color: red">{{ $acteReg->declaration->defunt->nom." ".$acteReg->declaration->defunt->prenom }} </strong><br>
+                                        qui a déclaré le décès de : <strong style="color: red">{{ $acteReg->declaration->defunt->nomComplet() }} </strong><br>
                                         Lieu de décès : <strong> {{ $acteReg->declaration->lieu_deces }} </strong><br>
                                         Sexe: <strong>{{ $acteReg->declaration->defunt->sexe== "M" ? "Masculin" : "Féminin" }}</strong><br>
                                         Nationalité : <strong>{{ $acteReg->declaration->defunt->nationalite->lib_nationalite }}</strong><br>
@@ -540,7 +527,7 @@
                                     Le déclarant,
 
                                     <div class="col-xl-12" style="margin-left: 100px">
-                                        <p>Fait à {{$localisation}}, le {{date("d-m-Y", strtotime( $acteReg->date_emission))}}<br>L'Officier de l'état civil</p>
+                                        <p>Fait à {{ ucfirst(strtolower(trans($acteReg->declaration->institutionUser->institution->lieu->localiteParent->lib_localite)))}}, le {{date("d-m-Y", strtotime( $acteReg->date_emission))}}<br>L'Officier de l'état civil</p>
                                         @if ($acteReg->approbation_pompe_funebre != "")
                                             <img src='{{ asset("app/".$acteReg->signature_pompe_funebre) }}'><br>
                                             {{ $acteReg->signataire->user->personne->nomcomplet() }}

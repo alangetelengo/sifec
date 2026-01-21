@@ -20,9 +20,9 @@ class CreateTrLocaliteTable extends Migration
             $table->string('code_type_localite',16);
             $table->boolean("pompes_funebres")->default(false);
             $table->string('code_localite_parent',16)->nullable();
-            $table->boolean('supprimer')->default(false);
+            $table->string("code_officel",4)->nullable()->comment("Codification officiel de département");
             $table->timestamps();
-            
+            $table->softDeletes();
 
             $table->foreign('code_type_localite')->references('code_type_localite')->on('tr_type_localite')->onDelete('CASCADE')->onUpdate("CASCADE");
             $table->foreign('code_localite_parent')->references('code_localite')->on('tr_localite')->onDelete('CASCADE')->onUpdate("CASCADE");

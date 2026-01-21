@@ -41,39 +41,15 @@
 
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
         @php
-            $localite = "";
-            $localiteParent = "";
-            $inst = "";
+            // Utiliser le service Sifec pour obtenir les informations de localisation
             $institution = $institutionPortail;
-            $localisation = "";
+            $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
             setlocale(LC_TIME, "fr_FR", "French");
 
-            if ($institution->code_arrondissement != NULL) {
-                $inst = $institution->lib_institution;
-                $localite = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-                $localiteParent  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-                $localisation = $institution->arrondissement->commune->lib_commune;
-            }
-
-            if ($institution->code_commune != NULL) {
-                $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-                $localite  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-                $localisation = $institution->commune->lib_commune;
-            }
-
-            if ($institution->code_communaute_urbaine != NULL) {
-                $inst = $institution->lib_institution;
-                $localite = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-                $localiteParent  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-                $localisation = $institution->communauteUrbaine->district->lib_district;
-            }
-
-            if ($institution->code_district != NULL) {
-                $inst = $institution->lib_institution;
-                $localite = "DISTRICT DE ".$institution->district->lib_district;
-                $localiteParent  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-                $localisation = $institution->communauteUrbaine->district->lib_district;
-            }
+            $localite = $localisationData['localite'];
+            $localiteParent = $localisationData['localiteParent'];
+            $inst = $localisationData['inst'];
+            $localisation = $localisationData['localisation'];
         @endphp
         <tr>
             <td style="width:40%; text-align: center;">
@@ -116,24 +92,10 @@
                 {{-- <small>Avec : {{$declarationDeces->lieu_deces}}</small><br> --}}
                 @if ($mariage->acte != NULL)
                     @php
-                        $inst = "";
-                        $institution = $acte->institutionUser->institution;
-
-                        if ($institution->code_arrondissement != NULL) {
-                            $inst = $institution->lib_institution;
-                        }
-
-                        if ($institution->code_commune != NULL) {
-                            $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-                        }
-
-                        if ($institution->code_communaute_urbaine != NULL) {
-                            $inst = $institution->lib_institution;
-                        }
-
-                        if ($institution->code_district != NULL) {
-                            $inst = $institution->lib_institution;
-                        }
+                        // Utiliser le service Sifec pour obtenir les informations de localisation
+                        $institutionMariage = $acte->institutionUser->institution;
+                        $localisationDataMariage = \App\Sifec\Sifec::getLocalisationInstitution($institutionMariage);
+                        $inst = $localisationDataMariage['inst'];
                     @endphp
                     <small>A : LA {{$inst}}</small><br>
                     <small>N° acte de mariage : {{$mariage->acte->code_acte_mariage}}</small>

@@ -60,17 +60,19 @@
                    setlocale(LC_TIME, "fr_FR", "French");
 
                     $institution = $acte->institutionUser->institution;
-                    $departement = $institution->lieu->localiteParent->localiteParent;
-                    $communeDistrict = $institution->lieu->localiteParent;
+                    $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+                    $departement = $localisationData['localiteParent'];
+                    $communeDistrict = $localisationData['localite'];
+                    $localisation = $localisationData['localisation'];
                 @endphp
                 @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
                 <p>
                     <span>
-                    {{ "DEPARTEMENT DE ".$departement->lib_localite }}
+                    {{ $departement }}
                     <br>
-                        {{ "COMMUNE DE ".$communeDistrict->lib_localite }}
+                        {{ $communeDistrict }}
                     </span> <br>
-                    <span><strong>{{ $institution->lib_institution }}</strong></span>
+                    <span><strong>{{ $localisationData['inst'] }}</strong></span>
                 </p>
                 @else
                 <p>
@@ -112,24 +114,9 @@
                 <small>Marié(e) le: <br> {{ date("d-m-Y", strtotime($mariage->date_prevue_mariage))}}</small><br>
                 @if ($mariage->acte != NULL)
                     @php
-                        $inst = "";
                         $institution = $acte->institutionUser->institution;
-
-                        if ($institution->code_arrondissement != NULL) {
-                            $inst = $institution->lib_institution;
-                        }
-
-                        if ($institution->code_commune != NULL) {
-                            $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-                        }
-
-                        if ($institution->code_communaute_urbaine != NULL) {
-                            $inst = $institution->lib_institution;
-                        }
-
-                        if ($institution->code_district != NULL) {
-                            $inst = $institution->lib_institution;
-                        }
+                        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+                        $inst = $localisationData['inst'];
                     @endphp
                     <small>A : LA {{$inst}}</small><br>
                     <small>N° acte de mariage : {{$mariage->acte->code_acte_mariage}}</small>
@@ -336,7 +323,7 @@
                         {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
                     <td style="text-align: left;">
-                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
+                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower($localisation)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
                          @if ($acte->approbation_mairie != "")
                              <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
                              <span style="color:black; font-weight:bold"> {{ $acte->signataire->user->personne->nomcomplet() }}</span>

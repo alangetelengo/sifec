@@ -17,8 +17,8 @@ class CreateTrNationaliteTable extends Migration
             $table->primary("code_nationalite");
             $table->string('code_nationalite',16);
             $table->string('lib_nationalite',255)->unique();
-            $table->boolean('supprimer')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

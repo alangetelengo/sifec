@@ -41,41 +41,17 @@
     }
 </style>
 @php
-$localite = "";
-$localiteParent = "";
-$inst = "";
+// Utiliser le service Sifec pour obtenir les informations de localisation
 $institution = $dm->institutionUser->institution;
-$localisation = "";
+$localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
 
-if ($institution->code_arrondissement != NULL) {
-    $inst = $institution->lib_institution;
-    $localite = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-    $localiteParent  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-    $localisation = $institution->arrondissement->commune->lib_commune;
-}
-
-if ($institution->code_commune != NULL) {
-    $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-    $localite  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-    $localisation = $institution->commune->lib_commune;
-}
-
-if ($institution->code_communaute_urbaine != NULL) {
-    $inst = $institution->lib_institution;
-    $localite = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-    $localiteParent  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-    $localisation = $institution->communauteUrbaine->district->lib_district;
-}
-
-if ($institution->code_district != NULL) {
-    $inst = $institution->lib_institution;
-    $localite = "DISTRICT DE ".$institution->district->lib_district;
-    $localiteParent  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-    $localisation = $institution->communauteUrbaine->district->lib_district;
-}
+$localite = $localisationData['localite'];
+$localiteParent = $localisationData['localiteParent'];
+$inst = $localisationData['inst'];
+$localisation = $localisationData['localisation'];
 @endphp
 
-<page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ asset("tpl/armoirie_congo.png") }}"  backimgw="100%"
+<page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ public_path("tpl/armoirie_congo.png") }}"  backimgw="100%"
 	  backtop="10mm"
 	  backbottom="15mm"
 	  backleft="10mm"
@@ -100,8 +76,8 @@ if ($institution->code_district != NULL) {
 
     </page_header>
     <div style="text-align:left">
-            <strong>{{ "DEPARTEMENT DE ".$dm->institution->lieu->localiteParent->localiteParent->lib_localite }}</strong><br>
-            <strong>{{ "COMMUNE DE ".$dm->institution->lieu->localiteParent->lib_localite}}</strong><br>
+            <strong>{{ $localiteParent }}</strong><br>
+            <strong>{{ $localite }}</strong><br>
             <strong>{{ $dm->institution->lib_institution }}</strong>
         </div>
         <div style="text-align:right;margin-top:-50px">
@@ -550,7 +526,7 @@ if ($institution->code_district != NULL) {
                 <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
                 <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
                 <td style="text-align: right;">
-                     Fait à <span style="text-transform:capitalize">{{ $dm->institution->lieu->localiteParent->lib_localite }}</span>, le {{ date("d-m-Y", strtotime($dm->date_declaration_mariage)) }}<br>
+                     Fait à <span style="text-transform:capitalize">{{ $localisation }}</span>, le {{ date("d-m-Y", strtotime($dm->date_declaration_mariage)) }}<br>
                     <p style="text-align:left;margin-left:120px">L’officier de l'état civil</p><br><br><br><br><br><br><br><br><br><br>
                 </td>
               </tr>

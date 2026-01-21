@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
 
 class DeclarationNaissanceSeeder extends Seeder
 {
-    private const TOTAL_DECLARATIONS = 50;
+    private const TOTAL_DECLARATIONS = 40;
     private const UNIQUE_RATIO = 0.80; // 80 % de familles uniques
     private const FILLE_RATIO = 0.36; // 36 % de filles
 

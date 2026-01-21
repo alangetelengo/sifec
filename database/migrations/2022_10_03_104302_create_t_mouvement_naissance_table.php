@@ -24,7 +24,7 @@ class CreateTMouvementNaissanceTable extends Migration
 
             $table->string('motif_renvoi')->nullable();
             $table->text('observation')->nullable();
-            $table->enum('statut', ['En cours', 'Envoyée', 'Renvoyée','Actif','Importé'])->default('En cours');
+            $table->enum('statut', ['En cours', 'Envoyée', 'Renvoyée','Actif','Importé','Confirmée'])->default('En cours');
 
             $table->timestamps();
             $table->softDeletes();

@@ -13,55 +13,32 @@
                 </a>
                 <ul aria-expanded="false">
                     <li>
-                        <a href="{{ route("departement.index") }}">Préfecture</a>
+                        <a href="{{ route("typelocalite.index") }}">Type de localité</a>
                     </li>
                     <li>
-                        <a href="{{ route("commune.index") }}">Commune</a>
+                        <a href="{{ route("localite.index") }}">Localité</a>
                     </li>
                     <li>
-                        <a href="{{ route("district.index") }}">Sous préfecture</a>
+                        <a href="{{ route("typeCategorieInstitution.index") }}">Type catégorie Institution</a>
                     </li>
                     <li>
-                        <a href="{{ route("arrondissement.index") }}">Arrondissement</a>
+                        <a href="{{ route("typeInstitution.index") }}">Type institution</a>
                     </li>
                     <li>
-                        <a href="{{ route("communauteUrbaine.index") }}">Communauté urbaine</a>
-                    </li>
-
-                    <li>
-                        <a href="{{ route("courAppel.index") }}">Cour d'appel</a>
+                        <a href="{{ route("institution.index") }}">Institution</a>
                     </li>
                     <li>
-                        <a href="{{ route("tribunal.index") }}">Tribunal</a>
+                        <a href="{{ route("profession.index") }}">Profession</a>
                     </li>
                     <li>
-                        <a href="{{ route("typeInstitution.index") }}">Type centre d'état civil</a>
+                        <a href="{{ route("causedeces.index") }}">Cause de décès</a>
                     </li>
-
                     <li>
-                        <a class="has-arrow" href="javascript:void()" aria-expanded="false">centre d'état civil</a>
-                        <ul aria-expanded="false">
-                            <li class="{{ request()->is("institution") ? "active" : "" }}">
-                                <a href="{{ route("institution.index") }}">Primaire</a>
-                            </li>
-                            <li class="{{ request()->is("institutionSecondaire") ? "active" : "" }}">
-                                <a href="{{ route("institutionSecondaire.index") }}">Secondaire</a>
-                            </li>
-                        </ul>
+                        <a href="{{ route("religion.index") }}">Religion</a>
                     </li>
-                    <li class="{{ request()->is("profession") ? "active" : "" }}">
-                        <a href="{{ route("profession.index") }}">Profession</a></li>
-                    <li class="{{ request()->is("causedeces") ? "active" : "" }}">
-                        <a href="{{ route("causedeces.index") }}">Cause décès</a>
-                    </li>
-                    <li class="{{ request()->is("religion") ? "active" : "" }}">
-                        <a href="{{ route("religion.index") }}">Réligion</a>
-                    </li>
-                    <li class="{{ request()->is("nationalite") ? "active" : "" }}">
+                    <li>
                         <a href="{{ route("nationalite.index") }}">Nationalité</a>
                     </li>
-
-
                 </ul>
             </li>
             @endcan

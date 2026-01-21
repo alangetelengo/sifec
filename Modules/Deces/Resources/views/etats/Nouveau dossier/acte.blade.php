@@ -38,29 +38,13 @@
         //     $infos = 'ACTE EMIS SUIVANT LA CONSTATATION  N° '.$acte->declaration->numero_certificat.' /2022 DU MEDECIN '.$acte->declaration->nom_medecin;
         // }
 
-        if ($institution->code_arrondissement != NULL) {
-            $communeDistrict = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-            $departement  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-            $localisation = $institution->arrondissement->commune->lib_commune;
-        }
-
-        if ($institution->code_commune != NULL) {
-            $communeDistrict = "COMMUNE DE ".$institution->commune->lib_commune;
-            $departement  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-            $localisation = $institution->commune->lib_commune;
-        }
-
-        if ($institution->code_communaute_urbaine != NULL) {
-            $communeDistrict = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-            $departement  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-
-        if ($institution->code_district != NULL) {
-            $communeDistrict = "DISTRICT DE ".$institution->district->lib_district;
-            $departement  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
+        // Utiliser le service Sifec pour obtenir les informations de localisation
+        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+        
+        $localite = $localisationData['localite'];
+        $departement = $localisationData['localiteParent'];
+        $communeDistrict = $localisationData['localite'];
+        $localisation = $localisationData['localisation'];
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 10pt;">
         <tr>

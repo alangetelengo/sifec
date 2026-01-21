@@ -26,7 +26,8 @@ class AdressePersonne extends Model
 
     public function quertierVillage(): BelongsTo
     {
-        return $this->belongsTo(Localite::class, 'code_quartier_localite', 'code_localite');
+        // Utiliser code_localite car code_quartier_localite n'existe plus
+        return $this->belongsTo(Localite::class, 'code_localite', 'code_localite');
     }
 
     public function communeDistrict(): BelongsTo

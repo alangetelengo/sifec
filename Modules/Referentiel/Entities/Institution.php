@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
 
 
@@ -21,6 +22,7 @@ class Institution extends Model
 {
     use HasFactory;
     use HasRecursiveRelationships;
+    use SoftDeletes;
     protected $table = "tr_institution";
     protected $primaryKey = "code_institution";
     public $incrementing = false;
@@ -58,24 +60,13 @@ class Institution extends Model
         return $this->descendantsAndSelf()->depthFirst()->get();
     }
 
-    //debut à supprimer
-    public function commune(): BelongsTo
+    /**
+     * Relation vers les institutions enfants (pour la hiérarchie)
+     */
+    public function institutionsEnfants(): HasMany
     {
-        return $this->belongsTo(Commune::class, 'code_commune', 'code_commune');
+        return $this->hasMany(Institution::class, 'code_institution_parent', 'code_institution');
     }
-    public function district(): BelongsTo
-    {
-        return $this->belongsTo(District::class, 'code_district', 'code_district');
-    }
-    public function arrondissement(): BelongsTo
-    {
-        return $this->belongsTo(Arrondissement::class, 'code_arrondissement', 'code_arrondissement');
-    }
-    public function communauteUrbaine(): BelongsTo
-    {
-        return $this->belongsTo(CommunauteUrbaine::class, 'code_communaute_urbaine', 'code_communaute_urbaine');
-    }
-    //fin à supprimer
 
 
 
@@ -114,33 +105,58 @@ class Institution extends Model
         return $this->institutionsUsers->map->declarationMariages->flatten();
     }
 
+    /**
+     * Récupère le nom de la localité (utilise le nouveau système unifié)
+     * @deprecated Utiliser lieu()->lib_localite directement
+     */
     public function nomLocalite()
     {
-        $locate = $this->commune ?? $this->district ?? $this->arrondissement ?? $this->communauteUrbaine;
-
-        return $locate->lib_commune ?? $locate->lib_district ?? $locate->lib_arrondissement ?? $locate->lib_communaute_urbaine;
+        return $this->lieu ? $this->lieu->lib_localite : 'NON DÉFINI';
     }
 
-
-    public function localite() //ville
-    {
-        return $this->commune ?? $this->district ?? $this->arrondissement ?? $this->communauteUrbaine;
-    }
-
-    public function departement()
-    {
-        return $this->localite()->departement ?? $this->localite()->commune->departement ?? $this->localite()->district->departement;
-    }
-
-    public function subDepartement()
-    {
-        return $this->departement()->communes->first() ?? $this->departement()->districts->first();
-    }
-
-
+    /**
+     * Alias pour la relation lieu() - utilise le nouveau système unifié
+     * @deprecated Utiliser lieu() directement
+     */
     public function lalocalite(): BelongsTo
     {
-        return $this->belongsTo(Localite::class, 'code_localite', 'code_localite');
+        return $this->lieu();
+    }
+
+    /**
+     * @deprecated Utiliser lieu() directement avec le nouveau système unifié
+     */
+    public function localite()
+    {
+        return $this->lieu;
+    }
+
+    /**
+     * @deprecated Utiliser lieu()->localiteParent() pour remonter la hiérarchie
+     */
+    public function departement()
+    {
+        if (!$this->lieu) {
+            return null;
+        }
+        // Remonter la hiérarchie jusqu'au département
+        $current = $this->lieu;
+        while ($current && $current->code_type_localite !== 'TPLOC_0001') {
+            $current = $current->localiteParent;
+        }
+        return $current;
+    }
+
+    /**
+     * @deprecated Utiliser lieu()->localiteParent pour obtenir le sous-département
+     */
+    public function subDepartement()
+    {
+        if (!$this->lieu) {
+            return null;
+        }
+        // Obtenir le parent direct (district ou commune)
+        return $this->lieu->localiteParent;
     }
 
 
@@ -212,10 +228,15 @@ class Institution extends Model
 
         }elseif($module == "deces"){
             $pompesFunebresCodes = $this->getInstitutionsPompeFunebre()->pluck('code_institution')->toArray();
+            // Combiner les codes des formations sanitaires et des pompes funèbres
+            $institutionsCodes = array_merge($formationsSanitairesCodes, $pompesFunebresCodes);
+
             return DeclarationDeces::with(['defunt', 'declarant', 'pere', 'mere', 'mouvements'])
-            ->whereIn('code_institution', $formationsSanitairesCodes)
-            ->where('type_declaration', "DECLARATION DE DECES")
-            ->orWhere('type_declaration', "CERTIFICAT DE CONSTATATION DE DECES")
+            ->whereIn('code_institution', $institutionsCodes)
+            ->where(function($query) {
+                $query->where('type_declaration', "DECLARATION DE DECES")
+                      ->orWhere('type_declaration', "CERTIFICAT DE CONSTATATION DE DECES");
+            })
             // ->orWhere('type_declaration', "DECLARATION TARDIVE")
             // ->orWhere('type_declaration', "CERTIFICAT DE NON INSCRIPTION")
             ->where('declarant_approuver', 'OUI')
@@ -256,7 +277,14 @@ class Institution extends Model
                     $institution->typeInstitution?->code_type_categorie_ins === 'TCINS_0003'
                 )
                 ->pluck('code_institution'),
-            'deces' => $this->getInstitutionsPompeFunebre()->pluck('code_institution'),
+            'deces' => $this->descendants()
+                ->filter(fn($institution) =>
+                    $institution->typeInstitution?->code_type_categorie_ins === 'TCINS_0003'
+                )
+                ->pluck('code_institution')
+                ->merge($this->getInstitutionsPompeFunebre()->pluck('code_institution'))
+                ->unique()
+                ->values(),
         };
 
         // Configuration spécifique par module

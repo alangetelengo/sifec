@@ -23,10 +23,16 @@
         $localiteParent  = "DEPARTEMENT DE LA CUVETTE";
         $localisation = $institution->lieu->localiteParent->lib_localite;
 
-        $typeLocalite =  $certificat->institution->lieu->localiteParent->localiteParent->typeLocalite->lib_type_localite;
-        $departement = $certificat->institution->lieu->localiteParent->localiteParent->lib_localite;
-        $comDistrict = $certificat->institution->lieu->localiteParent->lib_localite;
-        $cec =  $certificat->institution->lib_institution;
+        // Utiliser le service Sifec pour obtenir les informations de localisation
+        $institutionCertif = $certificat->institution;
+        $localisationDataCertif = \App\Sifec\Sifec::getLocalisationInstitution($institutionCertif);
+        
+        $departement = $localisationDataCertif['localiteParent'];
+        $comDistrict = $localisationDataCertif['localite'];
+        $cec = $localisationDataCertif['inst'];
+        
+        // Pour typeLocalite, on peut utiliser l'objet departement du service
+        $typeLocalite = $localisationDataCertif['departement'] ? $localisationDataCertif['departement']->typelocalite->lib_type_localite : "";
     @endphp
 
     <table cellspacing="0" style="width: 100%; font-size: 14px;">

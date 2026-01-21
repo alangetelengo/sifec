@@ -1,113 +1,96 @@
 @extends('layout.app')
 @section('titre')
-    Causes du décès
+   Gestion des Causes de décès
 @endsection
 @section('styles')
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
-
 @endsection
 @section('corps')
-
     <div class="row">
-        <div class="col-xl-5">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Créer une cause du décès</h4>
-                </div>
-                <div class="card-body">
-                    <div class="basic-form">
-                        <form method="POST" action="{{ route('causedeces.store') }}">
-                            @csrf
-                            <div class="row">
-                                <div class="mb-3 col-md-12">
-                                    <label class="form-label">Libéllé</label>
-                                    <input  class="form-control form-control-sm @error("lib_cause_deces") is-invalid @enderror " name="lib_cause_deces" type="text" value="{{ old('lib_cause_deces') }}" placeholder="Cause du décès">
-                                    @error("lib_cause_deces")
-                                        <div class="invalid-feedback">
-                                            {{ $message }}
-                                        </div>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-sm btn-primary">Valider</button>
-
-                        </form>
-                    </div>
-                </div>
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fas fa-cross me-2"></i>Gestion des Causes de décès</h4>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCauseDecesModal">
+                    <i class="fas fa-plus-circle me-2"></i>Ajouter une cause de décès
+                </button>
             </div>
-        </div>
-        <div class="col-xl-7">
             <div class="card">
                 <div class="card-header">
-                    <h4>Liste des causes</h4>
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des causes de décès</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="example" class="display">
-                            <thead>
+                    <!-- Formulaire de filtre -->
+                    <form id="form-search-cause-deces">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Libellé de la cause de décès</label>
+                                <input type="text" class="form-control" name="lib_cause_deces" id="filter-lib-cause-deces" placeholder="Rechercher...">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Rechercher
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-cause-deces">
+                                    <i class="fas fa-redo me-1"></i> Réinitialiser
+                                </button>
+                                <span id="count-results" class="ms-3 text-muted"></span>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Tableau des causes de décès -->
+                    <div class="table-responsive mt-4">
+                        <table id="table-cause-deces" class="display table table-hover" style="min-width: 845px">
+                            <thead class="table-light">
                                 <tr>
                                     <th>N°</th>
                                     <th>Libellé</th>
-                                    <th>Actions</th>
+                                    <th class="text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <?= $i=1; ?>
-                                @foreach ($causeDeces as $deces)
-                                <tr>
-                                    <td>{{ $i++ }}</td>
-                                    <td>{{ $deces->lib_cause_deces }}</td>
-                                    <td>
-                                        <div class="d-flex">
-
-                                            <button type="button" class="btn btn-primary shadow btn-xs sharp me-1" data-bs-toggle="modal" data-bs-target=".bd-{{ $i }}-modal-sm"><i class="fas fa-pencil-alt"></i></button>
-
-                                            <div class="modal fade bd-{{ $i }}-modal-sm" tabindex="-1" role="dialog" aria-hidden="true">
-                                                <div class="modal-dialog modal-sm">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title">Modification de {{ $deces->lib_cause_deces }}</h5>
-                                                            <button type="button" class="btn btn-sm-close" data-bs-dismiss="modal">
-                                                            </button>
-                                                        </div>
-                                                        <form action="{{ route('causedeces.update',$deces->code_cause_deces) }}" method="POST">
-                                                            @csrf
-                                                            @method('PUT')
-                                                            <div class="modal-body">
-                                                                <div class="mb-3 col-md-12">
-                                                                    <label class="form-label">Libéllé</label>
-                                                                    <input  class="form-control form-control-sm" name="lib_cause_deces" type="text" value="{{ $deces->lib_cause_deces }}">
-                                                                </div>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">Fermer</button>
-                                                                <button type="submit" class="btn btn-sm btn-warning ">Modifier</button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                </div>
+                            <tbody id="tbody-cause-deces">
+                                @php
+                                    $causeDecesCount = $causeDeces ? $causeDeces->count() : 0;
+                                @endphp
+                                @if($causeDecesCount > 0)
+                                    @foreach ($causeDeces as $item)
+                                    <tr>
+                                        <td><span class="badge badge-primary">{{ $loop->iteration }}</span></td>
+                                        <td><strong>{{ $item->lib_cause_deces }}</strong></td>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editCauseDecesModal{{ $item->code_cause_deces }}" title="Modifier">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                                <form action="{{ route('causedeces.destroy', $item->code_cause_deces) }}" method="post" class="d-inline" id="deleteForm{{ $item->code_cause_deces }}">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="btn btn-danger shadow btn-xs sharp btn-delete" type="button" data-code="{{ $item->code_cause_deces }}" data-libelle="{{ $item->lib_cause_deces }}" title="Supprimer">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             </div>
-
-
-
-                                            <form action="{{ route('causedeces.destroy',$deces->code_cause_deces) }}" method="post">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="btn btn-danger shadow btn-xs sharp" type="submit"><i class="fa fa-trash"></i></button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                @endforeach
-
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                @else
+                                    <tr>
+                                        <td colspan="3" class="text-center">
+                                            <div class="py-4">
+                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                <p class="text-muted">Aucune cause de décès trouvée (Total: {{ $causeDecesCount }})</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
                             </tbody>
-                            <tfoot>
+                            <tfoot class="table-light">
                                 <tr>
                                     <th>N°</th>
                                     <th>Libellé</th>
-                                    <th>Actions</th>
+                                    <th class="text-center">Action</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -116,9 +99,256 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Ajout -->
+    <div class="modal fade" id="addCauseDecesModal" tabindex="-1" aria-labelledby="addCauseDecesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCauseDecesModalLabel">
+                        <i class="fas fa-plus-circle me-2"></i>Ajouter une cause de décès
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ route('causedeces.store') }}" id="addCauseDecesForm">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="mb-3 col-md-12">
+                                <label class="form-label fw-bold">Libellé de la cause de décès <span class="text-danger">*</span></label>
+                                <input type="text" name="lib_cause_deces" class="form-control form-control-lg @error('lib_cause_deces') is-invalid @enderror"
+                                       value="{{ old("lib_cause_deces") }}" placeholder="Ex: Maladie, Accident..." required>
+                                @error("lib_cause_deces")
+                                <div class="invalid-feedback">
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                                </div>
+                                @enderror
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>Saisissez le nom de la cause de décès à enregistrer
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Annuler
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals Modification -->
+    @foreach ($causeDeces as $item)
+    <div class="modal fade" id="editCauseDecesModal{{ $item->code_cause_deces }}" tabindex="-1" aria-labelledby="editCauseDecesModalLabel{{ $item->code_cause_deces }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCauseDecesModalLabel{{ $item->code_cause_deces }}">
+                        <i class="fas fa-edit me-2"></i>Modifier {{ $item->lib_cause_deces }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('causedeces.update', $item->code_cause_deces) }}" method="POST" id="editCauseDecesForm{{ $item->code_cause_deces }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="mb-3 col-md-12">
+                                <label class="form-label fw-bold">Libellé de la cause de décès <span class="text-danger">*</span></label>
+                                <input class="form-control form-control-lg @error('lib_cause_deces') is-invalid @enderror"
+                                       name="lib_cause_deces" type="text" value="{{ $item->lib_cause_deces }}" required>
+                                @error("lib_cause_deces")
+                                <div class="invalid-feedback">
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                                </div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Annuler
+                        </button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i>Modifier
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endforeach
 @endsection
 @section('scripts')
       <!-- Datatable -->
       <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
       <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+      <script>
+          // Fonction de confirmation de suppression avec SweetAlert2
+          function confirmDelete(code, libelle) {
+              var formId = 'deleteForm' + code;
+              var form = document.getElementById(formId);
+
+              if (!form) {
+                  console.error('Formulaire non trouvé:', formId);
+                  Swal.fire({
+                      title: 'Erreur',
+                      text: 'Formulaire de suppression non trouvé: ' + formId,
+                      type: 'error',
+                      confirmButtonText: 'OK'
+                  });
+                  return;
+              }
+
+              Swal.fire({
+                  title: 'Êtes-vous sûr ?',
+                  html: 'Voulez-vous vraiment supprimer la cause de décès <strong>' + libelle + '</strong> ?',
+                  type: 'warning',
+                  showCancelButton: true,
+                  confirmButtonColor: '#CE1126',
+                  cancelButtonColor: '#009639',
+                  confirmButtonText: 'Oui, supprimer',
+                  cancelButtonText: 'Annuler',
+                  buttonsStyling: false,
+                  customClass: {
+                      confirmButton: 'btn btn-danger me-2',
+                      cancelButton: 'btn btn-success'
+                  }
+              }).then((result) => {
+                  if (result.value === true || result.isConfirmed === true) {
+                      form.submit();
+                  }
+              });
+          }
+
+          // Variable pour stocker l'instance DataTables
+          var tableCauseDeces = null;
+
+          // Fonction pour rechercher les causes de décès côté serveur
+          function searchCauseDecesServer() {
+              var formData = $('#form-search-cause-deces').serialize();
+              formData += '&_token={{ csrf_token() }}';
+
+              $.ajax({
+                  url: "{{ route('causedeces.filter') }}",
+                  type: 'POST',
+                  data: formData,
+                  beforeSend: function() {
+                      $('#tbody-cause-deces').html('<tr><td colspan="3" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
+                      $('#count-results').text('');
+                  },
+                  success: function(response) {
+                      try {
+                          if (response.code === '200') {
+                              // Détruire DataTables complètement avant de modifier le contenu
+                              if ($.fn.DataTable.isDataTable('#table-cause-deces')) {
+                                  try {
+                                  tableCauseDeces.destroy();
+                                  } catch(e) {
+                                      console.log('Erreur lors de la destruction de DataTables:', e);
+                                  }
+                                  tableCauseDeces = null;
+                              }
+                              // Vider complètement le tbody et le remplacer par les nouvelles données
+                              $('#tbody-cause-deces').empty().html(response.data);
+
+                              // Afficher le nombre de résultats
+                              var countText = response.count + ' résultat(s) trouvé(s)';
+                              if (response.limite_atteinte) {
+                                  countText += ' (limite de 500 atteinte, affinez vos critères)';
+                              }
+                              $('#count-results').text(countText);
+
+                              // Réinitialiser DataTables avec les nouvelles données (même si vide)
+                              setTimeout(function() {
+                                  try {
+                                      // Vérifier si la table a des données (plus d'une ligne ou pas de classe text-center)
+                                      var rows = $('#tbody-cause-deces tr');
+                                      var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+
+                                      if (hasData && rows.length > 0) {
+                                          tableCauseDeces = $('#table-cause-deces').DataTable({
+                                              "language": {
+                                                  "search": "Rechercher:",
+                                                  "lengthMenu": "Afficher _MENU_ éléments",
+                                                  "info": "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
+                                                  "infoEmpty": "Affichage de 0 à 0 sur 0 éléments",
+                                                  "infoFiltered": "(filtré sur _MAX_ éléments au total)",
+                                                  "loadingRecords": "Chargement...",
+                                                  "zeroRecords": "Aucun élément correspondant trouvé",
+                                                  "emptyTable": "Aucune donnée disponible dans le tableau",
+                                                  "paginate": {
+                                                      "first": "Premier",
+                                                      "last": "Dernier",
+                                                      "next": "Suivant",
+                                                      "previous": "Précédent"
+                                                  }
+                                              },
+                                              "paging": false,
+                                              "searching": true,
+                                              "info": false,
+                                              "ordering": true,
+                                              "destroy": true
+                                          });
+                                      } else {
+                                          // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
+                                          console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
+                                      }
+                                  } catch(e) {
+                                      console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                                  }
+                              }, 100);
+                          } else {
+                              flashAlert("Erreur", "error", response.message || "Une erreur est survenue lors de la recherche");
+                          }
+                      } catch(e) {
+                          console.error('Erreur lors du traitement de la réponse:', e);
+                          flashAlert("Erreur", "error", "Erreur lors du traitement de la réponse");
+                      }
+                  },
+                  error: function(xhr, status, error) {
+                      console.error('Erreur AJAX:', error);
+                      var errorMessage = "Erreur lors de la recherche des causes de décès";
+                      if (xhr.responseJSON && xhr.responseJSON.message) {
+                          errorMessage = xhr.responseJSON.message;
+                      } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                          errorMessage = xhr.responseJSON.error;
+                      }
+                      flashAlert("Erreur", "error", errorMessage);
+                  }
+              });
+          }
+
+          // Event listeners
+          $(document).ready(function() {
+              // Soumission du formulaire de recherche
+              $('#form-search-cause-deces').on('submit', function(e) {
+                  e.preventDefault();
+                  searchCauseDecesServer();
+              });
+
+              // Réinitialiser les filtres
+              $('#btn-reset-filters-cause-deces').on('click', function() {
+                  $('#form-search-cause-deces')[0].reset();
+                  location.reload();
+              });
+
+              // Boutons de suppression
+              $(document).on('click', '.btn-delete', function() {
+                  var code = $(this).data('code');
+                  var libelle = $(this).data('libelle');
+                  confirmDelete(code, libelle);
+              });
+
+              // Réinitialiser le formulaire lors de l'ouverture du modal
+              $('#addCauseDecesModal').on('show.bs.modal', function() {
+                  $('#addCauseDecesForm')[0].reset();
+              });
+          });
+      </script>
 @endsection

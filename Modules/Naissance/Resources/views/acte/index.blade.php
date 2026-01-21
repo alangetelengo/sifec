@@ -166,16 +166,7 @@ Actes de naissance
                                                     <tbody id="tbody-documents-controle">
                                                         @include('naissance::acte.partials.table-documents', ['documents' => $documentsAControler])
                                                     </tbody>
-                                                    <tfoot>
-                                                        <th>#</th>
-                                                        <th>N° Déclaration</th>
-                                                        <th>Enfant</th>
-                                                        <th>Date naissance</th>
-                                                        <th>Sexe</th>
-                                                        <th>Type Document</th>
-                                                        <th>Statut</th>
-                                                        <th>Actions</th>
-                                                    </tfoot>
+                                                    {{-- tfoot retiré pour éviter les conflits avec DataTables --}}
                                                 </table>
                                             </div>
                                         </div>
@@ -255,15 +246,7 @@ Actes de naissance
                                                     <tbody id="tbody-actes-gestion">
                                                         @include('naissance::acte.partials.table-actes', ['actes' => $actesGestion])
                                                     </tbody>
-                                                    <tfoot>
-                                                        <th>#</th>
-                                                        <th>N° Acte</th>
-                                                        <th>Enfant</th>
-                                                        <th>Date naissance</th>
-                                                        <th>Sexe</th>
-                                                        <th>Statut</th>
-                                                        <th>Actions</th>
-                                                    </tfoot>
+                                                    {{-- tfoot retiré pour éviter les conflits avec DataTables --}}
                                                 </table>
                                             </div>
                                         </div>
@@ -428,7 +411,7 @@ Actes de naissance
                     </div>
                     <div class="mb-2 col-md-12">
                         <label class="form-label">Observation</label>
-                        <textarea id="observation" cols="96" rows="5"></textarea>
+                        <textarea id="observation" cols="63" rows="5"></textarea>
                     </div>
                 </div>
             </div>
@@ -756,24 +739,57 @@ Actes de naissance
     var actesNonGeneres = [];
 
     // Initialisation des DataTables sans pagination
-    var tableDocuments = $('#table-documents-controle').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+    // Utiliser une traduction inline pour éviter les erreurs CORS
+    var frenchLanguage = {
+        "sEmptyTable": "Aucune donnée disponible dans le tableau",
+        "sInfo": "Affichage de l'élément _START_ à _END_ sur _TOTAL_ éléments",
+        "sInfoEmpty": "Affichage de l'élément 0 à 0 sur 0 élément",
+        "sInfoFiltered": "(filtré à partir de _MAX_ éléments au total)",
+        "sInfoPostFix": "",
+        "sInfoThousands": ",",
+        "sLengthMenu": "Afficher _MENU_ éléments",
+        "sLoadingRecords": "Chargement...",
+        "sProcessing": "Traitement...",
+        "sSearch": "Rechercher :",
+        "sZeroRecords": "Aucun élément correspondant trouvé",
+        "oPaginate": {
+            "sFirst": "Premier",
+            "sLast": "Dernier",
+            "sNext": "Suivant",
+            "sPrevious": "Précédent"
         },
-        "paging": false,
-        "searching": true,
-        "info": false,
-        "ordering": true
-    });
+        "oAria": {
+            "sSortAscending": ": activer pour trier la colonne par ordre croissant",
+            "sSortDescending": ": activer pour trier la colonne par ordre décroissant"
+        }
+    };
 
-    var tableActes = $('#table-actes-gestion').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        },
-        "paging": false,
-        "searching": true,
-        "info": false,
-        "ordering": true
+    var tableDocuments = null;
+    var tableActes = null;
+
+    // Initialiser DataTables seulement si la table a des données
+    $(document).ready(function() {
+        if ($('#table-documents-controle tbody tr').length > 0 && $('#table-documents-controle tbody tr:first').find('td.text-center').length === 0) {
+            tableDocuments = $('#table-documents-controle').DataTable({
+                "language": frenchLanguage,
+                "paging": false,
+                "searching": true,
+                "info": false,
+                "ordering": true,
+                "autoWidth": false
+            });
+        }
+
+        if ($('#table-actes-gestion tbody tr').length > 0 && $('#table-actes-gestion tbody tr:first').find('td.text-center').length === 0) {
+            tableActes = $('#table-actes-gestion').DataTable({
+                "language": frenchLanguage,
+                "paging": false,
+                "searching": true,
+                "info": false,
+                "ordering": true,
+                "autoWidth": false
+            });
+        }
     });
 
     // Fonction pour rechercher les documents côté serveur
@@ -796,7 +812,7 @@ Actes de naissance
                             try {
                                 tableDocuments.destroy();
                             } catch(e) {
-                                console.log('Erreur lors de la destruction de DataTables:', e);
+                                // Erreur silencieuse lors de la destruction de DataTables
                             }
                             tableDocuments = null;
                         }
@@ -805,6 +821,7 @@ Actes de naissance
 
                         // Réinitialiser les checkboxes après le chargement
                         codesDocuments = [];
+                        $("#check-all-documents").prop("checked", false);
                         if (typeof updateDocumentButtons === 'function') {
                             updateDocumentButtons();
                         }
@@ -818,21 +835,22 @@ Actes de naissance
 
                                 if (hasData && rows.length > 0) {
                                     tableDocuments = $('#table-documents-controle').DataTable({
-                                        "language": {
-                                            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-                                        },
+                                        "language": frenchLanguage,
                                         "paging": false,
                                         "searching": true,
                                         "info": false,
                                         "ordering": true,
-                                        "destroy": true
+                                        "destroy": true,
+                                        "autoWidth": false,
+                                        "columnDefs": [
+                                            { "orderable": false, "targets": [0, 7] } // Désactiver le tri sur les colonnes checkbox et actions
+                                        ]
                                     });
                                 } else {
                                     // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
-                                    console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
                                 }
                             } catch(e) {
-                                console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                                // Erreur silencieuse lors de l'initialisation de DataTables
                             }
                         }, 100);
 
@@ -848,38 +866,39 @@ Actes de naissance
                         $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
                     }
                 } catch(e) {
-                    console.error('Erreur dans le callback success:', e);
                     flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
                     $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du traitement</td></tr>');
                 }
             },
             error: function(xhr) {
-                console.error('Erreur AJAX:', xhr);
                 try {
                     if ($.fn.DataTable.isDataTable('#table-documents-controle')) {
                         tableDocuments.destroy();
                         tableDocuments = null;
                     }
                 } catch(e) {
-                    console.log('Erreur lors de la destruction de DataTables:', e);
+                    // Erreur silencieuse lors de la destruction de DataTables
                 }
                 $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du chargement</td></tr>');
 
                 // Réinitialiser DataTables même en cas d'erreur
                 setTimeout(function() {
                     try {
-                        tableDocuments = $('#table-documents-controle').DataTable({
-                            "language": {
-                                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-                            },
-                            "paging": false,
-                            "searching": true,
-                            "info": false,
-                            "ordering": true,
-                            "destroy": true
-                        });
+                        var rows = $('#tbody-documents-controle tr');
+                        var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+                        if (hasData && rows.length > 0) {
+                            tableDocuments = $('#table-documents-controle').DataTable({
+                                "language": frenchLanguage,
+                                "paging": false,
+                                "searching": true,
+                                "info": false,
+                                "ordering": true,
+                                "destroy": true,
+                                "autoWidth": false
+                            });
+                        }
                     } catch(e) {
-                        console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                        // Erreur silencieuse lors de l'initialisation de DataTables
                     }
                 }, 100);
 
@@ -919,7 +938,7 @@ Actes de naissance
                             try {
                                 tableActes.destroy();
                             } catch(e) {
-                                console.log('Erreur lors de la destruction de DataTables:', e);
+                                // Erreur silencieuse lors de la destruction de DataTables
                             }
                             tableActes = null;
                         }
@@ -943,21 +962,19 @@ Actes de naissance
 
                                 if (hasData && rows.length > 0) {
                                     tableActes = $('#table-actes-gestion').DataTable({
-                                        "language": {
-                                            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-                                        },
+                                        "language": frenchLanguage,
                                         "paging": false,
                                         "searching": true,
                                         "info": false,
                                         "ordering": true,
-                                        "destroy": true
+                                        "destroy": true,
+                                        "autoWidth": false
                                     });
                                 } else {
                                     // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
-                                    console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
                                 }
                             } catch(e) {
-                                console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                                // Erreur silencieuse lors de l'initialisation de DataTables
                             }
                         }, 100);
 
@@ -973,38 +990,39 @@ Actes de naissance
                         $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
                     }
                 } catch(e) {
-                    console.error('Erreur dans le callback success:', e);
                     flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
                     $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors du traitement</td></tr>');
                 }
             },
             error: function(xhr) {
-                console.error('Erreur AJAX:', xhr);
                 try {
                     if ($.fn.DataTable.isDataTable('#table-actes-gestion')) {
                         tableActes.destroy();
                         tableActes = null;
                     }
                 } catch(e) {
-                    console.log('Erreur lors de la destruction de DataTables:', e);
+                    // Erreur silencieuse lors de la destruction de DataTables
                 }
                 $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors du chargement</td></tr>');
 
                 // Réinitialiser DataTables même en cas d'erreur
                 setTimeout(function() {
                     try {
-                        tableActes = $('#table-actes-gestion').DataTable({
-                            "language": {
-                                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-                            },
-                            "paging": false,
-                            "searching": true,
-                            "info": false,
-                            "ordering": true,
-                            "destroy": true
-                        });
+                        var rows = $('#tbody-actes-gestion tr');
+                        var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+                        if (hasData && rows.length > 0) {
+                            tableActes = $('#table-actes-gestion').DataTable({
+                                "language": frenchLanguage,
+                                "paging": false,
+                                "searching": true,
+                                "info": false,
+                                "ordering": true,
+                                "destroy": true,
+                                "autoWidth": false
+                            });
+                        }
                     } catch(e) {
-                        console.error('Erreur lors de l\'initialisation de DataTables:', e);
+                        // Erreur silencieuse lors de l'initialisation de DataTables
                     }
                 }, 100);
 
@@ -1049,15 +1067,19 @@ Actes de naissance
         // Recharger les données initiales (20 derniers)
         location.reload();
     });
-    $('#table-actes-annules').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        }
-    });
+    // Initialiser la table des actes annulés si elle existe
+    if ($('#table-actes-annules').length > 0) {
+        $('#table-actes-annules').DataTable({
+            "language": frenchLanguage
+        });
+    }
     $(function() {
 
     // Gestion des checkboxes pour les documents à contrôler
-    $("#check-all-documents").on("change", function() {
+    $(document).on("change", "#check-all-documents", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
         if ($(this).is(":checked")) {
             $(".checkbox-document").prop("checked", true);
             codesDocuments = [];
@@ -1069,14 +1091,25 @@ Actes de naissance
             codesDocuments = [];
         }
         updateDocumentButtons();
+        return false;
     });
     // Utiliser la délégation d'événements pour les éléments dynamiques
-    $(document).on("change", ".checkbox-document", function() {
+    $(document).on("change", ".checkbox-document", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
         codesDocuments = [];
         $(".checkbox-document:checked").each(function() {
             codesDocuments.push($(this).val());
         });
+
+        // Mettre à jour le checkbox "check-all-documents" en fonction des checkboxes individuelles
+        var totalCheckboxes = $(".checkbox-document").length;
+        var checkedCheckboxes = $(".checkbox-document:checked").length;
+        $("#check-all-documents").prop("checked", totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
+
         updateDocumentButtons();
+        return false;
     });
 
     // Gestion des checkboxes pour les actes transcrits
@@ -1146,7 +1179,8 @@ Actes de naissance
     }
 
     // Confirmation d'un document individuel
-    $(".btn-confirmer-document").on("click", function() {
+    // Utiliser la délégation d'événements pour les éléments chargés dynamiquement
+    $(document).on("click", ".btn-confirmer-document", function() {
         var codeDeclaration = $(this).data('id');
         $("#code-declaration-confirmation").val(codeDeclaration);
         $("#observation-confirmation").val('');
@@ -1154,7 +1188,7 @@ Actes de naissance
     });
 
     // Confirmation de plusieurs documents
-    $(".confirmer-documents").on("click", function(){
+    $(document).on("click", ".confirmer-documents", function(){
         if(codesDocuments.length == 0){
             flashAlert("Attention", "warning", "Veuillez sélectionner au moins un document à confirmer.");
             return;
@@ -1163,7 +1197,8 @@ Actes de naissance
     });
 
     // Renvoi d'un document individuel
-    $(".btn-renvoyer-document").on("click", function(){
+    // Utiliser la délégation d'événements pour les éléments chargés dynamiquement
+    $(document).on("click", ".btn-renvoyer-document", function(){
         var codeDeclaration = $(this).data('id');
         $("#codedeclarationback").val(codeDeclaration);
         $("#motif_renvoi").val("");
@@ -1175,7 +1210,7 @@ Actes de naissance
     });
 
     // Renvoi de plusieurs documents
-    $(".renvoyer-documents").on("click", function(){
+    $(document).on("click", ".renvoyer-documents", function(){
         if(codesDocuments.length == 0){
             flashAlert("Attention", "warning", "Veuillez sélectionner au moins un document à renvoyer.");
             return;
@@ -1232,7 +1267,6 @@ Actes de naissance
             var url = "{{ route('acteNaissance.send.otp.bulk') }}";
             var data = {codes:actesGeneres};
             $.post(url,data,function(response){
-            console.log(response);
             if(response.code == "200"){
 
                 $(".over-loader-page").fadeOut(600);
@@ -1468,13 +1502,11 @@ Actes de naissance
 
      // Génération d'actes en lot
      $(document).on("click", "button.generate-actes", function(){
-        console.log('Bouton generate-actes cliqué', actesNonGeneres);
         if(actesNonGeneres.length > 0){
 
             var url = "{{ route('acteNaissance.generate.bulk') }}";
             var data = {codes:actesNonGeneres};
             $.post(url,data,function(response){
-                console.log(response);
                 if(response.code == "200"){
                     $(".over-loader-page").fadeOut(600);
                     flashAlert("Résultat","success",response.message.reponse);

@@ -65,8 +65,10 @@
             ?>
             <?php
             }else {
-                $localiteParent  = "DEPARTEMENT DE ". $dn->institution->lieu->localiteParent->localiteParent->lib_localite;
-                $localite = " COMMUNE DE ".$dn->institution->lieu->localiteParent->lib_localite;
+                $institution = $dn->institution;
+                $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+                $localiteParent = $localisationData['localiteParent'];
+                $localite = $localisationData['localite'];
              echo  " <span>".
                    $localiteParent. "<br>".
                       $localite.

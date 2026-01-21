@@ -17,8 +17,8 @@ class CreateTrReligionTable extends Migration
             $table->primary("code_religion");
             $table->string("code_religion",16);
             $table->string("lib_religion",50)->unique();
-            $table->boolean('supprimer')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -180,7 +180,8 @@
                 <select id="sit_matrimoniale_epoux" class="form-control" onchange="verifierSituationMatrimonialeChange('epoux')">
                     <option value="">Choisissez</option>
                     @foreach ($situationMatrimoniales as $sitMat)
-                        @if($sitMat->code_situation_matrimoniale == "SMAT_0001" || $sitMat->code_situation_matrimoniale == "SMAT_0005" || $sitMat->code_situation_matrimoniale == "SMAT_0006")
+                    {{-- //il ne faut pas afficher les situations matrimoniales 3 et 4 --}}
+                        @if($sitMat->code_situation_matrimoniale != "SMAT_0003" && $sitMat->code_situation_matrimoniale != "SMAT_0004")
                             <option value="{{ $sitMat->code_situation_matrimoniale }}">{{ $sitMat->lib_situation_matrimoniale }}</option>
                         @endif
                     @endforeach
@@ -856,7 +857,8 @@
                 <select name="sit_matrimoniale_epouse" id="sit_matrimoniale_epouse" class="form-control" onchange="verifierSituationMatrimonialeChange('epouse')">
                     <option value="">Choisissez</option>
                     @foreach ($situationMatrimoniales as $sitMat)
-                        @if($sitMat->code_situation_matrimoniale == "SMAT_0001" || $sitMat->code_situation_matrimoniale == "SMAT_0005" || $sitMat->code_situation_matrimoniale == "SMAT_0006")
+                    {{-- //il ne faut pas afficher les situations matrimoniales 3 et 4 --}}
+                        @if($sitMat->code_situation_matrimoniale != "SMAT_0003" && $sitMat->code_situation_matrimoniale != "SMAT_0004")
                             <option value="{{ $sitMat->code_situation_matrimoniale }}">{{ $sitMat->lib_situation_matrimoniale }}</option>
                         @endif
                     @endforeach

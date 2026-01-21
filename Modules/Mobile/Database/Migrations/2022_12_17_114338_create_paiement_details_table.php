@@ -26,11 +26,7 @@ class CreatePaiementDetailsTable extends Migration
             $table->enum('statut_payment',["success","failed","pending"])->default("pending");
             $table->timestamps();
 
-            $table->foreign('code_demande_document')
-            ->references('code_demande_document')
-            ->on('t_demande_document')
-            ->onDelete('cascade')
-            ->onUpdate('cascade');
+            // Note: La clé étrangère pour code_demande_document sera ajoutée dans une migration ultérieure après la création de t_demande_document
         });
     }
 

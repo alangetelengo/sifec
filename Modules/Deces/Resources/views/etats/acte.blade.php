@@ -42,8 +42,14 @@
         }
 
 
-        $commune = "COMMUNE DE ".$acte->declaration->institution->lieu->localiteParent->lib_localite;
-        $dept = "DEPARTEMENT DE ".$institution->institutionParent->lieu->localiteParent->localiteParent->lib_localite;
+        // Utiliser le service Sifec pour obtenir les informations de localisation
+        $institutionActe = $acte->declaration->institution;
+        $localisationDataActe = \App\Sifec\Sifec::getLocalisationInstitution($institutionActe);
+        $commune = $localisationDataActe['localite'];
+        $localisationActe = $localisationDataActe['localisation'];
+        
+        $localisationDataInstitution = \App\Sifec\Sifec::getLocalisationInstitution($institution->institutionParent);
+        $dept = $localisationDataInstitution['localiteParent'];
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 10pt;">
         <tr>
@@ -232,7 +238,7 @@
                     </td>
                     <td style="text-align: left;">
 
-                       <p>Fait à {{ ucfirst(strtolower(trans($acte->declaration->institution->lieu->localiteParent->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $acte->date_emission)))}}</p>
+                       <p>Fait à {{ ucfirst(strtolower($localisationActe)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $acte->date_emission)))}}</p>
 
                        @if ($acte->approbation_pompe_funebre != "")
                         <!-- {{-- <p>  {{ $acte->signataire->user->fonction->lib_fonction }},<br></p> --}} -->

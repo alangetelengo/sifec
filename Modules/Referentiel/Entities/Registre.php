@@ -92,11 +92,12 @@ class Registre extends Model
     public function numeroOrdreRegistre()
     {
         $code =  substr($this->identifiant_registre,0,5);
-        $ordre = substr($this->code_registre,4,8);
-        $numero = $code.$ordre;
+        // $ordre = substr($this->code_registre,4,8);
+        $numero = $code.date("Y");
         return $numero;
     }
 
+    
 
     public function validateur()
     {

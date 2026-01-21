@@ -17,8 +17,8 @@ class CreateTrCauseDecesTable extends Migration
             $table->primary("code_cause_deces");
             $table->string("code_cause_deces",16);
             $table->string("lib_cause_deces",75)->unique();
-            $table->boolean('supprimer')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

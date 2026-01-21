@@ -55,15 +55,18 @@
         }
     @endphp
     @php
-        $localite = "";
-        $localiteParent = "";
-        $inst = "";
+        // Utiliser le service Sifec pour obtenir les informations de localisation
         $institution = $acte->institutionUser->institution;
-        $localisation = "";
-
+        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+        
+        $localite = $localisationData['localite'];
+        $localiteParent = $localisationData['localiteParent'];
+        $inst = $localisationData['inst'];
+        $localisation = $localisationData['localisation'];
+        
         // localite concernant les mairies
-        $dept = "DEPARTEMENT DE ".$acte->institution->lieu->localiteParent->localiteParent->lib_localite;
-        $commune = "COMMUNE DE ".$acte->institution->lieu->localiteParent->lib_localite;
+        $dept = $localisationData['localiteParent'];
+        $commune = $localisationData['localite'];
     @endphp
 
 <p style="color: red;text-align:center;font-style:italic"><small style="text-transform: uppercase">{{ $infos }}</small></p>

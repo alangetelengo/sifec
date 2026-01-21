@@ -6,14 +6,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
-
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Localite extends Model
 {
     use HasFactory;
     use HasRecursiveRelationships;
-/*
-	code_localite,	lib_localite,code_officel( Codification officiel de département),code_type_localite, 	pompes_funebres, 	code_localite_parent*/
+    use SoftDeletes;
 
 
 
@@ -36,6 +35,11 @@ class Localite extends Model
     public function localiteParent(): BelongsTo
     {
         return $this->belongsTo(Localite::class, 'code_localite_parent', 'code_localite');
+    }
+
+    public function localitesEnfants(): HasMany
+    {
+        return $this->hasMany(Localite::class, 'code_localite_parent', 'code_localite');
     }
 
     public function personnes(): HasMany

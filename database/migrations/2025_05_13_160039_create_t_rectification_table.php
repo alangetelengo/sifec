@@ -29,7 +29,7 @@ class CreateTRectificationTable extends Migration
             $table->date("date_rectification")->nullable();
             $table->string("code_filiation",16)->nullable()->comment("Code de la filiation du requérant, exple: père, mère, époux, épouse, etc.");
             $table->string("numero_acte",30)->nullable()->comment("Numero de l'acte à rectifier");
-            $table->enum("statut",["En cours de traitement","Envoyé au tribunal","Validé","Annulé"])->default("En cours")->comment("Statut de la rectification");
+            $table->enum("statut",["En cours de traitement","Envoyé au tribunal","Validé","Annulé"])->default("En cours de traitement")->comment("Statut de la rectification");
 
 
             $table->foreign("code_type_acte")->references("code_type_acte")->on("tr_type_acte")->onDelete("cascade")->onUpdate("cascade");

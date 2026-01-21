@@ -1,23 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Referentiel\Http\Controllers\VilleController;
-use Modules\Referentiel\Http\Controllers\CommuneController;
 use Modules\Referentiel\Http\Controllers\LocaliteController;
+use Modules\Referentiel\Http\Controllers\TypeLocaliteController;
 use Modules\Referentiel\Http\Controllers\RegistreController;
 use Modules\Referentiel\Http\Controllers\ReligionController;
-use Modules\Referentiel\Http\Controllers\TribunalController;
-use Modules\Referentiel\Http\Controllers\CourAppelController;
 use Modules\Referentiel\Http\Controllers\CausedecesController;
 use Modules\Referentiel\Http\Controllers\ProfessionController;
 use Modules\Referentiel\Http\Controllers\DepartementController;
 use Modules\Referentiel\Http\Controllers\InstitutionController;
 use Modules\Referentiel\Http\Controllers\NationaliteController;
-use Modules\Referentiel\Http\Controllers\ArrondissementController;
 use Modules\Referentiel\Http\Controllers\SubDepartementController;
 use Modules\Referentiel\Http\Controllers\FeuilleRegistreController;
 use Modules\Referentiel\Http\Controllers\TypeInstitutionController;
-use Modules\Referentiel\Http\Controllers\CommunauteUrbaineController;
+use Modules\Referentiel\Http\Controllers\TypeCategorieInstitutionController;
 use Modules\Referentiel\Http\Controllers\SubCommuneDistrictController;
 use Modules\Referentiel\Http\Controllers\InstitutionSecondaireController;
 use Modules\Referentiel\Http\Controllers\RetraitActeController;
@@ -25,6 +21,7 @@ use Modules\Referentiel\Http\Controllers\SubArrondissementComUrbaineController;
 
 Route::middleware('auth')->prefix('causedeces')->group(function() {
     Route::get('/', [CausedecesController::class,'index'])->name('causedeces.index');
+    Route::post('filter', [CausedecesController::class,'filterCauseDeces'])->name('causedeces.filter');
     Route::post('store', [CausedecesController::class,'store'])->name('causedeces.store');
     Route::put('{id}/update', [CausedecesController::class,'update'])->name('causedeces.update');
     Route::delete('{id}/destroy', [CausedecesController::class,'destroy'])->name('causedeces.destroy');
@@ -32,12 +29,14 @@ Route::middleware('auth')->prefix('causedeces')->group(function() {
 });
 Route::middleware('auth')->prefix('profession')->group(function() {
     Route::get('/', [ProfessionController::class,'index'])->name('profession.index');
+    Route::post('filter', [ProfessionController::class,'filterProfessions'])->name('profession.filter');
     Route::post('store', [ProfessionController::class,'store'])->name('profession.store');
     Route::put('{id}/update', [ProfessionController::class,'update'])->name('profession.update');
     Route::delete('{id}/destroy', [ProfessionController::class,'destroy'])->name('profession.destroy');
 });
 Route::middleware('auth')->prefix('religion')->group(function() {
     Route::get('/', [ReligionController::class,'index'])->name('religion.index');
+    Route::post('filter', [ReligionController::class,'filterReligions'])->name('religion.filter');
     Route::post('store', [ReligionController::class,'store'])->name('religion.store');
     Route::put('{id}/update', [ReligionController::class,'update'])->name('religion.update');
     Route::delete('{id}/destroy', [ReligionController::class,'destroy'])->name('religion.destroy');
@@ -46,15 +45,18 @@ Route::middleware('auth')->prefix('religion')->group(function() {
 
 Route::middleware('auth')->prefix('institution')->group(function() {
     Route::get('/', [InstitutionController::class,'index'])->name('institution.index');
-
+    Route::post('filter', [InstitutionController::class,'filterInstitutions'])->name('institution.filter');
     Route::get('create', [InstitutionController::class,'create'])->name('institution.create');
     Route::post('store', [InstitutionController::class,'store'])->name('institution.store');
     Route::get('{id}/edit', [InstitutionController::class,'edit'])->name('institution.edit');
     Route::get('getInstitution', [InstitutionController::class,'getInstitution'])->name('institution.get.institution');
     Route::put('{id}/update', [InstitutionController::class,'update'])->name('institution.update');
     Route::delete('{id}/destroy', [InstitutionController::class,'destroy'])->name('institution.destroy');
-
     Route::get('getLocalite', [InstitutionController::class,'getLocalite'])->name('institution.get.localite');
+
+    // Routes pour la hiérarchie dynamique
+    Route::get('available-parents/{id?}', [InstitutionController::class, 'getAvailableParents'])->name('institution.available.parents');
+    Route::get('available-parents-by-type/{codeTypeInstitution}', [InstitutionController::class, 'getAvailableParentsByType'])->name('institution.available.parents.by.type');
 });
 
 Route::middleware('auth')->prefix('institutionSecondaire')->group(function() {
@@ -66,6 +68,7 @@ Route::middleware('auth')->prefix('institutionSecondaire')->group(function() {
 });
 Route::middleware('auth')->prefix('typeInstitution')->group(function() {
     Route::get('/', [TypeInstitutionController::class,'index'])->name('typeInstitution.index');
+    Route::post('filter', [TypeInstitutionController::class,'filterTypeInstitutions'])->name('typeInstitution.filter');
     Route::get('create', [TypeInstitutionController::class,'create'])->name('typeInstitution.create');
     Route::post('store', [TypeInstitutionController::class,'store'])->name('typeInstitution.store');
     Route::get('{id}/edit', [TypeInstitutionController::class,'edit'])->name('typeInstitution.edit');
@@ -73,11 +76,18 @@ Route::middleware('auth')->prefix('typeInstitution')->group(function() {
     Route::delete('{id}/destroy', [TypeInstitutionController::class,'destroy'])->name('typeInstitution.destroy');
 });
 
+Route::middleware('auth')->prefix('typeCategorieInstitution')->group(function() {
+    Route::get('/', [TypeCategorieInstitutionController::class,'index'])->name('typeCategorieInstitution.index');
+    Route::post('store', [TypeCategorieInstitutionController::class,'store'])->name('typeCategorieInstitution.store');
+    Route::put('{id}/update', [TypeCategorieInstitutionController::class,'update'])->name('typeCategorieInstitution.update');
+    Route::delete('{id}/destroy', [TypeCategorieInstitutionController::class,'destroy'])->name('typeCategorieInstitution.destroy');
+});
+
+
 Route::middleware('auth')->prefix('nationalite')->group(function(){
     Route::get('/', [NationaliteController::class,'index'])->name('nationalite.index');
-    Route::get('create', [NationaliteController::class,'create'])->name('nationalite.create');
+    Route::post('filter', [NationaliteController::class,'filterNationalites'])->name('nationalite.filter');
     Route::post('store', [NationaliteController::class, 'store'])->name('nationalite.store');
-    Route::get('{id}/edit', [NationaliteController::class,'edit'])->name('nationalite.edit');
     Route::put('{id}/update', [NationaliteController::class, 'update'])->name('nationalite.update');
     Route::delete('{id}/destroy',[NationaliteController::class,'destroy'])->name('nationalite.destroy');
 });
@@ -139,8 +149,23 @@ Route::middleware('auth')->prefix('retrait')->group(function() {
     Route::post("/", [RetraitActeController::class, 'searchActeRetire'])->name("retrait.search.acte");
 });
 
+// Type de Localité
+Route::middleware('auth')->prefix('typelocalite')->group(function() {
+    Route::get('/', [TypeLocaliteController::class, 'index'])->name('typelocalite.index');
+    Route::post('store', [TypeLocaliteController::class, 'store'])->name('typelocalite.store');
+    Route::put('{id}/update', [TypeLocaliteController::class, 'update'])->name('typelocalite.update');
+    Route::delete('{id}/destroy', [TypeLocaliteController::class, 'destroy'])->name('typelocalite.destroy');
+});
+
 // Localités
 Route::middleware('auth')->prefix('localite')->group(function() {
+    Route::get('/', [LocaliteController::class, 'index'])->name('localite.index');
+    Route::post('store', [LocaliteController::class, 'store'])->name('localite.store');
+    Route::put('{id}/update', [LocaliteController::class, 'update'])->name('localite.update');
+    Route::delete('{id}/destroy', [LocaliteController::class, 'destroy'])->name('localite.destroy');
+    Route::post('filter', [LocaliteController::class, 'filterLocalites'])->name('localite.filter');
+        Route::get('available-parents/{id?}', [LocaliteController::class, 'getAvailableParents'])->name('localite.available.parents');
+        Route::get('available-parents-by-type/{codeTypeLocalite}', [LocaliteController::class, 'getAvailableParentsByType'])->name('localite.available.parents.by.type');
 
     //localite.get.sub-departement
     Route::get('{id}/commune-district', [LocaliteController::class, 'getSubDepartement'])->name('localite.commune.district');

@@ -27,7 +27,6 @@
 									   </center>
                                    </div>
                                     <div class="form-cover" style="width: 100%">
-										<h2 style="color:green; border-bottom: 2px solid green; margin-bottom:20px">Vérification en Deux Étapes </h2>
 										<form class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST">
                                         @csrf
 

@@ -11,7 +11,7 @@
    }
 
 </style>
- <page orientation="portrait" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="100%" backtop="0"  backbottom="30mm" footer="date;time;page" style="font-size: 12pt">
+ <page orientation="portrait" backimg="{{ public_path("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="100%" backtop="0"  backbottom="30mm" footer="date;time;page" style="font-size: 12pt">
    @php
 
    @endphp

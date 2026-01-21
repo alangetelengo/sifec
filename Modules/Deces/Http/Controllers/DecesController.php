@@ -621,7 +621,7 @@ class DecesController extends Controller
 
              //update (lu et approuve) du déclarant
              $dd = DeclarationDeces::find($mvtd->code_declaration_deces);
-             $dd->approuver = "NON";
+             $dd->declarant_approuver = "NON";
              $dd->save();
 
              DB::commit();

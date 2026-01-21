@@ -166,18 +166,6 @@ Actes de décès
                                                     <tbody id="tbody-documents-controle">
                                                         @include('deces::acte.partials.table-documents', ['documents' => $documentsAControler])
                                                     </tbody>
-                                                    <tfoot>
-                                                        <tr>
-                                                            <th>#</th>
-                                                            <th>N° Déclaration</th>
-                                                            <th>Défunt</th>
-                                                            <th>Date décès</th>
-                                                            <th>Sexe</th>
-                                                            <th>Type Document</th>
-                                                            <th>Statut</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </tfoot>
                                                 </table>
                                             </div>
                                         </div>
@@ -256,17 +244,6 @@ Actes de décès
                                                     <tbody id="tbody-actes-gestion">
                                                         @include('deces::acte.partials.table-actes', ['actes' => $actesGestion])
                                                     </tbody>
-                                                    <tfoot>
-                                                        <tr>
-                                                            <th>#</th>
-                                                            <th>N° Acte</th>
-                                                            <th>Défunt</th>
-                                                            <th>Date décès</th>
-                                                            <th>Sexe</th>
-                                                            <th>Statut</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </tfoot>
                                                 </table>
                                             </div>
                                         </div>
@@ -468,7 +445,7 @@ Actes de décès
                     </div>
                     <div class="mb-2 col-md-12">
                         <label class="form-label">Observation</label>
-                        <textarea id="observation" cols="96" rows="5"></textarea>
+                        <textarea id="observation" cols="62" rows="5"></textarea>
                     </div>
                 </div>
             </div>
@@ -795,30 +772,62 @@ Actes de décès
     var actesGeneres = [];
     var actesNonGeneres = [];
 
-    // Initialisation des DataTables sans pagination
-    var tableDocuments = $('#table-documents-controle').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+    // Utiliser une traduction inline pour éviter les erreurs CORS
+    var frenchLanguage = {
+        "sEmptyTable": "Aucune donnée disponible dans le tableau",
+        "sInfo": "Affichage de l'élément _START_ à _END_ sur _TOTAL_ éléments",
+        "sInfoEmpty": "Affichage de l'élément 0 à 0 sur 0 élément",
+        "sInfoFiltered": "(filtré à partir de _MAX_ éléments au total)",
+        "sInfoPostFix": "",
+        "sInfoThousands": ",",
+        "sLengthMenu": "Afficher _MENU_ éléments",
+        "sLoadingRecords": "Chargement...",
+        "sProcessing": "Traitement...",
+        "sSearch": "Rechercher :",
+        "sZeroRecords": "Aucun élément correspondant trouvé",
+        "oPaginate": {
+            "sFirst": "Premier",
+            "sLast": "Dernier",
+            "sNext": "Suivant",
+            "sPrevious": "Précédent"
         },
-        "paging": false,
-        "searching": true,
-        "info": false,
-        "ordering": true
-    });
+        "oAria": {
+            "sSortAscending": ": activer pour trier la colonne par ordre croissant",
+            "sSortDescending": ": activer pour trier la colonne par ordre décroissant"
+        }
+    };
 
-    var tableActes = $('#table-actes-gestion').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
-        },
-        "paging": false,
-        "searching": true,
-        "info": false,
-        "ordering": true
-    });
+    var tableDocuments = null;
+    var tableActes = null;
 
-    $('#table-actes-annules').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json"
+    // Initialiser DataTables seulement si la table a des données
+    $(document).ready(function() {
+        if ($('#table-documents-controle tbody tr').length > 0 && $('#table-documents-controle tbody tr:first').find('td.text-center').length === 0) {
+            tableDocuments = $('#table-documents-controle').DataTable({
+                "language": frenchLanguage,
+                "paging": false,
+                "searching": true,
+                "info": false,
+                "ordering": true,
+                "autoWidth": false
+            });
+        }
+
+        if ($('#table-actes-gestion tbody tr').length > 0 && $('#table-actes-gestion tbody tr:first').find('td.text-center').length === 0) {
+            tableActes = $('#table-actes-gestion').DataTable({
+                "language": frenchLanguage,
+                "paging": false,
+                "searching": true,
+                "info": false,
+                "ordering": true,
+                "autoWidth": false
+            });
+        }
+
+        if ($('#table-actes-annules tbody tr').length > 0 && $('#table-actes-annules tbody tr:first').find('td.text-center').length === 0) {
+            $('#table-actes-annules').DataTable({
+                "language": frenchLanguage
+            });
         }
     });
 

@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class TypeLocalite extends Model
 {
     use HasFactory;
-//code_type_localite ,	lib_type_localite 	type_cec(Codification officiel du centre d'état civil)
     protected $guarded = [];
     protected $table = "tr_type_localite";
     protected $primaryKey = "code_type_localite";

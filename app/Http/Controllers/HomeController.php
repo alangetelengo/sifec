@@ -6,8 +6,7 @@ use Spipu\Html2Pdf\Html2Pdf;
 use Illuminate\Support\Facades\DB;
 use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\Institution;
-use Modules\Referentiel\Entities\Arrondissement;
-use Modules\Referentiel\Entities\CommunauteUrbaine;
+use Modules\Referentiel\Entities\Localite;
 
 class HomeController extends Controller
 {
@@ -19,6 +18,78 @@ class HomeController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+    }
+
+    /**
+     * Remonte la hiérarchie des localités pour trouver la commune ou le district
+     * @param string|null $codeLocalite
+     * @return string|null Code de la commune (TPLOC_0003) ou du district (TPLOC_0002)
+     */
+    private function getCommuneOrDistrictCode($codeLocalite)
+    {
+        if (!$codeLocalite) {
+            return null;
+        }
+
+        $localite = Localite::find($codeLocalite);
+        if (!$localite) {
+            return null;
+        }
+
+        // Remonter la hiérarchie jusqu'à trouver une commune ou un district
+        $current = $localite;
+        while ($current) {
+            // Si c'est une commune (TPLOC_0003) ou un district (TPLOC_0002), retourner son code
+            if ($current->code_type_localite === 'TPLOC_0003' || $current->code_type_localite === 'TPLOC_0002') {
+                return $current->code_localite;
+            }
+            // Remonter au parent
+            $current = $current->localiteParent;
+        }
+
+        return null;
+    }
+
+    /**
+     * Vérifie si une localité (ou un de ses parents) appartient à la commune/district spécifié
+     * @param Localite|null $localite
+     * @param string $codeCommuneOrDistrict
+     * @return bool
+     */
+    private function isInCommuneOrDistrict($localite, $codeCommuneOrDistrict)
+    {
+        if (!$localite) {
+            return false;
+        }
+
+        $current = $localite;
+        while ($current) {
+            // Si la localité elle-même est la commune/district recherché
+            if ($current->code_localite === $codeCommuneOrDistrict) {
+                return true;
+            }
+
+            // Si c'est un arrondissement (TPLOC_0004)
+            if ($current->code_type_localite === 'TPLOC_0004' && $current->localiteParent) {
+                // L'arrondissement appartient à une commune, vérifier si c'est la commune recherchée
+                $commune = $current->localiteParent;
+                if ($commune->code_localite === $codeCommuneOrDistrict) {
+                    return true;
+                }
+            }
+            // Si c'est une communauté urbaine (TPLOC_0005)
+            elseif ($current->code_type_localite === 'TPLOC_0005' && $current->localiteParent) {
+                // La communauté urbaine appartient à un district, vérifier si c'est le district recherché
+                $district = $current->localiteParent;
+                if ($district->code_localite === $codeCommuneOrDistrict) {
+                    return true;
+                }
+            }
+            // Remonter au parent pour continuer la recherche
+            $current = $current->localiteParent;
+        }
+
+        return false;
     }
 
     /**
@@ -159,36 +230,30 @@ class HomeController extends Controller
             return view("admin.dashboard.tableau_mairie", compact('mairie','acteproduits','acteannee','actemois','actesemaine','actesjour','acteproduitsv','acteanneev','actemoisv','actesemainev','actesjourv','acteproduitsn','acteanneen','actemoisn','actesemainen','actesjourn','insts', 'declarationcumul','declarationannee','declarationmois','declarationsemaine','declarationjour','denvoyercum','denvoyeran','denvoyermois','denvoyersemaine','denvoyerjour'));
 
         }elseif ($fonction == "FONC_0013") {
-            $code = "";
-            $codecom = Auth()->user()->AffectationActive()->institution->code_commune;
-            $codedist = Auth()->user()->AffectationActive()->institution->code_district;
+            // Récupérer la localité de l'institution de l'utilisateur
+            $userInstitution = Auth()->user()->AffectationActive()->institution;
+            $codeLocalite = $userInstitution->code_localite;
 
-            if ($codecom == NULL) {
-                $code = $codedist;
-            }else{
-                $code = $codecom;
+            // Remonter la hiérarchie pour trouver la commune ou le district
+            $code = $this->getCommuneOrDistrictCode($codeLocalite);
+
+            if (!$code) {
+                toastr()->error("Impossible de déterminer la commune ou le district de l'institution");
+                return redirect()->back();
             }
+
             $fonction = Auth()->user()->AffectationActive()->fonction->code_fonction;
 
-            $institutions = Institution::all();
+            $institutions = Institution::with('lieu')->get();
 
             $liste = [];
             $mesinstitutions = [];
             foreach ($institutions as $key) {
-                if ($key->code_arrondissement != NULL) {
-                    $arr = Arrondissement::find($key->code_arrondissement);
-                    if ($arr->commune->code_commune == $code) {
-                        $liste[] = $key->code_institution;
-                        $mesinstitutions[]=$key->lib_institution;
-                    }
-                }elseif ($key->code_communaute_urbaine != NULL) {
-                    $comurb = CommunauteUrbaine::find($key->code_communaute_urbaine);
-                    if ($comurb->district->code_district == $code) {
-                        $liste[] = $key->code_institution;
-                        $mesinstitutions[]=$key->lib_institution;
-                    }
+                // Utiliser la nouvelle méthode pour vérifier si l'institution est dans la commune/district
+                if ($this->isInCommuneOrDistrict($key->lieu, $code)) {
+                    $liste[] = $key->code_institution;
+                    $mesinstitutions[] = $key->lib_institution;
                 }
-
             }
 
             // dd($mesinstitutions);
@@ -621,36 +686,30 @@ class HomeController extends Controller
 
     public function impressiontableauprefet()
     {
-            $code = "";
-            $codecom = Auth()->user()->AffectationActive()->institution->code_commune;
-            $codedist = Auth()->user()->AffectationActive()->institution->code_district;
+            // Récupérer la localité de l'institution de l'utilisateur
+            $userInstitution = Auth()->user()->AffectationActive()->institution;
+            $codeLocalite = $userInstitution->code_localite;
 
-            if ($codecom == NULL) {
-                $code = $codedist;
-            }else{
-                $code = $codecom;
+            // Remonter la hiérarchie pour trouver la commune ou le district
+            $code = $this->getCommuneOrDistrictCode($codeLocalite);
+
+            if (!$code) {
+                toastr()->error("Impossible de déterminer la commune ou le district de l'institution");
+                return redirect()->back();
             }
+
             $fonction = Auth()->user()->AffectationActive()->fonction->code_fonction;
 
-            $institutions = Institution::all();
+            $institutions = Institution::with('lieu')->get();
 
             $liste = [];
             $mesinstitutions = [];
             foreach ($institutions as $key) {
-                if ($key->code_arrondissement != NULL) {
-                    $arr = Arrondissement::find($key->code_arrondissement);
-                    if ($arr->commune->code_commune == $code) {
-                        $liste[] = $key->code_institution;
-                        $mesinstitutions[]=$key->lib_institution;
-                    }
-                }elseif ($key->code_communaute_urbaine != NULL) {
-                    $comurb = CommunauteUrbaine::find($key->code_communaute_urbaine);
-                    if ($comurb->district->code_district == $code) {
-                        $liste[] = $key->code_institution;
-                        $mesinstitutions[]=$key->lib_institution;
-                    }
+                // Utiliser la nouvelle méthode pour vérifier si l'institution est dans la commune/district
+                if ($this->isInCommuneOrDistrict($key->lieu, $code)) {
+                    $liste[] = $key->code_institution;
+                    $mesinstitutions[] = $key->lib_institution;
                 }
-
             }
 
             // dd($mesinstitutions);

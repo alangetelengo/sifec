@@ -46,7 +46,7 @@ class CreateTDeclarationDecesTable extends Migration
             $table->string("code_cause_deces",16)->nullable();
             $table->string('code_pere')->nullable();
             $table->string('code_mere')->nullable();
-            $table->enum("approuver", ["OUI","NON"])->nullable()->default("NON")->comment("Permet de savoir si le docuement a été lu et approuvé par le déclarant");
+            $table->enum("declarant_approuver", ["OUI","NON"])->nullable()->default("NON")->comment("Permet de savoir si le docuement a été lu et approuvé par le déclarant");
             $table->enum("cec_approuver", ["OUI","NON"])->default("NON")->comment("permet de savoir si la declaration est prête ou pas pour la transcription de l'acte");
 
             $table->string("cec_approuve_par")->nullable();
@@ -63,6 +63,8 @@ class CreateTDeclarationDecesTable extends Migration
             $table->string("code_institution", 16)->nullable()->comment("institution à qui appartient cette declaration");
             $table->string("code_institution_destinataire", 16)->nullable()->comment("institution destinataire de la déclaration");
             $table->string("numero_ancien_acte", 16)->nullable();
+            $table->string('code_jugement',16)->nullable();
+            $table->string('code_requisition',16)->nullable();
 
             $table->string('piece_declarant')->nullable();
             $table->string('piece_defunt')->nullable();
@@ -90,6 +92,8 @@ class CreateTDeclarationDecesTable extends Migration
 
             $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete('cascade')->onUpdate('cascade');
             $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign("code_jugement")->references("code_jugement")->on("t_jugement")->onDelete("cascade")->onUpdate("cascade");
+            $table->foreign("code_requisition")->references("code_requisition")->on("t_requisition")->onDelete("cascade")->onUpdate("cascade");
         });
 
          Schema::create("t_ddecescause", function (Blueprint $table) {

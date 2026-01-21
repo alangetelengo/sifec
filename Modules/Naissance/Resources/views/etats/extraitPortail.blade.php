@@ -32,14 +32,14 @@
                @php
                    $localite = "";
                    $localiteParent = "";
-                   $inst = "";
+                   // Utiliser le service Sifec pour obtenir les informations de localisation
                    $institution = $institutionPortail;
-                   $localisation = "";
-
-                    $inst = $institution->lib_institution;
-                    $localite = " COMMUNE DE ".$institution->lieu->localiteParent->lib_localite;
-                    $localiteParent  = "DEPARTEMENT DE ". $institution->lieu->localiteParent->localiteParent->lib_localite;
-                    $localisation = $institution->lieu->localiteParent->lib_localite;
+                   $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+                   
+                   $inst = $localisationData['inst'];
+                   $localite = $localisationData['localite'];
+                   $localiteParent = $localisationData['localiteParent'];
+                   $localisation = $localisationData['localisation'];
                @endphp
                <p>
                    <span>

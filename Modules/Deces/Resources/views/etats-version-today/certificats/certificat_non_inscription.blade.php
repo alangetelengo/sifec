@@ -16,33 +16,19 @@
         $libInstitution = $institution->lib_institution;
         setlocale(LC_TIME, "fr_FR", "French");
 
-        if ($institution->code_arrondissement != NULL) {
-            $mairie = "MAIRIE DE ".$institution->arrondissement->commune->lib_commune;
-            $communeDistrict = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-            $departement  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-            $localisation = $institution->arrondissement->commune->lib_commune;
-        }
+        // Utiliser le service Sifec pour obtenir les informations de localisation
+        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+        setlocale(LC_TIME, "fr_FR", "French");
 
-        if ($institution->code_commune != NULL) {
-            $mairie = "MAIRIE DE ".$institution->commune->lib_commune;
-            $communeDistrict = "COMMUNE DE ".$institution->commune->lib_commune;
-            $departement  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-            $localisation = $institution->commune->lib_commune;
-        }
-
-        if ($institution->code_communaute_urbaine != NULL) {
-            $mairie = "MAIRIE DE ".$institution->communauteUrbaine->district->lib_district;
-            $communeDistrict = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-            $departement  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-
-        if ($institution->code_district != NULL) {
-            $mairie = "MAIRIE DE ".$institution->communauteUrbaine->district->lib_district;
-            $communeDistrict = "DISTRICT DE ".$institution->district->lib_district;
-            $departement  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
+        $localite = $localisationData['localite'];
+        $departement = $localisationData['localiteParent'];
+        $communeDistrict = $localisationData['localite'];
+        $localisation = $localisationData['localisation'];
+        
+        // Pour mairie, utiliser le nom de l'institution si c'est une mairie
+        $mairie = strpos(strtoupper($institution->lib_institution), 'MAIRIE') !== false 
+            ? strtoupper($institution->lib_institution) 
+            : ($communeDistrict ? str_replace(['COMMUNE DE ', 'DISTRICT DE '], 'MAIRIE DE ', $communeDistrict) : '');
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 10pt;">
         <tr>

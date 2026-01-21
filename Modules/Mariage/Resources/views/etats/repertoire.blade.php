@@ -12,38 +12,15 @@
         $mois =  utf8_encode(strftime("%B", strtotime(date('Y-m-d'))));
         $total = 0;
 
-        $localite = "";
-        $localiteParent = "";
-        $inst = "";
+        // Utiliser le service Sifec pour obtenir les informations de localisation
         $institution = Auth::user()->institution();
-        $lib = Auth::user()->institution()->lib_institution;
-
-        if ($institution->code_arrondissement != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "COMMUNE DE ".$institution->arrondissement->commune->lib_commune;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->arrondissement->commune->departement->lib_departement;
-            $localisation = $institution->arrondissement->commune->lib_commune;
-        }
-
-        if ($institution->code_commune != NULL) {
-            $inst = "COMMUNE DE ".$institution->commune->lib_commune;
-            $localite  = "DEPARTEMENT DE ". $institution->commune->departement->lib_departement;
-            $localisation = $institution->commune->lib_commune;
-        }
-
-        if ($institution->code_communaute_urbaine != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "DISTRICT DE ".$institution->communauteUrbaine->district->lib_district;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->communauteUrbaine->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
-
-        if ($institution->code_district != NULL) {
-            $inst = $institution->lib_institution;
-            $localite = "DISTRICT DE ".$institution->district->lib_district;
-            $localiteParent  = "DEPARTEMENT DE ". $institution->district->departement->lib_departement;
-            $localisation = $institution->communauteUrbaine->district->lib_district;
-        }
+        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+        
+        $localite = $localisationData['localite'];
+        $localiteParent = $localisationData['localiteParent'];
+        $inst = $localisationData['inst'];
+        $lib = $institution->lib_institution;
+        $localisation = $localisationData['localisation'];
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 14px;">
         <tr>

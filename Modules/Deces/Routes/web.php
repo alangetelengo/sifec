@@ -73,6 +73,7 @@ Route::middleware('auth')->prefix('acteDeces')->group(function() {
     Route::post('generate-bulk',[ActeDecesController::class,"generateActeBulk"])->name('acteDeces.generate.bulk');
     Route::get('{id}/generateCopie',[ActeDecesController::class,"displayCopie"])->name('acteDeces.displayCopie');
     Route::get('{id}/generateDuplicata',[ActeDecesController::class,"displayDuplicata"])->name('acteDeces.displayDuplicata');
+    Route::get('{id}/generateExtrait',[ActeDecesController::class,"displayExtrait"])->name('acteDeces.displayExtrait');
     Route::get("actedeces/search", [ActeDecesController::class,'searchActe'])->name('acteDeces.search');
     Route::post('annuler', [ActeDecesController::class, 'annulerActe'])->name('acteDeces.annuler');
     Route::post('annuler-bulk', [ActeDecesController::class, 'annulerActeBulk'])->name('acteDeces.annuler.bulk');

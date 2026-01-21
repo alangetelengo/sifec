@@ -389,7 +389,7 @@ class DeclarationDecesSeeder extends Seeder
                     $declaration->cec_approuver = 'OUI';
                     $declaration->cec_approuve_par = $affectationCentre->cui ?? 'CUI_00000004';
                     $declaration->cec_approuve_le = now();
-                    $declaration->approuver = 'OUI';
+                    $declaration->declarant_approuver = 'OUI';
                     $declaration->code_institution_destinataire = $affectationCentre->code_institution ?? 'INS_0047';
                     $declaration->save();
 

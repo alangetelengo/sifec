@@ -26,7 +26,7 @@ class CreateTDeclarationNaissanceTable extends Migration
             $table->string('cec_naissance',75)->nullable()->comment("Centre d'état civil de naissance,autre que ce qui est dans le referentiel");
             $table->string('pays_naissance_enfant',75)->nullable();
             $table->string('code_declarant')->nullable();
-            $table->string('code_adoptant')->nullable()->after("code_declarant");
+            $table->string('code_adoptant')->nullable();
             $table->string('code_enfant')->nullable();
             $table->string('code_pere')->nullable();
             $table->string('code_mere')->nullable();
@@ -54,6 +54,13 @@ class CreateTDeclarationNaissanceTable extends Migration
 
             $table->string("code_institution_destinataire", 16)->nullable()->comment("institution destinataire de la déclaration");
             $table->string("numero_ancien_acte", 16)->nullable();
+            $table->string('code_jugement', 16)->nullable();
+            
+            // Champs pour enfant abandonné
+            $table->string("lieu_placement",150)->nullable()->comment("qui permet de renseigner la structure au quel l'enfant trouvé ou abandonné a été placé");
+            $table->string("piece_extrait_main_courante",175)->nullable()->comment("qui permet de renseigner la structure au quel l'enfant trouvé ou abandonné a été placé");
+            $table->string("num_jugement_placement_provisoir",20)->nullable()->comment("qui permet de renseigner la structure au quel l'enfant trouvé ou abandonné a été placé");
+            $table->string("num_fiche_placement",20)->nullable()->comment("qui permet de renseigner la structure au quel l'enfant trouvé ou abandonné a été placé");
 
             $table->string('piece_declarant')->nullable();
             $table->string('piece_pere')->nullable();

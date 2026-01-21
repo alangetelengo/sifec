@@ -87,7 +87,7 @@ Acte de naissance
                 <h4></h4>
                 <div class="row">
                     <div id="dupcreer" class="d-flex gap-2 justify-content-end">
-                        @if($acte && $acte->retirer == 0)
+                        @if($acte && $acte->retirer == 0 && $acte->approbation_mairie !=null)
                             <button type="button"
                                     class="btn btn-warning text-white"
                                     id="btn-open-retrait-modal"

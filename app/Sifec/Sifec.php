@@ -26,6 +26,7 @@ use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\AdressePersonne;
 use Modules\Referentiel\Entities\ContactPersonne;
+use Modules\Referentiel\Entities\TypeDocument;
 use Modules\Naissance\Entities\Declarationnaissance;
 
 class Sifec {
@@ -38,14 +39,30 @@ class Sifec {
             DB::beginTransaction();
             try {
                 // Utiliser une requête avec verrou pour éviter les problèmes de concurrence
-                $obj = $model::lockForUpdate()->orderBy($code_field,"DESC")->first();
-                $max = $obj == null ? 1 : (int) substr($obj->$code_field,strlen($prefix)) + 1;
+                // Utiliser un tri numérique au lieu d'un tri lexicographique pour éviter les problèmes d'ordre
+                $prefixLength = strlen($prefix);
+                $startPos = $prefixLength + 1;
 
-                // Générer le code et vérifier s'il existe déjà
+                // Trouver le maximum numérique réel avec verrou de table
+                // Utiliser le modèle pour respecter les soft deletes
+                $maxObj = $model::lockForUpdate()
+                    ->selectRaw("MAX(CAST(SUBSTRING(`{$code_field}`, {$startPos}) AS UNSIGNED)) as max_num")
+                    ->first();
+
+                $max = $maxObj && isset($maxObj->max_num) && $maxObj->max_num !== null ? (int)$maxObj->max_num + 1 : 1;
+
+                // Générer le code et vérifier s'il existe déjà (dans la même transaction avec verrou)
+                // IMPORTANT: Vérifier avec withTrashed() car la clé primaire MySQL ne permet pas les doublons
+                // même si l'enregistrement est soft deleted
                 do {
                     $strNumber = str_pad($max,$tailleString,"0",STR_PAD_LEFT);
                     $code = $prefix.$strNumber;
-                    $exists = $model::where($code_field, $code)->exists();
+                    // Vérifier l'existence en incluant les soft deletes (car la clé primaire les bloque)
+                    // Vérifier si le modèle utilise SoftDeletes avant d'appeler withTrashed()
+                    $query = method_exists($model, 'withTrashed') && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($model))
+                        ? $model::withTrashed()->where($code_field, $code)
+                        : $model::where($code_field, $code);
+                    $exists = $query->lockForUpdate()->exists();
                     if ($exists) {
                         $max++;
                     }
@@ -71,7 +88,40 @@ class Sifec {
         }
 
         // Si on n'arrive pas à générer un code unique après plusieurs tentatives,
-        // utiliser un timestamp avec microsecondes pour garantir l'unicité
+        // trouver le vrai maximum numérique
+        try {
+            $prefixLength = strlen($prefix);
+            $startPos = $prefixLength + 1;
+            $maxObj = $model::selectRaw("MAX(CAST(SUBSTRING(`{$code_field}`, {$startPos}) AS UNSIGNED)) as max_num")
+                ->first();
+            $maxNum = $maxObj && $maxObj->max_num ? (int)$maxObj->max_num : 0;
+            $max = $maxNum + 1;
+
+            // Vérifier que le code n'existe pas (inclure les soft deletes)
+            do {
+                $strNumber = str_pad($max, $tailleString, "0", STR_PAD_LEFT);
+                $code = $prefix.$strNumber;
+                // Vérifier avec withTrashed() car la clé primaire MySQL bloque les doublons même supprimés
+                // Vérifier si le modèle utilise SoftDeletes avant d'appeler withTrashed()
+                $query = method_exists($model, 'withTrashed') && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($model))
+                    ? $model::withTrashed()->where($code_field, $code)
+                    : $model::where($code_field, $code);
+                $exists = $query->exists();
+                if ($exists) {
+                    $max++;
+                }
+            } while ($exists && $max < 99999999);
+
+            if (!$exists) {
+                return $code;
+            }
+        } catch (Exception $e) {
+            Log::channel('sifec')->warning('Erreur lors de la recherche du maximum numérique', [
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Dernier recours : utiliser un timestamp avec microsecondes pour garantir l'unicité
         $timestamp = time();
         $micro = substr(microtime(), 2, 6); // Prendre 6 chiffres des microsecondes
         $combined = $timestamp . $micro;
@@ -282,10 +332,21 @@ class Sifec {
                         if($sufix == "_enfant")
                         {
                             $addocument->numero_document = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-                            $addocument->code_type_document = "TDOC_0018";
+                            // Utiliser le premier type de document disponible ou null si aucun n'existe
+                            $defaultTypeDoc = TypeDocument::first();
+                            $addocument->code_type_document = $defaultTypeDoc ? $defaultTypeDoc->code_type_document : null;
                         }else{
                             $addocument->numero_document = $request->input("numero_document".$sufix) ? $request->input("numero_document".$sufix) : "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-                            $addocument->code_type_document = $request->input("code_type_document".$sufix) ? $request->input("code_type_document".$sufix) : "TDOC_0018";
+                            $codeTypeDoc = $request->input("code_type_document".$sufix);
+                            if ($codeTypeDoc) {
+                                // Vérifier que le type de document existe
+                                $typeDocExists = TypeDocument::where('code_type_document', $codeTypeDoc)->exists();
+                                $addocument->code_type_document = $typeDocExists ? $codeTypeDoc : null;
+                            } else {
+                                // Utiliser le premier type de document disponible ou null
+                                $defaultTypeDoc = TypeDocument::first();
+                                $addocument->code_type_document = $defaultTypeDoc ? $defaultTypeDoc->code_type_document : null;
+                            }
                         }
                         $addocument->code_personne = $personne->code_personne;
                         $addocument->save();
@@ -325,27 +386,16 @@ class Sifec {
                         $adresse->nom_voie = $libVoie;
                         $adresse->numero_rue = $num;
 
-                        if($request->input("domicile_quartier".$sufix) != ""){
-                            $adresse->code_quartier_village = $request->input("domicile_quartier".$sufix);
+                        // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
+                        $codeLocalite = null;
+                        if($request->input("domicile_quartier".$sufix) != "" && $request->input("domicile_quartier".$sufix) != "XXXXXXXXXXXXXXXX"){
+                            $codeLocalite = $request->input("domicile_quartier".$sufix);
+                        } elseif($request->input("domicile_arrondissement".$sufix) != "" && $request->input("domicile_arrondissement".$sufix) != "XXXXXXXXXXXXXXXX"){
+                            $codeLocalite = $request->input("domicile_arrondissement".$sufix);
+                        } else {
+                            $codeLocalite = $request->input("domicile_ville" . $sufix);
                         }
-                        if($request->input("domicile_quartier".$sufix) == "XXXXXXXXXXXXXXXX"){
-
-                            $adresse->code_quartier_village = "LOC_4250";
-                        }
-                        // else{
-                        //     $adresse->code_quartier_village = NULL;
-                        // }
-
-                        if($request->input("domicile_arrondissement".$sufix) != ""){
-                            $adresse->code_arrondissement_comurbaine = $request->input("domicile_arrondissement".$sufix);
-                        }
-                        if($request->input("domicile_arrondissement".$sufix) == "XXXXXXXXXXXXXXXX"){
-
-                            $adresse->code_arrondissement_comurbaine = "LOC_4250";
-                        }
-                        // else{
-                        //     $adresse->code_arrondissement_comurbaine = NULL;
-                        // }
+                        $adresse->code_localite = $codeLocalite;
 
 
                         if($request->input("domicile_ville".$sufix) != ""){
@@ -564,14 +614,28 @@ class Sifec {
                     $dop = new Document();
                     $code = Sifec::genererCodeUniqueReferentiel($dop,"code_document",8,"DOC_");
                     $dop->numero_document = $request->input("numero_document".$sufix);
-                    $dop->code_type_document = $request->input("code_type_document".$sufix);
+                    $codeTypeDoc = $request->input("code_type_document".$sufix);
+                    // Vérifier que le type de document existe
+                    if ($codeTypeDoc) {
+                        $typeDocExists = TypeDocument::where('code_type_document', $codeTypeDoc)->exists();
+                        $dop->code_type_document = $typeDocExists ? $codeTypeDoc : null;
+                    } else {
+                        $dop->code_type_document = null;
+                    }
                     $dop->code_document = $code;
                     $dop->code_personne = $personne->code_personne;
                     $dop->save();
 
                 }else{
                     $dop->numero_document = $request->input("numero_document".$sufix);
-                    $dop->code_type_document = $request->input("code_type_document".$sufix);
+                    $codeTypeDoc = $request->input("code_type_document".$sufix);
+                    // Vérifier que le type de document existe
+                    if ($codeTypeDoc) {
+                        $typeDocExists = TypeDocument::where('code_type_document', $codeTypeDoc)->exists();
+                        $dop->code_type_document = $typeDocExists ? $codeTypeDoc : null;
+                    } else {
+                        $dop->code_type_document = null;
+                    }
                     $dop->save();
                 }
             }
@@ -598,14 +662,24 @@ class Sifec {
                 $addAdresse->type_voie = $request->input("domicile_typevoie".$sufix);
                 $addAdresse->nom_voie = $request->input("domicile_nomvoie".$sufix);
                 $addAdresse->numero_rue = $request->input("domicile_numero".$sufix);
-                $addAdresse->code_quartier_village = $request->input("domicile_quartier".$sufix);
-                $addAdresse->code_localite = $request->input("domicile_ville".$sufix);
-                $addAdresse->code_arrondissement_comurbaine  = $request->input("domicile_arrondissement".$sufix);
+
+                // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
+                $codeLocalite = null;
+                if($request->input("domicile_quartier".$sufix) != "" && $request->input("domicile_quartier".$sufix) != "XXXXXXXXXXXXXXXX"){
+                    $codeLocalite = $request->input("domicile_quartier".$sufix);
+                } elseif($request->input("domicile_arrondissement".$sufix) != "" && $request->input("domicile_arrondissement".$sufix) != "XXXXXXXXXXXXXXXX"){
+                    $codeLocalite = $request->input("domicile_arrondissement".$sufix);
+                } else {
+                    $codeLocalite = $request->input("domicile_ville".$sufix);
+                }
+                $addAdresse->code_localite = $codeLocalite;
                 $addAdresse->code_personne = $personne->code_personne;
                 $addAdresse->save();
 
                 $personne->telephone = $addContact->telephone;
-                $personne->adresse = $addAdresse->numero_rue." ".$addAdresse->type_voie." ".$addAdresse->nom_voie." ".Localite::find($addAdresse->code_quartier_village)->lib_localite." ".Localite::find($addAdresse->code_localite)->lib_localite;
+                // Construire l'adresse avec la localité
+                $localiteLib = $addAdresse->code_localite ? (Localite::find($addAdresse->code_localite) ? Localite::find($addAdresse->code_localite)->lib_localite : '') : '';
+                $personne->adresse = $addAdresse->numero_rue." ".$addAdresse->type_voie." ".$addAdresse->nom_voie." ".$localiteLib;
                 $personne->save();
 
             }
@@ -627,9 +701,17 @@ class Sifec {
                 $adresse->type_voie = $request->input("domicile_typevoie" . $sufix);
                 $adresse->nom_voie = $request->input("domicile_nomvoie" . $sufix);
                 $adresse->numero_rue = $request->input("domicile_numero" . $sufix);
-                $adresse->code_quartier_village = $request->input("domicile_quartier" . $sufix);
-                $adresse->code_localite = $request->input("domicile_ville" . $sufix);
-                $adresse->code_arrondissement_comurbaine  = $request->input("domicile_arrondissement" . $sufix);
+
+                // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
+                $codeLocalite = null;
+                if($request->input("domicile_quartier" . $sufix) != "" && $request->input("domicile_quartier" . $sufix) != "XXXXXXXXXXXXXXXX"){
+                    $codeLocalite = $request->input("domicile_quartier" . $sufix);
+                } elseif($request->input("domicile_arrondissement" . $sufix) != "" && $request->input("domicile_arrondissement" . $sufix) != "XXXXXXXXXXXXXXXX"){
+                    $codeLocalite = $request->input("domicile_arrondissement" . $sufix);
+                } else {
+                    $codeLocalite = $request->input("domicile_ville" . $sufix);
+                }
+                $adresse->code_localite = $codeLocalite;
                 $adresse->code_personne = $personne->code_personne;
                 $adresse->save();
             }
@@ -644,9 +726,17 @@ class Sifec {
             $adresseResidence->type_voie = $request->input("domicile_typevoie" . $sufix);
             $adresseResidence->nom_voie = $request->input("domicile_nomvoie" . $sufix);
             $adresseResidence->numero_rue = $request->input("domicile_numero" . $sufix);
-            $adresseResidence->code_localite = $request->input("domicile_ville" . $sufix);
-            $adresseResidence->code_quartier_village = $request->input("domicile_quartier" . $sufix);
-            $adresseResidence->code_arrondissement_comurbaine  = $request->input("domicile_arrondissement" . $sufix);
+
+            // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
+            $codeLocalite = null;
+            if($request->input("domicile_quartier" . $sufix) != "" && $request->input("domicile_quartier" . $sufix) != "XXXXXXXXXXXXXXXX"){
+                $codeLocalite = $request->input("domicile_quartier" . $sufix);
+            } elseif($request->input("domicile_arrondissement" . $sufix) != "" && $request->input("domicile_arrondissement" . $sufix) != "XXXXXXXXXXXXXXXX"){
+                $codeLocalite = $request->input("domicile_arrondissement" . $sufix);
+            } else {
+                $codeLocalite = $request->input("domicile_ville" . $sufix);
+            }
+            $adresseResidence->code_localite = $codeLocalite;
             $adresseResidence->save();
 
            DB::commit();
@@ -760,15 +850,22 @@ class Sifec {
         DB::beginTransaction();
         try{
             $residencePersonne = new AdressePersonne();
-            $residencePersonne->lib_pays  = $request->input("residence_externe" . $sufix) ?? "Congo";
             $residencePersonne->lib_pays  = $request->input("domicile_pays". $sufix) ?? "Congo";
             $residencePersonne->lib_ville = $comDist;
-            $residencePersonne->code_arrondissement_comurbaine = $request->input("domicile_arrondissement".$sufix);
-            $residencePersonne->code_quartier_village = $request->input("domicile_quartier".$sufix);
             $residencePersonne->type_voie = $typeVoie;
             $residencePersonne->nom_voie = $libVoie;
             $residencePersonne->numero_rue = $num;
-            $residencePersonne->code_localite  = $request->input("domicile_ville" . $sufix);
+
+            // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
+            $codeLocalite = null;
+            if($request->input("domicile_quartier".$sufix) != "" && $request->input("domicile_quartier".$sufix) != "XXXXXXXXXXXXXXXX"){
+                $codeLocalite = $request->input("domicile_quartier".$sufix);
+            } elseif($request->input("domicile_arrondissement".$sufix) != "" && $request->input("domicile_arrondissement".$sufix) != "XXXXXXXXXXXXXXXX"){
+                $codeLocalite = $request->input("domicile_arrondissement".$sufix);
+            } else {
+                $codeLocalite = $request->input("domicile_ville" . $sufix);
+            }
+            $residencePersonne->code_localite = $codeLocalite;
             $residencePersonne->code_personne = $personne->code_personne;
             $residencePersonne->save();
 
@@ -1757,6 +1854,114 @@ class Sifec {
 
             return $niupp;
 
+    }
+
+    /**
+     * Récupère les informations de localisation d'une institution
+     * en utilisant le système unifié de localités
+     *
+     * @param Institution $institution L'institution dont on veut obtenir la localisation
+     * @return array Tableau contenant:
+     *   - 'localite' : Libellé de la localité (ex: "COMMUNE DE BRAZZAVILLE")
+     *   - 'localiteParent' : Libellé du département parent (ex: "DEPARTEMENT DE POOL")
+     *   - 'inst' : Nom de l'institution
+     *   - 'localisation' : Nom de la localisation à utiliser (ex: "BRAZZAVILLE")
+     *   - 'departement' : Objet Localite du département (peut être null)
+     *   - 'lieu' : Objet Localite de l'institution (peut être null)
+     */
+    public static function getLocalisationInstitution($institution)
+    {
+        $localite = "";
+        $localiteParent = "";
+        $inst = "";
+        $localisation = "";
+        $departement = null;
+        $lieu = null;
+
+        // Initialiser les variables par défaut
+        if ($institution && $institution->lieu) {
+            $lieu = $institution->lieu;
+            $inst = $institution->lib_institution;
+
+            // Remonter la hiérarchie pour obtenir le département
+            $current = $lieu;
+            while ($current && $current->code_type_localite !== 'TPLOC_0001') {
+                $current = $current->localiteParent;
+            }
+            $departement = $current;
+
+            // Déterminer le type de localité et construire les libellés appropriés
+            $typeLocalite = $lieu->typelocalite->lib_type_localite ?? "";
+
+            switch ($lieu->code_type_localite) {
+                case 'TPLOC_0001': // DÉPARTEMENT
+                    $localite = "DEPARTEMENT DE " . $lieu->lib_localite;
+                    $localisation = $lieu->lib_localite;
+                    break;
+
+                case 'TPLOC_0002': // DISTRICT
+                    $localite = "DISTRICT DE " . $lieu->lib_localite;
+                    if ($departement) {
+                        $localiteParent = "DEPARTEMENT DE " . $departement->lib_localite;
+                    }
+                    $localisation = $lieu->lib_localite;
+                    break;
+
+                case 'TPLOC_0003': // COMMUNE
+                    $localite = "COMMUNE DE " . $lieu->lib_localite;
+                    if ($departement) {
+                        $localiteParent = "DEPARTEMENT DE " . $departement->lib_localite;
+                    }
+                    $localisation = $lieu->lib_localite;
+                    break;
+
+                case 'TPLOC_0004': // ARRONDISSEMENT
+                    // Pour un arrondissement, on affiche la commune parent et le département
+                    if ($lieu->localiteParent) {
+                        $commune = $lieu->localiteParent;
+                        $localite = "COMMUNE DE " . $commune->lib_localite;
+                        if ($departement) {
+                            $localiteParent = "DEPARTEMENT DE " . $departement->lib_localite;
+                        }
+                        $localisation = $commune->lib_localite;
+                    } else {
+                        $localisation = $lieu->lib_localite;
+                    }
+                    break;
+
+                default:
+                    // Pour les autres types (COMMUNAUTE URBAINE, COMMUNAUTE RURALE, etc.)
+                    $localisation = $lieu->lib_localite;
+                    if ($lieu->localiteParent) {
+                        $parentType = $lieu->localiteParent->typelocalite->lib_type_localite ?? "";
+                        $localite = strtoupper($parentType) . " DE " . $lieu->localiteParent->lib_localite;
+                        if ($departement) {
+                            $localiteParent = "DEPARTEMENT DE " . $departement->lib_localite;
+                        }
+                    }
+                    break;
+            }
+
+            // Si aucune localisation n'a été trouvée, utiliser le lib_institution comme fallback
+            if (empty($localisation)) {
+                $localisation = $inst;
+            }
+        } else {
+            // Si l'institution n'a pas de localité, utiliser son nom comme fallback
+            if ($institution) {
+                $inst = $institution->lib_institution;
+                $localisation = $inst;
+            }
+        }
+
+        return [
+            'localite' => $localite,
+            'localiteParent' => $localiteParent,
+            'inst' => $inst,
+            'localisation' => $localisation,
+            'departement' => $departement,
+            'lieu' => $lieu
+        ];
     }
 
 

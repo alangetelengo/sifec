@@ -90,7 +90,7 @@ class ActeDecesFromDeclarationsSeeder extends Seeder
                 $declaration->cec_approuve_par = $affectationCentre->cui;
             }
             $declaration->cec_approuve_le = now();
-            $declaration->approuver = 'OUI';
+            $declaration->declarant_approuver = 'OUI';
             $declaration->code_institution_destinataire = 'INS_0047';
             $declaration->save();
 

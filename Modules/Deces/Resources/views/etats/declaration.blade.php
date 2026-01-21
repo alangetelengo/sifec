@@ -42,8 +42,13 @@
 
 	<bookmark title="Lettre" level="0" ></bookmark>
     @php
-        $commune = "COMMUNE DE ".$ddc->institution->lieu->localiteParent->lib_localite;
-        $dept = "DEPARTEMENT DE ".$ddc->institution->lieu->localiteParent->localiteParent->lib_localite;
+        // Utiliser le service Sifec pour obtenir les informations de localisation
+        $institution = $ddc->institution;
+        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+        
+        $commune = $localisationData['localite'];
+        $dept = $localisationData['localiteParent'];
+        $localisation = $localisationData['localisation'];
 
     @endphp
 
@@ -327,7 +332,7 @@
                          </td>
 
                         <td>
-                           <span> Fait à {{ ucfirst(strtolower($ddc->institutionUser->institution->lieu->localiteParent->lib_localite)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $ddc->created_at)))}}<br></span>
+                           <span> Fait à {{ ucfirst(strtolower($localisation)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $ddc->created_at)))}}<br></span>
                             <span style='text-align:left; margin-top:10px'>@if($ddc->institutionUser->institution->institutionParent->code_institution == "INS_0193")
                                         Chef de bureau
         s

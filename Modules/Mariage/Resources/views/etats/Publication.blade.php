@@ -11,11 +11,16 @@
    }
 
 </style>
- <page orientation="portrait" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+ <page orientation="portrait" backimg="{{ public_path("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
    @php
-        $commune = "COMMUNE DE ".$dm->institution->lieu->localiteParent->lib_localite;
-        $dpt  = "DEPARTEMENT DE ". $dm->institution->lieu->localiteParent->localiteParent->lib_localite;
-        $cec = $dm->institution->lib_institution;
+        // Utiliser le service Sifec pour obtenir les informations de localisation
+        $institution = $dm->institution;
+        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+        
+        $commune = $localisationData['localite'];
+        $dpt = $localisationData['localiteParent'];
+        $cec = $localisationData['inst'];
+        $localisation = $localisationData['localisation'];
    @endphp
 
    <table cellspacing="0" style="width: 100%; font-size: 12pt; margin-left: 20px;">
@@ -147,7 +152,7 @@
                             </td>
                             <td style="font-size: 12px;">
                                 {{-- Fait à {{ $dm->institutionUser->institution->arrondissement->commune->lib_commune }}, le {{ date("d/m/Y", strtotime($dm->date_declaration_mariage)) }}<br> --}}
-                                Fait à <span style="text-transform:capitalize">{{ $dm->institution->lieu->localiteParent->lib_localite }}</span>, le  {{ date("d/m/Y", strtotime($dm->date_declaration_mariage)) }}<br>
+                                Fait à <span style="text-transform:capitalize">{{ $localisation }}</span>, le  {{ date("d/m/Y", strtotime($dm->date_declaration_mariage)) }}<br>
                             </td>
                         </tr>
                         <tr>
