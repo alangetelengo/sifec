@@ -5,76 +5,61 @@ Acte de décès
 @section("styles")
 <style>
     @media print {
-        /* Forcer tout le contenu sur une seule page */
-        * {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+        /* Masquer toute la page (sidebar, header, boutons, etc.) */
+        body * {
+            visibility: hidden;
         }
-
-        /* Masquer les éléments de navigation */
-        .k-toolbar,
-        .k-pdf-viewer-toolbar,
-        .k-pdf-viewer-navigation,
-        .k-pdf-viewer-controls {
-            display: none !important;
+        /* Afficher uniquement le conteneur PDF et son contenu */
+        #pdf-viewer-container,
+        #pdf-viewer-container * {
+            visibility: visible;
         }
-
-        /* Forcer le PDF viewer à une seule page */
-        .k-pdf-viewer {
-            height: 100vh !important;
-            max-height: 100vh !important;
-            overflow: hidden !important;
-            page-break-inside: avoid !important;
-        }
-
-        /* Ajuster le contenu PDF */
-        .k-pdf-viewer .k-content,
-        .k-pdf-viewer-content,
-        .k-pdf-viewer .k-pdf-page,
-        .k-pdf-viewer canvas {
-            max-height: 100vh !important;
-            height: auto !important;
+        #pdf-viewer-container {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-
-        /* Masquer les en-têtes et pieds de page du navigateur */
-        @page {
+            height: 100% !important;
             margin: 0 !important;
-            size: A4 !important;
+            padding: 20px !important;
+            background: #fff !important;
+            z-index: 9999 !important;
         }
-
-        /* Forcer le body à une seule page */
-        body {
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100vh !important;
-            overflow: hidden !important;
-        }
-
-        /* Masquer les éléments non essentiels */
-        .card-header,
-        .btn,
-        .modal,
-        .alert {
+        #pdf-loading, #pdf-error {
             display: none !important;
         }
-
-        /* Ajuster le conteneur principal */
-        .card,
-        .card-body {
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
+        #pdf-canvas-container canvas {
+            max-width: 100% !important;
+            height: auto !important;
+            page-break-after: always;
             box-shadow: none !important;
         }
+        #pdf-canvas-container canvas:last-child {
+            page-break-after: avoid;
+        }
+        @page { margin: 1cm; }
     }
-
-    /* Styles pour l'affichage normal */
-    .k-pdf-viewer {
-        border: 1px solid #ddd;
-        border-radius: 4px;
+    #pdf-viewer-container {
+        position: relative;
+        min-height: 800px;
+        background: #525659;
+    }
+    #pdf-canvas-container {
+        text-align: center;
+        padding: 20px 0;
+    }
+    #pdf-canvas-container canvas {
+        display: block;
+        margin: 0 auto 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        max-width: 100%;
+    }
+    #pdf-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
     }
 </style>
 @endsection
@@ -86,7 +71,18 @@ Acte de décès
             <div class="card-header">
                 <h4></h4>
                 <div class="row">
-                    <div id="dupcreer"  class="d-flex gap-2 justify-content-end">
+                    <div id="dupcreer" class="d-flex gap-2 justify-content-end">
+                        @if($acte && $acte->retirer == 0)
+                            <button type="button" class="btn btn-primary" id="btn-imprimer-acte" title="Imprimer l'acte de décès">
+                                <i class="fas fa-print me-1"></i>
+                                Imprimer l'acte
+                            </button>
+                        @elseif($acte && $acte->retirer == 1)
+                            <button type="button" class="btn btn-secondary" id="btn-imprimer-acte" disabled title="L'acte a été retiré, l'impression n'est plus autorisée">
+                                <i class="fas fa-print me-1"></i>
+                                Imprimer l'acte
+                            </button>
+                        @endif
                         @if($acte && $acte->retirer == 0 && $acte->approbation_pompe_funebre != '')
                             <button type="button"
                                     class="btn btn-warning text-white"
@@ -103,9 +99,12 @@ Acte de décès
                                 Acte retiré
                             </span>
                         @endif
-
-
-                        <a href="{{ route("acteDeces.index") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >Liste des actes</button></a>
+                        <a href="{{ route("acteDeces.index") }}">
+                            <button type="button" class="btn btn-info text-white">
+                                <i class="fas fa-list me-1"></i>
+                                Liste des actes
+                            </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -115,7 +114,14 @@ Acte de décès
                         @if($acte)
                             <input type="hidden" value="{{ $acte->code_declaration_deces }}" id="cdn">
                             <input type="hidden" value="{{ $acte->retirer ?? 0 }}" id="retirer">
-                            <div id="pdfViewer"></div>
+                            <div id="pdf-viewer-container">
+                                <div id="pdf-loading">
+                                    <div class="spinner-border text-light" role="status"></div>
+                                    <p class="mt-2 mb-0 text-light">Chargement du document...</p>
+                                </div>
+                                <div id="pdf-error" class="alert alert-danger m-4 d-none"></div>
+                                <div id="pdf-canvas-container"></div>
+                            </div>
                         @else
                             <div class="alert alert-danger" role="alert">
                                 <h4 class="alert-heading">Acte introuvable</h4>
@@ -327,124 +333,77 @@ Acte de décès
 {{-- FIN MODAL RETRAIT ACTE DE DECES --}}
 @endsection
 @section("scripts")
+{{-- PDF.js : local en priorité (public/pdfjs/), CDN en repli --}}
+<script src="{{ asset('pdfjs/pdf.min.js') }}" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';"></script>
+<script>
+    // Configurer le worker PDF.js (local en priorité, CDN en repli)
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('pdfjs/pdf.worker.min.js') }}";
+    }
 
-<!---- debut inclusion kendoUi --->
-<link href="{{ asset('kendo-library/kendo-style/kendo.common.min.css')}}" rel="stylesheet">
-<link href="{{ asset('kendo-library/kendo-style/kendo.blueopal.min.css')}}" rel="stylesheet">
-{{-- <script src="{{ asset('kendo-library/kendo-js/jquery.min.js')}}"></script> --}}
-<script src="{{ asset('kendo-library/kendo-js/kendo.all.min.js')}}"></script>
-
- <!---- fin inclusion kendoUi --->
- <script>
     $(function() {
         @if($acte)
             var cdn = $("#cdn").val();
-            var retirer = $("#retirer").val();
-
-            if(cdn) {
+            if (cdn && typeof pdfjsLib !== 'undefined') {
                 var route = "{{ route('acteDeces.display', ':id') }}";
                 route = route.replace(':id', cdn);
-
-                console.log("Tentative de chargement du PDF depuis:", route);
-
-                // Vérifier que la route est accessible avant de charger le PDF Viewer
-                $.ajax({
-                    url: route,
-                    method: 'HEAD',
-                    success: function(data, textStatus, jqXHR) {
-                        console.log("Route PDF accessible, Content-Type:", jqXHR.getResponseHeader('Content-Type'));
-                        loadPDFViewer(route, retirer);
-                    },
-                    error: function(xhr, textStatus, errorThrown) {
-                        console.error("Erreur lors de la vérification de la route PDF:", textStatus, errorThrown);
-                        var errorMsg = 'Impossible de charger le PDF';
-                        if (xhr.status === 404) {
-                            errorMsg = 'Acte introuvable (404)';
-                        } else if (xhr.status === 500) {
-                            errorMsg = 'Erreur serveur lors de la génération du PDF (500)';
-                        } else if (xhr.status === 0) {
-                            errorMsg = 'Impossible de se connecter au serveur';
-                        }
-                        $("#pdfViewer").html(
-                            '<div class="alert alert-danger m-4" role="alert">' +
-                            '<h4 class="alert-heading">Erreur lors du chargement du PDF</h4>' +
-                            '<p>' + errorMsg + '</p>' +
-                            '<hr>' +
-                            '<p class="mb-0">Statut HTTP: ' + (xhr.status || 'Inconnu') + '</p>' +
-                            '<p class="mb-0 mt-2">Veuillez vérifier les logs ou contacter l\'administrateur.</p>' +
-                            '<p class="mb-0 mt-2"><small>Route: ' + route + '</small></p>' +
-                            '</div>'
-                        );
-                    }
-                });
+                loadPdfWithJs(route);
+            } else if (cdn) {
+                $("#pdf-loading").addClass("d-none");
+                $("#pdf-error").removeClass("d-none").html('<strong>Erreur :</strong> La bibliothèque PDF.js n\'a pas pu être chargée.');
             }
-
-            function loadPDFViewer(route, retirer) {
-                $.when(
-                    $.getScript("{{ asset('kendo-library/pdf.js') }}"),
-                    $.getScript("{{ asset('kendo-library/kendo-style/worker.js') }}")
-                )
-                .done(function () {
-                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('kendo-library/kendo-style/worker.js') }}";
-                }).then(function(){
-                    console.log("Initialisation du PDF Viewer pour:", route);
-                    $("#pdfViewer").kendoPDFViewer({
-                        pdfjsProcessing: {
-                            file: route,
-                            error: function(e) {
-                                console.error("Erreur lors du traitement du PDF:", e);
-                                var errorMessage = 'Erreur inconnue';
-                                if (e.error) {
-                                    errorMessage = e.error.message || e.error.toString();
-                                } else if (e.xhr) {
-                                    errorMessage = 'Erreur HTTP: ' + (e.xhr.status || 'Inconnu');
-                                }
-
-                                // Afficher un message d'erreur à l'utilisateur
-                                $("#pdfViewer").html(
-                                    '<div class="alert alert-danger m-4" role="alert">' +
-                                    '<h4 class="alert-heading">Erreur lors du traitement du PDF</h4>' +
-                                    '<p>Le PDF n\'a pas pu être traité par le visualiseur.</p>' +
-                                    '<hr>' +
-                                    '<p class="mb-0"><strong>Erreur:</strong> ' + errorMessage + '</p>' +
-                                    '<p class="mb-0 mt-2">Veuillez vérifier les logs dans <code>storage/logs/sifec.log</code> ou contacter l\'administrateur.</p>' +
-                                    '<p class="mb-0 mt-2"><small>Route: ' + route + '</small></p>' +
-                                    '<p class="mb-0 mt-2"><small>Code déclaration: ' + cdn + '</small></p>' +
-                                    '</div>'
-                                );
-                            }
-                        },
-                        width: "100%",
-                        height: 1200
-                    });
-                    $('a[title="Download"]').hide();
-                    $('a[title="Open"]').hide();
-                    if(retirer == 0){
-                        $('a[title="Print"]').show();
-                        $(".k-toolbar").show();
-                    }else{
-                        $('a[title="Print"]').hide();
-                        $(".k-toolbar").hide();
-                    }
-                }).fail(function(jqXHR, textStatus, errorThrown) {
-                    console.error("Erreur lors du chargement des scripts PDF:", textStatus, errorThrown);
-                    $("#pdfViewer").html(
-                        '<div class="alert alert-danger m-4" role="alert">' +
-                        '<h4 class="alert-heading">Erreur lors du chargement des bibliothèques PDF</h4>' +
-                        '<p>Impossible de charger les bibliothèques nécessaires pour afficher le PDF.</p>' +
-                        '<hr>' +
-                        '<p class="mb-0">Erreur: ' + textStatus + ' - ' + errorThrown + '</p>' +
-                        '<p class="mb-0 mt-2">Veuillez rafraîchir la page ou contacter l\'administrateur.</p>' +
-                        '</div>'
-                    );
-                });
-            }
-
         @endif
+
+        // Bouton Imprimer : déclenche l'impression du document (PDF.js canvas)
+        $("#btn-imprimer-acte").on("click", function() {
+            if ($(this).prop("disabled")) return;
+            window.print();
+        });
 
         // Initialiser le modal de retrait
         initModalRetrait();
     });
+
+    function loadPdfWithJs(url) {
+        var loadingEl = document.getElementById("pdf-loading");
+        var errorEl = document.getElementById("pdf-error");
+        var containerEl = document.getElementById("pdf-canvas-container");
+
+        pdfjsLib.getDocument({
+            url: url,
+            withCredentials: true
+        }).promise.then(function(pdf) {
+            loadingEl.style.display = "none";
+            var numPages = pdf.numPages;
+
+            function renderPage(pageNum) {
+                return pdf.getPage(pageNum).then(function(page) {
+                    var scale = 1.5;
+                    var viewport = page.getViewport({ scale: scale });
+                    var canvas = document.createElement("canvas");
+                    var ctx = canvas.getContext("2d");
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    containerEl.appendChild(canvas);
+
+                    return page.render({
+                        canvasContext: ctx,
+                        viewport: viewport
+                    }).promise;
+                });
+            }
+
+            var renderPromises = [];
+            for (var i = 1; i <= numPages; i++) {
+                renderPromises.push(renderPage(i));
+            }
+            return Promise.all(renderPromises);
+        }).catch(function(err) {
+            loadingEl.style.display = "none";
+            errorEl.classList.remove("d-none");
+            errorEl.innerHTML = '<strong>Erreur lors du chargement du PDF :</strong> ' + (err.message || err) + '<br><small>URL : ' + url + '</small>';
+        });
+    }
 
 
     // Fonction pour initialiser le modal de retrait

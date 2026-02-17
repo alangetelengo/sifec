@@ -125,25 +125,25 @@
                         $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
                         $inst = $localisationData['inst'];
                     @endphp
-                    <small>A : LA {!! nl2br(e(wordwrap($inst ?? '', 55, "\n", true))) !!}</small><br>
+                    <small>A : LA {{$inst}}</small><br>
                     <small>N° acte de mariage : {{$mariage->acte->code_acte_mariage}}</small>
-                    <small>{!! nl2br(e(wordwrap(($acte->declaration->enfant->sexe=="M" ? "Epouse: ".optional($mariage->acte->declaration->epouse)->nomcomplet() : "Epoux: ".optional($mariage->acte->declaration->epoux)->nomcomplet()) ?? '', 55, "\n", true))) !!}</small>
+                    <small>{{$acte->declaration->enfant->sexe=="M" ? "Epouse: ".$mariage->acte->declaration->epouse->nomcomplet() : "Epoux: ".$mariage->acte->declaration->epoux->nomcomplet() }}</small>
                 @endif
             @endif
 
             @if ($declarationDeces != NULL)
                 <small>Décédé le: <br> {{utf8_encode(strftime("%d %B %Y", strtotime($declarationDeces->date_heure_deces)))." à ".date("H:i", strtotime($declarationDeces->date_heure_deces))}} minute(s)</small><br>
-                <small>A : {!! nl2br(e(wordwrap($declarationDeces->lieu_deces ?? '', 55, "\n", true))) !!}</small><br>
+                <small>A : {{$declarationDeces->lieu_deces}}</small><br>
                 @if ($declarationDeces->acte != NULL)
                 <small>N° acte de décès : {{$declarationDeces->acte->code_acte_deces}}</small>
                 @endif
             @endif
            @if($acte->declaration->jugement != null)
                 @if($acte->declaration->adoptant != "")
-                <small>{{ $acte->declaration->enfant->sexe == "M" ? "Adopté" : "Adoptée" }} par <strong>{!! nl2br(e(wordwrap($acte->declaration->adoptant->nomcomplet() ?? '', 55, "\n", true))) !!}</strong></small><br>
+                <small>{{ $acte->declaration->enfant->sexe == "M" ? "Adopté" : "Adoptée" }} par <strong>{{ $acte->declaration->adoptant->nomcomplet() }}</strong></small><br>
                 <small>Jugement N&deg; : <strong> {{ $acte->declaration->jugement->num_jugement }}</strong> </small>
                 <small>du : <strong>{{ date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)) }}</strong> </small>
-                <small>au : <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->jugement->institutionUser->institution->institutionParent)->lib_institution ?? '', 55, "\n", true))) !!}</strong></small> <br>
+                <small>au : <strong>{{ $acte->declaration->jugement->institutionUser->institution->institutionParent->lib_institution }}</strong></small> <br>
                 @if($acte->declaration->type_adoption == "adoption pleniere")
                     <small>N&deg; ancien acte de naissance  <strong>{{ $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
                 @endif
@@ -152,7 +152,7 @@
                     {{-- <small>{{ $acte->declaration->enfant->sexe == "M" ? "Adopté" : "Adoptée" }} par <strong>{{ $acte->declaration->adoptant->nomcomplet() }}</strong></small><br> --}}
                     <small>{{ $acte->declaration->jugement->type_jugement }} N&deg;: <strong> {{ $acte->declaration->jugement->num_jugement }}</strong> </small>
                     <small><br>du : <strong>{{ date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)) }}</strong> </small>
-                    <small><br>au : <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->jugement->institutionUser->institution->institutionParent)->lib_institution ?? '', 55, "\n", true))) !!}</strong></small> <br>
+                    <small><br>au : <strong>{{ $acte->declaration->jugement->institutionUser->institution->institutionParent->lib_institution }}</strong></small> <br>
                     @if($acte->declaration->jugement->type_jugement == "JUGEMENT D'HOMOLOGATION")
                     <small>N&deg; ancien acte de naissance  <strong>{{ $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
                     @endif
@@ -163,7 +163,7 @@
                 @if ($acte->rectifications->count() > 0)
 
                     @foreach ($acte->rectifications as $rectification)
-                        <small>Suivant le jugement émanant du <strong>{!! nl2br(e(wordwrap(optional($rectification->institutionUser->institution->institutionParent)->lib_institution ?? '', 55, "\n", true))) !!}</strong>
+                        <small>Suivant le jugement émanant du <strong>{{  $rectification->institutionUser->institution->institutionParent->lib_institution  }}</strong>
                             en date du <strong>{{ date("d-m-Y", strtotime($rectification->updated_at)) }}</strong>, sous le
                             N&deg;: <strong>{{ $rectification->numero_rectification }}</strong>, l"acte ci-contre est réctifié en ce sens
                             que,
@@ -171,8 +171,8 @@
                         @if ($rectification->detailsRectification->count() > 0)
 
                             @foreach ($rectification->detailsRectification as $detail)
-                                <small>le <strong>{!! nl2br(e(wordwrap(optional($detail->rubrique)->lib_rubrique ?? '', 55, "\n", true))) !!}</strong> du titulaire est</small>
-                                <small><strong>{!! nl2br(e(wordwrap($detail->nouvelle_valeur ?? '', 55, "\n", true))) !!}</strong> au lieu de <strong>{!! nl2br(e(wordwrap($detail->ancienne_valeur ?? '', 55, "\n", true))) !!}</strong></small><br>
+                                <small>le <strong>{{ $detail->rubrique->lib_rubrique }}</strong> du titulaire est</small>
+                                <small><strong>{{ $detail->nouvelle_valeur }}</strong> au lieu de <strong>{{ $detail->ancienne_valeur }}</strong></small><br>
                             @endforeach
                         @endif
                     @endforeach
@@ -182,10 +182,12 @@
         <div style="position: absolute; left: 150px; top: 240px; width: 700px; min-height: 500px; padding: 0px; overflow: visible; text-align: left; font-weight: normal; font-size:14px;border-left: 1px solid black;">
             <table class="acte-contenu" align="left" style="margin-left: 2%; border-radius: 1mm; border: none; table-layout: fixed; width: 96%;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td>L'Officier du centre d'état civil principal de: <strong>{!! nl2br(e(wordwrap(optional($acte->institutionUser->institution)->lib_institution ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>L'Officier du centre d'état civil principal de: <strong>{{ $acte->institutionUser->institution->lib_institution}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Est informé le: <br> <strong>{!! nl2br(e(wordwrap(Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration))).' '.Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))).' '.Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))).' à '.Sifec::asLetters((int)date("H", strtotime($acte->declaration->date_heure_declaration))).' heure(s) '.Sifec::asLetters((int)date("i", strtotime($acte->declaration->date_heure_declaration))).' minutes', 55, "\n", true))) !!}</strong>
+                    <td>Est informé le: <br> <strong>
+
+                        {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong>
 
                     </td>
                 </tr>
@@ -193,13 +195,13 @@
                     <td>Est né(e), un enfant de sexe: <strong>{{ $acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {!! nl2br(e(wordwrap(Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance))).' '.Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))).' '.Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))), 55, "\n", true))) !!}</strong> à </td>
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong> à </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style=""> <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>A: <strong>{!! nl2br(e(wordwrap($acte->declaration->enfant->lieu_naissance ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>A: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }}
@@ -228,18 +230,18 @@
                                 $prenomEnfant = $acte->declaration->enfant->prenom;
                             @endphp
                         @endif
-                        {!! nl2br(e(wordwrap($nomEnfant." ".$prenomEnfant, 55, "\n", true))) !!}
+                        {{ $nomEnfant." ".$prenomEnfant }}
                         </span></strong>
                     </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Déclaré par: <strong>{!! nl2br(e(wordwrap(($acte->declaration->adoptant != "" ? $acte->declaration->adoptant->nomcomplet() : $acte->declaration->declarant->nomcomplet()) ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Déclaré par: <strong>{{  $acte->declaration->adoptant != "" ? $acte->declaration->adoptant->nomcomplet() : $acte->declaration->declarant->nomcomplet() }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Situation matrimoniale des parents: <strong>{!! nl2br(e(wordwrap(($acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy) ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Situation matrimoniale des parents: <strong>{{ $acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {!! nl2br(e(wordwrap(($acte->declaration->pere ? $acte->declaration->pere->nom.' '.$acte->declaration->pere->prenom : $dummy) ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {{ $acte->declaration->pere ? $acte->declaration->pere->nom." ".$acte->declaration->pere->prenom : $dummy}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Né le : <strong>
@@ -249,22 +251,22 @@
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>A : <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->pere)->lieu_naissance ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>A : <strong>{{ $acte->declaration->pere->lieu_naissance }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Nationalité: <strong>{!! nl2br(e(wordwrap(optional(optional($acte->declaration->pere)->nationalite)->lib_nationalite ?? $dummy ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Nationalité: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->nationalite->lib_nationalite : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Niveau d'instruction: <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->pere)->niveau_instruction ?? $dummy ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Niveau d'instruction: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->niveau_instruction : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Domicilié au : <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->pere)->adresse ?? '', 55, "\n", true))) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Proféssion: <strong>{!! nl2br(e(wordwrap(optional(optional($acte->declaration->pere)->profession)->lib_profession ?? $dummy ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Proféssion: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->profession->lib_profession : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Et de :<strong> {!! nl2br(e(wordwrap(($acte->declaration->mere ? $acte->declaration->mere->nom.' '.$acte->declaration->mere->prenom : $dummy) ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Et de :<strong> {{ $acte->declaration->mere ? $acte->declaration->mere->nom." ".$acte->declaration->mere->prenom : $dummy}}</strong></td>
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
@@ -275,20 +277,20 @@
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>A : <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->mere)->lieu_naissance ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>A : <strong>{{ $acte->declaration->mere->lieu_naissance }}</strong></td>
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
-                    <td>Nationalité: <strong>{!! nl2br(e(wordwrap(optional(optional($acte->declaration->mere)->nationalite)->lib_nationalite ?? $dummy ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Nationalité: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->nationalite->lib_nationalite : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Niveau d'instruction: <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->mere)->niveau_instruction ?? $dummy ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Niveau d'instruction: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->niveau_instruction : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Domicilié au : <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->mere)->adresse ?? '', 55, "\n", true))) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Proféssion: <strong>{!! nl2br(e(wordwrap(optional(optional($acte->declaration->mere)->profession)->lib_profession ?? $dummy ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td>Proféssion: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->profession->lib_profession : $dummy }}</strong></td>
                 </tr>
                 @if($acte->declaration->type_declarant == "Personne physique")
                 <tr style="width:100%; text-align: left;">
