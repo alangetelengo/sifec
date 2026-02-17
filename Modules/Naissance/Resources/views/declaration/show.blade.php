@@ -155,7 +155,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                             <td>
                                 @if($declaration->piece_declarant)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_declarant }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_declarant) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -166,7 +166,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                             <td>
                                 @if($declaration->piece_pere)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_pere }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_pere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -177,7 +177,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                             <td>
                                 @if($declaration->piece_mere)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_mere }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_mere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif

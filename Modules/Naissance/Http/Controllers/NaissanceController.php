@@ -1111,7 +1111,7 @@ class NaissanceController extends Controller
             abort(404);
         }
 
-        $declaration = Declarationnaissance::with(['enfant', 'pere', 'mere', 'declarant', 'mouvements'])
+        $declaration = Declarationnaissance::with(['enfant', 'pere', 'mere', 'declarant', 'mouvements', 'acte.retrait'])
             ->where('code_declaration_naissance', $code)
             ->first();
 
@@ -1128,7 +1128,7 @@ class NaissanceController extends Controller
             abort(404);
         }
 
-        $acte = ActeNaissance::with(['declaration.enfant', 'declaration.pere', 'declaration.mere'])
+        $acte = ActeNaissance::with(['declaration.enfant', 'declaration.pere', 'declaration.mere', 'declaration.declarant', 'retrait'])
             ->where('niupp', $niupp)
             ->first();
 

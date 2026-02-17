@@ -447,21 +447,21 @@ class UserController extends Controller
     //Ajouter une fonctionnalite a un user
     public function assignerFonctionnalite($id)
     {
-        // dd($id);
-        $user = User::find($id);
+        $user = User::with(['personne', 'affectations.institution', 'affectations.fonction', 'fonctionnalites'])->find($id);
 
         if($user == null){
             toastr()->error("Impossible de charger cette page");
             return back();
         }
 
-        $modules = Module::all();
+        // Charger les modules avec leurs fonctionnalités
+        $modules = Module::with('fonctionnalites')->get();
 
         return view("authentification::utilisateur.assignation", compact("user","modules"));
 
     }
 
-    //enregistrer l'assignation
+    //enregistrer l'assignation pour une fonction
     public function storeAssigner(Request $request, $id)
     {
         $fonction = Fonction::find($id);
@@ -486,6 +486,40 @@ class UserController extends Controller
 
         }catch(Exception $e){
             DB::rollBack();
+            toastr()->error($e->getMessage());
+            return back()->withInput();
+
+        }
+    }
+
+    //enregistrer l'assignation des permissions pour un utilisateur
+    public function storeAssignerPermission(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if($user == null){
+            toastr()->error("Impossible de charger cette page");
+            return back();
+        }
+
+        DB::beginTransaction();
+        try{
+
+            if($request->fonctionnalites != null){
+                $user->fonctionnalites()->sync($request->fonctionnalites);
+            } else {
+                // Si aucune fonctionnalité n'est sélectionnée, on supprime toutes les permissions de l'utilisateur
+                $user->fonctionnalites()->sync([]);
+            }
+
+            DB::commit();
+
+            toastr()->success("Permissions assignées avec succès","Gestion des utilisateurs");
+            return redirect()->route("utilisateur.profile", $user->code_user);
+
+        }catch(Exception $e){
+            DB::rollBack();
+            Log::channel('sifec')->error("Erreur lors de l'assignation des permissions: " . $e->getMessage());
             toastr()->error($e->getMessage());
             return back()->withInput();
 

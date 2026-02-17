@@ -24,7 +24,7 @@ Route::middleware('auth')->prefix('utilisateur')->group(function() {
     Route::get('getinstitution', [UserController::class,'SearInstitution'])->name("utilisateur.getinstitution");
 
     Route::get('{id}/assigner-permission', [UserController::class,'assignerFonctionnalite'])->name("utilisateur.assigner.permission");
-    Route::post('{id}/assigner-permission', [FonctionController::class, 'storeAssigner'])->name('utilisateur.assigner.store');
+    Route::post('{id}/assigner-permission', [UserController::class, 'storeAssignerPermission'])->name('utilisateur.assigner.store');
 
     // Modification du mot de passe
     Route::get('{id}/change-password', [UserController::class,'showChangePasswordForm'])->name("utilisateur.change-password");

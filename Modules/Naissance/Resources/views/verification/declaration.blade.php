@@ -71,10 +71,28 @@
                 </span>
             </div>
             <div class="card-body p-4">
+                
                 <p class="text-muted mb-4">
                     Information vérifiée à partir de la base de données de l'état civil. Merci de vérifier les détails ci-dessous.
                 </p>
                 <dl class="row">
+                    <dt class="col-sm-5 col-md-4">Acte établi</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        @if(!$declaration->acte)
+                            <span class="badge bg-secondary">Aucun acte établi</span>
+                            <small class="d-block text-muted mt-1">Cette déclaration n’a pas encore donné lieu à un acte de naissance.</small>
+                        @elseif(!$declaration->acte->approbation_mairie || $declaration->acte->approbation_mairie === '')
+                            <span class="badge bg-warning text-dark">Acte établi, en attente de signature</span>
+                            <small class="d-block text-muted mt-1">L’acte a été généré mais n’a pas encore été signé par l’officier d’état civil.</small>
+                        @elseif($declaration->acte->retrait)
+                            <span class="badge bg-success">Acte signé et rétiré</span>
+                            <small class="d-block text-muted mt-1">Rétiré le {{ $declaration->acte->retrait->created_at ? $declaration->acte->retrait->created_at->format('d/m/Y à H:i') : '—' }}</small>
+                        @else
+                            <span class="badge bg-info">Acte signé, non encore rétiré</span>
+                            <small class="d-block text-muted mt-1">L’acte a été signé et peut être rétiré par le déclarant.</small>
+                        @endif
+                    </dd>
+
                     <dt class="col-sm-5 col-md-4">Date de déclaration</dt>
                     <dd class="col-sm-7 col-md-8">{{ $declaration->date_heure_declaration ? date('d/m/Y H:i', strtotime($declaration->date_heure_declaration)) : '-' }}</dd>
 

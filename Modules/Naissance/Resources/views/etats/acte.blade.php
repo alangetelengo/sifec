@@ -312,11 +312,13 @@
                     <td style="text-align: left;">
                          @if($acte->approbation_mairie != "")
                          <div style="margin-bottom:0;">
-                             @isset($qrCode)
-                                <div style="width: 30mm;">
-                                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
-                                </div>
-                             @endisset
+                             @php
+                                 // Toujours lier le QR à l'acte (niupp), pas à la déclaration, pour éviter la confusion avec le QR de la déclaration
+                                 $acteVerificationUrl = \Illuminate\Support\Facades\URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
+                             @endphp
+                             <div style="width: 30mm;">
+                                 <qrcode value="{{ $acteVerificationUrl }}" ec="H" style="width: 100%;"></qrcode>
+                             </div>
                          </div>
                          @endif
 

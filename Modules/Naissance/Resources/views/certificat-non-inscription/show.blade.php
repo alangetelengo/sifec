@@ -192,7 +192,7 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de non inscriptio
                             <td>
                                 @if($certificat->piece_declarant)
                                    <span class="badge bg-success">Présente</span>
-                                   <a href="/{{ $certificat->piece_declarant }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                   <a href="{{ asset($certificat->piece_declarant) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -203,7 +203,7 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de non inscriptio
                             <td>
                                 @if($certificat->piece_pere)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $certificat->piece_pere }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($certificat->piece_pere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -214,7 +214,7 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de non inscriptio
                             <td>
                                 @if($certificat->piece_mere)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $certificat->piece_mere }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($certificat->piece_mere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif

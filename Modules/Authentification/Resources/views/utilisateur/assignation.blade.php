@@ -157,8 +157,10 @@
                                     <div id="collapse{{ $module->code_module }}" class="accordion-collapse collapse" aria-labelledby="heading{{ $module->code_module }}" data-bs-parent="#accordion-modules">
                                         <div class="accordion-body">
                                             @php
-                                                // Grouper les fonctionnalités par parent
-                                                $parents = $module->fonctionnalites->where('code_fonctionnalite_parent', '')->sortBy('lib_fonctionnalite');
+                                                // Grouper les fonctionnalités par parent (null ou chaîne vide)
+                                                $parents = $module->fonctionnalites->filter(function($f) {
+                                                    return empty($f->code_fonctionnalite_parent) || $f->code_fonctionnalite_parent === '';
+                                                })->sortBy('lib_fonctionnalite');
                                                 $userPermissions = $user->toutesfonctionnalites()->pluck('code_fonctionnalite')->toArray();
                                             @endphp
 

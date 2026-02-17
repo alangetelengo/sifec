@@ -67,15 +67,18 @@ class User extends Authenticatable
     }
 
     public function fonction(){
-        return $this->affectationActive()->fonction;
+        $affectation = $this->affectationActive();
+        return $affectation ? $affectation->fonction : null;
     }
 
     public function signateur($id){
-        return $this->fonction()->where("code_fonction",$id)->first();
+        $fonction = $this->fonction();
+        return $fonction && $fonction->code_fonction == $id ? $fonction : null;
     }
 
     public function institution(){
-        return $this->affectationActive()->institution;
+        $affectation = $this->affectationActive();
+        return $affectation ? $affectation->institution : null;
     }
 
     public function personne(): BelongsTo
@@ -90,7 +93,10 @@ class User extends Authenticatable
     }
 
     public function toutesfonctionnalites(){
-        return $this->fonctionnalites->merge($this->fonction()->fonctionnalites)->flatten();
+        $userFonctionnalites = $this->fonctionnalites;
+        $fonction = $this->fonction();
+        $fonctionFonctionnalites = $fonction ? $fonction->fonctionnalites : collect();
+        return $userFonctionnalites->merge($fonctionFonctionnalites)->flatten();
     }
 
     public function modules(){

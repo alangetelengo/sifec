@@ -66,11 +66,14 @@
                     <h1>Vérification de l'acte de naissance</h1>
                     <span class="fw-semibold">Acte n° {{ $acte->niupp }}</span>
                 </div>
-                <span class="mt-3 mt-md-0 badge bg-light text-dark text-uppercase px-3 py-2">
+                {{-- <span class="mt-3 mt-md-0 badge bg-light text-dark text-uppercase px-3 py-2">
                     {{ $acte->declaration?->type_declaration ?? '—' }}
-                </span>
+                </span> --}}
             </div>
             <div class="card-body p-4">
+                <div class="alert alert-info border-0 mb-4" role="alert">
+                    <strong>Document scanné :</strong> <span class="text-uppercase">Acte de naissance</span> (acte authentifié délivré par l’officier d’état civil)
+                </div>
                 <p class="text-muted mb-4">
                     Information issue du registre national de l'état civil. Veuillez examiner les détails ci-dessous.
                 </p>
@@ -81,6 +84,20 @@
                             <span class="badge bg-danger">Acte annulé</span>
                         @else
                             <span class="badge bg-success">Acte valide</span>
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-5 col-md-4">Signature et retrait</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        @if(!$acte->approbation_mairie || $acte->approbation_mairie === '')
+                            <span class="badge bg-warning text-dark">Non encore signé</span>
+                            <small class="d-block text-muted mt-1">L’acte est en attente de signature par l’officier d’état civil.</small>
+                        @elseif($acte->retrait)
+                            <span class="badge bg-success">Signé et rétiré</span>
+                            <small class="d-block text-muted mt-1">Rétiré le {{ $acte->retrait->created_at ? $acte->retrait->created_at->format('d/m/Y à H:i') : '—' }}</small>
+                        @else
+                            <span class="badge bg-info">Signé, non encore rétiré</span>
+                            <small class="d-block text-muted mt-1">L’acte a été signé et peut être rétiré par le déclarant.</small>
                         @endif
                     </dd>
 
