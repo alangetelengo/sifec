@@ -25,6 +25,7 @@ use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\Nationalite;
 use Modules\Referentiel\Entities\TypeDocument;
 use Modules\Referentiel\Entities\OptionMariage;
+use Modules\Mariage\Entities\ActeMariage;
 use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Mariage\Services\MouvementMariageService;
 use Modules\Notification\Services\NotificationService;
@@ -1812,5 +1813,45 @@ class MariageController extends Controller
         }
     }
 
+    /**
+     * Vérification de l'acte de mariage (lien signé, accès public via QR code)
+     */
+    public function verificationActe(Request $request, $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
 
+        $acte = ActeMariage::with([
+            'declaration.epoux',
+            'declaration.epouse',
+            'retrait'
+        ])->where('code_acte_mariage', $code)->first();
+
+        if (!$acte) {
+            abort(404);
+        }
+
+        return view('mariage::verification.acte', compact('acte'));
+    }
+
+    /**
+     * Vérification de la déclaration de mariage (lien signé, accès public via QR code)
+     */
+    public function verificationDeclaration(Request $request, $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $declaration = DeclarationMariage::with([
+            'epoux', 'epouse', 'acte.retrait'
+        ])->where('code_declaration_mariage', $code)->first();
+
+        if (!$declaration) {
+            abort(404);
+        }
+
+        return view('mariage::verification.declaration', compact('declaration'));
+    }
 }

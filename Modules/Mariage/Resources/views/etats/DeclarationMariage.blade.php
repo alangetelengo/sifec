@@ -78,7 +78,7 @@ $localisation = $localisationData['localisation'];
     <div style="text-align:left">
             <strong>{{ $localiteParent }}</strong><br>
             <strong>{{ $localite }}</strong><br>
-            <strong>{{ $dm->institution->lib_institution }}</strong>
+            <strong>{!! nl2br(e(wordwrap($dm->institution->lib_institution ?? '', 55, "\n", true))) !!}</strong>
         </div>
         <div style="text-align:right;margin-top:-50px">
             <strong>REPUBLIQUE DU CONGO</strong><br>
@@ -128,7 +128,7 @@ $localisation = $localisationData['localisation'];
 		</tr>
     </table>
     <div style="width: 100%;">
-        <p style="font-size: 13px;"> <strong>Centre d’état civil principal de : </strong>{{ $inst }}<br>
+        <p style="font-size: 13px;"> <strong>Centre d’état civil principal de : </strong>{!! nl2br(e(wordwrap($inst ?? '', 55, "\n", true))) !!}<br>
              Le <strong>{{ Sifec::asLetters((int)date("d", strtotime($dm->date_declaration_mariage)))." ".Sifec::mois(date("m", strtotime($dm->date_declaration_mariage)))." ".Sifec::asLetters(date("Y", strtotime($dm->date_declaration_mariage))) }}</strong> <br>
              Par devant nous, </p>
             <br>
@@ -146,7 +146,7 @@ $localisation = $localisationData['localisation'];
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Lieu de naissance :</strong><span style="font-size:13px;;"> {{ $dm->epoux->lieu_naissance ?? $dm->epoux->commune->lib_commune ?? $dm->epoux->district->lib_district ?? $dm->epoux->lieu_naissance }} </span>, N° d'acte de naissance : <span style="font-size:13px;;">  {{ $dm->numero_acte_naissance_epoux }}</span></td>
+                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Lieu de naissance :</strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->epoux->lieu_naissance ?? optional($dm->epoux->commune)->lib_commune ?? optional($dm->epoux->district)->lib_district ?? $dm->epoux->lieu_naissance ?? '', 55, "\n", true))) !!} </span>, N° d'acte de naissance : <span style="font-size:13px;;">  {{ $dm->numero_acte_naissance_epoux }}</span></td>
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
@@ -179,15 +179,15 @@ $localisation = $localisationData['localisation'];
                     <td style="border: none; padding:5px 0px;" >&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Domicilié : </strong><span style="font-size:13px;;"> {{ $dm->epoux->adresse }} </span></td>
+                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Domicilié : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->epoux->adresse ?? '', 55, "\n", true))) !!} </span></td>
                     <td style="border: none; padding:5px 0px;" >&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom du père : </strong><span style="font-size:13px;;"> {{ $dm->pere_epoux }} </span></td>
+                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom du père : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->pere_epoux ?? '', 55, "\n", true))) !!} </span></td>
                     <td style="border: none; padding:5px 0px;" >&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom de la mère : </strong><span style="font-size:13px;;"> {{ $dm->mere_epoux }} </span></td>
+                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom de la mère : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->mere_epoux ?? '', 55, "\n", true))) !!} </span></td>
                     <td style="border: none; padding:5px 0px;" >&nbsp;</td>
                 </tr>
                 <tr>
@@ -203,7 +203,7 @@ $localisation = $localisationData['localisation'];
 
                     <table>
                     <tr>
-                        <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom(s) et prénom(s) du mandant : </strong><span style="font-size:13px;;"> {{ $dm->nom_prenom_mandant_epoux }}</span></td>
+                        <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom(s) et prénom(s) du mandant : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->nom_prenom_mandant_epoux ?? '', 55, "\n", true))) !!}</span></td>
                         <td style="border: none; padding:5px 0px;" >&nbsp;</td>
                     </tr>
                     </table>
@@ -224,7 +224,7 @@ $localisation = $localisationData['localisation'];
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Lieu de naissance :</strong><span style="font-size:13px;;"> {{ $dm->epouse->lieu_naissance ?? $dm->epouse->commune->lib_commune ?? $dm->epouse->district->lib_district ?? $dm->epouse->lieu_naissance }} </span>, N° acte de naissance : <span style="font-size:13px;;">  {{ $dm->numero_acte_naissance_epouse }}</span></td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Lieu de naissance :</strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->epouse->lieu_naissance ?? optional($dm->epouse->commune)->lib_commune ?? optional($dm->epouse->district)->lib_district ?? $dm->epouse->lieu_naissance ?? '', 55, "\n", true))) !!} </span>, N° acte de naissance : <span style="font-size:13px;;">  {{ $dm->numero_acte_naissance_epouse }}</span></td>
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
@@ -257,19 +257,19 @@ $localisation = $localisationData['localisation'];
                 <td style="border: none; padding:5px 0px;" >&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Domiciliée : </strong><span style="font-size:13px;;"> {{ $dm->epouse->adresse }} </span></td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Domiciliée : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->epouse->adresse ?? '', 55, "\n", true))) !!} </span></td>
                 <td style="border: none; padding:5px 0px;" >&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom du père : </strong><span style="font-size:13px;;"> {{ $dm->pere_epouse }} </span></td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom du père : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->pere_epouse ?? '', 55, "\n", true))) !!} </span></td>
                 <td style="border: none; padding:5px 0px;" >&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom de la mère : </strong><span style="font-size:13px;;"> {{ $dm->mere_epouse }} </span></td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom de la mère : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->mere_epouse ?? '', 55, "\n", true))) !!} </span></td>
                 <td style="border: none; padding:5px 0px;" >&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Chef de famille : </strong><span style="font-size:13px;;"> {{ $dm->chef_famille }} </span> - Filiation : <span style="font-size:13px;;"> {{ $dm->filiation->lib_filiation }} </span></td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Chef de famille : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->chef_famille ?? '', 55, "\n", true))) !!} </span> - Filiation : <span style="font-size:13px;;"> {!! nl2br(e(wordwrap(optional($dm->filiation)->lib_filiation ?? '', 55, "\n", true))) !!} </span></td>
                 <td style="border: none; padding:5px 0px;" >&nbsp;</td>
             </tr>
             @if($dm->situationMatEpouse->code_situation_matrimoniale == "SMAT_0005")
@@ -306,8 +306,8 @@ $localisation = $localisationData['localisation'];
             <tr>
                 <td style="border: none; padding:5px 0px;" colspan="3"><strong> Liste des parents ayant présidé au pré-mariage :</strong> <br>
                 <span style="text-align:left">
-                    <strong>Parents paternels : </strong><span style=";"> {{ $dm->parent_paternel_epouse }}</span><br>
-                    <strong>Parents maternels : </strong> <span style=";"> {{ $dm->parent_maternel_epouse }}</span><br>
+                    <strong>Parents paternels : </strong><span style=";"> {!! nl2br(e(wordwrap($dm->parent_paternel_epouse ?? '', 55, "\n", true))) !!}</span><br>
+                    <strong>Parents maternels : </strong> <span style=";"> {!! nl2br(e(wordwrap($dm->parent_maternel_epouse ?? '', 55, "\n", true))) !!}</span><br>
                     </span>
                 </td>
                 <td>
@@ -331,7 +331,7 @@ $localisation = $localisationData['localisation'];
 
                     <table>
                     <tr>
-                        <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom(s) et prénom(s) de la mandante : </strong><span style="font-size:13px;;"> {{ $dm->nom_prenom_mandant_epouse }}</span></td>
+                        <td style="border: none; padding:5px 0px;" colspan="3"><strong>Nom(s) et prénom(s) de la mandante : </strong><span style="font-size:13px;;"> {!! nl2br(e(wordwrap($dm->nom_prenom_mandant_epouse ?? '', 55, "\n", true))) !!}</span></td>
                         <td style="border: none; padding:5px 0px;" >&nbsp;</td>
                     </tr>
                     </table>
@@ -349,7 +349,7 @@ $localisation = $localisationData['localisation'];
             </tr>
 
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Lieu de mariage : </strong><span style="color:red;font-weight:bold">{{ $dm->lieu_ceremonie_mariage }}</span></td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Lieu de mariage : </strong><span style="color:red;font-weight:bold">{!! nl2br(e(wordwrap($dm->lieu_ceremonie_mariage ?? '', 55, "\n", true))) !!}</span></td>
                 <td></td>
             </tr>
 
@@ -423,16 +423,16 @@ $localisation = $localisationData['localisation'];
         <p>1- Etes-vous pré-marié? <strong>OUI</strong></p>
         <p>2- Date du pré-mariage : <strong>{{ date("d-m-Y", strtotime($dm->date_pre_mariage_epouse)) }}</strong></p>
         <p>3- Quels sont les parents qui ont présidé au pré-mariage ?</p>
-        <p>Parents paternels : <strong>{{ $dm->parent_paternel_epoux }}</strong></p>
-        <p>Parents maternels : <strong>{{ $dm->parent_maternel_epoux }}</strong></p>
+        <p>Parents paternels : <strong>{!! nl2br(e(wordwrap($dm->parent_paternel_epoux ?? '', 55, "\n", true))) !!}</strong></p>
+        <p>Parents maternels : <strong>{!! nl2br(e(wordwrap($dm->parent_maternel_epoux ?? '', 55, "\n", true))) !!}</strong></p>
         <p>4- Quel est le montant de la dot versé ? (sur interpellation des parents de l’époux) <strong>50 000 FCFA</strong></p>
 
         <strong>A- Question de l’officier de l’état civil et réponse à la future épouse</strong>
         <p>1- Etes-vous pré-marié? <strong>OUI</strong></p>
         <p>2- Date du pré-mariage : {{ date("d-m-Y", strtotime($dm->date_pre_mariage_epouse)) }}</p>
         <p>3- Quels sont les parents qui ont présidé au pré-mariage ?</p>
-        <p>Parents paternels : <strong>{{ $dm->parent_paternel_epouse }}</strong></p>
-        <p>Parents maternels : <strong>{{ $dm->parent_maternel_epouse }}</strong></p>
+        <p>Parents paternels : <strong>{!! nl2br(e(wordwrap($dm->parent_paternel_epouse ?? '', 55, "\n", true))) !!}</strong></p>
+        <p>Parents maternels : <strong>{!! nl2br(e(wordwrap($dm->parent_maternel_epouse ?? '', 55, "\n", true))) !!}</strong></p>
         <p>4- Quel est le montant de la dot versé ? (sur interpellation des parents de l’époux) <strong>50 000 FCFA</strong></p>
     </p>
     <p>
@@ -483,13 +483,13 @@ $localisation = $localisationData['localisation'];
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->nom ." ". ucfirst($dm->temoinHommeEpoux->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpoux->date_naissance)) ." à ".$dm->temoinHommeEpoux->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->profession->lib_profession }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->adresse }}</span><br><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à : </strong>&nbsp;&nbsp;<span style="">{!! nl2br(e(wordwrap(optional($dm->temoinHommeEpoux)->adresse ?? '', 55, "\n", true))) !!}</span><br><br>
 
                 2-	Deuxième témoin <br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";"> {{ $dm->temoinFemmeEpoux->nom.' '.ucfirst($dm->temoinFemmeEpoux->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." à ".$dm->temoinFemmeEpoux->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpoux->profession->lib_profession }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->adresse }}</span><br><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style="">{!! nl2br(e(wordwrap(optional($dm->temoinFemmeEpoux)->adresse ?? '', 55, "\n", true))) !!}</span><br><br>
 
                 <br>
                 <strong>B-Les témoins du futur épouse </strong><br>
@@ -497,7 +497,7 @@ $localisation = $localisationData['localisation'];
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->nom ." ". ucfirst($dm->temoinHommeEpouse->prenom) }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpouse->date_naissance)) ." à ".$dm->temoinHommeEpouse->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->profession->lib_profession }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->adresse }}</span><br><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style="">{!! nl2br(e(wordwrap(optional($dm->temoinHommeEpouse)->adresse ?? '', 55, "\n", true))) !!}</span><br><br>
 
                 2-	Deuxième témoin <br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpouse->nom.' '.ucfirst($dm->temoinFemmeEpouse->prenom) }}</span><br>
@@ -551,8 +551,11 @@ $localisation = $localisationData['localisation'];
 
 
 @if($dm->epoux_approuver == "OUI" && $dm->epouse_approuver == "OUI")
+    @php
+        $declarationVerificationUrl = \Illuminate\Support\Facades\URL::signedRoute('verification.declaration.mariage', ['code' => $dm->code_declaration_mariage]);
+    @endphp
     <div style="position:absolute; margin-left:40px;margin-top: 550px;">
-        <qrcode value="{{env('QRCODE_URL')}}/qrcode/mariage/certificat?code={{ $dm->code_declaration_mariage }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+        <qrcode value="{{ $declarationVerificationUrl }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
     </div>
 @endif
 

@@ -89,20 +89,20 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                 }
             @endphp
             @if($peutModifier)
-                <button class="btn btn-primary btn-piece" data-type="declarant" data-nom="{{ $declaration->declarant->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'declarant']) }}" data-piece="{{ $declaration->piece_declarant ?? '' }}">
+                <button class="btn btn-primary btn-piece" data-type="declarant" data-nom="{{ $declaration->declarant->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'declarant']) }}" data-piece="{{ $declaration->piece_declarant ?? '' }}" data-piece-url="{{ $declaration->piece_declarant ? asset($declaration->piece_declarant) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Déclarant
                 </button>
-                <button class="btn btn-primary btn-piece" data-type="defunt" data-nom="{{ $declaration->defunt->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'defunt']) }}" data-piece="{{ $declaration->piece_defunt ?? '' }}">
+                <button class="btn btn-primary btn-piece" data-type="defunt" data-nom="{{ $declaration->defunt->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'defunt']) }}" data-piece="{{ $declaration->piece_defunt ?? '' }}" data-piece-url="{{ $declaration->piece_defunt ? asset($declaration->piece_defunt) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Défunt
                 </button>
-                <button class="btn btn-primary btn-piece" data-type="pere" data-nom="{{ $declaration->pere->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'pere']) }}" data-piece="{{ $declaration->piece_pere ?? '' }}">
+                <button class="btn btn-primary btn-piece" data-type="pere" data-nom="{{ $declaration->pere->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'pere']) }}" data-piece="{{ $declaration->piece_pere ?? '' }}" data-piece-url="{{ $declaration->piece_pere ? asset($declaration->piece_pere) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Père
                 </button>
-                <button class="btn btn-primary btn-piece" data-type="mere" data-nom="{{ $declaration->mere->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'mere']) }}" data-piece="{{ $declaration->piece_mere ?? '' }}">
+                <button class="btn btn-primary btn-piece" data-type="mere" data-nom="{{ $declaration->mere->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'mere']) }}" data-piece="{{ $declaration->piece_mere ?? '' }}" data-piece-url="{{ $declaration->piece_mere ? asset($declaration->piece_mere) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Mère
                 </button>
                 @if($declaration->conjoint)
-                <button class="btn btn-primary btn-piece" data-type="conjoint" data-nom="{{ $declaration->conjoint->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'conjoint']) }}" data-piece="{{ $declaration->piece_conjoint ?? '' }}">
+                <button class="btn btn-primary btn-piece" data-type="conjoint" data-nom="{{ $declaration->conjoint->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'conjoint']) }}" data-piece="{{ $declaration->piece_conjoint ?? '' }}" data-piece-url="{{ $declaration->piece_conjoint ? asset($declaration->piece_conjoint) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Conjoint(e)
                 </button>
                 @endif
@@ -309,7 +309,8 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                 <div class="modal-body">
                     <div id="piece-exist" class="mb-2" style="display:none;">
                         <span class="text-success">Pièce déjà enregistrée :</span>
-                        <div id="piece-preview" class="mt-2"></div>
+                        <div class="mt-1 small text-muted">Aperçu</div>
+                        <div id="piece-preview" class="mt-1 border rounded p-2 bg-light" style="min-height:120px;"></div>
                     </div>
                     <div class="mb-2">
                         <label for="piece-file" class="form-label">Fichier (PDF/JPG/PNG)</label>
@@ -420,16 +421,18 @@ $(function(){
         urlPiece = $(this).data('url');
         let nom = $(this).data('nom');
         let piece = $(this).data('piece');
+        let pieceUrl = $(this).data('piece-url') || '';
         $('#piece-type-label').text(nom ? '('+nom+')' : '');
-        if(piece){
+        if(piece && pieceUrl){
             $('#piece-exist').show();
-            // Aperçu dynamique
-            let ext = piece.split('.').pop().toLowerCase();
+            let ext = (piece.split('.').pop() || '').toLowerCase();
             let previewHtml = '';
             if(['jpg','jpeg','png'].includes(ext)){
-                previewHtml = `<img src="/${piece}" alt="Aperçu" style="max-width:100%;max-height:200px;">`;
-            }else if(ext === 'pdf'){
-                previewHtml = `<embed src="/${piece}" type="application/pdf" width="100%" height="200px" />`;
+                previewHtml = `<img src="${pieceUrl}" alt="Aperçu" class="img-fluid" style="max-height:220px; object-fit:contain;">`;
+            } else if(ext === 'pdf'){
+                previewHtml = `<iframe src="${pieceUrl}" type="application/pdf" width="100%" height="220" class="border-0"></iframe>`;
+            } else {
+                previewHtml = `<a href="${pieceUrl}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fa fa-external-link"></i> Ouvrir la pièce</a>`;
             }
             $('#piece-preview').html(previewHtml);
         }else{

@@ -93,7 +93,10 @@
                <strong style="margin-top:10px">REPUBLIQUE DU CONGO</strong><br>
                Unit&eacute; - Travail - Progr&egrave;s <br><br>
                @if ($acte->approbation_mairie != null)
-               <qrcode value="{{ env('QRCODE_URL') }}/qrcode?niupp=Je suis Vincent" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+               @php
+                   $acteVerificationUrl = \Illuminate\Support\Facades\URL::signedRoute('verification.acte.mariage', ['code' => $acte->code_acte_mariage]);
+               @endphp
+               <qrcode value="{{ $acteVerificationUrl }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
                 @else
                 <br><br><br><br><br><br>
                @endif
@@ -117,38 +120,38 @@
            <table align="left" style="border-radius: 1mm; border: none;">
             <tr style="margin-right: 8px;">
                 <td class="compact">
-                    Centre d'état civil principal : {{ $institution->lib_institution }} <br>
+                    Centre d'état civil principal : {!! nl2br(e(wordwrap($institution->lib_institution ?? '', 55, "\n", true))) !!} <br>
                     <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong> <br>
                     Par devant nous {{ $nomcomplet }} Officier de l'Etat Civil ont comparu publiquement : <br>
                     <span style="margin-left: 30px;"><strong>M. {{ $acte->declaration->epoux->nomcomplet() }}</strong></span> <br>
-                    Né le <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{{ $acte->declaration->epoux->lieu_naissance }}</strong> <br>
-                    Acte de naissance n° <strong>{{ $acte->declaration->numero_acte_naissance_epoux }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epoux))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) }}</strong> dressé à la <strong> {{ $acte->declaration->cec_naissance_epoux }}</strong> <br>
+                    Né le <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
+                    Acte de naissance n° <strong>{{ $acte->declaration->numero_acte_naissance_epoux }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epoux))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) }}</strong> dressé à la <strong>{!! nl2br(e(wordwrap($acte->declaration->cec_naissance_epoux ?? '', 55, "\n", true))) !!}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epoux->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpoux->lib_profession }}</strong> <br>
-                    Domicilié : <strong>{{ $acte->declaration->epoux->adresse }}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpoux->lib_situation_matrimoniale }}</strong> <br>
-                    Fils de : {{ $acte->declaration->pere_epoux }} <br>
-                    Et de : {{ $acte->declaration->mere_epoux }} <br>
+                    Domicilié : <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->adresse ?? '', 55, "\n", true))) !!}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpoux->lib_situation_matrimoniale }}</strong> <br>
+                    Fils de : {!! nl2br(e(wordwrap($acte->declaration->pere_epoux ?? '', 55, "\n", true))) !!} <br>
+                    Et de : {!! nl2br(e(wordwrap($acte->declaration->mere_epoux ?? '', 55, "\n", true))) !!} <br>
                     <span style="margin-left: 30px;">Et <strong>Mme. {{ $acte->declaration->epouse->nomcomplet() }}</strong></span> <br>
-                    Née le <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{{ $acte->declaration->epouse->lieu_naissance }}</strong> <br>
-                    Acte de naissance n° <strong>{{  $acte->declaration->numero_acte_naissance_epouse  }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epouse))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) }}</strong> dressé à la <strong> {{ $acte->declaration->cec_naissance_epouse }}</strong> <br>
+                    Née le <strong>{{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
+                    Acte de naissance n° <strong>{{  $acte->declaration->numero_acte_naissance_epouse  }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epouse))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) }}</strong> dressé à la <strong>{!! nl2br(e(wordwrap($acte->declaration->cec_naissance_epouse ?? '', 55, "\n", true))) !!}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epouse->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpouse->lib_profession }}</strong> <br>
-                    Domiciliée : <strong>{{ $acte->declaration->epouse->adresse }}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpouse->lib_situation_matrimoniale }}</strong> <br>
-                    Fille de : {{ $acte->declaration->pere_epouse }} <br>
-                    Et de : {{ $acte->declaration->mere_epouse }} <br>
+                    Domiciliée : <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->adresse ?? '', 55, "\n", true))) !!}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpouse->lib_situation_matrimoniale }}</strong> <br>
+                    Fille de : {!! nl2br(e(wordwrap($acte->declaration->pere_epouse ?? '', 55, "\n", true))) !!} <br>
+                    Et de : {!! nl2br(e(wordwrap($acte->declaration->mere_epouse ?? '', 55, "\n", true))) !!} <br>
                     Sur notre interpellation, les futurs époux ont déclaré l'un après l'autre vouloir se prendre pour mari et femme et nous avons prononcé au nom de la loi
                     qu'ils sont unis par le mariage légal en présence de : <br>
                     @if ($acte->declaration->nom_prenom_mandant_epouse != "")
-                        <strong style="color:red;margin-top:2px">{{$acte->declaration->nom_prenom_mandant_epouse}}, représentante de l'épouse</strong>
+                        <strong style="color:red;margin-top:2px">{!! nl2br(e(wordwrap($acte->declaration->nom_prenom_mandant_epouse, 55, "\n", true))) !!}, représentante de l'épouse</strong>
                     @endif
                     @if ($acte->declaration->nom_prenom_mandant_epoux != "")
-                        <strong style="color:red;margin-top:2px">{{$acte->declaration->nom_prenom_mandant_epoux}}, représentant de l'époux</strong>
+                        <strong style="color:red;margin-top:2px">{!! nl2br(e(wordwrap($acte->declaration->nom_prenom_mandant_epoux, 55, "\n", true))) !!}, représentant de l'époux</strong>
                     @endif
                     <br>
                     <strong><i>Témoins de l'époux</i> </strong><br>
                     Et ce :<br>
-                    1° {{ $acte->declaration->temoinHommeEpoux->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinHommeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinHommeEpoux->date_naissance)) ." à ".$acte->declaration->temoinHommeEpoux->lieu_naissance}}, Domicilié au {{ $acte->declaration->temoinHommeEpoux->adresse }}* <br>
+                    1° {{ $acte->declaration->temoinHommeEpoux->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinHommeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinHommeEpoux->date_naissance)) ." à ".$acte->declaration->temoinHommeEpoux->lieu_naissance}}, Domicilié au {!! nl2br(e(wordwrap(optional($acte->declaration->temoinHommeEpoux)->adresse ?? '', 55, "\n", true))) !!}* <br>
                     2° Mme {{ $acte->declaration->temoinFemmeEpoux->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinFemmeEpoux->date_naissance)) ." à ".$acte->declaration->temoinFemmeEpoux->lieu_naissance}}* <br>
                     <strong><i>Témoins de l'épouse</i></strong> <br>
-                    1° {{ $acte->declaration->temoinHommeEpouse->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinHommeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinHommeEpouse->date_naissance)) ." à ".$acte->declaration->temoinHommeEpouse->lieu_naissance}}, Domicilié au {{ $acte->declaration->temoinHommeEpouse->adresse }}* <br>
+                    1° {{ $acte->declaration->temoinHommeEpouse->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinHommeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinHommeEpouse->date_naissance)) ." à ".$acte->declaration->temoinHommeEpouse->lieu_naissance}}, Domicilié au {!! nl2br(e(wordwrap(optional($acte->declaration->temoinHommeEpouse)->adresse ?? '', 55, "\n", true))) !!}* <br>
                     2° Mme {{ $acte->declaration->temoinFemmeEpouse->nomcomplet() }}  Née le {{ date("d", strtotime($acte->declaration->temoinFemmeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->temoinFemmeEpouse->date_naissance))) ." ".date("Y", strtotime($acte->declaration->temoinFemmeEpouse->date_naissance)) ." à ".$acte->declaration->temoinFemmeEpouse->lieu_naissance}}* <br>
 
                     qui, lecture faite nous avons signé le présent acte avec les époux et  les témoins
@@ -237,8 +240,8 @@
                 </tbody>
             </table><br>
             <div style="font-size: 11px;text-align: center;" class="small-text">
-            <i><strong>CONDITIONS DE MARIAGE</strong></i> <br> Les futurs époux déclarent expressément opter pour la <strong>{{ $acte->declaration->optionMariage->lib_option_mariage }}</strong> et se marie sous le régime matrimonial de <strong>{{ $acte->declaration->regime->lib_regime }}</strong>.
-            <br>La dot: Cinquante Mille Francs (50.000 Frs) CFA versés à M. <strong>{{ $acte->declaration->chef_famille }}</strong> , {{ $acte->declaration->filiation->lib_filiation }} de la mariée *
+            <i><strong>CONDITIONS DE MARIAGE</strong></i> <br> Les futurs époux déclarent expressément opter pour la <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->optionMariage)->lib_option_mariage ?? '', 55, "\n", true))) !!}</strong> et se marie sous le régime matrimonial de <strong>{!! nl2br(e(wordwrap(optional($acte->declaration->regime)->lib_regime ?? '', 55, "\n", true))) !!}</strong>.
+            <br>La dot: Cinquante Mille Francs (50.000 Frs) CFA versés à M. <strong>{!! nl2br(e(wordwrap($acte->declaration->chef_famille ?? '', 55, "\n", true))) !!}</strong> , {{ optional($acte->declaration->filiation)->lib_filiation ?? '' }} de la mariée *
             <br>Coutume présidant à l'union: Congolaise*
             <br>Stipulations particulières en date du <strong> {{ date("d", strtotime($acte->declaration->date_prevue_mariage)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) ." ".date("Y", strtotime($acte->declaration->date_prevue_mariage)) }} </strong> l'époux déclare expressément le <strong> {{ date("d", strtotime($acte->declaration->date_prevue_mariage)) ." ". Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) ." ".date("Y", strtotime($acte->declaration->date_prevue_mariage)) }} </strong> renonce à prendre une
             seconde épouse tant que le présent mariage n'aura pas été dissout par un jugement de divorce ou le décès de sa conjointe

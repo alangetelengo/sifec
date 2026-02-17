@@ -58,17 +58,17 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
             @endphp
             @if($peutModifier)
                 @if($declaration->num_jugement_placement_provisoir != "" && $declaration->num_fiche_placement != "")
-                    <button class="btn btn-primary btn-piece" data-type="extrait_main_courante" data-nom="" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'extrait_main_courante']) }}" data-piece="{{ $declaration->piece_extrait_main_courante ??  $dummy }}">
+                    <button class="btn btn-primary btn-piece" data-type="extrait_main_courante" data-nom="" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'extrait_main_courante']) }}" data-piece="{{ $declaration->piece_extrait_main_courante ??  $dummy }}" data-piece-url="{{ $declaration->piece_extrait_main_courante ? asset($declaration->piece_extrait_main_courante) : '' }}">
                         <i class="fa fa-file-alt"></i> Ajouter/Modifier l'extrait de la main courante
                     </button>
                 @else
-                    <button class="btn btn-primary btn-piece" data-type="declarant" data-nom="{{ $declaration->declarant->nom ??  $dummy }}" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'declarant']) }}" data-piece="{{ $declaration->piece_declarant ??  $dummy }}">
+                    <button class="btn btn-primary btn-piece" data-type="declarant" data-nom="{{ $declaration->declarant->nom ??  $dummy }}" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'declarant']) }}" data-piece="{{ $declaration->piece_declarant ??  $dummy }}" data-piece-url="{{ $declaration->piece_declarant ? asset($declaration->piece_declarant) : '' }}">
                         <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Déclarant
                     </button>
-                    <button class="btn btn-primary btn-piece" data-type="pere" data-nom="{{ $declaration->pere->nom ??  $dummy }}" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'pere']) }}" data-piece="{{ $declaration->piece_pere ??  $dummy }}">
+                    <button class="btn btn-primary btn-piece" data-type="pere" data-nom="{{ $declaration->pere->nom ??  $dummy }}" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'pere']) }}" data-piece="{{ $declaration->piece_pere ??  $dummy }}" data-piece-url="{{ $declaration->piece_pere ? asset($declaration->piece_pere) : '' }}">
                         <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Père
                     </button>
-                    <button class="btn btn-primary btn-piece" data-type="mere" data-nom="{{ $declaration->mere->nom ??  $dummy }}" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'mere']) }}" data-piece="{{ $declaration->piece_mere ??  $dummy }}">
+                    <button class="btn btn-primary btn-piece" data-type="mere" data-nom="{{ $declaration->mere->nom ??  $dummy }}" data-url="{{ route('declarationNaissance.piece.store', [$declaration->code_declaration_naissance, 'type' => 'mere']) }}" data-piece="{{ $declaration->piece_mere ??  $dummy }}" data-piece-url="{{ $declaration->piece_mere ? asset($declaration->piece_mere) : '' }}">
                         <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Mère
                     </button>
                 @endif
@@ -233,7 +233,8 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                 <div class="modal-body">
                     <div id="piece-exist" class="mb-2" style="display:none;">
                         <span class="text-success">Pièce déjà enregistrée :</span>
-                        <div id="piece-preview" class="mt-2"></div>
+                        <div class="mt-1 small text-muted">Aperçu</div>
+                        <div id="piece-preview" class="mt-1 border rounded p-2 bg-light" style="min-height:120px;"></div>
                     </div>
                     <div class="mb-2">
                         <label for="piece-file" class="form-label">Fichier (PDF/JPG/PNG)</label>
@@ -361,16 +362,18 @@ $(function(){
         urlPiece = $(this).data('url');
         let nom = $(this).data('nom');
         let piece = $(this).data('piece');
+        let pieceUrl = $(this).data('piece-url') || '';
         $('#piece-type-label').text(nom ? '('+nom+')' : '');
-        if(piece){
+        if(piece && pieceUrl){
             $('#piece-exist').show();
-            // Aperçu dynamique
-            let ext = piece.split('.').pop().toLowerCase();
+            let ext = (piece.split('.').pop() || '').toLowerCase();
             let previewHtml = '';
             if(['jpg','jpeg','png'].includes(ext)){
-                previewHtml = `<img src="/${piece}" alt="Aperçu" style="max-width:100%;max-height:200px;">`;
-            }else if(ext === 'pdf'){
-                previewHtml = `<embed src="/${piece}" type="application/pdf" width="100%" height="200px" />`;
+                previewHtml = `<img src="${pieceUrl}" alt="Aperçu" class="img-fluid" style="max-height:220px; object-fit:contain;">`;
+            } else if(ext === 'pdf'){
+                previewHtml = `<iframe src="${pieceUrl}" type="application/pdf" width="100%" height="220" class="border-0"></iframe>`;
+            } else {
+                previewHtml = `<a href="${pieceUrl}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fa fa-external-link"></i> Ouvrir la pièce</a>`;
             }
             $('#piece-preview').html(previewHtml);
         }else{

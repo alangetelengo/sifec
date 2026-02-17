@@ -96,10 +96,10 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
             @endphp
             @if($peutModifier)
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    <button class="btn btn-primary btn-piece" data-type="epoux" data-nom="{{ $declaration->epoux->nom ?? '' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'epoux']) }}" data-piece="{{ $declaration->piece_epoux ?? '' }}">
+                    <button class="btn btn-primary btn-piece" data-type="epoux" data-nom="{{ $declaration->epoux->nom ?? '' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'epoux']) }}" data-piece="{{ $declaration->piece_epoux ?? '' }}" data-piece-url="{{ $declaration->piece_epoux ? asset($declaration->piece_epoux) : '' }}">
                         <i class="fa fa-id-card"></i> Pièce Époux
                     </button>
-                    <button class="btn btn-primary btn-piece" data-type="epouse" data-nom="{{ $declaration->epouse->nom ?? '' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'epouse']) }}" data-piece="{{ $declaration->piece_epouse ?? '' }}">
+                    <button class="btn btn-primary btn-piece" data-type="epouse" data-nom="{{ $declaration->epouse->nom ?? '' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'epouse']) }}" data-piece="{{ $declaration->piece_epouse ?? '' }}" data-piece-url="{{ $declaration->piece_epouse ? asset($declaration->piece_epouse) : '' }}">
                         <i class="fa fa-id-card"></i> Pièce Épouse
                     </button>
                 </div>
@@ -109,25 +109,25 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                     <h6 class="w-100 text-muted">Pièces d'identité des témoins :</h6>
 
                     @if($declaration->temoinHommeEpoux)
-                        <button class="btn btn-info btn-piece" data-type="temoin_homme_epoux" data-nom="{{ $declaration->temoinHommeEpoux->nom ?? 'Témoin homme époux' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_homme_epoux']) }}" data-piece="{{ $declaration->piece_temoin_homme_epoux ?? '' }}">
+                        <button class="btn btn-info btn-piece" data-type="temoin_homme_epoux" data-nom="{{ $declaration->temoinHommeEpoux->nom ?? 'Témoin homme époux' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_homme_epoux']) }}" data-piece="{{ $declaration->piece_temoin_homme_epoux ?? '' }}" data-piece-url="{{ $declaration->piece_temoin_homme_epoux ? asset($declaration->piece_temoin_homme_epoux) : '' }}">
                             <i class="fa fa-id-card"></i> Témoin homme époux
                         </button>
                     @endif
 
                     @if($declaration->temoinFemmeEpoux)
-                        <button class="btn btn-info btn-piece" data-type="temoin_femme_epoux" data-nom="{{ $declaration->temoinFemmeEpoux->nom ?? 'Témoin femme époux' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_femme_epoux']) }}" data-piece="{{ $declaration->piece_temoin_femme_epoux ?? '' }}">
+                        <button class="btn btn-info btn-piece" data-type="temoin_femme_epoux" data-nom="{{ $declaration->temoinFemmeEpoux->nom ?? 'Témoin femme époux' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_femme_epoux']) }}" data-piece="{{ $declaration->piece_temoin_femme_epoux ?? '' }}" data-piece-url="{{ $declaration->piece_temoin_femme_epoux ? asset($declaration->piece_temoin_femme_epoux) : '' }}">
                             <i class="fa fa-id-card"></i> Témoin femme époux
                         </button>
                     @endif
 
                     @if($declaration->temoinHommeEpouse)
-                        <button class="btn btn-info btn-piece" data-type="temoin_homme_epouse" data-nom="{{ $declaration->temoinHommeEpouse->nom ?? 'Témoin homme épouse' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_homme_epouse']) }}" data-piece="{{ $declaration->piece_temoin_homme_epouse ?? '' }}">
+                        <button class="btn btn-info btn-piece" data-type="temoin_homme_epouse" data-nom="{{ $declaration->temoinHommeEpouse->nom ?? 'Témoin homme épouse' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_homme_epouse']) }}" data-piece="{{ $declaration->piece_temoin_homme_epouse ?? '' }}" data-piece-url="{{ $declaration->piece_temoin_homme_epouse ? asset($declaration->piece_temoin_homme_epouse) : '' }}">
                             <i class="fa fa-id-card"></i> Témoin homme épouse
                         </button>
                     @endif
 
                     @if($declaration->temoinFemmeEpouse)
-                        <button class="btn btn-info btn-piece" data-type="temoin_femme_epouse" data-nom="{{ $declaration->temoinFemmeEpouse->nom ?? 'Témoin femme épouse' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_femme_epouse']) }}" data-piece="{{ $declaration->piece_temoin_femme_epouse ?? '' }}">
+                        <button class="btn btn-info btn-piece" data-type="temoin_femme_epouse" data-nom="{{ $declaration->temoinFemmeEpouse->nom ?? 'Témoin femme épouse' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'temoin_femme_epouse']) }}" data-piece="{{ $declaration->piece_temoin_femme_epouse ?? '' }}" data-piece-url="{{ $declaration->piece_temoin_femme_epouse ? asset($declaration->piece_temoin_femme_epouse) : '' }}">
                             <i class="fa fa-id-card"></i> Témoin femme épouse
                         </button>
                     @endif
@@ -157,7 +157,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                     <div>
                         <strong>Époux :</strong>
                         @if($declaration->piece_epoux)
-                            <a href="/{{ $declaration->piece_epoux }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir la pièce</a>
+                            <a href="{{ asset($declaration->piece_epoux) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir la pièce</a>
                         @else
                             <span class="text-muted">Aucune pièce jointe</span>
                         @endif
@@ -165,7 +165,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                     <div>
                         <strong>Épouse :</strong>
                         @if($declaration->piece_epouse)
-                            <a href="/{{ $declaration->piece_epouse }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir la pièce</a>
+                            <a href="{{ asset($declaration->piece_epouse) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir la pièce</a>
                         @else
                             <span class="text-muted">Aucune pièce jointe</span>
                         @endif
@@ -175,28 +175,28 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                     @if($declaration->temoinHommeEpoux && $declaration->piece_temoin_homme_epoux)
                         <div>
                             <strong>Témoin homme époux :</strong>
-                            <a href="/{{ $declaration->piece_temoin_homme_epoux }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
+                            <a href="{{ asset($declaration->piece_temoin_homme_epoux) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
                         </div>
                     @endif
 
                     @if($declaration->temoinFemmeEpoux && $declaration->piece_temoin_femme_epoux)
                         <div>
                             <strong>Témoin femme époux :</strong>
-                            <a href="/{{ $declaration->piece_temoin_femme_epoux }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
+                            <a href="{{ asset($declaration->piece_temoin_femme_epoux) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
                         </div>
                     @endif
 
                     @if($declaration->temoinHommeEpouse && $declaration->piece_temoin_homme_epouse)
                         <div>
                             <strong>Témoin homme épouse :</strong>
-                            <a href="/{{ $declaration->piece_temoin_homme_epouse }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
+                            <a href="{{ asset($declaration->piece_temoin_homme_epouse) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
                         </div>
                     @endif
 
                     @if($declaration->temoinFemmeEpouse && $declaration->piece_temoin_femme_epouse)
                         <div>
                             <strong>Témoin femme épouse :</strong>
-                            <a href="/{{ $declaration->piece_temoin_femme_epouse }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
+                            <a href="{{ asset($declaration->piece_temoin_femme_epouse) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir</a>
                         </div>
                     @endif
                 </div>
@@ -326,7 +326,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                             <td>
                                 @if($declaration->piece_epoux)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_epoux }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_epoux) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -337,7 +337,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                             <td>
                                 @if($declaration->piece_epouse)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_epouse }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_epouse) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -351,7 +351,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                             <td>
                                 @if($declaration->piece_temoin_homme_epoux)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_temoin_homme_epoux }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_temoin_homme_epoux) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -365,7 +365,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                             <td>
                                 @if($declaration->piece_temoin_femme_epoux)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_temoin_femme_epoux }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_temoin_femme_epoux) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -379,7 +379,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                             <td>
                                 @if($declaration->piece_temoin_homme_epouse)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_temoin_homme_epouse }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_temoin_homme_epouse) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -393,7 +393,7 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                             <td>
                                 @if($declaration->piece_temoin_femme_epouse)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_temoin_femme_epouse }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_temoin_femme_epouse) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
                                     <span class="text-muted">Non jointe</span>
                                 @endif
@@ -460,7 +460,8 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                 <div class="modal-body">
                     <div id="piece-exist" class="mb-2" style="display:none;">
                         <span class="text-success">Pièce déjà enregistrée :</span>
-                        <div id="piece-preview" class="mt-2"></div>
+                        <div class="mt-1 small text-muted">Aperçu</div>
+                        <div id="piece-preview" class="mt-1 border rounded p-2 bg-light" style="min-height:120px;"></div>
                     </div>
                     <div class="mb-2">
                         <label for="piece-file" class="form-label">Fichier (PDF/JPG/PNG)</label>
@@ -596,16 +597,18 @@ $(function(){
         urlPiece = $(this).data('url');
         let nom = $(this).data('nom');
         let piece = $(this).data('piece');
+        let pieceUrl = $(this).data('piece-url') || '';
         $('#piece-type-label').text(nom ? '('+nom+')' : '');
-        if(piece){
+        if(piece && pieceUrl){
             $('#piece-exist').show();
-            // Aperçu dynamique
-            let ext = piece.split('.').pop().toLowerCase();
+            let ext = (piece.split('.').pop() || '').toLowerCase();
             let previewHtml = '';
             if(['jpg','jpeg','png'].includes(ext)){
-                previewHtml = `<img src="/${piece}" alt="Aperçu" style="max-width:100%;max-height:200px;">`;
-            }else if(ext === 'pdf'){
-                previewHtml = `<embed src="/${piece}" type="application/pdf" width="100%" height="200px" />`;
+                previewHtml = `<img src="${pieceUrl}" alt="Aperçu" class="img-fluid" style="max-height:220px; object-fit:contain;">`;
+            } else if(ext === 'pdf'){
+                previewHtml = `<iframe src="${pieceUrl}" type="application/pdf" width="100%" height="220" class="border-0"></iframe>`;
+            } else {
+                previewHtml = `<a href="${pieceUrl}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fa fa-external-link"></i> Ouvrir la pièce</a>`;
             }
             $('#piece-preview').html(previewHtml);
         }else{
