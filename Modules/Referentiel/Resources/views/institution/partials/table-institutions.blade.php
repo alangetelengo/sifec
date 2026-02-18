@@ -27,13 +27,13 @@
     </td>
     <td>
         <div class="d-flex justify-content-center gap-2">
-            <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editInstitutionModal{{ $institution->code_institution }}" title="Modifier">
+            <a href="{{ route('institution.edit', $institution->code_institution) }}" class="btn btn-primary shadow btn-xs sharp" title="Modifier">
                 <i class="fas fa-pencil-alt"></i>
-            </button>
+            </a>
             <form action="{{ route('institution.destroy', $institution->code_institution) }}" method="post" class="d-inline" id="deleteForm{{ $institution->code_institution }}">
                 @csrf
                 @method('DELETE')
-                <button class="btn btn-danger shadow btn-xs sharp btn-delete" type="button" data-code="{{ $institution->code_institution }}" data-libelle="{{ $institution->lib_institution }}" title="Supprimer">
+                <button class="btn btn-danger shadow btn-xs sharp btn-delete" type="button" data-code="{{ $institution->code_institution }}" data-libelle="{{ e($institution->lib_institution) }}" title="Supprimer">
                     <i class="fa fa-trash"></i>
                 </button>
             </form>

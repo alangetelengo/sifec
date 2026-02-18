@@ -446,7 +446,7 @@ class Institution extends Model
     {
         $documentsAControler = collect();
         // 1. Déclarations de naissance et de deces envoyées par les formations sanitaires (non approuvées)
-        $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module)) : $documentsAControler;
+        $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module))->merge($this->getDeclarationsWithRequisitionsOrJugements($module)) : $documentsAControler;
         return $documentsAControler->sortByDesc('date_heure_declaration');
     }
 

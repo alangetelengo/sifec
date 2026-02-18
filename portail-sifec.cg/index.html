@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
   <meta charset="utf-8">
@@ -16,6 +16,22 @@
   <link href="assets/vendor/kendo-library/kendo-style/kendo.blueopal.min.css" rel="stylesheet">
   <script src="assets/vendor/kendo-library/kendo-js/jquery.min.js"></script>
   <script src="assets/vendor/kendo-library/kendo-js/kendo.all.min.js"></script>
+  <script src="assets/vendor/kendo-library/kendo-js/kendo.messages.fr-FR.min.js"></script>
+  <script src="assets/vendor/kendo-library/kendo-js/kendo.culture.fr-FR.min.js"></script>
+  <script type="text/javascript">
+    //set current to the "en-GB" culture script
+    kendo.culture("fr-FR");
+</script>
+
+<script type="text/javascript">
+    //set current to the "en-GB" culture script
+    kendo.message="fr-FR";
+    kendo.lang = "fr-FR";
+</script>
+
+
+  <script src="assets/js/html2canvas.min.js"></script>
+  <script src="assets/js/filesaver.js"></script>
   <!---- fin inclusion kendoUi --->
 
   <!-- Favicons -->
@@ -962,17 +978,15 @@
             Naissance
             <ul>
                 <li class="btnService" ta1="Naissance" td1="Copie">Copie</li>
-                 <li class="btnService" ta1="Naissance" td1="Duplicata">Duplicata</li>
-                <li class="btnService" ta1="Naissance" td1="Extrait">Extrait</li>
-
+                 <!--li class="btnService" ta1="Naissance" td1="Duplicata">Duplicata</li-->
+                <li class="btnService" ta1="Naissance" td1="Extrait acte naissance">Extrait</li>
            </ul>
-
         </li>
         <li>
             Mariage
             <ul>
                 <li class="btnService" ta1="Mariage" td1="Copie">Copie</li>
-                <li class="btnService" ta1="Mariage" td1="Duplicata">Duplicata</li>
+                <!--li class="btnService" ta1="Mariage" td1="Duplicata">Duplicata</li-->
                 <li id="frmLivBtnDisplay">Livret de famille</li>
             </ul>
         </li>
@@ -980,7 +994,9 @@
             Décès
             <ul>
                 <li class="btnService" ta1="Décès" td1="Copie">Copie</li>
-                <li class="btnService" ta1="Décès" td1="Duplicata">Duplicata</li>
+                <!--li class="btnService" ta1="Décès" td1="Duplicata">Duplicata</li-->
+                <li class="btnService" ta1="Décès" td1="Extrait acte décès">Extrait</li>
+
             </ul>
         </li>
         <li disabled="disabled">
@@ -1042,7 +1058,18 @@ box-shadow: 0px 3px 9px -3px #000000;">
         <form id="exampleForm"></form>
       </div>
 
-      <script>
+    <div id="recuWindow" style="overflow: none">
+      <div id="pdfViewerRecu" style="width:100%; height:500px; margin-top:20px"></div>
+    </div>
+
+    <div id="historiqueAuthentification" style="overflow: none">
+        <div id="pdfViewerHistorique" style="width:100%; height:500px; margin-top:20px"></div>
+      </div>
+
+
+
+
+     <script>
         function flashAlert(htmlTitle,type,htmlContent){
             Swal.fire({
                 title: htmlTitle,
@@ -1061,17 +1088,22 @@ box-shadow: 0px 3px 9px -3px #000000;">
             });
         }
           $(document).ready(function () {
+            $("#pdfViewerRecu").hide();
             $("#loaderAuthentification").hide();
                $('#dataLoader').hide(300);
               var validationSuccess = $("#validation-success");
-
               $("#exampleForm").kendoForm({
+                messages: {
+                    submit: "Authentifier",
+                    clear: "Annuler"
+                },
+				orientation: "horizontal",
 
-				    orientation: "horizontal",
-                  formData: {
+                formData: {
                     TypeActe: "",
                     NumActe: "",
-                  },
+
+                },
 				  layout: "grid",
 
                   items: [
@@ -1102,78 +1134,137 @@ box-shadow: 0px 3px 9px -3px #000000;">
                       validationSuccess.html("");
                   },
                   submit: function(e) {
+
+
+                    //exécution de l'authentificatin de l'acte
                       e.preventDefault();
                       $('#loaderAuthentification').show(300);
-                       $('#dataLoader').show(300);
+                      $('#dataLoader').show(300);
+                      var admin = $("a#adminLib").text();
+                     //alert(admin);exit;
                       var typeActe = $("#TypeActe").val();
                       var numeroActe = $("#NumActe").val();
-                      var data = {type_acte:typeActe,numero_acte:numeroActe};
-                      var connexion = 'http://172.16.41.29:85/sifec/public/api/v1/authentification';
+                      //récupération
+                      var data = {type_acte:typeActe,numero_acte:numeroActe, administration:admin};
+                      var connexion = 'http://192.168.100.11/sifec/public/api/v1/authentification';
                       //gestion de la connexion
-                       var httpRequest =  $.post(connexion, data);
-                       //état success
-                       httpRequest.done(function(reponse){
-                        $('#loaderAuthentification').hide(300);
-                           $('#dataLoader').hide(300);
-                        if(reponse.code == "200"){
-                            //flashAlert("Opération réussie","success",reponse.message);
+                      var httpRequest =  $.post(connexion, data);
 
-                            validationSuccess.html('<div class="k-messagebox k-messagebox-success">'+
-                                "Nom: "+reponse.nom+
-                                "<br> Prénom: "+reponse.prenom+
-                                "<br>Sexe: "+reponse.sexe+
-                                "<br>Date de naissance: "+reponse.dateNaissance+
-                                "<br>Lieu de naissance: "+reponse.lieuNaissance+
-                                "<br>Centre d'état civil de naissance: "+reponse.cecNaissance+
-                                "<br>Date de mariage: "+reponse.dateMariage+
-                                "<br>Option de mariage: "+reponse.optionMariage+
-                                "<br>Régime de mariage: "+reponse.regimeMariage+
-                                "<br>Centre d'état civil de mariage: "+reponse.cecMariage+
-                                "<br><hr> "+
-                                '</div>');
+                      httpRequest.done(function(reponse){
+                           // kendo.alert(reponse);
+                            //exit();
+                            $('#loaderAuthentification').hide(300);
+                            $('#dataLoader').hide(300);
+                           // $("#pdfViewerRecu").show();
+                            if(reponse.code == "180"){
+                                //état non succès
+                                $('#certificatLoader1').show();
+                                $('#certificatLoader').hide();
+                                $("#displayActe").attr("src","");
+                                validationSuccess.html("<div class='k-messagebox k-messagebox-error'>"+reponse.message+"</div>");
 
-                            /*if(typeActe == "Acte de mariage"){
-                                validationSuccess.html('<div class="k-messagebox k-messagebox-success">'+
-                                "Nom: "+reponse.nom+
-                                "<br> Prénom: "+reponse.prenom+
-                                "<br>Sexe: "+reponse.sexe+
-                                "<br>Date de naissance: "+reponse.dateNaissance+
-                                "<br>Lieu de naissance: "+reponse.lieuNaissance+
-                                "<br>Centre d'état civil de naissance: "+reponse.cecNaissance+
-                                "<br>Date de mariage: "+reponse.dateMariage+
-                                "<br>Option de mariage: "+reponse.optionMariage+
-                                "<br>Régime de mariage: "+reponse.regimeMariage+
-                                "<br>Centre d'état civil de mariage: "+reponse.cecMariage+
-                                "<br><hr> "+
-                                '</div>');
-                            }*/
+                                //affichage du reçu non authentique
+                                //visualisation du reçu avec le pdfViewer
+                                $.when(
+                                    $.getScript("assets/js/pdf.js"),
+                                    $.getScript("assets/js/worker.js")
+                                )
+                                .done(function () {
+                                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/worker.js';
+                                }).then(function(){
+                                    $("#pdfViewerRecu").kendoPDFViewer({
+                                        pdfjsProcessing: {
+                                            file: reponse.etatRecu
+                                        },
+                                        width: "100%",
+                                        height: 1200
 
-                        }else{
+                                    });
+                                    $('a[title="Print"]').show();
+                                    $('a[title="Download"]').hide();
+                                    $('a[title="Open"]').hide();
 
-                            validationSuccess.html("<div class='k-messagebox k-messagebox-error'>"+reponse.message+"</div>");
+                                });
 
-                        }
-                       });
-                      //état success
-                      httpRequest.fail(function(error){
-                        $('#loaderAuthentification').hide(300);
-                           $('#dataLoader').hide(300);
-                        validationSuccess.html("<div class='k-messagebox k-messagebox-error'>Connexion échouée. Veuillez réessayer plus tard!</div>");
-                        //alert('connexion failed');
-                   });
+                                //affichage de la fenêtre reçu
+                                // $("#recuWindow").data("kendoWindow").open();
+                                // $("#pdfViewerRecu").show();
 
-                   return false;
-
-                    /*  $.post(connexion, data, function(reponse){
+                            }
+                            else{
+                                //état success
+                                //alert(reponse.etatActe);
+                                $('#certificatLoader1').hide();
+                                $('#certificatLoader').show();
+                                validationSuccess.html('<center><h1 style="color:green; font-weight:bolder;">ACTE AUTHENTIQUE</h1></center><hr/><div class="k-messagebox k-messagebox-success" style="width:100%"></div>');
 
 
+                                //affichage de l'état dans le iframe
+                                $("#displayActe").attr("src",reponse.etatActe);
 
-                      });*/
+                                //visualisation de l'acte avec le pdfViewer
+                            $.when(
+                                $.getScript("assets/js/pdf.js"),
+                                $.getScript("assets/js/worker.js")
+                            )
+                            .done(function () {
+                                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/worker.js';
+                            }).then(function(){
+                                // $("#pdfViewerActe").kendoPDFViewer({
+                                //     pdfjsProcessing: {
+                                //         file: reponse.etatActe
+                                //     },
+                                //     width: "100%",
+                                //     height: 1200
+
+                                // });
+                                $('a[title="Print"]').hide();
+                                $('a[title="Download"]').hide();
+                                $('a[title="Open"]').hide();
+
+                            });
 
 
+                            //visualisation du reçu avec le pdfViewer
+                            $.when(
+                                $.getScript("assets/js/pdf.js"),
+                                $.getScript("assets/js/worker.js")
+                            )
+                            .done(function () {
+                                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/worker.js';
+                            }).then(function(){
+                                $("#pdfViewerRecu").kendoPDFViewer({
+                                    pdfjsProcessing: {
+                                        file: reponse.etatRecu
+                                    },
+                                    width: "100%",
+                                    height: 1200
+
+                                });
+                                $('div#pdfViewerRecu a[title="Print"]').show();
+                                $('a[title="Download"]').hide();
+                                $('a[title="Open"]').hide();
+
+                            });
+                             //affichage de la fenêtre reçu
+                            //  $("#recuWindow").data("kendoWindow").open();
+                            //     $("#pdfViewerRecu").show();
+
+                            }
+                           // return false;
+                        });
+                        httpRequest.fail(function(error){
+                            //état connexion échouée
+                            alert(error);
+                            $('#certificatLoader1').show();
+                            $('#certificatLoader').hide();
+                            $("#displayActe").attr("src","");
+                            $('#loaderAuthentification').hide();
+                            $('#dataLoader').hide();
+                            validationSuccess.html("<div class='k-messagebox k-messagebox-error'>Connexion échouée. Veuillez réessayer plus tard!</div>");
+                        });
 
                       return false;
-                      validationSuccess.html("<div class='k-messagebox k-messagebox-success'>''''Traitement échoué. Veuillez réessayer plus tard</div>");
                   },
                   clear: function(ev) {
                       validationSuccess.html("");
@@ -1222,10 +1313,21 @@ box-shadow: 0px 3px 9px -3px #000000;">
     </div>
             </div>
 
-                <div id="scan" style="opacity:0.9;float:right;width:40%;height:800px;background:#ffffff;border:transparent;webkit-box-shadow: 0px 3px 9px -3px #000000;
-box-shadow: 0px 3px 9px -3px #000000;padding:20px">
-                     <div id="validation-success" style=""></div>
-                        <center><img src="assets/img/scan1.gif" id="dataLoader" alt="" style="display:none; width: 100%; height:650px;"></center>
+                <div id="scan" style="opacity:0.9;float:right;width:40%;height:800px; background:#ffffff;border:transparent;webkit-box-shadow: 0px 3px 9px -3px #000000;
+                    box-shadow: 0px 3px 9px -3px #000000;padding:20px; overflow: scroll;">
+                    <center>
+                        <img src="assets/img/certificat.jpg" id="certificatLoader" alt="" style="display:none;  width:100px ;height:100px;">
+                        <img src="assets/img/certificat1.png" id="certificatLoader1" alt="" style="display:none;  width:100px ;height:100px;">
+                        <div id="validation-success" style=""></div>
+
+
+                        <div id="pdfViewerActe" style="width:100%; height:200px"></div>
+
+                        <iframe id="displayActe" src="" style="background:lightgray; width:100%; height:100%; min-height:500px;margin-top:-200px"></iframe>
+
+                    </center>
+
+                    <center><img src="assets/img/scan1.gif" id="dataLoader" alt="" style="display:none; width: 80%; height:400px;margin-top:-300px"></center>
                 </div>
 
 
@@ -1236,7 +1338,9 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                         items: [
                              {
                                 type: "button",
-                                icon: "home", text: "DEC - Direction des exémens et concours", togglable: true, group: "text-align" },
+                                icon: "home", text: "Administration", togglable: true, group: "text-align",
+                                attributes: {id:"adminLib"}
+                            },
 
 
 
@@ -1245,7 +1349,7 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                                 orientation: 'right',
                                 buttons: [
 
-                                    { icon: "files", text: "Historique", togglable: true, group: "text-align" },{ icon: "close", text: "Déconnexion", togglable: true, group: "text-align" }
+                                    { icon: "files", text: "Historique", togglable: true, group: "text-align", attributes:{'id':'btnHistorique'} },{ icon: "close", text: "Déconnexion", togglable: true, group: "text-align" }
 
                                 ]
                             }
@@ -1277,7 +1381,7 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
             pager: true,
             done: function (e) {
                 e.originalEvent.preventDefault();
-                kendo.alert("demande envoyée avec succès");
+               // kendo.alert("demande envoyée avec succès");
             },
             steps: [
                 {
@@ -1496,7 +1600,9 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
 <div id="frmConnexion" style="font-size:14px;padding:none;background-image:url('assets/img/sifec-connect.jpg');background-repeat: no-repeat;background-position: center">
     <div id="example4" style="background:white; opacity:0.87;">
       <div class="demo-section k-content">
-        <div id="validation-success2"></div>
+        <center><img src="assets/img/loader.gif" id="loaderConnexion" alt="" style="width: 30px;"></center>
+
+        <p id="alertConnexion"></p>
 
         <form id="exampleForm4"></form>
       </div>
@@ -1504,24 +1610,43 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
       <script>
           $(document).ready(function () {
               var validationSuccess = $("#validation-success2");
+              $("#loaderConnexion").hide();
 
               $("#exampleForm4").kendoForm({
 
                   formData: {
                       login: "",
                       password: "",
+                      administration: "",
                   },
+                  messages: {
+                    submit: "Connexion",
+                    clear: "Annuler"
+                },
                   items: [
 
+                              {
+                                  field: "administration", editor: "DropDownList", label: "Administration", validation: { required: true }, editorOptions: {
+                                      dataSource: [
+                                          { Name: "DIRECTION DES EXAMENS ET CONCOURS (DEC)", Id: 1 },
+                                          { Name: "DIRECTION DE L'IDENTIFICATION CIVILE(DIC)", Id: 2 },
+                                          { Name: "BANQUE CONGOLAISE DE L'HABITAT (BCH)", Id: 3 },
+                                          { Name: "LA CONGOLAISE DES BANQUES(LCB)", Id: 4 }
 
+                                      ],
+                                      dataTextField: "Name",
+                                      dataValueField: "Id",
+                                  }
+                              },
                               {
                                   field: "login",
-                                  label: "Nom utilisateur",
+                                  label: "Code d'accès",
                                   validation: { required: true }
                               },
                             {
                                   field: "password",
-                                  label: "Mot de passe",
+                                  label: "Code secret",
+                                  attributes: {type:"password"},
                                   validation: { required: true }
                               }
 
@@ -1532,11 +1657,46 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                   },
                   submit: function(e) {
                       e.preventDefault();
-                      //récupération des données et gestion de la connexion
+                      $("#loaderConnexion").show();
 
+                      //récupération des données et gestion de la connexion
+                      //Controleur de l'
+                      //  :: provisoire
+                        var code = $('#login').val();
+                        var secret = $('#password').val();
+                        //appel du serivce authentification admin
+                        //fin appel
+                        if(code=="dec@gmail.com" && secret=="123456"){
+                            //récupération libelle Admin:: cas de la DEC
+                            var admin = "DIRECTION DES EXAMENS ET CONCOURS (DEC)";
+                            $("a#adminLib").text(admin);
+                            $("#frmWindowAdministration").data("kendoWindow").open();
+                            $("#frmConnexion").data("kendoWindow").close();
+                            $("#loaderConnexion").hide();
+
+                        }else if(code=="bch@gmail.com" && secret=="123456"){
+                            //récupération libelle Admin
+                            var admin = "BANQUE CONGOLAISE DE L'HABITAT (BCH)";
+                            $("a#adminLib").text(admin);
+                            $("#frmWindowAdministration").data("kendoWindow").open();
+                            $("#frmConnexion").data("kendoWindow").close();
+                            $("#loaderConnexion").hide();
+                        }else if(code=="dic@gmail.com" && secret=="123456"){
+                            //récupération libelle Admin
+                            var admin = "DIRECTION DE L'IDENTIFICATION CIVILE(DIC)";
+                            $("a#adminLib").text(admin);
+                            $("#frmWindowAdministration").data("kendoWindow").open();
+                            $("#frmConnexion").data("kendoWindow").close();
+                            $("#loaderConnexion").hide();
+                        }else{
+                            $("#alertConnexion").html("Connexion échouée. Veuillez recommencer");
+                            $("#alertConnexion").attr("style", "color:red");
+                            $("#loaderConnexion").hide();
+                        }
+                        //kendo.alert('code: '+code+' et pass: '+secret);
+                        //exit();
                       //fin connexion et affichage interface administration si connexion ok
-                       $("#frmWindowAdministration").data("kendoWindow").open();
-                       $("#frmConnexion").data("kendoWindow").close();
+
 
                       //chargement du formation d'authentification
 
@@ -1557,20 +1717,247 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
 
   </div>
 
+ <div id="frmEtat" style="font-size:12px;background-image:url('assets/img/sifec.jpg');background-repeat: no-repeat;background-position: center;">
+        <center><img src="assets/img/loader.gif" id="loaderEtat" alt="" style="display:none; width: 60px; margin-top:350px"></center>
+
+        <iframe id="displayEtat" src="" style="width:100%; height:100%; min-width:900px; min-height:800px; background-color: #d5d5d5;"></iframe>
+</div>
+
+<div id="frmTimbre" style="font-size:12px;">
+    <div id="frmTimbre_capture" style="font-size:12px; width:450px; height:150px; background-color:green;background-image: url('assets/img/timbre.png'); background-repeat: no-repeat;">
+        <center> <p id="referenceDemande" class="btn btn-success" style="margin-bottom:-230px; z-index:500; opacity: 0.6; text-align:center;color: white; font-size:13px;width:400px">test</p>
+            <img src="" alt="" style="width:100%; z-index: 50;"></center>
+         </div>
+    <center><span class="btn btn-success" id="btnCapture" style="width: 90%; color:white; font-size:12px; margin-top:20px"><i class="fa fa-file"></i> Cliquez ici pour enregistrer votre reçu et visualier l'aprçu du document </span> </center>
+
+</div>
 
   <div id="frmDup" style="font-size:12px;background-image:url('assets/img/sifec.jpg');background-repeat: no-repeat;background-position: center;">
+    <center><img src="assets/img/loader.gif" id="loaderDemandeActe" alt="" style="width: 60px; "></center>
 
-    <div class="demo-section">
-        <form id="wizard" style="opacity:0.9; margin: 0 auto;"></form>
-    </div>
-    <script>
+        <div class="demo-section">
+            <form id="wizard" style="opacity:0.9; margin: 0 auto;">
 
-        $("#wizard").kendoWizard({
+
+            </form>
+
+         </div>
+
+
+
+        <script>
+
+ $(document).ready(function() {
+  $('#loaderDemandeActe').hide();
+        //gestion du paiement
+        /*var getUrlParameter = function getUrlParameter(sParam) {
+                            var sPageURL = window.location.search.substring(1),
+                                sURLVariables = sPageURL.split('&'),
+                                sParameterName,
+                                i;
+
+                            for (i = 0; i < sURLVariables.length; i++) {
+                                sParameterName = sURLVariables[i].split('=');
+
+                                if (sParameterName[0] === sParam) {
+                                    return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+                                }
+                            }
+                            return false;
+                        };
+
+                        var infoTransaction =  getUrlParameter('paiement');
+                        if(infoTransaction!=""){
+                               //Confirmation du paiement
+                               var dataTransaction = JSON.parse(infoTransaction);
+                               kendo.alert(typeof(dataTransaction));
+                               kendo.alert(dataTransaction.infosTransaction.id);
+                               //récupération des informations de la transaction
+                               //affichage du webService DEmande Acte pour l'affichage de l'acte
+
+                         }*/
+
+
+
+        //récupération de la liste des CEC
+        var connexion1 = 'http://192.168.100.11/sifec/public/api/v1/listeCec'   ;
+        //kendo.alert("ok");
+        var data1 ="";
+        var httpRequest1 =  $.get(connexion1, data1);
+        //alert(typeof(httpRequest1));
+        httpRequest1.done(function(liste){
+
+
+
+           // alert(liste);
+             //Chargement de la liste des CEC et affichage du formulaire de demande d'acte
+            //var datas = JSON.stringify(liste);
+            /*var dataSource = new kendo.data.DataSource({
+            data: datas,
+            sort: { field: "lib_institution", dir: "asc" }
+            });*/
+
+            //Affichage du formulaire de demande d'acte
+            $("#wizard").kendoWizard({
             pager: true,
-            done: function (e) {
-                e.originalEvent.preventDefault();
-                kendo.alert("Demande envoyée avec succès");
+            messages: {
+                done: "Valider",
+                next: "Suivant",
+                of: "sur",
+                previous: "Précedent",
+                reset: "Réinitialiser",
+                step: "Etape"
             },
+            done: function (e, reponse) {
+                e.originalEvent.preventDefault();
+
+                //$("#frmEtat").data("kendoWindow").open();
+
+				      $('#loaderDemandeActe').show(300);
+                   //   $('#dataLoader').show(300);
+                    //information du type document
+                    var moyenPaiement = "";
+                   if($("#mtn").is(':checked')){
+                         moyenPaiement = $("#mtn").val();
+                   // alert(moyenPaiement);
+                   }
+
+                   if($("#airtel").is(':checked')){
+                        moyenPaiement = $("#airtel").val();
+                    //alert(moyenPaiement);
+                   }
+
+                   if($("#visa").is(':checked')){
+                        moyenPaiement = $("#visa").val();
+                    //kendo.alert("Moyen de paiement non opérationnel. Veuillez réessayer plus tard!");
+                    //return false;
+                   }
+
+                   if($("#paypal").is(':checked')){
+                        moyenPaiement = $("#paypal").val();
+
+                   }
+
+                    var resultat = $("#resultat-etat-success");
+                    var typeActe = $("#type_acte").val();
+                    var typeDocument = $("#type_document").val();
+                    //information acte
+                    var numeroActe = $("#numero_acte").val();
+                    var nomActe = $("#nom_acte").val();
+                    var prenomActe = $("#prenom_acte").val();
+                    var sexeActe = $("#sexe_acte").val();
+                    var dateNaissanceActe = $("#date_naissance_acte").val();
+                    var lieuNaissanceActe = $("#lieu_naissance_acte").val();
+                    var cecNaissance = $("#cec_acte").val();
+
+
+                    //informations de la demande
+                    var nomDemandeur = $("#nom_demandeur").val();
+                    var telDemandeur = $("#telephone_demandeur").val();
+                    var emailDemandeur = $("#email_demandeur").val();
+                    var cecTraitement =  $("#cec_traitement").val();
+                   // var nombreExemplaire=  $("#nombre_exemplaire").val();
+                    var numeroMomo=  $("#numero_momo").val();
+
+                    //calcul du montant à payer
+                    //cout des demandes des pièces d'état civil en ligne
+                    $cout = 2; //XAF
+                    $nombreExemplaire = 1; // désactivation
+                    var montantAPayer = $nombreExemplaire * $cout;
+                    var document = typeDocument+" d' "+typeActe;
+
+                   //création de la demande
+                   var dataDemande = {
+                        type_acte:typeActe,
+                        type_document:typeDocument,
+                        numero_acte:numeroActe,
+                        nom_acte:nomActe,
+                        prenom_acte:prenomActe,
+                        sexe_acte:sexeActe,
+                        date_naissance_acte:dateNaissanceActe,
+                        lieu_naissance_acte:lieuNaissanceActe,
+                        cec_acte:cecNaissance,
+                        nom_demandeur: nomDemandeur,
+                        telephone_demandeur:telDemandeur,
+                        email_demandeur:emailDemandeur,
+                        cec_traitement:cecTraitement,
+                        //nombre_exemplaire:nombreExemplaire,
+                        moyen_paiement: moyenPaiement,
+                        numero_momo: numeroMomo,
+                        montant_a_payer: montantAPayer
+
+                    };
+
+                    //alert(moyenPaiement);
+                    //exit();
+
+                     //Appel du service demandeActe
+                     var connexion = 'http://192.168.100.11/sifec/public/api/v1/demandeActe';
+                    //Traitement de la réponse
+                    var httpRequest =  $.post(connexion, dataDemande);
+                    //Retour en cas de succès
+					          httpRequest.done(function(reponse){
+
+                        //kendo.alert(reponse);
+
+                        $('#loaderDemandeActe').hide();
+
+                        // //retour en cas de non succès
+                        // if(reponse.code == "180"){
+                        //     //validationSuccess.html("<div class='k-messagebox k-messagebox-error'>"+reponse.message+"</div>");
+
+                        //     $('#displayEtat').attr("src", "");
+                        //     //resultat.html("<center><h1 style='color:red; font-weight:bolder'>Résultat</h1></center><hr/><div class='k-messagebox k-messagebox-error'>"+reponse.message+"</div>");
+                        //     kendo.alert(reponse.message);
+                        // }else{
+
+
+                            // $.when(
+                            //         $.getScript("assets/js/pdf.js"),
+                            //         $.getScript("assets/js/worker.js")
+                            //     )
+                            //     .done(function () {
+                            //         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/worker.js';
+                            //     }).then(function(){
+                            //         $("#pdfViewerRecu").kendoPDFViewer({
+                            //             pdfjsProcessing: {
+                            //                 file: reponse.etat
+                            //             },
+                            //             width: "100%",
+                            //             height: 1200
+
+                            //         });
+                            //         $('a[title="Print"]').show();
+                            //         $('a[title="Download"]').hide();
+                            //         $('a[title="Open"]').hide();
+                            //   });
+
+                            //affichage de la fenêtre reçu
+                           //alert(reponse);
+                            $("#frmEtat").data("kendoWindow").open();
+                            //     $("#pdfViewerRecu").show();
+                            if(reponse=="Acte non trouvé"){
+                                $('#displayEtat').attr("src", "");
+                                kendo.alert("Acte non trouvé. Veuillez vérifier les informations saisies et réessayer");
+                            }else{
+                                $("#displayEtat").attr("src", reponse);
+                            }
+
+
+
+						// }
+            });
+
+                      httpRequest.fail(function(error){
+                        //état connexion échouée
+                        $('#dataLoader').hide();
+                        $('#displayEtat').attr("src", "");
+
+                        resultat.html("<div class='k-messagebox k-messagebox-error'>Connexion échouée. Veuillez réessayer plus tard!</div>");
+                    });
+
+
+				},
             steps: [
                 {
                     title: "Informations",
@@ -1578,23 +1965,29 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                     form: {
                         orientation: "vertical",
                         formData: {
-                           TypeActe1: "",
-                              FirstName1: "",
-                              LastName1: "",
-                              NomDemandeur: "",
-                              Email1: "",
-        					  Sexe1:"1",
-                              TypeDcoument1: "",
+							  type_acte: "",
+                              type_document: "",
+                              nom_acte: "",
+							  prenom_acte: "",
+                              nom_demandeur: "",
+                              email_demandeur: "",
+        					  cec_acte:"",
+        					  sexe_acte:"M",
         					  TypeCritere1:"1",
-        					  NumActe1:"",
-                              Telephone1: "",
-                              AddressLine1: "",
-                              Birth1: new Date(),
+        					  numero_acte:"",
+                              telephone_demandeur: "",
+                              lieu_naissance_acte: "",
+                              cec_traitement : "",
+                             // nombre_exemplaire : "",
+                              moyen_paiement : "",
+                              numero_momo:"",
+                              date_naissance_acte: new Date(),
                               Agree1: false
                         },
                         items: [
-                            { field: "TypeActe1", label: "Type d'acte:", validation: { required: true }, attributes:{"readonly":""} },
-                            { field: "TypeDocument1", label: "Type de document:", validation: { required: true},attributes:{"readonly":""} },{
+                            { field: "type_acte", label: "Type d'acte:", attributes:{'readonly':''}},
+                            { field: "type_document", label: "Type de document:", attributes:{'readonly':''}},
+							{
                                   field: "TypeCritere1", editor: "DropDownList", label: "Critère de recherche:", validation: { required: true }, editorOptions: {
                                       dataSource: [
                                           { Name: "Recherche par numéro d'acte", Id: 1 },
@@ -1602,30 +1995,30 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
 
                                       ],
                                       dataTextField: "Name",
-                                      dataValueField: "Id"
+                                      dataValueField: "Id",
                                   }
                               },
                             {
-                                  field: "NumActe1",
+                                  field: "numero_acte",
                                   label: "Numéro Acte",
 
                               },
-                              {
-                                  field: "LastName1",
+                                 {
+                                  field: "nom_acte",
                                   label: "Nom:",
 
                               },
                               {
-                                  field: "FirstName1",
+                                  field: "prenom_acte",
                                   label: "Prénom:",
 
                               },
 							  {
-                                  field: "Sexe1", editor: "DropDownList", label: "Sexe:",  editorOptions: {
+                                  field: "sexe_acte", editor: "DropDownList", label: "Sexe:",  editorOptions: {
                                       optionLabel: "Sélection du sexe...",
                                       dataSource: [
-                                          { Name: "Masculin", Id: 1 },
-                                          { Name: "Féminin", Id: 2 },
+                                          { Name: "Masculin", Id: "M" },
+                                          { Name: "Féminin", Id: "F" },
 
                                       ],
                                       dataTextField: "Name",
@@ -1633,16 +2026,16 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                                   }
                               },
                               {
-                                  field: "Birth1",
+                                  field: "date_naissance_acte",
                                   label: { text: "Date de naissance:", }
                               },
                               {
-                                  field: "AdressLine1",
+                                  field: "lieu_naissance_acte",
                                   label: "Lieu de naissance:",
 
                               },
 							  {
-                                  field: "Cec1",
+                                  field: "cec_acte",
                                   label: "Centre d'Etat Civil de déclaration:",
 
                               }
@@ -1652,51 +2045,74 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                     }
                 },
                 {
-                    title: "Demandeur",
-                    buttons: ["previous", "next"],
+                    title: "Demande",
+                    buttons: ["previous", "done"],
                     form: {
                         orientation: "vertical",
                         items: [
                             {
-                                  field: "NomDemandeur",
-                                  label: "Nom(s) et prénom(s)",
+                                  field: "nom_demandeur",
+                                  label: "Nom(s) et prénom(s) du demandeur",
                                   validation: { required: true },
 
                               },
                               {
-                                  field: "Telephone1",
-                                  label: "N° de téléphone",
+                                  field: "telephone_demandeur",
+                                  label: "N° de téléphone du demandeur",
                                   validation: { required: true },
 
                               },
-							  {
-                                  field: "Email1",
-                                  label: "Email",
+							                /*{
+                                  field: "email_demandeur",
+                                  label: "Email du demandeur",
                                   validation: { required: true },
 
-                              }
+                              },*/
+                              /*{
+                                  field: 'nombre_exemplaire',
+                                  editor: "NumericTextBox",
+                                  editorOptions:{
+                                    format: "##",
+                                    min:1,
+                                  },
+
+                                  label: "Nombre d'exemplaires",
+                                  validation: { required: true },
+
+                              },*/
+                              {
+                                field: "cec_traitement", editor: "AutoComplete", label: "Centre d'état civil (Veuillez préciser la strucutue qui recevra votre demande)",  editorOptions: {
+                                    dataTextField: "lib_institution",
+                                    filter: "contains",
+                                    height: 400,
+                                    /*dataSource: listeCec,*/
+                                    dataSource: liste
+                                        //group: { field: "Country" }
+
+                                }
+                            }
                         ]
                     }
                 },
-                {
+             /*   {
                     title: "Paiement",
                     buttons: ["previous", "done"],
                     form: {
                         orientation: "vertical",
                         items: [{
                             type: "group",
-                            label: "informations sur le paiement:",
+                            label: "Mode de paiement:",
                             layout: "grid",
                             grid: { cols: 2, gutter: 10 },
                             items: [
                                 {
-                                    field: "MoyenPaiement",
-                                    label: "Moyen de paiement",
+                                    field: "moyen_paiement",
+                                    label: "",
                                     validation: {
                                         required: true,
                                         payment: function (input) {
-                                            if (input.is("[name='PaymentType']") && input.attr("required")) {
-                                                input.attr("data-payment-msg", "Payment Type is required");
+                                            if (input.is("[name='moyen_paiement']") && input.attr("required")) {
+                                                input.attr("data-payment-msg", "Moyen de paiment obligatoire");
 
                                                 return input.parents('[data-role="form"]').find("[type=radio][name=" + input.attr("name") + "]").is(":checked");
                                             }
@@ -1709,12 +2125,11 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                                 },
 
                                 {
-                                    field: "NumMomo",
+                                    field: "numero_momo",
                                     label: "Numéro Monile Money",
-                                    validation: {
-                                        required: true,
+                                     attributes: {
+                                        "display": 'none'
                                     },
-
 
                                     colSpan: 2
                                 },
@@ -1722,20 +2137,32 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                             ]
                         }]
                     }
-                }]
-        });
+                }
+                */
+            ]
+              });
 
-        function paymentEditor(container, item) {
+
+
+              function paymentEditor(container, item) {
             container.append($(
-                '<div class="payment-type">' +
+                '<div class="payment-type" style="">' +
                     '<ul class="k-radio-list k-list-horizontal justify-payment" >' +
                         '<li class="k-radio-item">' +
-                            '<input type="radio" id="visa" name="' + item.field + '" value="mtn" class="k-radio k-radio-md" required />' +
-                            '<label class="card mtn" for="visa" tabindex="0"></label>' +
+                            '<input type="radio" id="mtn" name="' + item.field + '" value="mtn" class="k-radio k-radio-md" required />' +
+                            '<label class="card mtn" for="mtn" tabindex="0"></label>' +
                         '</li>' +
                         '<li class="k-radio-item">' +
-                            '<input type="radio" id="mastercard" name="' + item.field + '" value="airtel" class="k-radio k-radio-md" required />' +
-                            '<label class="card airtel" for="mastercard"  tabindex="0"></label>' +
+                            '<input type="radio" id="airtel" name="' + item.field + '" value="airtel" class="k-radio k-radio-md" required />' +
+                            '<label class="card airtel" for="airtel"  tabindex="0"></label>' +
+                        '</li>' +
+                        '<li class="k-radio-item">' +
+                            '<input type="radio" id="visa" name="' + item.field + '" value="visa" class="k-radio k-radio-md" required />' +
+                            '<label class="card visa" for="visa"  tabindex="0"></label>' +
+                        '</li>' +
+                        '<li class="k-radio-item">' +
+                            '<input type="radio" id="paypal" name="' + item.field + '" value="paypal" class="k-radio k-radio-md" required />' +
+                            '<label class="card paypal" for="paypal"  tabindex="0"></label>' +
                         '</li>' +
 
                     '</ul>' +
@@ -1743,6 +2170,27 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                 '<span class="k-invalid-msg" data-for="' + item.field + '"></span>'
             ));
         }
+
+
+        });
+
+        httpRequest1.fail(function(){
+            kendo.alert("Un problème de connexion est survenu. Veuillez réessayer plus tard!");
+
+        });
+
+
+
+              //enregistrement du reçu de caisse et affichage de l'état
+              $("#btnCapture").click(function(){
+                html2canvas(document.querySelector("#frmTimbre_capture")).then(canvas => {
+                    document.body.appendChild(canvas)
+                });
+                    $("#frmEtat").data("kendoWindow").open();
+
+              });
+
+            });
 
     </script>
 
@@ -1763,8 +2211,8 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
             background-repeat: no-repeat;
             background-position: center;
             display: inline-block;
-            width: 235px;
-            height: 170px;
+            width: 150px;
+            height: 100px;
             border: 1px solid;
             filter: brightness(1.8) grayscale(1) opacity(.7);
             margin: 2px;
@@ -1783,7 +2231,11 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
             background-image: url('assets/img/mtn.png');
         }
 
-        .airtel {
+        .visa {
+            background-image: url('assets/img/visa.png');
+        }
+
+       .airtel {
             background-image: url('assets/img/airtel.jpg');;
         }
 
@@ -1799,194 +2251,51 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
             filter: none;
         }
     </style>
-
-
-
-
-    <div id="example1" style="opacity:0.9">
-      <div class="demo-section k-content">
-        <div id="validation-success1"></div>
-
-        <form id="exampleForm00"></form>
-      </div>
-
-      <script>
+	<script>
           $(document).ready(function () {
               var validationSuccess = $("#validation-success1");
 
-                $("#exampleForm1").kendoForm({
-				  orientation: 'horizontal',
-                  formData: {
-                      TypeActe1: "",
-                      FirstName1: "",
-                      LastName1: "",
-                      NomDemandeur: "",
-                      Email1: "",
-					  Sexe1:"1",
-                      TypeDcoument1: "",
-					  TypeCritere1:"1",
-					  NumActe1:"",
-                      Telephone1: "",
-                      AddressLine1: "",
-                      Birth1: new Date(),
-                      Agree1: false
-                  },
 
-                  items: [
-                      {
-                          type: "group",
-                          label: "Options de recherche",
-                          items: [
-                              {
-                                  field: "TypeActe1",
-                                  label: "Typed d'acte",
-
-                              },
-                              {
-                                  field: "TypeDocument1",
-                                  label: "Type de document",
-
-                              },
-							  {
-                                  field: "TypeCritere1", editor: "DropDownList", label: "Critère de recherche:", validation: { required: true }, editorOptions: {
-                                      optionLabel: "Sélection critère de recherche...",
-                                      dataSource: [
-                                          { Name: "Recherche par numéro d'acte", Id: 1 },
-                                          { Name: "Recherche par identité", Id: 2 }
-
-                                      ],
-                                      dataTextField: "Name",
-                                      dataValueField: "Id"
-                                  }
-                              }
-                         ]
-                      },
-                      {
-                         type: "group",
-                         label: "Informations du document",
-                          items: [
-								{
-                                  field: "NumActe1",
-                                  label: "Numéro Acte",
-
-                              },
-                              {
-                                  field: "LastName1",
-                                  label: "Nom:",
-
-                              },
-                              {
-                                  field: "FirstName1",
-                                  label: "Prénom:",
-
-                              },
-							  {
-                                  field: "Sexe1", editor: "DropDownList", label: "Sexe:",  editorOptions: {
-                                      optionLabel: "Sélection du sexe...",
-                                      dataSource: [
-                                          { Name: "Masculin", Id: 1 },
-                                          { Name: "Féminin", Id: 2 },
-
-                                      ],
-                                      dataTextField: "Name",
-                                      dataValueField: "Id"
-                                  }
-                              },
-                              {
-                                  field: "Birth1",
-                                  label: { text: "Date de naissance:", }
-                              },
-                              {
-                                  field: "AdressLine1",
-                                  label: "Lieu de naissance:",
-
-                              },
-							  {
-                                  field: "Cec1",
-                                  label: "Centre d'Etat Civil de déclaration:",
-
-                              }
-
-
-                          ]
-                      },
-                      {
-                          type: "group",
-                          label: "Informations du demandeur",
-                          items: [
-                                {
-                                  field: "NomDemandeur",
-                                  label: "Nom(s) et prénom(s)",
-                                  validation: { required: true },
-
-                              },
-                              {
-                                  field: "Telephone1",
-                                  label: "N° de téléphone",
-                                  validation: { required: true },
-
-                              },
-							  {
-                                  field: "Email1",
-                                  label: "Email",
-                                  validation: { required: true },
-
-                              }
-                          ]
-                      }
-                  ],
-                  validateField: function(e) {
-                      validationSuccess.html("");
-                  },
-                  submit: function(e) {
-                      e.preventDefault();
-                      alert("ok submit type acte n° "+$("#TypeActe1").val()+" -"+$("#TypeDocument1").val());
-                      validationSuccess.html("<div class='k-messagebox k-messagebox-success'>Traitement échoué. Veuillez réessayer plus tard</div>");
-                  },
-                  clear: function(ev) {
-                      validationSuccess.html("");
-                  }
-              });
 			  //contrôle d'affichage du formulaires
 			  $("#TypeCritere1").change(function(){
 
-				var tc = $(this).val();
+				var tc = $(this).val()
 				if(tc=="1"){
-					$("#NumActe1-form-label").show();
-					$("div[data-container-for='NumActe1']").show();
-                    $("#LastName1-form-label").hide(300);
-					$("#FirstName1-form-label").hide(300);
-					$("#Sexe1-form-label").hide(300);
-					$("#Cec1-form-label").hide(300);
-					$("#AdressLine1-form-label").hide(300);
-					$("#Birth1-form-label").hide(300);
-					$("div[data-container-for='LastName1']").hide(300);
-					$("div[data-container-for='FirstName1']").hide(300);
-					$("div[data-container-for='Birth1']").hide(300);
-					$("div[data-container-for='Sexe1']").hide(300);
-					$("div[data-container-for='AdressLine1']").hide(300);
-					$("div[data-container-for='Cec1']").hide(300);
+					$("#numero_acte-form-label").show();
+					$("div[data-container-for='numero_acte']").show();
+                    $("#nom_acte-form-label").hide(300);
+					$("#prenom_acte-form-label").hide(300);
+					$("#sexe_acte-form-label").hide(300);
+					$("#cec_acte-form-label").hide(300);
+					$("#lieu_naissance_acte-form-label").hide(300);
+					$("#date_naissance_acte-form-label").hide(300);
+					$("div[data-container-for='nom_acte']").hide(300);
+					$("div[data-container-for='prenom_acte']").hide(300);
+					$("div[data-container-for='date_naissance_acte']").hide(300);
+					$("div[data-container-for='sexe_acte']").hide(300);
+					$("div[data-container-for='lieu_naissance_acte']").hide(300);
+					$("div[data-container-for='cec_acte']").hide(300);
 
 				}else{
-					$("#NumActe1-form-label").hide(300);
-					$("div[data-container-for='NumActe1']").hide(300);
-					$("#LastName1-form-label").show(300);
-					$("#FirstName1-form-label").show(300);
-					$("#Sexe1-form-label").show(300);
-					$("#Cec1-form-label").show(300);
-					$("#AdressLine1-form-label").show(300);
-					$("#Birth1-form-label").show(300);
-					$("div[data-container-for='LastName1']").show(300);
-					$("div[data-container-for='FirstName1']").show(300);
-					$("div[data-container-for='Birth1']").show(300);
-					$("div[data-container-for='Sexe1']").show(300);
-					$("div[data-container-for='AdressLine1']").show(300);
-					$("div[data-container-for='Cec1']").show(300);
+					$("#numero_acte-form-label").hide(300);
+					$("div[data-container-for='numero_acte']").hide(300);
+					$("#nom_acte-form-label").show(300);
+					$("#prenom_acte-form-label").show(300);
+					$("#sexe_acte-form-label").show(300);
+					$("#cec_acte-form-label").show(300);
+					$("#lieu_naissance_acte-form-label").show(300);
+					$("#date_naissance_acte-form-label").show(300);
+					$("div[data-container-for='nom_acte']").show(300);
+					$("div[data-container-for='prenom_acte']").show(300);
+					$("div[data-container-for='date_naissance_acte']").show(300);
+					$("div[data-container-for='sexe_acte']").show(300);
+					$("div[data-container-for='lieu_naissance_acte']").show(300);
+					$("div[data-container-for='cec_acte']").show(300);
 				}
 			  });
           });
       </script>
-    </div>
+
   </div>
 
   <div id="frmCopie" style="font-size:14px">
@@ -2046,12 +2355,7 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                         ]
                     });
 
-                    $("#daterangepicker").kendoDateRangePicker({
-            "messages": {
-				"startLabel": "Début période",
-				"endLabel": "Fin période"
-			}
-        });
+
 
                 });
 
@@ -2073,6 +2377,14 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
     <script>
         $(document).ready(function () {
 
+            /*if (kendo.ui.kendoWizard) {
+                kendo.ui.kendoWizard.prototype.options.messages =
+                $.extend(true, kendo.ui.kendoWizard.prototype.options.messages,{
+                "Step": "Etape",
+                'of': "Sur"
+
+                });
+             }*/
 
                 //alert("ok");
            var titreFrmDup = "";
@@ -2135,61 +2447,61 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                 frmLivBtnDisplay = $("#frmLivBtnDisplay");
 
             frmDecBtnDisplay.click(function() {
+
                 frmDec.data("kendoWindow").open();
                 //undo.fadeOut();
             });
             frmDupBtnDisplay.click(function() {
 
-				//$("div[data-container-for='NumActe1']").attr("style", "margin-bottom:-150px;border:1px solid silver");
+				//$("div[data-container-for='numero_acte']").attr("style", "margin-bottom:-150px;border:1px solid silver");
 
                 //$("#TypeActe1-form-label").hide();
                 //$("#TypeDocument1-form-label").hide();
+                $("div[data-container-for='numero_momo']").hide();
+                $("#numero_momo").hide();
+                $("#nom_acte-form-label").hide();
+                $("#prenom_acte-form-label").hide();
+                $("#sexe_acte-form-label").hide();
+                $("#cec_acte-form-label").hide();
+                $("#lieu_naissance_acte-form-label").hide();
+                $("#date_naissance_acte-form-label").hide();
 
-                $("#LastName1-form-label").hide();
-                $("#FirstName1-form-label").hide();
-                $("#Sexe1-form-label").hide();
-                $("#Cec1-form-label").hide();
-                $("#AdressLine1-form-label").hide();
-                $("#Birth1-form-label").hide();
 
 
-
-                $("div[data-container-for='LastName1']").hide();
-                $("div[data-container-for='FirstName1']").hide();
-                $("div[data-container-for='Birth1']").hide();
-                $("div[data-container-for='Sexe1']").hide();
-                $("div[data-container-for='AdressLine1']").hide();
-                $("div[data-container-for='Cec1']").hide();
+                $("div[data-container-for='nom_acte']").hide();
+                $("div[data-container-for='prenom_acte']").hide();
+                $("div[data-container-for='date_naissance_acte']").hide();
+                $("div[data-container-for='sexe_acte']").hide();
+                $("div[data-container-for='lieu_naissance_acte']").hide();
+                $("div[data-container-for='cec_acte']").hide();
                 frmDup.data("kendoWindow").open();
                 //undo.fadeOut();
             });
 
             $("li.btnService").click(function() {
 
-
-
-                $("#LastName1-form-label").hide();
-                $("#FirstName1-form-label").hide();
-                $("#Sexe1-form-label").hide();
-                $("#Cec1-form-label").hide();
-                $("#AdressLine1-form-label").hide();
-                $("#Birth1-form-label").hide();
+				$("#nom_acte-form-label").hide();
+                $("#prenom_acte-form-label").hide();
+                $("#sexe_acte-form-label").hide();
+                $("#cec_acte-form-label").hide();
+                $("#lieu_naissance_acte-form-label").hide();
+                $("#date_naissance_acte-form-label").hide();
 
 
 
-                $("div[data-container-for='LastName1']").hide();
-                $("div[data-container-for='FirstName1']").hide();
-                $("div[data-container-for='Birth1']").hide();
-                $("div[data-container-for='Sexe1']").hide();
-                $("div[data-container-for='AdressLine1']").hide();
-                $("div[data-container-for='Cec1']").hide();
+                $("div[data-container-for='nom_acte']").hide();
+                $("div[data-container-for='prenom_acte']").hide();
+                $("div[data-container-for='date_naissance_acte']").hide();
+                $("div[data-container-for='sexe_acte']").hide();
+                $("div[data-container-for='lieu_naissance_acte']").hide();
+                $("div[data-container-for='cec_acte']").hide();
 
 
-            $("#TypeActe1").val( $(this).attr("ta1"));
-            $("#TypeDocument1").val( $(this).attr("td1"));
+            $("#type_acte").val( $(this).attr("ta1"));
+            $("#type_document").val( $(this).attr("td1"));
                 titreFrmDup = "Formulaire de Demande - "+$(this).attr('td1')+" d'acte de "+$(this).attr("ta1");
-                 frmDup.data("kendoWindow").title(titreFrmDup);
-             frmDup.data("kendoWindow").open();
+                frmDup.data("kendoWindow").title(titreFrmDup);
+                frmDup.data("kendoWindow").open();
 
         });
 
@@ -2268,9 +2580,6 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                 ],
                 close: onClose
             }).data("kendoWindow").maximize().close();
-
-
-
             //default param for the window form livret
             frmCheckActe.kendoWindow({
                 width: "1000px",
@@ -2298,6 +2607,121 @@ box-shadow: 0px 3px 9px -3px #000000;padding:20px">
                 ],
                 close: onClose
             }).data("kendoWindow").center().close();
+
+            //default param for the window form display Reçu
+            $("#recuWindow").kendoWindow({
+                width: "900px",
+                height: "700px",
+                title: "Rapport d'authentification",
+                visible: false,
+                actions: [
+                    "Pin",
+                    "Close"
+                ],
+                close: onClose
+            }).data("kendoWindow").center().close();
+
+             //paramètres window historique authentification
+             $("#historiqueAuthentification").kendoWindow({
+                width: "900px",
+                height: "700px",
+                title: "HISTORIQUE DES AUTHENTIFICATIONS",
+                visible: false,
+                actions: [
+                    "Pin",
+                    "Close"
+                ],
+                close: onClose
+            }).data("kendoWindow").center().close();
+
+            //affichage de l'historique des authentifications d'une administration
+            $("a#btnHistorique").click(function() {
+                //alert("ok");
+                //récupération du code de l'administration
+                var libAdmin = $("a#adminLib").text();
+
+                var idAdmin="";
+                if(libAdmin=="DIRECTION DES EXAMENS ET CONCOURS (DEC)DIRECTION DES EXAMENS ET CONCOURS (DEC)"){
+                 idAdmin = "ADM_0001";
+                }
+
+                if(libAdmin=="BANQUE CONGOLAISE DE L'HABITAT (BCH)BANQUE CONGOLAISE DE L'HABITAT (BCH)"){
+                    idAdmin = "ADM_0002";
+                }
+                if(libAdmin=="DIRECTION DE L'IDENTIFICATION CIVILE(DIC)DIRECTION DE L'IDENTIFICATION CIVILE(DIC)"){
+                    idAdmin = "ADM_0005";
+                }
+                var data = {code_administration:idAdmin};
+
+                        //récuépration historique des authentifications
+                      var connexion = 'http://192.168.100.11/sifec/public/api/v1/historiqueAuthentification';
+                      //gestion de la connexion
+                       var httpRequest =  $.post(connexion, data);
+
+                        httpRequest.done(function(reponse){
+                            kendo.alert(reponse.etat);
+                            //affichage de l'état historique des authentifications
+                            //visualisation de l'acte avec le pdfViewer
+                            $.when(
+                                $.getScript("assets/js/pdf.js"),
+                                $.getScript("assets/js/worker.js")
+                            )
+                            .done(function () {
+                                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/worker.js';
+                            }).then(function(){
+                                $("#pdfViewerHistorique").kendoPDFViewer({
+                                    pdfjsProcessing: {
+                                        file: reponse.etat
+                                    },
+                                    width: "100%",
+                                    height: 1200
+
+                                });
+                                /*$('a[title="Print"]').hide();
+                                $('a[title="Download"]').hide();
+                                $('a[title="Open"]').hide();
+                                */
+
+                            });
+
+                        });
+
+                $("#historiqueAuthentification").data("kendoWindow").open();
+                //undo.fadeOut();
+             });
+
+
+
+
+            //default param for the window form displayetat
+            $('#frmEtat').kendoWindow({
+                width: "900px",
+                height: "800px",
+                title: "Affichage de l'état",
+                visible: false,
+                actions: [
+                    "Pin",
+                    "Minimize",
+                    "Maximize",
+                    "Close"
+                ],
+                close: onClose
+            }).data("kendoWindow").center().close();
+
+
+             //default param for the window form Timbre de paiement
+             $('#frmTimbre').kendoWindow({
+                width: "480px",
+                height: "280px",
+                title: "Reçu de caisse",
+                visible: false,
+                actions: [
+                    "Pin",
+                    "Close"
+                ],
+                close: onClose
+            }).data("kendoWindow").center().close();
+
 
             //default param for the window form copie d'acte de naissance
             frmCopie.kendoWindow({

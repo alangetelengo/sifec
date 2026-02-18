@@ -8,9 +8,23 @@
     small{
         color: red;
     }
+    button#print{
+        display: none;
+    }
+    /* Empêcher le débordement du nom d'institution long */
+    .acte-contenu td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        max-width: 650px;
+    }
+    .acte-contenu td.institution-officier {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        max-width: 100%;
+    }
 </style>
-  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0" backbottom="30mm" style="font-size: 14px">
-
+  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 14px">
     @php
     $infos = "";
     $tribunal = $acte->declaration->institutionUser->institution->tribunal;
@@ -37,43 +51,59 @@
         $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
     }
 
+
     @endphp
-
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
-        @php
-            // Utiliser le service Sifec pour obtenir les informations de localisation
-            $institution = $institutionPortail;
-            $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-            setlocale(LC_TIME, "fr_FR", "French");
-
-            $localite = $localisationData['localite'];
-            $localiteParent = $localisationData['localiteParent'];
-            $inst = $localisationData['inst'];
-            $localisation = $localisationData['localisation'];
-        @endphp
         <tr>
             <td style="width:40%; text-align: center;">
+                @php
+                   setlocale(LC_TIME, "fr_FR", "French");
+
+                    $institution = $acte->institutionUser->institution;
+                    $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
+                    $departement = $localisationData['localiteParent'];
+                    $communeDistrict = $localisationData['localite'];
+                    // Utiliser 'localisation' qui contient déjà le bon libellé selon le type de localité
+                    $libLocalite = $localisationData['localisation'];
+                @endphp
+                @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
                 <p>
                     <span>
-                        <strong>{{ $localite }}</strong>
+                    {{ $departement }}
+                    <br>
+                        {{ $communeDistrict }}
                     </span> <br>
-                    {{-- <span>{{ $localite}}</span> <br> --}}
-                    <span>{{ $inst }}</span>
+                    <span><strong>{{ $localisationData['inst'] }}</strong></span>
                 </p>
+                @else
+                <p>
+                    <span>
+                        {{ $departement }}
+                        <br>
+                            {{ $communeDistrict }}
+                        </span> <br>
+                    <span>
+                        <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
+                    </span> <br>
+                    {{-- <span>Service Consulaire</span> <br> --}}
+                </p>
+                @endif
             </td>
             <td style="width:34%; text-align: center;">
                 <p style="color: red">{{ $infos != "" ? $infos : "" }}</p>
             </td>
             <td style="width:33%; text-align: center;">
                 <strong>REPUBLIQUE DU CONGO</strong><br>
-                Unit&eacute; * Travail * Progr&egrave;s
+                Unit&eacute; - Travail - Progr&egrave;s
             </td>
         </tr>
   </table><br><br>
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
-                <p><strong style="font-size: 18px;">COPIE INTEGRALE D'ACTE DE NAISSANCE</strong> <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> <br>NIUPP: <strong>{{ $acte->niupp }}</strong></p>
+                <p><strong style="font-size: 18px;">COPIE D'ACTE DE NAISSANCE </strong>
+                    {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -82,48 +112,15 @@
         </tr><br>
     </table>
     <div style="margin-top: 60px;margin-left: 6%;margin-right: 6%;border-radius: 2mm;">
-        <div style="width: 150px;text-align: center;">
-            <p>Marge réservée aux mentions <br> d'officier(1) <br><br>
-            </p>
 
-            @if ($mariage != null)
-                {{-- <small>Marié(e) le: <br> {{strftime("%d %B %Y", strtotime(date($mariage->date_declaration_mariage)))}}</small><br> --}}
-                <small>Marié(e) le: <br> {{ date("d-m-Y", strtotime($mariage->date_prevue_mariage))}}</small><br>
-                {{-- <small>Avec : {{$declarationDeces->lieu_deces}}</small><br> --}}
-                @if ($mariage->acte != NULL)
-                    @php
-                        // Utiliser le service Sifec pour obtenir les informations de localisation
-                        $institutionMariage = $acte->institutionUser->institution;
-                        $localisationDataMariage = \App\Sifec\Sifec::getLocalisationInstitution($institutionMariage);
-                        $inst = $localisationDataMariage['inst'];
-                    @endphp
-                    <small>A : LA {{$inst}}</small><br>
-                    <small>N° acte de mariage : {{$mariage->acte->code_acte_mariage}}</small>
-                    <small>{{$acte->declaration->enfant->sexe=="M" ? "Epouse: ".$mariage->acte->declaration->epouse->nomcomplet() : "Epoux: ".$mariage->acte->declaration->epoux->nomcomplet() }}</small>
-                @endif
-            @endif
-
-            @if ($declarationDeces != NULL)
-                <small>Décédé le: <br> {{strftime("%d %B %Y", strtotime(date($declarationDeces->date_heure_deces)))}}</small><br>
-                <small>A : {{$declarationDeces->lieu_deces}}</small><br>
-                @if ($declarationDeces->acte != NULL)
-                <small>N° acte de décès : {{$declarationDeces->acte->code_acte_deces}}</small>
-                @endif
-
-                {{-- ************** --}}
-            @endif
-        </div>
-        <div style="position: absolute; left: 150px; top: 240px; width: 700px; height: 500px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:14px;border-left: 1px solid black;">
-            <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;">
+        <div style="position: absolute;top: 240px; width: 700px; height: 500px; padding: 0px; overflow: hidden; font-weight: normal; font-size:14px;">
+            <table class="acte-contenu" align="left" style="margin-left: 2%; table-layout: fixed; width: 96%;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td>L'Officier du centre d'état civil de: <strong>{{ $acte->institutionUser->institution->lib_institution}}</strong></td>
+                    <td class="institution-officier">L'Officier du centre d'état civil principal de: <strong>{!! nl2br(e(wordwrap(optional($acte->institutionUser->institution)->lib_institution ?? '', 35, "\n", true))) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Est informé le: <br> <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("s", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong></td>
+                    <td>Est informé le: <br> <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong></td>
                 </tr>
-                {{-- <tr style="width:100%; text-align: left;">
-                    <td>Est informé le: <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("s", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong></td>
-                </tr> --}}
                 <tr style="width:100%; text-align: left;">
                     <td>Est né(e), un enfant de sexe: <strong>{{ $acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</strong></td>
                 </tr>
@@ -137,13 +134,28 @@
                     <td>A: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }} {{ $acte->declaration->enfant->nom." ".$acte->declaration->enfant->prenom }}</strong></td>
+                    <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }}
+                       <span style="color: red;">
+                         @php
+                         $nomEnfant = $acte->declaration->enfant->nom ?? '';
+                         $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
+                         if ($acte->lastRectification && $acte->lastRectification->detailsRectification->count() > 0) {
+                             foreach ($acte->lastRectification->detailsRectification as $d) {
+                                 if ($d->code_rubrique === 'RUB_0001') {
+                                     $nomEnfant = $d->nouvelle_valeur ?? $nomEnfant;
+                                 }
+                                 if ($d->code_rubrique === 'RUB_0002') {
+                                     $prenomEnfant = $d->nouvelle_valeur ?? $prenomEnfant;
+                                 }
+                             }
+                         }
+                         @endphp
+                        {{ trim($nomEnfant.' '.$prenomEnfant) }}
+                        </span></strong>
+                    </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Déclaré par: <strong>{{ $acte->declaration->declarant->nom. " ".$acte->declaration->declarant->prenom }}</strong></td>
-                </tr>
-                <tr style="width:100%; text-align: left;">
-                    <td>Filiation: <strong>{{ $acte->declaration->filiation ?  $acte->declaration->filiation->lib_filiation : $dummy }}</strong></td>
+                    <td>Déclaré par: <strong>{{  $acte->declaration->adoptant != "" ? $acte->declaration->adoptant->nomcomplet() : $acte->declaration->declarant->nomcomplet() }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Situation matrimoniale des parents: <strong>{{ $acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy }}</strong></td>
@@ -151,13 +163,11 @@
                 <tr style="width:100%; text-align: left;">
                     <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {{ $acte->declaration->pere ? $acte->declaration->pere->nom." ".$acte->declaration->pere->prenom : $dummy}}</strong></td>
                 </tr>
-
                 <tr style="width:100%; text-align: left;">
                     <td>Né le : <strong>
                         @if ($acte->declaration->pere != NULL)
                             {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->pere->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) }}
                         @endif
-                        {{-- {{ $acte->declaration->pere ? date("d",strtotime($acte->declaration->pere->date_naissance)) ." ".Sifec::mois(date("m",strtotime($acte->declaration->pere->date_naissance))) ." ". date("Y", strtotime($acte->declaration->pere->date_naissance)) : $dummy }} --}}
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
@@ -170,7 +180,7 @@
                     <td>Niveau d'instruction: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->niveau_instruction : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Domicilié à : <strong>{{ $acte->declaration->pere->adresse }}</strong></td>
+                    <td>Domicilié au : <strong>{{ $acte->declaration->pere->adresse }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Proféssion: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->profession->lib_profession : $dummy }}</strong></td>
@@ -184,15 +194,12 @@
                         @if ($acte->declaration->mere != NULL)
                             {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->mere->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) }}
                         @endif
-                        {{-- {{ $acte->declaration->mere ? date("d",strtotime($acte->declaration->mere->date_naissance)) ." ".Sifec::mois(date("m",strtotime($acte->declaration->mere->date_naissance))) ." ". date("Y", strtotime($acte->declaration->mere->date_naissance)) : $dummy }} &nbsp;&nbsp;&nbsp; à  <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->lieu_naissance : $dummy }}</strong> --}}
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>A : <strong>{{ $acte->declaration->mere->lieu_naissance }}</strong></td>
                 </tr>
-                {{-- <tr style="width:100%; text-align: left;">
-                    <td></td>
-                </tr> --}}
+
                 <tr style="width:100%; text-align: left;">
                     <td>Nationalité: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->nationalite->lib_nationalite : $dummy }}</strong></td>
                 </tr>
@@ -200,11 +207,16 @@
                     <td>Niveau d'instruction: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->niveau_instruction : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Domicilié à : <strong>{{ $acte->declaration->mere->adresse }}</strong></td>
+                    <td>Domicilié au : <strong>{{ $acte->declaration->mere->adresse }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Proféssion: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->profession->lib_profession : $dummy }}</strong></td>
                 </tr>
+                @if($acte->declaration->type_declarant == "Personne physique")
+                <tr style="width:100%; text-align: left;">
+                    <td>Nombre d'enfant nés vivant y compris celui-ci : <strong>{{ (int)$acte->declaration->nombre_enfant }}</strong></td>
+                </tr>
+                @endif
             </table>
         </div>
     </div>
@@ -225,18 +237,24 @@
                 <tr>
                     <td style="text-align: center;">Le déclarant</td>
                     <td style="text-align: left;">
-                        @isset($qrCode)
-                        <div style="margin-bottom:0; width: 30mm;">
-                            <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
-                        </div>
-                        @endisset
+                         @if($acte->approbation_mairie != "")
+                         <div style="margin-bottom:0;">
+                             @isset($qrCode)
+                                <div style="width: 30mm;">
+                                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                                </div>
+                             @endisset
+                         </div>
+                         @endif
+
+                        {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
                     <td style="text-align: left;">
-                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($localisation)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date('Y-m-d'))))}}<br>L'Officier de l'état civil</p>
-                         {{-- @if ($acte->approbation_mairie != "") --}}
-                             <img src='{{ public_path('app/'.$signatairePortail->signature) }}'><br>
-                             {{ $signatairePortail->nom.' '.$signatairePortail->prenom }}
-                         {{-- @endif --}}
+                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($libLocalite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
+                         @if ($acte->approbation_mairie != "")
+                             <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
+                             <span style="color:black; font-weight:bold"> {{ $acte->signataire->user->personne->nomcomplet() }}</span>
+                         @endif
                      </td>
                   </tr>
             </tbody>

@@ -11,7 +11,7 @@
    }
 
 </style>
- <page orientation="portrait" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+ <page orientation="portrait" {{ isset($armoirie_path) && $armoirie_path !== '' ? 'backimg="'.$armoirie_path.'"' : '' }} backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
    @php
    $infos = "";
    $tribunal = $acte->declaration->institutionUser->institution->institutionParent->lib_institution;

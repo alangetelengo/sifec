@@ -16,8 +16,9 @@ class CreateTrRubriqueTable extends Migration
         Schema::create('tr_rubrique', function (Blueprint $table) {
             $table->string("code_rubrique",16);
             $table->primary("code_rubrique");
-            $table->string("lib_rubrique",15)->nullable()->comment("eple:nom,prenom,sexe,date de naissance,nationalite,etc");
-            $table->string("entite_rubrique",15)->nullable()->comment("Exple: enfant,père,mère,époux,épouse,defunt,etc");
+            $table->string("lib_rubrique",80)->nullable()->comment("Exple: nom, prenom, sexe, date de naissance, nationalite, etc");
+            $table->string("lib_technique",50)->nullable()->comment("Clé technique pour le traitement: nom, prenom, sexe, date_naissance, lieu_naissance, nationalite, etc");
+            $table->string("entite_rubrique",30)->nullable()->comment("Exple: enfant, père, mère, époux, épouse, defunt, etc");
             $table->string("code_type_acte",16)->nullable();
 
             $table->foreign("code_type_acte")->references("code_type_acte")->on("tr_type_acte")->onDelete("cascade")->onUpdate("cascade");

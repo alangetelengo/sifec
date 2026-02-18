@@ -163,6 +163,11 @@ class DeclarationDeces extends Model
             return $this->belongsTo(Institution::class, 'code_institution','code_institution');
         }
 
+        //pour récupérer l'institution pompe funebre ou centre d'état civil de ce bureau de déclaration de décès
+        public function institutionPompeFunebre(): BelongsTo
+        {
+            return $this->belongsTo(Institution::class, 'code_institution_destinataire', 'code_institution');
+        }
 
     }
 

@@ -18,6 +18,12 @@
         word-break: break-word;
         max-width: 650px;
     }
+    /* Nom d'institution long : forcer le retour à la ligne sans débordement */
+    .acte-contenu td.institution-officier {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        max-width: 100%;
+    }
 </style>
   <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 14px">
     @php
@@ -84,9 +90,14 @@
                 @else
                 <p>
                     <span>
+                        {{ $departement }}
+                        <br>
+                            {{ $communeDistrict }}
+                        </span> <br>
+                    <span>
                         <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
                     </span> <br>
-                    <span>Service Consulaire</span> <br>
+                    {{-- <span>Service Consulaire</span> <br> --}}
                 </p>
                 @endif
             </td>
@@ -158,31 +169,30 @@
                     @endif
                 @endif
            @endif
-          {{-- recuperer les rectification de l'acte avec ses détails--}}
+          {{-- Récupérer les rectifications de l'acte avec leurs détails (mention marginale) --}}
             @if (isset($acte->rectifications) && $acte->rectifications->count() > 0)
-                @if ($acte->rectifications->count() > 0)
-
-                    @foreach ($acte->rectifications as $rectification)
-                        <small>Suivant le jugement émanant du <strong>{!! nl2br(e(wordwrap(optional($rectification->institutionUser->institution->institutionParent)->lib_institution ?? '', 55, "\n", true))) !!}</strong>
-                            en date du <strong>{{ date("d-m-Y", strtotime($rectification->updated_at)) }}</strong>, sous le
-                            N&deg;: <strong>{{ $rectification->numero_rectification }}</strong>, l"acte ci-contre est réctifié en ce sens
-                            que,
-                        </small>
-                        @if ($rectification->detailsRectification->count() > 0)
-
-                            @foreach ($rectification->detailsRectification as $detail)
-                                <small>le <strong>{!! nl2br(e(wordwrap(optional($detail->rubrique)->lib_rubrique ?? '', 55, "\n", true))) !!}</strong> du titulaire est</small>
-                                <small><strong>{!! nl2br(e(wordwrap($detail->nouvelle_valeur ?? '', 55, "\n", true))) !!}</strong> au lieu de <strong>{!! nl2br(e(wordwrap($detail->ancienne_valeur ?? '', 55, "\n", true))) !!}</strong></small><br>
-                            @endforeach
-                        @endif
-                    @endforeach
-                @endif
+                @foreach ($acte->rectifications as $rectification)
+                    <small>Suivant la décision émanant du <strong>{!! nl2br(e(wordwrap(optional($rectification->institutionUser->institution->institutionParent)->lib_institution ?? '', 55, "\n", true))) !!}</strong>
+                        en date du <strong>{{ date("d-m-Y", strtotime($rectification->updated_at)) }}</strong>, sous le
+                        N&deg;: <strong>{{ $rectification->numero_rectification }}</strong>, l'acte ci-contre est rectifié en ce sens que :
+                    </small>
+                    @if ($rectification->detailsRectification->count() > 0)
+                        @foreach ($rectification->detailsRectification as $index => $detail)
+                            <small>
+                                @if ($index > 0)<br>@endif
+                                le <strong>{!! nl2br(e(wordwrap(optional($detail->rubrique)->lib_rubrique ?? '', 55, "\n", true))) !!}</strong> du titulaire est
+                                <strong>{!! nl2br(e(wordwrap($detail->nouvelle_valeur ?? '', 55, "\n", true))) !!}</strong> au lieu de <strong>{!! nl2br(e(wordwrap($detail->ancienne_valeur ?? '', 55, "\n", true))) !!}</strong>.
+                            </small>
+                        @endforeach
+                        <br>
+                    @endif
+                @endforeach
             @endif
         </div>
         <div style="position: absolute; left: 150px; top: 240px; width: 700px; min-height: 500px; padding: 0px; overflow: visible; text-align: left; font-weight: normal; font-size:14px;border-left: 1px solid black;">
             <table class="acte-contenu" align="left" style="margin-left: 2%; border-radius: 1mm; border: none; table-layout: fixed; width: 96%;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td>L'Officier du centre d'état civil principal de: <strong>{!! nl2br(e(wordwrap(optional($acte->institutionUser->institution)->lib_institution ?? '', 55, "\n", true))) !!}</strong></td>
+                    <td class="institution-officier">L'Officier du centre d'état civil principal de: <strong>{!! nl2br(e(wordwrap(optional($acte->institutionUser->institution)->lib_institution ?? '', 35, "\n", true))) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Est informé le: <br> <strong>{!! nl2br(e(wordwrap(Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration))).' '.Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))).' '.Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))).' à '.Sifec::asLetters((int)date("H", strtotime($acte->declaration->date_heure_declaration))).' heure(s) '.Sifec::asLetters((int)date("i", strtotime($acte->declaration->date_heure_declaration))).' minutes', 55, "\n", true))) !!}</strong>
@@ -205,30 +215,21 @@
                     <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }}
                        <span style="color: red;">
                          @php
-                         $nomEnfant = "";
-                         $prenomEnfant = "";
+                         $nomEnfant = $acte->declaration->enfant->nom ?? '';
+                         $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
+                         // Appliquer toutes les rectifications de la dernière fiche (nom/prénom et autres champs enfant)
+                         if ($acte->lastRectification && $acte->lastRectification->detailsRectification->count() > 0) {
+                             foreach ($acte->lastRectification->detailsRectification as $d) {
+                                 if ($d->code_rubrique === 'RUB_0001') {
+                                     $nomEnfant = $d->nouvelle_valeur ?? $nomEnfant;
+                                 }
+                                 if ($d->code_rubrique === 'RUB_0002') {
+                                     $prenomEnfant = $d->nouvelle_valeur ?? $prenomEnfant;
+                                 }
+                             }
+                         }
                          @endphp
-                        {{-- Si l'acte a une dernière rectification, on prend les valeurs de la dernière rectification --}}
-                        {{-- Sinon, on prend les valeurs de la déclaration --}}
-                        @if($acte->lastRectification)
-
-                            @if($acte->lastRectification->detailsRectification->last()->code_rubrique == "RUB_0001")
-                            @php
-                                $nomEnfant = $acte->lastRectification->detailsRectification->last()->nouvelle_valeur;
-                            @endphp
-                            @endif
-                            @if($acte->lastRectification->detailsRectification->last()->code_rubrique == "RUB_0002")
-                            @php
-                                $prenomEnfant = $acte->lastRectification->detailsRectification->last()->nouvelle_valeur;
-                            @endphp
-                            @endif
-                        @else
-                            @php
-                                $nomEnfant = $acte->declaration->enfant->nom;
-                                $prenomEnfant = $acte->declaration->enfant->prenom;
-                            @endphp
-                        @endif
-                        {!! nl2br(e(wordwrap($nomEnfant." ".$prenomEnfant, 55, "\n", true))) !!}
+                        {!! nl2br(e(wordwrap(trim($nomEnfant.' '.$prenomEnfant), 55, "\n", true))) !!}
                         </span></strong>
                     </td>
                 </tr>

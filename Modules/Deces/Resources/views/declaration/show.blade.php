@@ -92,9 +92,6 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                 <button class="btn btn-primary btn-piece" data-type="declarant" data-nom="{{ $declaration->declarant->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'declarant']) }}" data-piece="{{ $declaration->piece_declarant ?? '' }}" data-piece-url="{{ $declaration->piece_declarant ? asset($declaration->piece_declarant) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Déclarant
                 </button>
-                <button class="btn btn-primary btn-piece" data-type="defunt" data-nom="{{ $declaration->defunt->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'defunt']) }}" data-piece="{{ $declaration->piece_defunt ?? '' }}" data-piece-url="{{ $declaration->piece_defunt ? asset($declaration->piece_defunt) : '' }}">
-                    <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Défunt
-                </button>
                 <button class="btn btn-primary btn-piece" data-type="pere" data-nom="{{ $declaration->pere->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$declaration->code_declaration_deces, 'type' => 'pere']) }}" data-piece="{{ $declaration->piece_pere ?? '' }}" data-piece-url="{{ $declaration->piece_pere ? asset($declaration->piece_pere) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Père
                 </button>
@@ -116,6 +113,9 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                 data-piece-pere="{{ $declaration->piece_pere }}"
                 data-piece-mere="{{ $declaration->piece_mere }}"
                 data-piece-conjoint="{{ $declaration->piece_conjoint }}"
+                data-statut-pere="{{ optional($declaration->pere)->statut_personne ?? 'VIVANT' }}"
+                data-statut-mere="{{ optional($declaration->mere)->statut_personne ?? 'VIVANT' }}"
+                data-statut-conjoint="{{ optional($declaration->conjoint)->statut_personne ?? 'VIVANT' }}"
                 data-identiteDeclarant="{{ $declaration->declarant ? $declaration->declarant->nomcomplet() : '' }}"
                 data-identiteDefunt="{{ $declaration->defunt ? $declaration->defunt->nomcomplet() : '' }}"
                 data-identitePere="{{ $declaration->pere ? $declaration->pere->nomcomplet() : '' }}"
@@ -207,9 +207,9 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                             <td>
                                 @if($declaration->piece_declarant)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_declarant }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_declarant) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->declarant->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -218,9 +218,9 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                             <td>
                                 @if($declaration->piece_defunt)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_defunt }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_defunt) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">Optionnelle (non jointe)</span>
                                 @endif
                             </td>
                         </tr>
@@ -229,9 +229,9 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                             <td>
                                 @if($declaration->piece_pere)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_pere }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_pere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->pere->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -240,9 +240,9 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                             <td>
                                 @if($declaration->piece_mere)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_mere }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_mere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->mere->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -252,9 +252,9 @@ Détail de la déclaration N° {{ $declaration->code_declaration_deces }}
                             <td>
                                 @if($declaration->piece_conjoint)
                                     <span class="badge bg-success">Présente</span>
-                                    <a href="/{{ $declaration->piece_conjoint }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
+                                    <a href="{{ asset($declaration->piece_conjoint) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->conjoint->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -484,35 +484,47 @@ $(function(){
         const piecePere = $(this).data('piece-pere') || '';
         const pieceMere = $(this).data('piece-mere') || '';
         const pieceConjoint = $(this).data('piece-conjoint') || '';
+        const statutPere = $(this).data('statut-pere') || 'VIVANT';
+        const statutMere = $(this).data('statut-mere') || 'VIVANT';
+        const statutConjoint = $(this).data('statut-conjoint') || 'VIVANT';
 
-        // Remplir les champs dans le modal (à adapter selon ta modale)
+        // Déclarant : pièce toujours obligatoire. Défunt : non requise. Père/Mère/Conjoint : requises seulement si vivants
         $('#declarant-nom').text(declarantNom);
         $('#declarant-piece').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
         $('#declarant-status').html(pieceDeclarant ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
 
         $('#defunt-nom').text(defuntNom);
         $('#defunt-piece').html(pieceDefunt ? `<a href="/${pieceDefunt}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#defunt-status').html(pieceDefunt ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+        $('#defunt-status').html(pieceDefunt ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>');
 
         $('#pere-nom').text(pereNom);
         $('#pere-piece').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#pere-status').html(piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+        $('#pere-status').html(statutPere === 'DECEDE'
+            ? (piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+            : (piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
 
         $('#mere-nom').text(mereNom);
         $('#mere-piece').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#mere-status').html(pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+        $('#mere-status').html(statutMere === 'DECEDE'
+            ? (pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+            : (pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
 
         $('#conjoint-nom').text(conjointNom);
-        $('#conjoint-piece').html(pieceConjoint ? `<a href="/${pieceConjoint}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#conjoint-status').html(pieceConjoint ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+        if (!conjointNom) {
+            $('#conjoint-piece').text('-');
+            $('#conjoint-status').html('<span class="badge bg-secondary">Optionnelle</span>');
+        } else {
+            $('#conjoint-piece').html(pieceConjoint ? `<a href="/${pieceConjoint}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
+            $('#conjoint-status').html(statutConjoint === 'DECEDE'
+                ? (pieceConjoint ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                : (pieceConjoint ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
+        }
 
-        // Vérification des pièces obligatoires (à adapter selon ta logique métier)
+        // Pièce déclarant toujours obligatoire ; père et mère seulement s'ils sont vivants (défunt jamais requis)
         let piecesManquantes = false;
-        if (!pieceDeclarant || !pieceDefunt || !piecePere || !pieceMere) {
+        if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
             piecesManquantes = true;
         }
-        // Si le conjoint est obligatoire, décommente la ligne suivante :
-        // if (!pieceConjoint) { piecesManquantes = true; }
 
         if (piecesManquantes) {
             $('#alert-pieces-manquantes').removeClass('d-none');

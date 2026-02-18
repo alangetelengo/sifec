@@ -148,9 +148,11 @@ Déclaration
                                                         data-piece-declarant="{{ $dn->piece_declarant }}"
                                                         data-piece-pere="{{ $dn->piece_pere }}"
                                                         data-piece-mere="{{ $dn->piece_mere }}"
+                                                        data-statut-pere="{{ optional($dn->pere)->statut_personne ?? 'VIVANT' }}"
+                                                        data-statut-mere="{{ optional($dn->mere)->statut_personne ?? 'VIVANT' }}"
                                                         data-identiteDeclarant="{{ $dn->declarant->nomcomplet() }}"
-                                                        data-identitePere="{{ $dn->pere->nomcomplet() }}"
-                                                        data-identiteMere="{{ $dn->mere->nomcomplet() }}">
+                                                        data-identitePere="{{ $dn->pere ? $dn->pere->nomcomplet() : '' }}"
+                                                        data-identiteMere="{{ $dn->mere ? $dn->mere->nomcomplet() : '' }}">
                                                         <i class="fas fa-paper-plane"></i>
                                                     </button>
                                                 @endif
@@ -486,23 +488,27 @@ Déclaration
                 const pieceDeclarant = $(this).data('piece-declarant') || '';
                 const piecePere = $(this).data('piece-pere') || '';
                 const pieceMere = $(this).data('piece-mere') || '';
+                const statutPere = $(this).data('statut-pere') || 'VIVANT';
+                const statutMere = $(this).data('statut-mere') || 'VIVANT';
 
-                // Remplir le tableau du modal
+                // Déclarant : toujours obligatoire. Père/Mère : requises seulement si vivants
                 $('#declarant-nom').text(declarantNom);
                 $('#declarant-piece').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
                 $('#declarant-status').html(pieceDeclarant ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
 
                 $('#pere-nom').text(pereNom);
                 $('#pere-piece').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-                $('#pere-status').html(piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
-
+                $('#pere-status').html(statutPere === 'DECEDE'
+                    ? (piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                    : (piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>'));
                 $('#mere-nom').text(mereNom);
                 $('#mere-piece').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-                $('#mere-status').html(pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+                $('#mere-status').html(statutMere === 'DECEDE'
+                    ? (pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                    : (pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>'));
 
-                // Vérification des pièces
                 let piecesManquantes = false;
-                if (!pieceDeclarant || !piecePere || !pieceMere) {
+                if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
                     piecesManquantes = true;
                     $('#alert-pieces-manquantes').removeClass('d-none');
                 } else {

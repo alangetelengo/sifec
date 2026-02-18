@@ -178,12 +178,15 @@ class CertificatTranscriptionController extends Controller
                 if($mere == null){
                     $mere = Sifec::savePersonne($request,"_mere","F",$mereUniqueString);
                 }
-                if($declarant == null)
+                if($declarant == null && $request->filiation != "FIL_0001" && $request->filiation != "FIL_0002")
                 {
-
-                    if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0001")
-                    {
-                        $declarant = Sifec::savePersonne($request,"_declarant",$request->sexe_declarant,$declarantUniqueString);
+                    $declarant = Sifec::savePersonne($request,"_declarant",$request->sexe_declarant,$declarantUniqueString);
+                }
+                // Priorité au code_declarant envoyé par le formulaire (déclarant = père, mère ou autre)
+                if ($request->filled('code_declarant')) {
+                    $personneDeclarant = Personne::find($request->code_declarant);
+                    if ($personneDeclarant) {
+                        $declarant = $personneDeclarant;
                     }
                 }
 
@@ -197,18 +200,13 @@ class CertificatTranscriptionController extends Controller
                 $dn->date_heure_naissance = $request->date_naissance_enfant." ".$request->heure_naissance_enfant.":00" ;
                 $dn->type_declarant = "Personne physique";
 
-                if($request->filiation == "FIL_0001")
-                {
+                if ($request->filled('code_declarant') && ($p = Personne::find($request->code_declarant))) {
+                    $dn->code_declarant = $p->code_personne;
+                } elseif ($request->filiation == "FIL_0001") {
                     $dn->code_declarant = $pere->code_personne;
-                }
-
-                if($request->filiation == "FIL_0002")
-                {
+                } elseif ($request->filiation == "FIL_0002") {
                     $dn->code_declarant = $mere->code_personne;
-                }
-
-                if($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002")
-                {
+                } elseif ($declarant != null) {
                     $dn->code_declarant = $declarant->code_personne;
                 }
 

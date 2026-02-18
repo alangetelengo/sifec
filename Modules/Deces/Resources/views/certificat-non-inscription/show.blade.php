@@ -51,9 +51,6 @@ Détail {{ strtolower($certificat->type_declaration) }} N° {{ $certificat->nume
                 }
             @endphp
             @if($peutModifier)
-                <button class="btn btn-primary btn-piece" data-type="defunt" data-nom="{{ $certificat->defunt->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$certificat->code_declaration_deces, 'type' => 'defunt']) }}" data-piece="{{ $certificat->piece_defunt ?? '' }}" data-piece-url="{{ $certificat->piece_defunt ? asset($certificat->piece_defunt) : '' }}">
-                    <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Défunt
-                </button>
                 <button class="btn btn-primary btn-piece" data-type="declarant" data-nom="{{ $certificat->declarant->nom ?? '' }}" data-url="{{ route('declarationDeces.piece.store', [$certificat->code_declaration_deces, 'type' => 'declarant']) }}" data-piece="{{ $certificat->piece_declarant ?? '' }}" data-piece-url="{{ $certificat->piece_declarant ? asset($certificat->piece_declarant) : '' }}">
                     <i class="fa fa-id-card"></i> Ajouter/Modifier pièce Déclarant
                 </button>
@@ -108,10 +105,12 @@ Détail {{ strtolower($certificat->type_declaration) }} N° {{ $certificat->nume
                 data-piece-declarant="{{ $certificat->piece_declarant }}"
                 data-piece-pere="{{ $certificat->piece_pere }}"
                 data-piece-mere="{{ $certificat->piece_mere }}"
+                data-statut-pere="{{ optional($certificat->pere)->statut_personne ?? 'VIVANT' }}"
+                data-statut-mere="{{ optional($certificat->mere)->statut_personne ?? 'VIVANT' }}"
                 data-identiteDefunt="{{ $certificat->defunt->nomcomplet() }}"
                 data-identiteDeclarant="{{ $certificat->declarant->nomcomplet() }}"
-                data-identitePere="{{ $certificat->pere->nomcomplet() }}"
-                data-identiteMere="{{ $certificat->mere->nomcomplet() }}">
+                data-identitePere="{{ $certificat->pere ? $certificat->pere->nomcomplet() : '' }}"
+                data-identiteMere="{{ $certificat->mere ? $certificat->mere->nomcomplet() : '' }}">
                 <i class="fa fa-paper-plane"></i> Envoyer le dossier au tribunal
             </button>
             @else
@@ -484,15 +483,16 @@ $(function(){
         const pereNom = $(this).attr('data-identitePere');
         const mereNom = $(this).attr('data-identiteMere');
         // Pour les pièces, il faut ajouter des data-piece-* sur le bouton côté Blade si possible
-        const pieceDefunt = $(this).data('piece-defunt') || '';
         const pieceDeclarant = $(this).data('piece-declarant') || '';
         const piecePere = $(this).data('piece-pere') || '';
         const pieceMere = $(this).data('piece-mere') || '';
+        const statutPere = $(this).data('statut-pere') || 'VIVANT';
+        const statutMere = $(this).data('statut-mere') || 'VIVANT';
 
-        // Remplir le tableau du modal
+        const pieceDefunt = $(this).data('piece-defunt') || '';
         $('#defunt-nom-tribunal').text(defuntNom);
         $('#defunt-piece-tribunal').html(pieceDefunt ? `<a href="/${pieceDefunt}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#defunt-status-tribunal').html(pieceDefunt ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+        $('#defunt-status-tribunal').html(pieceDefunt ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>');
 
         $('#declarant-nom-tribunal').text(declarantNom);
         $('#declarant-piece-tribunal').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
@@ -500,15 +500,17 @@ $(function(){
 
         $('#pere-nom-tribunal').text(pereNom);
         $('#pere-piece-tribunal').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#pere-status-tribunal').html(piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
-
+        $('#pere-status-tribunal').html(statutPere === 'DECEDE'
+            ? (piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+            : (piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>'));
         $('#mere-nom-tribunal').text(mereNom);
         $('#mere-piece-tribunal').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-        $('#mere-status-tribunal').html(pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+        $('#mere-status-tribunal').html(statutMere === 'DECEDE'
+            ? (pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+            : (pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>'));
 
-        // Vérification des pièces
         let piecesManquantes = false;
-        if (!pieceDefunt || !pieceDeclarant || !piecePere || !pieceMere) {
+        if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
             piecesManquantes = true;
             $('#alert-pieces-manquantes-tribunal').removeClass('d-none');
         } else {

@@ -104,4 +104,68 @@ class Registre extends Model
         return $this->institutionUser->institution->institutionParent->institutionsUsers->flatten()->where("code_fonction","FONC_0009")->first()->user->personne;
 
     }
+
+    /**
+     * Génère le texte de paraphage du registre (intro de la page 1) selon le type de registre et l'institution.
+     * Utilisable dans toutes les vues (naissance, décès, mariage).
+     *
+     * @param string $contexte 'naissance' | 'deces' | 'mariage' — détermine la formulation du type de registre et "pour le compte"
+     * @return string HTML du paragraphe (à afficher avec {!! !!})
+     */
+    public function getTexteParapheRegistre(string $contexte = 'naissance'): string
+    {
+        $registre = $this->loadMissing([
+            'typeRegistre',
+            'institutionUser.institution.typeInstitution.typeCategorieInstitution',
+            'institutionUser.institution.institutionParent',
+            'signataire.user.personne',
+        ]);
+
+        $inst = $registre->institutionUser->institution;
+        $typeReg = $registre->typeRegistre;
+        $categorie = $inst->typeInstitution->typeCategorieInstitution->lib_type_categorie_institution ?? '';
+        $libInstitution = $inst->lib_institution ?? '';
+        $parentLib = optional($inst->institutionParent)->lib_institution ?? '';
+
+        $n = (int) $registre->nombre_acte_prevu;
+        $libType = $typeReg->lib_type_registre ?? '';
+
+        if ($contexte === 'naissance') {
+            $libTypeRegistre = 'registre d\'acte de ' . strtolower($libType);
+            $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
+            $dateAnnee = $registre->updated_at ? date('Y', strtotime($registre->updated_at)) : '';
+            $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
+        } elseif ($contexte === 'deces') {
+            $libTypeRegistre = 'registre d\'acte de ' . strtolower($libType);
+            if ($inst->typeInstitution && $inst->typeInstitution->code_type_institution === 'TPINS_0003') {
+                $pourLeCompte = 'des <strong>' . e($libInstitution) . '</strong>';
+            } else {
+                $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
+            }
+            $dateAnnee = $registre->created_at ? date('Y', strtotime($registre->created_at)) : '';
+            $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
+        } else {
+            $libTypeRegistre = 'registre d\'acte de ' . strtolower($libType);
+            $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
+            $dateAnnee = $registre->created_at ? date('Y', strtotime($registre->created_at)) : '';
+            $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
+        }
+
+        $pdt = '';
+        $sexep = '';
+        $titre = 'Président';
+        if ($registre->signataire && $registre->signataire->user && $registre->signataire->user->personne) {
+            $pdt = e($registre->signataire->user->personne->nomcomplet());
+            $sexep = $registre->signataire->user->personne->sexe ?? 'M';
+            $titre = ($sexep === 'F') ? 'Présidente' : 'Président';
+        }
+
+        $s = 'Ce présent registre contenant <strong>' . $n . '</strong> feuillets devant servir de <strong> ' . $libTypeRegistre . '</strong>';
+        $s .= ' en <strong>' . $dateAnnee . '</strong> pour le compte ' . $pourLeCompte;
+        $s .= ', a été coté et paraphé par nous, <strong>' . $pdt . '</strong>, ' . $titre . '  du <strong> ' . e($parentLib) . ' </strong>';
+        $s .= ', ce <strong>' . $dateCe . '</strong>. <br> <br>';
+        $s .= "Le registre sera clôturé et arrêté le 31 Décembre par l'officier de l'état-civil.";
+
+        return $s;
+    }
 }

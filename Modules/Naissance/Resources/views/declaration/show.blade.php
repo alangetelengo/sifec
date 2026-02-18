@@ -84,6 +84,8 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                     data-piece-pere="{{ $declaration->piece_pere }}"
                     data-piece-mere="{{ $declaration->piece_mere }}"
                     data-piece-extrait-main-courante="{{ $declaration->piece_extrait_main_courante }}"
+                    data-statut-pere="{{ optional($declaration->pere)->statut_personne ?? 'VIVANT' }}"
+                    data-statut-mere="{{ optional($declaration->mere)->statut_personne ?? 'VIVANT' }}"
                     data-identiteDeclarant="{{ $declaration->declarant ? $declaration->declarant->nomcomplet() : '' }}"
                     data-identitePere="{{ $declaration->pere ? $declaration->pere->nomcomplet() : '' }}"
                     data-identiteMere="{{ $declaration->mere ? $declaration->mere->nomcomplet() : '' }}">
@@ -149,15 +151,15 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                             <th><i class="fa fa-calendar-check text-primary me-1"></i> Date de création</th>
                             <td>{{ $declaration->created_at ? $declaration->created_at->format('d/m/Y H:i') : '-' }}</td>
                         </tr>
-                        <!-- Pièces jointes -->
+                        <!-- Pièces jointes : le déclarant peut être le père, la mère ou toute autre personne ; on utilise le statut de chaque personne concernée -->
                         <tr>
-                            <th><i class="fa fa-id-card text-primary me-1"></i> Pièce d'identité du déclarant</th>
+                            <th><i class="fa fa-id-card text-primary me-1"></i> Pièce d'identité du déclarant<br><small class="text-muted fw-normal">(père, mère ou autre personne)</small></th>
                             <td>
                                 @if($declaration->piece_declarant)
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($declaration->piece_declarant) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->declarant->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -168,7 +170,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($declaration->piece_pere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->pere->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -179,7 +181,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($declaration->piece_mere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($declaration->mere->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -416,43 +418,44 @@ $(function(){
         }
         // Remplir le tableau des pièces dans le modal
         const declarantNom = $(this).attr('data-identiteDeclarant');
-        const nouveauNeNom = $(this).attr('data-identiteNouveauNe');
         const pereNom = $(this).attr('data-identitePere');
         const mereNom = $(this).attr('data-identiteMere');
         const pieceDeclarant = $(this).data('piece-declarant') || '';
         const piecePere = $(this).data('piece-pere') || '';
         const pieceMere = $(this).data('piece-mere') || '';
+        const statutPere = $(this).data('statut-pere') || 'VIVANT';
+        const statutMere = $(this).data('statut-mere') || 'VIVANT';
 
-        // Remplir les champs dans le modal selon le type de déclaration
         @if($declaration->num_jugement_placement_provisoir != "" && $declaration->num_fiche_placement != "")
-            // Cas de placement provisoire
             const pieceExtraitMainCourante = $(this).data('piece-extrait-main-courante') || '';
             $('#extrait-main-courante-num').text('{{ $declaration->num_fiche_placement }}');
             $('#extrait-main-courante-piece').html(pieceExtraitMainCourante ? `<a href="/${pieceExtraitMainCourante}" target="_blank" class="text-success fw-bold">Afficher le document</a>` : '-');
             $('#extrait-main-courante-status').html(pieceExtraitMainCourante ? '<span class="badge bg-success">Présent</span>' : '<span class="badge bg-warning">Manquant</span>');
         @else
-            // Cas de déclaration normale
+            // Déclarant : pièce toujours obligatoire. Père/Mère : requises seulement si vivants
             $('#declarant-nom').text(declarantNom);
             $('#declarant-piece').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
             $('#declarant-status').html(pieceDeclarant ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
 
             $('#pere-nom').text(pereNom);
             $('#pere-piece').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-            $('#pere-status').html(piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+            $('#pere-status').html(statutPere === 'DECEDE'
+                ? (piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                : (piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
 
             $('#mere-nom').text(mereNom);
             $('#mere-piece').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-            $('#mere-status').html(pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+            $('#mere-status').html(statutMere === 'DECEDE'
+                ? (pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                : (pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
         @endif
 
-        // Vérification des pièces obligatoires (à adapter selon ta logique métier)
+        // Pièce déclarant toujours obligatoire ; père et mère seulement s'ils sont vivants
         let piecesManquantes = false;
-
-        // Pour les cas de placement provisoire, pas de contraintes sur les pièces
         @if($declaration->num_jugement_placement_provisoir != "" && $declaration->num_fiche_placement != "")
             piecesManquantes = false;
         @else
-            if (!pieceDeclarant || !piecePere || !pieceMere) {
+            if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
                 piecesManquantes = true;
             }
         @endif

@@ -171,12 +171,17 @@ class DeclarationDecesService
             $this->mettreAJourInformationsModifiables($request, $personnes['defunt'], "_defunt");
         }
 
-        // Gestion du déclarant
-        $personnes['declarant'] = Personne::where("personne_string", $uniqueStrings['declarant'])->first();
+        // Gestion du déclarant : priorité au code_declarant envoyé par le formulaire (père, mère ou autre personne)
+        $personnes['declarant'] = null;
+        if ($request->filled('code_declarant')) {
+            $personnes['declarant'] = Personne::find($request->input('code_declarant'));
+        }
+        if (!$personnes['declarant']) {
+            $personnes['declarant'] = Personne::where("personne_string", $uniqueStrings['declarant'])->first();
+        }
         if (!$personnes['declarant']) {
             $personnes['declarant'] = Sifec::savePersonne($request, "_declarant", $request->sexe_declarant, $uniqueStrings['declarant']);
         } else {
-            // Personne existe déjà : mettre à jour uniquement les informations modifiables
             $this->mettreAJourInformationsModifiables($request, $personnes['declarant'], "_declarant");
         }
 

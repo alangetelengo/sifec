@@ -142,10 +142,12 @@ Actes Décès
                                                             data-piece-declarant="{{ $dd->piece_declarant }}"
                                                             data-piece-pere="{{ $dd->piece_pere }}"
                                                             data-piece-mere="{{ $dd->piece_mere }}"
+                                                            data-statut-pere="{{ optional($dd->pere)->statut_personne ?? 'VIVANT' }}"
+                                                            data-statut-mere="{{ optional($dd->mere)->statut_personne ?? 'VIVANT' }}"
                                                             data-identitedefunt="{{ $dd->defunt->nomcomplet() }}"
                                                             data-identitedeclarant="{{ $dd->declarant->nomcomplet() }}"
-                                                            data-identitepere="{{ $dd->pere->nomcomplet() }}"
-                                                            data-identitemere="{{ $dd->mere->nomcomplet() }}">
+                                                            data-identitepere="{{ $dd->pere ? $dd->pere->nomcomplet() : '' }}"
+                                                            data-identitemere="{{ $dd->mere ? $dd->mere->nomcomplet() : '' }}">
                                                             <i class="fas fa-paper-plane"></i>
                                                         </button>
                                                     @endif
@@ -334,15 +336,16 @@ Actes Décès
                 const pieceDeclarant = $(this).data('piece-declarant') || '';
                 const piecePere = $(this).data('piece-pere') || '';
                 const pieceMere = $(this).data('piece-mere') || '';
+                const statutPere = $(this).data('statut-pere') || 'VIVANT';
+                const statutMere = $(this).data('statut-mere') || 'VIVANT';
 
-                // Remplir les champs du modal
                 $("#codedeclaration").val(codeDeclaration);
                 $("#code-declaration-display").val(codeDeclaration);
 
-                // Remplir le tableau des pièces
+                // Déclarant : obligatoire. Défunt/Père/Mère : optionnelles si décédé
                 $('#defunt-nom-centre').text(defuntNom);
                 $('#defunt-piece-centre').html(pieceDefunt ? `<a href="/${pieceDefunt}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-                $('#defunt-status-centre').html(pieceDefunt ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+                $('#defunt-status-centre').html(pieceDefunt ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>');
 
                 $('#declarant-nom-centre').text(declarantNom);
                 $('#declarant-piece-centre').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
@@ -350,15 +353,17 @@ Actes Décès
 
                 $('#pere-nom-centre').text(pereNom);
                 $('#pere-piece-centre').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-                $('#pere-status-centre').html(piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
-
+                $('#pere-status-centre').html(statutPere === 'DECEDE'
+                    ? (piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                    : (piecePere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>'));
                 $('#mere-nom-centre').text(mereNom);
                 $('#mere-piece-centre').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-                $('#mere-status-centre').html(pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>');
+                $('#mere-status-centre').html(statutMere === 'DECEDE'
+                    ? (pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                    : (pieceMere ? '<span class="badge badge-success">Présente</span>' : '<span class="badge badge-warning">Manquante</span>'));
 
-                // Vérification des pièces manquantes
                 let piecesManquantes = false;
-                if (!pieceDefunt || !pieceDeclarant || !piecePere || !pieceMere) {
+                if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
                     piecesManquantes = true;
                     $('#alert-pieces-manquantes-centre').removeClass('d-none');
                 } else {

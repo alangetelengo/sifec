@@ -45,7 +45,7 @@
         // Utiliser le service Sifec pour obtenir les informations de localisation
         $institution = $ddc->institution;
         $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-        
+
         $commune = $localisationData['localite'];
         $dept = $localisationData['localiteParent'];
         $localisation = $localisationData['localisation'];
@@ -138,12 +138,12 @@
                     </td> --}}
                     <td style="border: none; padding:5px 0px;text-align: left" colspan="3">L'Officier du centre d'état civil secondaire des :
                         @if($ddc->institution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
-                        {{ $ddc->institutionUser->institution->institutionParent->lib_institution }}
+                        {{ $ddc->institutionPompeFunebre->lib_institution}}
 
                         @else
-                        {{ $ddc->institution->lib_institution }}
+                        {{ $ddc->institution->lib_institution }} 
 
-                        @endif
+                         @endif
 
                     </td>
                     <td style="border: none; padding:5px 0px;text-align: center">&nbsp;</td>

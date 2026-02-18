@@ -2,41 +2,31 @@
 
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use Carbon\Carbon;
-use App\Sifec\Sifec;
-use Omnipay\Omnipay;
-use Twilio\Rest\Client;
-use Illuminate\Http\Request;
-use Spipu\Html2Pdf\Html2Pdf;
+use App\Http\Controllers\Controller;
+use App\Mail\TransmissionDocumentPortail;
+use App\Models\AuthentificationActe;
+use App\Models\DemandePortailParticulier;
 use App\Models\PaiementDocument;
+use App\Sifec\Sifec;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
-use App\Models\AuthentificationActe;
 use Illuminate\Support\Facades\Mail;
-use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Support\Facades\Storage;
-use App\Mail\TransmissionDocumentPortail;
-use App\Models\DemandePortailParticulier;
-use Modules\Mariage\Entities\ActeMariage;
-use Modules\Deces\Entities\DeclarationDeces;
-use Modules\Naissance\Entities\ActeNaissance;
-use Modules\Referentiel\Entities\Institution;
-use Modules\Mariage\Entities\DeclarationMariage;
-use Modules\Naissance\Entities\Declarationnaissance;
-use Modules\Notification\Jobs\SendSmsJob;
-use Modules\Naissance\Services\OtpService;
-use Modules\Referentiel\Entities\Registre;
-use Modules\Referentiel\Entities\RetraitActe;
-use Modules\Naissance\Services\MouvementService;
-use Modules\Naissance\Entities\MouvementNaissance;
-use Modules\Naissance\Services\ActeNaissanceService;
-use Modules\Naissance\Http\Requests\GenerateActeRequest;
-use Modules\Notification\Jobs\ValidationacteNaissanceJob;
-use Modules\Notification\Services\NotificationService;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\URL;
+use Modules\Deces\Entities\ActeDeces;
+use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Mariage\Entities\ActeMariage;
+use Modules\Mariage\Entities\DeclarationMariage;
+use Modules\Naissance\Entities\ActeNaissance;
+use Modules\Naissance\Entities\Declarationnaissance;
+use Modules\Referentiel\Entities\Institution;
+use Omnipay\Omnipay;
+use Spipu\Html2Pdf\Html2Pdf;
+use Twilio\Rest\Client;
+
 
 
 class AuthentificationActeController extends Controller
@@ -58,15 +48,15 @@ class AuthentificationActeController extends Controller
 
         //enregitrement de l'opération d'authentification d'acte en bdd
         //0.enregistrement des informations de la demande
-        $auth = new AuthentificationActe();
-        $auth->code_authentification = Sifec::genererCodeUniqueReferentiel($auth,"code_authentification",4,"AUTH_");
-        $auth->type_acte_authentification = $typeActe;
-        $auth->date_authentification = date("Y-m-d", strtotime(now()));
-        $auth->numero_acte_authentification = $numeroActe;
+        // $auth = new AuthentificationActe();
+        // $auth->code_authentification = Sifec::genererCodeUniqueReferentiel($auth,"code_authentification",4,"AUTH_");
+        // $auth->type_acte_authentification = $typeActe;
+        // $auth->date_authentification = date("Y-m-d", strtotime(now()));
+        // $auth->numero_acte_authentification = $numeroActe;
 
-        //configuration pointe-noire
-        $auth->montant_authentification = 1000;//coût du service d'authentification :: Estimation
-        $auth->administration = "DEC";//récuépration à partir des paramètres de l'utilisateur
+        // //configuration pointe-noire
+        // $auth->montant_authentification = 1000;//coût du service d'authentification :: Estimation
+        // $auth->administration = "DEC";//récuépration à partir des paramètres de l'utilisateur
 
 
         if($typeActe == 'Acte de naissance'){
@@ -74,8 +64,8 @@ class AuthentificationActeController extends Controller
             $an = ActeNaissance::find($numeroActe);
             if($an == null){
 
-                $auth->statut_authentification = "NON AUTHENTIQUE";
-                $auth->save();
+                // $auth->statut_authentification = "NON AUTHENTIQUE";
+                // $auth->save();
 
                 $routeRecu =  route('etatRecuNaissanceNA', $numeroActe);
                 //return $routeRecu;
@@ -87,9 +77,9 @@ class AuthentificationActeController extends Controller
             ]);
             }
 
-            $auth->statut_authentification = "AUTHENTIQUE";
+            // $auth->statut_authentification = "AUTHENTIQUE";
 
-            $auth->save();
+            // $auth->save();
 
            //récupération déclaration numéro
             $numDec = $an->code_declaration_naissance;
@@ -256,38 +246,38 @@ class AuthentificationActeController extends Controller
 
 
                 //0.enregistrement des informations de la demande
-                $dmd = new DemandePortailParticulier();
+                // $dmd = new DemandePortailParticulier();
 
-                //$dmd->code_demande = Sifec::genererCodeUniqueReferentiel($dmd,"code_demande",4,"DMD_PORTAIL_");
-                $dmd->statut_demande = "En attente de paiement";
-                $dmd->type_acte = $typeActe;
-                $dmd->type_document = $typeDocument;
-                $dmd->num_acte = $numeroActe;
-                $dmd->nom_acte = $nomActe;
-                $dmd->prenom_acte = $prenomActe;
-                $dmd->sexe_acte = $sexeActe;
-                $dmd->date_naissance_acte = date("Y-m-d", strtotime($dateNaissanceActe));
-                $dmd->lieu_naissance_acte = $lieuNaissanceActe;
-                $dmd->cec_acte = $cecActe;
+                // //$dmd->code_demande = Sifec::genererCodeUniqueReferentiel($dmd,"code_demande",4,"DMD_PORTAIL_");
+                // $dmd->statut_demande = "En attente de paiement";
+                // $dmd->type_acte = $typeActe;
+                // $dmd->type_document = $typeDocument;
+                // $dmd->num_acte = $numeroActe;
+                // $dmd->nom_acte = $nomActe;
+                // $dmd->prenom_acte = $prenomActe;
+                // $dmd->sexe_acte = $sexeActe;
+                // $dmd->date_naissance_acte = date("Y-m-d", strtotime($dateNaissanceActe));
+                // $dmd->lieu_naissance_acte = $lieuNaissanceActe;
+                // $dmd->cec_acte = $cecActe;
 
-                $dmd->nom_demandeur = $nomDemandeur;
-                $dmd->telephone_demandeur = $telDemandeur;
-                $dmd->email_demandeur = $emailDemandeur;
+                // $dmd->nom_demandeur = $nomDemandeur;
+                // $dmd->telephone_demandeur = $telDemandeur;
+                // $dmd->email_demandeur = $emailDemandeur;
 
-                //$dmd->nombre_exemplaire = $nombreExemplaire;
-                $dmd->cout = $montantApayer;
-                $dmd->cec_associe = $cecTraitement; //cas des extraits
-                $dmd->moyen_paiement = $moyenPaiement;
+                // //$dmd->nombre_exemplaire = $nombreExemplaire;
+                // $dmd->cout = $montantApayer;
+                // $dmd->cec_associe = $cecTraitement; //cas des extraits
+                // $dmd->moyen_paiement = $moyenPaiement;
 
-                $dmd->dateDemande = Carbon::now()->toDateTimeString(); //cas des extraits
+                // $dmd->dateDemande = Carbon::now()->toDateTimeString(); //cas des extraits
 
-                $dmd->save();
+                // $dmd->save();
 
-                if($dmd->type_document == "Copie"){
+                if($typeDocument == "Copie"){
                     $piece = route('copieActeNaissancePortail',$numDec.'|'.$cecTraitement);
                 }
 
-                if($dmd->type_document == "Extrait acte naissance"){
+                if($typeDocument == "Extrait acte naissance"){
                     $piece = route("acteNaissance.displayExtraitActePortail",$numDec.'|'.$cecTraitement);
                 }
 
@@ -534,14 +524,7 @@ class AuthentificationActeController extends Controller
         view()->share("tester", "Alange");
         $html2pdf = new Html2Pdf('P', 'A4', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $verificationUrl = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
-        $qrCode = QrCode::format('svg')
-            ->size(300)
-            ->margin(2)
-            ->errorCorrection('H')
-            ->generate($verificationUrl);
-        $qrCode = trim(preg_replace('/^<\?xml.*?\?>/s', '', $qrCode));
-        $html2pdf->writeHTML(view('naissance::etats.copieActeNaissancePortail', compact("acte","dummy", "declarationDeces","mariage", 'institutionPortail', 'signatairePortail','qrCode'))->render());
+        $html2pdf->writeHTML(view('naissance::etats.copieActeNaissancePortail', compact("acte","dummy", "declarationDeces","mariage", 'institutionPortail', 'signatairePortail'))->render());
         // // $html2pdf->writeHTML(view('naissance::etats.displayextrait', compact("acte","dummy", "declarationDeces","mariage"))->render());
         // // $html2pdf->writeHTML("<h1>Test reussi</h1>");
         return $html2pdf->output($acte->code_acte_naissance.".pdf");
@@ -675,38 +658,115 @@ class AuthentificationActeController extends Controller
 
     public function displayActe($id)
     {
-
-
         try {
-            $acte = ActeNaissance::where("code_declaration_naissance", $id)->first();
-            $dummy = "XXXXXXXXXXXXXXXX";
+            // Charger l'acte avec ses relations nécessaires
+            $acte = ActeNaissance::with([
+                'declaration.enfant',
+                'declaration.pere.nationalite',
+                'declaration.pere.profession',
+                'declaration.mere.nationalite',
+                'declaration.mere.profession',
+                'declaration.declarant',
+                'declaration.adoptant',
+                'declaration.jugement.institutionUser.institution.institutionParent',
+                'declaration.institutionUser.institution.institutionParent',
+                'declaration.institutionUser.institution.lieu.localiteParent',
+                'declaration.requisition.typeRequisition',
+                'declaration.institution.institutionParent',
+                'institutionUser.institution',
+                'institutionUser.institution.institutionParent.lieu.localiteParent'
+            ])->where("code_declaration_naissance", $id)->first();
 
             if ($acte == null) {
-                toastr()->error("Vous ne pouvez pas généré un acte de naissance");
+                Log::channel('sifec')->error("Acte de naissance introuvable pour code_declaration_naissance: {$id}");
+                toastr()->error("Vous ne pouvez pas générer un acte de naissance. Acte introuvable.");
                 return back();
             }
+
+            // Vérifier que la déclaration existe
+            if (!$acte->declaration) {
+                Log::channel('sifec')->error("Déclaration manquante pour acte: {$acte->code_acte_naissance}");
+                throw new Exception("Données incomplètes pour générer l'acte. Déclaration manquante.");
+            }
+
+            $dummy = "XXXXXXXXXXXXXXXX";
+
+            // Recherche de l'acte annulé (si existe)
             $acteannuler = Declarationnaissance::where("numero_ancien_acte", $acte->niupp)->first();
+
+            // Recherche de déclaration de décès (si existe)
             $declarationDeces = DeclarationDeces::where("num_acte_naissance", $acte->niupp)->first();
 
+            // Recherche de mariage (si existe)
             $mariage = null;
-            if (DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first() != null) {
-                $mariage = DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first();
+            $mariageEpoux = DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first();
+            if ($mariageEpoux) {
+                $mariage = $mariageEpoux;
+            } else {
+                $mariageEpouse = DeclarationMariage::where('numero_acte_naissance_epouse', $acte->niupp)->first();
+                if ($mariageEpouse) {
+                    $mariage = $mariageEpouse;
+                }
             }
-            if (DeclarationMariage::where('numero_acte_naissance_epouse', $acte->niupp)->first() != null) {
-                $mariage = DeclarationMariage::where('numero_acte_naissance_epouse', $acte->niupp)->first();
+
+            // Compter le nombre total de mentions
+            $nombreMentions = 0;
+            if ($mariage != null) {
+                $nombreMentions++;
             }
+            if ($declarationDeces != null) {
+                $nombreMentions++;
+            }
+            if ($acte->declaration->jugement != null) {
+                $nombreMentions++;
+            }
+            if ($acteannuler != null) {
+                $nombreMentions++;
+            }
+            // Charger les rectifications si nécessaire pour le comptage
+            if (!$acte->relationLoaded('rectifications')) {
+                $acte->load('rectifications');
+            }
+            if ($acte->rectifications && $acte->rectifications->count() > 0) {
+                $nombreMentions += $acte->rectifications->count();
+            }
+
+            DB::beginTransaction();
 
             view()->share("tester", "Alange");
             $html2pdf = new Html2Pdf('P', 'A4', 'fr');
             $html2pdf->setDefaultFont('Arial');
 
-            $html2pdf->writeHTML(view('naissance::etats.acte', compact("acte", "dummy", "acteannuler", "declarationDeces", "mariage"))->render());
+            $verificationUrl = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
+            $qrCode = $verificationUrl;
+
+            // Rendre la vue avec gestion d'erreur
+            $htmlContent = view('naissance::etats.acte', compact("acte", "dummy", "acteannuler", "declarationDeces", "mariage", "qrCode", "nombreMentions"))->render();
+
+            if (empty($htmlContent)) {
+                throw new Exception("Le contenu HTML de l'acte est vide.");
+            }
+
+            $html2pdf->writeHTML($htmlContent);
+            DB::commit();
 
             return $html2pdf->output($acte->code_acte_naissance . ".pdf");
         } catch (Exception $e) {
-            Log::channel("sifec")->info("Erreur lors de la génération de l'acte de naissance: " . $e->getMessage());
-            toastr()->error("Une erreur est survenue lors de la génération de l'acte de naissance: " . $e->getMessage());
-            return back();
+            DB::rollBack();
+            Log::channel('sifec')->error("Erreur génération PDF acte de naissance ID: {$id} - Message: " . $e->getMessage());
+            Log::channel('sifec')->error("Stack trace: " . $e->getTraceAsString());
+
+            // Si c'est une requête AJAX ou PDF, renvoyer une réponse JSON ou une erreur HTTP
+            if (request()->expectsJson() || request()->wantsJson()) {
+                return response()->json([
+                    'error' => true,
+                    'message' => "Erreur lors de la génération du PDF: " . $e->getMessage()
+                ], 500);
+            }
+
+            // Sinon, renvoyer une réponse HTML d'erreur pour le PDF Viewer
+            return response("Erreur lors de la génération du PDF: " . $e->getMessage(), 500)
+                ->header('Content-Type', 'text/plain');
         }
     }
 

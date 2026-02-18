@@ -1194,6 +1194,7 @@ class ActeNaissanceController extends Controller
 
     public function rectificationacte()
     {
+
         $id = request('id');
 
         try {

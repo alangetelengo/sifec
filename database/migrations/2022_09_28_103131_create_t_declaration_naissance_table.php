@@ -55,7 +55,8 @@ class CreateTDeclarationNaissanceTable extends Migration
             $table->string("code_institution_destinataire", 16)->nullable()->comment("institution destinataire de la déclaration");
             $table->string("numero_ancien_acte", 16)->nullable();
             $table->string('code_jugement', 16)->nullable();
-            
+            $table->string('code_requisition', 16)->nullable();
+
             // Champs pour enfant abandonné
             $table->string("lieu_placement",150)->nullable()->comment("qui permet de renseigner la structure au quel l'enfant trouvé ou abandonné a été placé");
             $table->string("piece_extrait_main_courante",175)->nullable()->comment("qui permet de renseigner la structure au quel l'enfant trouvé ou abandonné a été placé");
@@ -79,7 +80,7 @@ class CreateTDeclarationNaissanceTable extends Migration
             $table->foreign('code_lieu_survenance')->references('code_lieu_survenance')->on('tr_lieu_survenance')->onDelete('cascade')->onUpdate("cascade");
             $table->foreign("code_situation_mat")->references('code_situation_matrimoniale')->on("tr_situation_matrimoniale")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_jugement")->references("code_jugement")->on("t_jugement")->onDelete("cascade")->onUpdate("cascade");
-
+            $table->foreign("code_requisition")->references("code_requisition")->on("t_requisition")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
 
             $table->foreign("cec_approuve_par")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");

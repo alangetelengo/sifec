@@ -304,8 +304,14 @@ class NaissanceController extends Controller
             // Enregistrement de la déclaration
             $resultatEnregistrement = $service->enregistrer($request, Auth::user());
 
-            // Si le service retourne une réponse JSON (erreur), on la retourne directement
+            // Si le service retourne une réponse JSON (erreur), on la logue et on la retourne
             if ($resultatEnregistrement instanceof \Illuminate\Http\JsonResponse) {
+                $data = $resultatEnregistrement->getData(true);
+                Log::channel('sifec')->warning('Erreur enregistrement déclaration naissance', [
+                    'code' => $data['code'] ?? null,
+                    'message' => $data['message'] ?? null,
+                    'personne_declaree' => $request->personne_declaree ?? null,
+                ]);
                 return $resultatEnregistrement;
             }
 

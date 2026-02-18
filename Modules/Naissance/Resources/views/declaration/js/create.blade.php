@@ -881,7 +881,7 @@ $(function(){
                 document.getElementById('sexe_declarant').disabled = true;
 
                 var filiation = $("#filiation");
-                    filiation.val("FIL_0001");
+                    filiation.val("FIL_0002"); /* Mère = FIL_0002 (était incorrectement FIL_0001) */
                 $("#filiation option:selected").text();
                 document.getElementById('filiation').disabled = true;
                 var profession_declarant = $("#profession_declarant");

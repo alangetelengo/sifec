@@ -11,6 +11,18 @@
     button#print{
         display: none;
     }
+    /* Empêcher le débordement du nom d'institution long */
+    .acte-contenu td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        max-width: 650px;
+    }
+    .acte-contenu td.institution-officier {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        max-width: 100%;
+    }
 </style>
   <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 14px">
     @php
@@ -66,9 +78,14 @@
                 @else
                 <p>
                     <span>
+                        {{ $departement }}
+                        <br>
+                            {{ $communeDistrict }}
+                        </span> <br>
+                    <span>
                         <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
                     </span> <br>
-                    <span>Service Consulaire</span> <br>
+                    {{-- <span>Service Consulaire</span> <br> --}}
                 </p>
                 @endif
             </td>
@@ -97,9 +114,9 @@
     <div style="margin-top: 60px;margin-left: 6%;margin-right: 6%;border-radius: 2mm;">
 
         <div style="position: absolute;top: 240px; width: 700px; height: 500px; padding: 0px; overflow: hidden; font-weight: normal; font-size:14px;">
-            <table align="left" style="margin-left: 2%;">
+            <table class="acte-contenu" align="left" style="margin-left: 2%; table-layout: fixed; width: 96%;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td>L'Officier du centre d'état civil principal de: <strong>{{ $acte->institutionUser->institution->lib_institution}}</strong></td>
+                    <td class="institution-officier">L'Officier du centre d'état civil principal de: <strong>{!! nl2br(e(wordwrap(optional($acte->institutionUser->institution)->lib_institution ?? '', 35, "\n", true))) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Est informé le: <br> <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong></td>
@@ -120,30 +137,20 @@
                     <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }}
                        <span style="color: red;">
                          @php
-                         $nomEnfant = "";
-                         $prenomEnfant = "";
+                         $nomEnfant = $acte->declaration->enfant->nom ?? '';
+                         $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
+                         if ($acte->lastRectification && $acte->lastRectification->detailsRectification->count() > 0) {
+                             foreach ($acte->lastRectification->detailsRectification as $d) {
+                                 if ($d->code_rubrique === 'RUB_0001') {
+                                     $nomEnfant = $d->nouvelle_valeur ?? $nomEnfant;
+                                 }
+                                 if ($d->code_rubrique === 'RUB_0002') {
+                                     $prenomEnfant = $d->nouvelle_valeur ?? $prenomEnfant;
+                                 }
+                             }
+                         }
                          @endphp
-                        {{-- Si l'acte a une dernière rectification, on prend les valeurs de la dernière rectification --}}
-                        {{-- Sinon, on prend les valeurs de la déclaration --}}
-                        @if($acte->lastRectification)
-
-                            @if($acte->lastRectification->detailsRectification->last()->code_rubrique == "RUB_0001")
-                            @php
-                                $nomEnfant = $acte->lastRectification->detailsRectification->last()->nouvelle_valeur;
-                            @endphp
-                            @endif
-                            @if($acte->lastRectification->detailsRectification->last()->code_rubrique == "RUB_0002")
-                            @php
-                                $prenomEnfant = $acte->lastRectification->detailsRectification->last()->nouvelle_valeur;
-                            @endphp
-                            @endif
-                        @else
-                            @php
-                                $nomEnfant = $acte->declaration->enfant->nom;
-                                $prenomEnfant = $acte->declaration->enfant->prenom;
-                            @endphp
-                        @endif
-                        {{ $nomEnfant." ".$prenomEnfant }}
+                        {{ trim($nomEnfant.' '.$prenomEnfant) }}
                         </span></strong>
                     </td>
                 </tr>

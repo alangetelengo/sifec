@@ -129,6 +129,44 @@ class InstitutionController extends Controller
 
 
     /**
+     * Show the form for editing the specified resource.
+     * @param string $id Code de l'institution (code_institution)
+     * @return Renderable
+     */
+    public function edit($id)
+    {
+        $institution = Institution::with(['typeInstitution', 'institutionParent', 'lieu'])
+            ->find($id);
+
+        if ($institution === null) {
+            toastr()->error("Institution introuvable.");
+            return redirect()->route("institution.index");
+        }
+
+        // Exclure les types TPINS_0004 et TPINS_0001 pour l'édition
+        if (in_array($institution->code_type_institution, ["TPINS_0004", "TPINS_0001"])) {
+            toastr()->error("La modification de ce type d'institution n'est pas autorisée.");
+            return redirect()->route("institution.index");
+        }
+
+        $localites = Localite::whereIn("code_type_localite", ["TPLOC_0002", "TPLOC_0003", "TPLOC_0004"])->get();
+        $typeInstitutions = TypeInstitution::all();
+        $typeLocalites = TypeLocalite::all();
+        $tribunaux = Institution::whereIn("code_type_institution", ["TPINS_0008", "TPINS_0001"])->get();
+
+        // Parents disponibles (exclure l'institution et ses descendants)
+        $descendants = $institution->descendants()->pluck('code_institution')->toArray();
+        $availableParents = Institution::with('typeInstitution')
+            ->whereNotIn("code_type_institution", ["TPINS_0004", "TPINS_0001"])
+            ->where('code_institution', '!=', $institution->code_institution)
+            ->whereNotIn('code_institution', $descendants)
+            ->orderBy('lib_institution')
+            ->get();
+
+        return view('referentiel::institution.edit', compact('institution', 'localites', 'typeInstitutions', 'tribunaux', 'typeLocalites', 'availableParents'));
+    }
+
+    /**
      * Store a newly created resource in storage.
      * @param Request $request
      * @return Renderable

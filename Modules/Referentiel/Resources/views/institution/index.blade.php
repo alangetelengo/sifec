@@ -435,77 +435,88 @@
                 url: "{{ route('institution.filter') }}",
                 type: 'POST',
                 data: formData,
+                dataType: 'json',
                 beforeSend: function() {
                     $('#tbody-institutions').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>');
                     $('#count-results').text('');
                 },
                 success: function(response) {
+                    var $tbody = $('#tbody-institutions');
+                    if (!$tbody.length) {
+                        if (typeof flashAlert === 'function') flashAlert("Erreur", "error", "Tableau introuvable");
+                        return;
+                    }
                     try {
-                        if (response.success && response.html) {
-                            // Détruire DataTables complètement avant de modifier le contenu
-                            if ($.fn.DataTable.isDataTable('#table-institutions')) {
-                                try {
-                                    tableInstitutions.destroy();
-                                } catch(e) {
-                                    console.log('Erreur lors de la destruction de DataTables:', e);
+                        if (typeof response === 'string') {
+                            try { response = JSON.parse(response); } catch (parseErr) {
+                                if (typeof flashAlert === 'function') flashAlert("Erreur", "error", "Réponse serveur invalide");
+                                $tbody.html('<tr><td colspan="8" class="text-center text-danger">Réponse serveur invalide</td></tr>');
+                                return;
                             }
-                                tableInstitutions = null;
-                            }
-                            // Vider complètement le tbody et le remplacer par les nouvelles données
-                            $('#tbody-institutions').empty().html(response.html);
-
-                            // Afficher le nombre de résultats
-                            var countText = response.count + ' résultat(s) trouvé(s)';
-                            if (response.limite_atteinte) {
-                                countText += ' (limite de 500 atteinte, affinez vos critères)';
-                            }
-                            $('#count-results').text(countText);
-
-                            // Réinitialiser DataTables avec les nouvelles données (même si vide)
-                            setTimeout(function() {
-                                    try {
-                                    // Vérifier si la table a des données (plus d'une ligne ou pas de classe text-center)
-                                    var rows = $('#tbody-institutions tr');
-                                    var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
-
-                                    if (hasData && rows.length > 0) {
-                                        tableInstitutions = $('#table-institutions').DataTable({
-                                            "language": {
-                                                "search": "Rechercher:",
-                                                "lengthMenu": "Afficher _MENU_ éléments",
-                                                "info": "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
-                                                "infoEmpty": "Affichage de 0 à 0 sur 0 éléments",
-                                                "infoFiltered": "(filtré sur _MAX_ éléments au total)",
-                                                "loadingRecords": "Chargement...",
-                                                "zeroRecords": "Aucun élément correspondant trouvé",
-                                                "emptyTable": "Aucune donnée disponible dans le tableau",
-                                                "paginate": {
-                                                    "first": "Premier",
-                                                    "last": "Dernier",
-                                                    "next": "Suivant",
-                                                    "previous": "Précédent"
-                                                }
-                                            },
-                                            "paging": false,
-                                            "searching": true,
-                                            "info": false,
-                                            "ordering": true,
-                                            "destroy": true
-                                        });
-                                    } else {
-                                        // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
-                                        console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
-                                    }
-                                } catch(e) {
-                                    console.error('Erreur lors de l\'initialisation de DataTables:', e);
-                                }
-                            }, 100);
-                        } else {
-                            flashAlert("Erreur", "error", response.message || "Une erreur est survenue lors de la recherche");
                         }
-                    } catch(e) {
-                        console.error('Erreur lors du traitement de la réponse:', e);
-                        flashAlert("Erreur", "error", "Erreur lors du traitement de la réponse");
+                        if (!response || response.success !== true) {
+                            if (typeof flashAlert === 'function') flashAlert("Erreur", "error", (response && response.message) ? response.message : "Une erreur est survenue lors de la recherche");
+                            return;
+                        }
+                        var html = (response.html != null && response.html !== undefined) ? String(response.html) : '';
+                        var count = (typeof response.count === 'number') ? response.count : 0;
+
+                        if ($.fn.DataTable.isDataTable('#table-institutions')) {
+                            try { tableInstitutions.destroy(); } catch (e) { }
+                            tableInstitutions = null;
+                        }
+
+                        $tbody.empty();
+                        try {
+                            var tbodyEl = $tbody.get(0);
+                            if (tbodyEl && tbodyEl.insertAdjacentHTML) {
+                                tbodyEl.insertAdjacentHTML('beforeend', html);
+                            } else {
+                                $tbody.html(html);
+                            }
+                        } catch (injErr) {
+                            console.error('Injection HTML:', injErr);
+                            try { $tbody.html(html); } catch (e2) {
+                                $tbody.html('<tr><td colspan="8" class="text-center text-danger">Impossible d\'afficher les résultats</td></tr>');
+                            }
+                        }
+
+                        var countText = count + ' résultat(s) trouvé(s)';
+                        if (response.limite_atteinte) countText += ' (limite de 500 atteinte, affinez vos critères)';
+                        $('#count-results').text(countText);
+
+                        setTimeout(function() {
+                            try {
+                                var rows = $tbody.find('tr');
+                                var hasData = rows.length > 0 && !rows.first().find('td.text-center').length;
+                                if (hasData && rows.length > 0) {
+                                    tableInstitutions = $('#table-institutions').DataTable({
+                                        language: {
+                                            search: "Rechercher:",
+                                            lengthMenu: "Afficher _MENU_ éléments",
+                                            info: "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
+                                            infoEmpty: "Affichage de 0 à 0 sur 0 éléments",
+                                            infoFiltered: "(filtré sur _MAX_ éléments au total)",
+                                            loadingRecords: "Chargement...",
+                                            zeroRecords: "Aucun élément correspondant trouvé",
+                                            emptyTable: "Aucune donnée disponible dans le tableau",
+                                            paginate: { first: "Premier", last: "Dernier", next: "Suivant", previous: "Précédent" }
+                                        },
+                                        paging: false,
+                                        searching: true,
+                                        info: false,
+                                        ordering: true,
+                                        destroy: true
+                                    });
+                                }
+                            } catch (dtErr) {
+                                console.error('DataTables:', dtErr);
+                            }
+                        }, 150);
+                    } catch (e) {
+                        console.error('Traitement réponse:', e);
+                        if (typeof flashAlert === 'function') flashAlert("Erreur", "error", "Erreur lors du traitement de la réponse");
+                        $tbody.html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du traitement des résultats. Réessayez.</td></tr>');
                     }
                 },
                 error: function(xhr, status, error) {

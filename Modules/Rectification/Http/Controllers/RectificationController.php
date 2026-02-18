@@ -12,6 +12,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Deces\Entities\ActeDeces;
+use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Mobile\Entities\TypeActe;
 use Illuminate\Support\Facades\Validator;
 use Modules\Mariage\Entities\ActeMariage;
@@ -69,16 +70,18 @@ class RectificationController extends Controller
     public function store(Request $request)
     {
 
-            //controle des donneés
+            // Contrôle des données
             $rules = [
-                "numero_acte" => ["required","string"],
-                "type_acte" => ["required","string"],
-                "old_value" => ["required"],
-                "nouvelle_valeur" => ["required"],
-                "rubrique" => ["required"],
-                "nom_requerant" => ["required","string"],
-                "filiation_requerant" => ["required","string"],
-                "telephone_requerant" => ["required","string"]
+                "numero_acte" => ["required", "string"],
+                "type_acte" => ["required", "string"],
+                "old_value" => ["nullable", "string"],
+                "nouvelle_valeur" => ["required", "string"],
+                "rubrique" => ["required", "string"],
+                "nom_requerant" => ["required", "string"],
+                "prenom_requerant" => ["required", "string"],
+                "telephone_requerant" => ["required", "string"],
+                "filiation_requerant" => ["nullable", "string"],
+                "piece_justificative" => ["nullable", "file", "mimes:pdf,jpg,jpeg,png", "max:5120"],
             ];
             $validator = Validator::make($request->all(),$rules);
             if($validator->fails()){
@@ -88,12 +91,26 @@ class RectificationController extends Controller
                 ]);
             }
 
-            //récupération des donnees
-            $rubrique = $request->rubrique;
-            $typeActe = $request->type_acte;
-            $numeroActe = $request->numero_acte;
-            $oldValue = $request->old_value;
-            $newValue = $request->nouvelle_valeur;
+            // Récupération des données
+            $rubrique = trim((string) $request->input('rubrique', ''));
+            $typeActe = trim((string) $request->input('type_acte', ''));
+            $numeroActe = trim((string) $request->input('numero_acte', ''));
+            $oldValue = trim((string) $request->input('old_value', ''));
+            $newValue = trim((string) $request->input('nouvelle_valeur', ''));
+
+            // Vérification du format de la rubrique
+            $rubriqueParts = explode('-', $rubrique);
+            if (count($rubriqueParts) < 3) {
+                return response()->json([
+                    'code' => '400',
+                    'message' => 'Format de rubrique invalide'
+                ]);
+            }
+
+            // Si old_value est vide, utiliser "-" pour indiquer qu'il n'y avait pas de valeur précédente
+            if ($oldValue === '') {
+                $oldValue = '-';
+            }
             $nomRequerant = $request->nom_requerant;
             $prenomRequerant = $request->prenom_requerant;
             $telephoneRequerant = $request->telephone_requerant;
@@ -108,48 +125,111 @@ class RectificationController extends Controller
             //recuperation de l'adresse du requerant structure(numero,typeVoie,nomVoie,quartier,arrondissement,communeDistrict)
             $adresseRequerant = $domicileNumeroRequerant." ".$domicileTypeVoieRequerant." ".$domicileNomVoieRequerant." ".$quartierRequerant." ".$arrondRequerant." ".($communeDistrictRequerant);
 
-            $champ_id = explode("-", $rubrique)[1]; //nom technique exple:nom
+            $champ_id = $rubriqueParts[1]; // lib_technique : nom, prenom, sexe, date_naissance, etc.
 
-
-            //vérification l'égalité de l'ancienne valeur et de la nouvelle valeur
-            if($oldValue == $newValue){
+            // Vérification que la nouvelle valeur est différente de l'ancienne valeur (si ancienne valeur existe)
+            if ($oldValue !== '-' && $oldValue === $newValue) {
                 return response()->json([
-                    "code"=>"400",
-                    "message"=>"L'ancienne valeur et la nouvelle valeur doivent être différentes"
+                    'code' => '400',
+                    'message' => "La nouvelle valeur doit être différente de l'ancienne valeur"
                 ]);
             }
+
+            // Empêcher la rectification si le titulaire de l'acte est décédé (contrôle côté serveur)
+            $acte = SifecFacade::rechercherActe($typeActe, $numeroActe);
+            if ($acte instanceof ActeNaissance) {
+                if (DeclarationDeces::where('num_acte_naissance', $numeroActe)->exists()) {
+                    return response()->json([
+                        'code' => '403',
+                        'message' => 'La rectification n\'est pas autorisée : le titulaire de cet acte de naissance est décédé.',
+                    ]);
+                }
+            }
+            if ($acte instanceof ActeDeces) {
+                return response()->json([
+                    'code' => '403',
+                    'message' => 'La rectification d\'un acte de décès n\'est pas autorisée.',
+                ]);
+            }
+
+            // Extraction du code_rubrique depuis la rubrique
+            $codeRubrique = $rubriqueParts[0];
+
             DB::beginTransaction();
         try {
 
-            //vérification de l'existence de la rectification
+            // Vérification de l'existence de la rectification (support TPA_* et TAC_*)
             $rectificationExist = Rectification::where("numero_acte", $numeroActe)
-                ->where("code_type_acte", $typeActe)
+                ->where(function($query) use ($typeActe) {
+                    // Accepter les deux formats de codes
+                    if (in_array($typeActe, ['TAC_0001'], true)) {
+                        $query->whereIn('code_type_acte', ['TPA_0001', 'TAC_0001']);
+                    } elseif (in_array($typeActe, ['TAC_0002'], true)) {
+                        $query->whereIn('code_type_acte', ['TPA_0002', 'TAC_0002']);
+                    } elseif (in_array($typeActe, ['TAC_0003'], true)) {
+                        $query->whereIn('code_type_acte', ['TPA_0003', 'TAC_0003']);
+                    } else {
+                        $query->where('code_type_acte', $typeActe);
+                    }
+                })
                 ->first();
 
             //si la rectification existe déjà, on ajoute simplement les détails
             if($rectificationExist != null){
-                //vérification de l'existence de la rubrique dans les détails
-                $detailExist = DetailRectification::where("code_rubrique", explode("-", $rubrique)[0])
-                    ->where("nouvelle_valeur", $newValue)
+                // Vérification de l'existence de la rubrique dans les détails
+                $detailExist = DetailRectification::where("code_rubrique", $codeRubrique)
                     ->where("code_rectification", $rectificationExist->code_rectification)
                     ->first();
 
-                //si la nouvelle valeur existe déjà pour la rubrique, on retourne une erreur
-                if($detailExist != null){
+                // Si la rubrique existe déjà dans les détails, mettre à jour la valeur au lieu de créer un doublon
+                if ($detailExist != null) {
+                    // Mettre à jour la valeur existante
+                    $detailExist->ancienne_valeur = $oldValue;
+                    if ($champ_id === "date_naissance") {
+                        $newValue = date("Y-m-d", strtotime($newValue));
+                    }
+                    $detailExist->nouvelle_valeur = $newValue;
+                    $detailExist->save();
+                    
+                    DB::commit();
                     return response()->json([
-                        "code"=>"400",
-                        "message"=>"Cette nouvelle valeur a déjà été enregistrée pour cette rubrique"
+                        'code' => '200',
+                        'message' => 'Rectification mise à jour avec succès',
+                        'data' => [
+                            'code_rectification' => $rectificationExist->code_rectification,
+                            'details' => [
+                                'code_detail_rectification' => $detailExist->code_detail_rectification,
+                                'code_rubrique' => $detailExist->code_rubrique,
+                                'ancienne_valeur' => $detailExist->ancienne_valeur,
+                                'nouvelle_valeur' => $detailExist->nouvelle_valeur
+                            ]
+                        ]
                     ]);
                 }
 
-                //insertion des détails
+                // Insertion des détails
                 $detailsRectification = new DetailRectification;
-                $detailsRectification->code_detail_rectification = Sifec::genererCodeUniqueReferentiel($detailsRectification, "code_detail_rectification",8,"DRE_");
+                $detailsRectification->code_detail_rectification = Sifec::genererCodeUniqueReferentiel($detailsRectification, "code_detail_rectification", 8, "DRE_");
                 $detailsRectification->code_rectification = $rectificationExist->code_rectification;
-                $detailsRectification->code_rubrique = explode("-", $rubrique)[0];
+                $detailsRectification->code_rubrique = $codeRubrique;
                 $detailsRectification->ancienne_valeur = $oldValue;
+                if ($champ_id === "date_naissance") {
+                    $newValue = date("Y-m-d", strtotime($newValue));
+                }
                 $detailsRectification->nouvelle_valeur = $newValue;
                 $detailsRectification->save();
+
+                if ($request->hasFile('piece_justificative') && $request->file('piece_justificative')->isValid()) {
+                    $uploadPath = public_path('app/rectification');
+                    if (!is_dir($uploadPath)) {
+                        mkdir($uploadPath, 0755, true);
+                    }
+                    $file = $request->file('piece_justificative');
+                    $filename = 'rectif_' . $rectificationExist->code_rectification . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $file->move($uploadPath, $filename);
+                    $rectificationExist->piece_justificative = 'app/rectification/' . $filename;
+                    $rectificationExist->save();
+                }
 
                 DB::commit();
                 if($champ_id == "date_naissance") $detailsRectification->nouvelle_valeur = date("d-m-Y", strtotime($detailsRectification->nouvelle_valeur));
@@ -185,6 +265,16 @@ class RectificationController extends Controller
                 $rectification->telephone_requerant = $telephoneRequerant;
                 $rectification->cui = Auth::user()->affectationActive()->cui;
                 $rectification->code_filiation = $filiationRequerant;
+                if ($request->hasFile('piece_justificative') && $request->file('piece_justificative')->isValid()) {
+                    $uploadPath = public_path('app/rectification');
+                    if (!is_dir($uploadPath)) {
+                        mkdir($uploadPath, 0755, true);
+                    }
+                    $file = $request->file('piece_justificative');
+                    $filename = 'rectif_' . $rectification->code_rectification . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $file->move($uploadPath, $filename);
+                    $rectification->piece_justificative = 'app/rectification/' . $filename;
+                }
                 $rectification->save();
 
                 // Enregistrement du mouvement de création
@@ -194,15 +284,17 @@ class RectificationController extends Controller
                     app(MouvementService::class)->enregistrerMouvementRectification($rectification, $trmouvement,  Auth::user(), 'Fiche de rectification créée');
                 }
 
-                //insertion des détails
+                // Insertion des détails
                 $detailsRectification = new DetailRectification;
-                $detailsRectification->code_detail_rectification = Sifec::genererCodeUniqueReferentiel($detailsRectification, "code_detail_rectification",8,"DRE_");
+                $detailsRectification->code_detail_rectification = Sifec::genererCodeUniqueReferentiel($detailsRectification, "code_detail_rectification", 8, "DRE_");
                 $detailsRectification->code_rectification = $rectification->code_rectification;
-                $detailsRectification->code_rubrique = explode("-", $rubrique)[0];
+                $detailsRectification->code_rubrique = $codeRubrique;
                 $detailsRectification->ancienne_valeur = $oldValue;
-
-                if($champ_id == "date_naissance") $newValue = date("Y-m-d", strtotime($newValue));
-
+                
+                if ($champ_id === "date_naissance") {
+                    $newValue = date("Y-m-d", strtotime($newValue));
+                }
+                
                 $detailsRectification->nouvelle_valeur = $newValue;
                 $detailsRectification->save();
 
@@ -328,12 +420,18 @@ class RectificationController extends Controller
         //récupération de la liste des détails
         $detailsRectification = DetailRectification::where("code_rectification", $rectification->code_rectification)->get();
 
+        // Chemin local pour l'image (évite "Unauthorized path host" avec Html2Pdf/TCPDF)
+        $armoirie_path = public_path('tpl/armoirie_congo.png');
+        if (!is_file($armoirie_path)) {
+            $armoirie_path = '';
+        }
+
         try {
 
             view()->share("tester", "Alange");
             $html2pdf = new Html2Pdf('L', 'A4', 'fr');
             $html2pdf->setDefaultFont('Arial');
-            $html2pdf->writeHTML(view('rectification::etats.fiche-rectification', compact("acte", "rectification", "detailsRectification"))->render());
+            $html2pdf->writeHTML(view('rectification::etats.fiche-rectification', compact("acte", "rectification", "detailsRectification", "armoirie_path"))->render());
 
             return $html2pdf->output($id.".pdf");
 
@@ -346,81 +444,150 @@ class RectificationController extends Controller
 
     public function oldValue(Request $request)
     {
-        $rubrique = $request->rubrique;
-        $typeActe = $request->type_acte;
-        $numeroActe = $request->numero_acte;
+        $rubrique = trim((string) $request->input('rubrique', ''));
+        $typeActe = trim((string) $request->input('type_acte', ''));
+        $numeroActe = trim((string) $request->input('numero_acte', ''));
+
+        if ($rubrique === '' || $typeActe === '' || $numeroActe === '') {
+            return '';
+        }
+
+        $acte = null;
         $declaration = null;
 
-
-        //recuperation de la declaration
-        if($typeActe == "TPA_0001"){
-            $declaration = ActeNaissance::find($numeroActe)->declaration;
+        // Récupération de l'acte et de la déclaration (support TPA_* et TAC_*)
+        if (in_array($typeActe, ['TPA_0001', 'TAC_0001'], true)) {
+            $acte = ActeNaissance::where('niupp', $numeroActe)->first();
+            if ($acte) {
+                $declaration = $acte->declaration;
+            }
+        } elseif (in_array($typeActe, ['TPA_0002', 'TAC_0002'], true)) {
+            $acte = ActeMariage::where('code_acte_mariage', $numeroActe)->first();
+            if ($acte) {
+                $declaration = $acte->declaration;
+            }
+        } elseif (in_array($typeActe, ['TPA_0003', 'TAC_0003'], true)) {
+            $acte = ActeDeces::where('code_acte_deces', $numeroActe)->first();
+            if ($acte) {
+                $declaration = $acte->declaration;
+            }
         }
-        if($typeActe == "TPA_0002"){
 
-            $declaration = ActeMariage::find($numeroActe)->declaration;
-
-        }
-        if($typeActe == "TPA_0003"){
-            $declaration = ActeDeces::find($numeroActe)->declaration;
+        if (!$acte || !$declaration) {
+            return '';
         }
 
-        //recupération champs côté identité
-        $codeDec = explode("-", $rubrique)[2]; //entite exple: enfant
-        $champ_id = explode("-", $rubrique)[1]; //nom technique exple:nom
+        // Parsing de la rubrique : format "code_rubrique-lib_technique-entite_rubrique"
+        $parts = explode('-', $rubrique);
+        if (count($parts) < 3) {
+            return '';
+        }
 
-        //création du champ de liaison
-        $champ_dec = 'code_'.$codeDec;
+        $entite = $parts[2]; // enfant, père, mère, époux, épouse, defunt
+        $libTechnique = $parts[1]; // nom, prenom, sexe, date_naissance, lieu_naissance, nationalite
 
-        //appelle de l'ancienne valeur
-        $ancienneValeur = Personne::find($declaration->$champ_dec)->$champ_id;
-        if($ancienneValeur == "M") $ancienneValeur = "Masculin";
-        if($ancienneValeur == "F") $ancienneValeur = "Féminin";
-        if($champ_id == "date_naissance") $ancienneValeur = date("d-m-Y", strtotime($ancienneValeur));
+        // Mapping des entités vers les colonnes de la déclaration selon le type d'acte
+        $champDec = null;
+        if (in_array($typeActe, ['TPA_0001', 'TAC_0001'], true)) {
+            // Naissance : enfant, père, mère
+            $mapping = ['enfant' => 'code_enfant', 'père' => 'code_pere', 'mère' => 'code_mere'];
+            $champDec = $mapping[$entite] ?? null;
+        } elseif (in_array($typeActe, ['TPA_0002', 'TAC_0002'], true)) {
+            // Mariage : époux, épouse
+            $mapping = ['époux' => 'code_epoux', 'épouse' => 'code_epouse'];
+            $champDec = $mapping[$entite] ?? null;
+        } elseif (in_array($typeActe, ['TPA_0003', 'TAC_0003'], true)) {
+            // Décès : defunt, père, mère
+            $mapping = ['defunt' => 'code_defunt', 'père' => 'code_pere', 'mère' => 'code_mere'];
+            $champDec = $mapping[$entite] ?? null;
+        }
+
+        if (!$champDec || !$declaration->$champDec) {
+            return '';
+        }
+
+        $personne = Personne::find($declaration->$champDec);
+        if (!$personne) {
+            return '';
+        }
+
+        // Récupération de la valeur selon lib_technique
+        $ancienneValeur = $personne->$libTechnique ?? '';
+
+        // Formatage selon le type de champ
+        if ($libTechnique === 'sexe') {
+            if ($ancienneValeur === 'M') {
+                $ancienneValeur = 'Masculin';
+            } elseif ($ancienneValeur === 'F') {
+                $ancienneValeur = 'Féminin';
+            }
+        } elseif ($libTechnique === 'date_naissance' && $ancienneValeur) {
+            $ancienneValeur = date('d-m-Y', strtotime($ancienneValeur));
+        }
+
         return $ancienneValeur;
-
     }
 
     public function getActe(Request $request)
     {
-        //vérification de l'acte
-        $typeActe = $request->type_acte;
-        $numeroActe = $request->numero_acte;
+        $typeActe = trim((string) $request->input('type_acte', ''));
+        $numeroActe = trim((string) $request->input('numero_acte', ''));
 
-          //vérification de l'existence de l'acte en passant par le numero et le type d'acte
-        $acte = SifecFacade::rechercherActe($typeActe, $numeroActe);
-
-        // vérification de l'existence de l'acte
-        if($acte == null){
+        if ($numeroActe === '' || $typeActe === '') {
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun acte trouvé pour ce numéro"
+                'code' => '400',
+                'message' => 'Veuillez renseigner le numéro de l\'acte et le type d\'acte.',
             ]);
         }
-        return response()->json(["code"=> "200","acte"=>$acte]);
+
+        $acte = SifecFacade::rechercherActe($typeActe, $numeroActe);
+
+        if ($acte === null) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Aucun acte trouvé pour ce numéro.',
+            ]);
+        }
+
+        // Empêcher la rectification si le titulaire de l'acte est décédé
+        if ($acte instanceof ActeNaissance) {
+            if (DeclarationDeces::where('num_acte_naissance', $numeroActe)->exists()) {
+                return response()->json([
+                    'code' => '403',
+                    'message' => 'La rectification n\'est pas autorisée : le titulaire de cet acte de naissance est décédé.',
+                ]);
+            }
+        }
+        // Pour un acte de décès, le sujet est le défunt : pas de rectification autorisée
+        if ($acte instanceof ActeDeces) {
+            return response()->json([
+                'code' => '403',
+                'message' => 'La rectification d\'un acte de décès n\'est pas autorisée.',
+            ]);
+        }
+
+        return response()->json(['code' => '200', 'acte' => $acte]);
     }
 
 
     public function getDetails(Request $request)
     {
-        $numeroActe = $request->numero_acte;
-        $typeActe = $request->type_acte;
+        $numeroActe = trim((string) $request->input('numero_acte', ''));
+        $typeActe = trim((string) $request->input('type_acte', ''));
 
-        //si numeroActe ou typeActe n'existe pas, on retourne une erreur
-        if($numeroActe == null || $typeActe == null){
+        if ($numeroActe === '' || $typeActe === '') {
             return response()->json([
-                "code"=>"400",
-                "message"=>"Veuillez renseigner le numéro de l'acte et le type d'acte"
+                'code' => '400',
+                'message' => "Veuillez renseigner le numéro de l'acte et le type d'acte.",
             ]);
         }
-        //vérification de l'existence de l'acte en passant par le numero et le type d'acte
+
         $acte = SifecFacade::rechercherActe($typeActe, $numeroActe);
 
-        // vérification de l'existence de l'acte
-        if($acte == null){
+        if ($acte === null) {
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun acte trouvé pour ce numéro"
+                'code' => '180',
+                'message' => 'Aucun acte trouvé pour ce numéro.',
             ]);
         }
 

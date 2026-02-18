@@ -362,6 +362,7 @@ class Sifec {
                         $typeVoie = $typeVoie ? strtolower($typeVoie) : null;
                         $libVoie = $request->input("domicile_nomvoie".$sufix);
                         $libVoie = $libVoie ? ucfirst($libVoie) : null;
+                        [$num, $typeVoie, $libVoie] = self::normalizeAdresseValues($num, $typeVoie, $libVoie);
                         $comDist = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_ville".$sufix));
                         $comDist = $comDist ? $comDist->lib_localite : null;
                         $arrondissement = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_arrondissement".$sufix));
@@ -371,11 +372,15 @@ class Sifec {
 
                         $adressePers = $num.','.$typeVoie.' '.$libVoie.' '.$quartier.' '.$arrondissement.' '.$comDist;
 
-
+                        [$indicatif, $telephone, $email] = self::normalizeContactValues(
+                            $request->input("code_pays" . $sufix),
+                            $request->input("telephone" . $sufix),
+                            $request->input("email" . $sufix)
+                        );
                         $contact = new ContactPersonne;
-                        $contact->indicatif = $request->input("code_pays" . $sufix);
-                        $contact->telephone = $request->input("telephone" . $sufix);
-                        $contact->email_personnelle = $request->input("email" . $sufix);
+                        $contact->indicatif = $indicatif;
+                        $contact->telephone = $telephone;
+                        $contact->email_personnelle = $email;
                         $contact->code_personne = $personne->code_personne;
                         $contact->save();
 
@@ -656,12 +661,17 @@ class Sifec {
                 $addContact->code_personne = $request->input("code".$sufix);
                 $addContact->save();
 
+                [$numRue, $typeVoieAddr, $nomVoieAddr] = self::normalizeAdresseValues(
+                    $request->input("domicile_numero".$sufix),
+                    $request->input("domicile_typevoie".$sufix),
+                    $request->input("domicile_nomvoie".$sufix)
+                );
                 $addAdresse = new AdressePersonne;
                 $addAdresse->lib_pays = $request->input("domicile_pays".$sufix);
                 $addAdresse->lib_ville = $request->input("domicile_ville".$sufix);
-                $addAdresse->type_voie = $request->input("domicile_typevoie".$sufix);
-                $addAdresse->nom_voie = $request->input("domicile_nomvoie".$sufix);
-                $addAdresse->numero_rue = $request->input("domicile_numero".$sufix);
+                $addAdresse->type_voie = $typeVoieAddr;
+                $addAdresse->nom_voie = $nomVoieAddr;
+                $addAdresse->numero_rue = $numRue;
 
                 // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
                 $codeLocalite = null;
@@ -695,12 +705,17 @@ class Sifec {
                 $contact->email_personnelle = $request->input("email".$sufix);
                 $contact->save();
 
+                [$numRue, $typeVoieAddr2, $nomVoieAddr2] = self::normalizeAdresseValues(
+                    $request->input("domicile_numero" . $sufix),
+                    $request->input("domicile_typevoie" . $sufix),
+                    $request->input("domicile_nomvoie" . $sufix)
+                );
                 $adresse = AdressePersonne::where('code_personne',$personne->code_personne)->first();
                 $adresse->lib_pays = $request->input("domicile_pays" . $sufix);
                 $adresse->lib_ville = $request->input("domicile_ville" . $sufix);
-                $adresse->type_voie = $request->input("domicile_typevoie" . $sufix);
-                $adresse->nom_voie = $request->input("domicile_nomvoie" . $sufix);
-                $adresse->numero_rue = $request->input("domicile_numero" . $sufix);
+                $adresse->type_voie = $typeVoieAddr2;
+                $adresse->nom_voie = $nomVoieAddr2;
+                $adresse->numero_rue = $numRue;
 
                 // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
                 $codeLocalite = null;
@@ -716,6 +731,11 @@ class Sifec {
                 $adresse->save();
             }
 
+            [$numRueRes, $typeVoieRes, $nomVoieRes] = self::normalizeAdresseValues(
+                $request->input("domicile_numero" . $sufix),
+                $request->input("domicile_typevoie" . $sufix),
+                $request->input("domicile_nomvoie" . $sufix)
+            );
             $adresseResidence = \Modules\Referentiel\Entities\AdressePersonne::where('code_personne', $personne->code_personne)->first();
             if (!$adresseResidence) {
                 $adresseResidence = new \Modules\Referentiel\Entities\AdressePersonne();
@@ -723,9 +743,9 @@ class Sifec {
             }
             $adresseResidence->lib_pays  = $request->input("domicile_pays" . $sufix) ?? "Congo";
             $adresseResidence->lib_ville = $request->input("domicile_ville" . $sufix);
-            $adresseResidence->type_voie = $request->input("domicile_typevoie" . $sufix);
-            $adresseResidence->nom_voie = $request->input("domicile_nomvoie" . $sufix);
-            $adresseResidence->numero_rue = $request->input("domicile_numero" . $sufix);
+            $adresseResidence->type_voie = $typeVoieRes;
+            $adresseResidence->nom_voie = $nomVoieRes;
+            $adresseResidence->numero_rue = $numRueRes;
 
             // Utiliser code_localite : priorité au quartier, sinon arrondissement, sinon commune/district
             $codeLocalite = null;
@@ -840,6 +860,7 @@ class Sifec {
         $typeVoie = $typeVoie ? strtolower($typeVoie) : null;
         $libVoie = $request->input("domicile_nomvoie".$sufix);
         $libVoie = $libVoie ? ucfirst($libVoie) : null;
+        [$num, $typeVoie, $libVoie] = self::normalizeAdresseValues($num, $typeVoie, $libVoie);
         $comDist = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_ville".$sufix));
         $comDist = $comDist ? $comDist->lib_localite : null;
         $arrondissement = \Modules\Referentiel\Entities\Localite::find($request->input("domicile_arrondissement".$sufix));
@@ -869,10 +890,15 @@ class Sifec {
             $residencePersonne->code_personne = $personne->code_personne;
             $residencePersonne->save();
 
+            [$indicatif, $telephone, $email] = self::normalizeContactValues(
+                $request->input("code_pays" . $sufix),
+                $request->input("telephone" . $sufix),
+                $request->input("email" . $sufix)
+            );
             $contact = new ContactPersonne;
-            $contact->indicatif = $request->input("code_pays" . $sufix);
-            $contact->telephone = $request->input("telephone" . $sufix);
-            $contact->email_personnelle = $request->input("email" . $sufix);
+            $contact->indicatif = $indicatif;
+            $contact->telephone = $telephone;
+            $contact->email_personnelle = $email;
             $contact->code_personne = $personne->code_personne;
             $contact->save();
 
@@ -885,6 +911,67 @@ class Sifec {
         }
     }
 
+
+    /**
+     * Normalise les champs adresse pour t_residence_personne (numero_rue 6 car., type_voie 175, nom_voie 150).
+     * Remplace les valeurs "dummy" (ex. XXXXXXXXXXXXXXXX) envoyées par le formulaire enfant trouvé.
+     *
+     * @return array{0: string|null, 1: string|null, 2: string|null}
+     */
+    private static function normalizeAdresseValues($numeroRue, $typeVoie, $nomVoie): array
+    {
+        $dummy = 'XXXXXXXXXXXXXXXX';
+        $numeroRue = $numeroRue === null ? '' : (string) $numeroRue;
+        if (strlen($numeroRue) > 6 || str_contains($numeroRue, 'X') || $numeroRue === '') {
+            $numeroRue = 'N/C';
+        }
+        $numeroRue = substr($numeroRue, 0, 6) ?: null;
+
+        $typeVoie = $typeVoie === null ? '' : (string) $typeVoie;
+        if (strlen($typeVoie) > 175 || $typeVoie === $dummy) {
+            $typeVoie = 'N/C';
+        }
+        $typeVoie = substr($typeVoie, 0, 175) ?: null;
+
+        $nomVoie = $nomVoie === null ? '' : (string) $nomVoie;
+        if (strlen($nomVoie) > 150 || $nomVoie === $dummy) {
+            $nomVoie = 'N/C';
+        }
+        $nomVoie = substr($nomVoie, 0, 150) ?: null;
+
+        return [$numeroRue, $typeVoie, $nomVoie];
+    }
+
+    /**
+     * Normalise indicatif (5 car.), téléphone (12 car.) et email (100 car.) pour t_contact_personne.
+     * Remplace les valeurs "dummy" (ex. XXXXXXXXXXXXXXXX) envoyées par le formulaire enfant trouvé.
+     *
+     * @return array{0: string|null, 1: string|null, 2: string|null}
+     */
+    private static function normalizeContactValues($indicatif, $telephone, $email): array
+    {
+        $dummy = 'XXXXXXXXXXXXXXXX';
+        $indicatif = $indicatif === null ? '' : (string) $indicatif;
+        if (strlen($indicatif) > 5 || str_contains($indicatif, 'X') || $indicatif === '') {
+            $indicatif = '+242';
+        }
+        $indicatif = substr($indicatif, 0, 5);
+
+        $telephone = $telephone === null ? '' : (string) $telephone;
+        if (strlen($telephone) > 12 || $telephone === $dummy) {
+            $telephone = '0000000';
+        }
+        $telephone = substr($telephone, 0, 12) ?: null;
+
+        $email = $email === null ? '' : (string) $email;
+        if (strlen($email) > 100 || $email === $dummy) {
+            $email = null;
+        } else {
+            $email = substr($email, 0, 100) ?: null;
+        }
+
+        return [$indicatif, $telephone ?: null, $email];
+    }
 
     public function format_nombre(int $nombre,int $taille):string{
         return str_pad($nombre,$taille,"0",STR_PAD_LEFT);
@@ -1792,17 +1879,23 @@ class Sifec {
 
 
     //rechercher un acte à partier de son code d'acte codeActe et le type d'acte typeActe
+    // Accepte TPA_0001/TPA_0002/TPA_0003 (référentiel) ou TAC_0001/TAC_0002/TAC_0003 (module Mobile)
     public function rechercherActe($typeActe, $numeroActe)
     {
-        if($typeActe == "TPA_0001"){
-            return ActeNaissance::where("niupp", $numeroActe)->first() ?? null;
+        $numeroActe = trim((string) $numeroActe);
+        if ($numeroActe === '') {
+            return null;
         }
-        if($typeActe == "TPA_0002"){
-            return ActeMariage::where("code_acte_mariage", $numeroActe)->first() ?? null;
+        if (in_array($typeActe, ['TPA_0001', 'TAC_0001'], true)) {
+            return ActeNaissance::where('niupp', $numeroActe)->first() ?? null;
         }
-        if($typeActe == "TPA_0003"){
-            return ActeDeces::where("code_acte_deces", $numeroActe)->first() ?? null;
+        if (in_array($typeActe, ['TPA_0002', 'TAC_0002'], true)) {
+            return ActeMariage::where('code_acte_mariage', $numeroActe)->first() ?? null;
         }
+        if (in_array($typeActe, ['TPA_0003', 'TAC_0003'], true)) {
+            return ActeDeces::where('code_acte_deces', $numeroActe)->first() ?? null;
+        }
+        return null;
     }
 
     //rechercher une acte à partier du code de l'acte simple

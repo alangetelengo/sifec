@@ -288,7 +288,8 @@
         </div>
         <div class="mb-2 col-md-12">
             <label class="form-label">Nom(s) déclarant <span class="text-danger">*</span></label>
-            <input type="text" class="form-control"  id="nom_declarant">
+            <input type="text" name="nom_declarant" class="form-control" id="nom_declarant" placeholder="Nom du déclarant">
+            <input type="hidden" id="domicile_district_declarant" value="{{ $dummy }}">
         </div>
         <div class="mb-2 col-md-4 d-none">
             <label class="form-label">Prénom(s) du déclarant </label>

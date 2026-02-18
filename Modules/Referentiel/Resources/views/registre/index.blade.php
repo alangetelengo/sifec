@@ -87,7 +87,7 @@ Registre Etat civil
                                                         <a  href="{{ route('registre.deces', $registre->code_registre) }}" target="_blank" class="dropdown-item">Consulter</i></a>
                                                     @endif
                                                     @if($registre->statut == 1)
-                                                        <a href="{{ $registre->code_registre }}" typeregistre="{{ $registre->typeRegistre->lib_type_registre }}" class="dropdown-item show-cloturer-modal">Clôturer</a>
+                                                        {{-- <a href="{{ $registre->code_registre }}" typeregistre="{{ $registre->typeRegistre->lib_type_registre }}" class="dropdown-item show-cloturer-modal">Clôturer</a> --}}
                                                     @endif
                                                     @if(($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) == 0)
                                                         {{-- @can('module.fonctionnalites.parapher') --}}

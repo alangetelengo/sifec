@@ -18,7 +18,7 @@ class SituationMatrimonialeSeeder extends Seeder
         DB::statement('set foreign_key_checks = 0');
         DB::statement('truncate tr_situation_matrimoniale');
 
-        $donnes = ["Mariage état civil","Pré mariage","Célibataire","Union libre","Divorcé(e)","Veuf(ve)"];
+        $donnes = ["Mariage état civil","Pré mariage","Célibataire","Union libre","Divorcé(e)","Veuf(ve)","Non renseigné"];
 
         $data = [];
         for($i = 0; $i < count($donnes); $i++){

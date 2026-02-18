@@ -43,7 +43,7 @@
 
             <div class="mb-2 col-md-3">
                 <label class="form-label">Lieu de naissance <span class="text-danger">*</span></label>
-                <input type="text" class="form-control d-none" id="lieu_naissance_enfant" value="NON DECLARE">
+                <input type="text" name="lieu_naissance_enfant" class="form-control d-none" id="lieu_naissance_enfant" value="NON DECLARE">
                 <select id="code_localite_enfant" class="form-control required">
                     @foreach ($localites as $localite)
                         @if($localite->code_localite == "LOC_4250")
@@ -83,7 +83,7 @@
             <div class="mb-2 col-md-4 d-none">
                 <label class="form-label">Situation matrimoniale des parents<span class="text-danger">*</span></label>
                 <select id="code_situation_matrimoniale" name="code_situation_matrimoniale" class="form-control required  @error('code_situation_matrimoniale') is-invalid @enderror" readonly>
-                    <option value="SMAT_0008">{{ $dummy }}</option>
+                    <option value="SMAT_0007">Non renseigné</option>
                 </select>
             </div>
             <div class="mb-2 col-md-4 d-none">

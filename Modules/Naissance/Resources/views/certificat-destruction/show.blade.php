@@ -86,6 +86,9 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de destruction de
                         data-piece-pere="{{ $certificat->piece_pere }}"
                         data-piece-mere="{{ $certificat->piece_mere }}"
                         data-piece-extrait-main-courante="{{ $certificat->piece_extrait_main_courante }}"
+                        data-statut-declarant="{{ $certificat->declarant->statut_personne ?? 'VIVANT' }}"
+                        data-statut-pere="{{ $certificat->pere->statut_personne ?? 'VIVANT' }}"
+                        data-statut-mere="{{ $certificat->mere->statut_personne ?? 'VIVANT' }}"
                         data-identiteDeclarant="{{ $certificat->declarant ? $certificat->declarant->nomcomplet() : '' }}"
                         data-identitePere="{{ $certificat->pere ? $certificat->pere->nomcomplet() : '' }}"
                         data-identiteMere="{{ $certificat->mere ? $certificat->mere->nomcomplet() : '' }}">
@@ -104,6 +107,9 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de destruction de
                     data-piece-pere="{{ $certificat->piece_pere }}"
                     data-piece-mere="{{ $certificat->piece_mere }}"
                     data-piece-extrait-main-courante="{{ $certificat->piece_extrait_main_courante }}"
+                    data-statut-declarant="{{ $certificat->declarant->statut_personne ?? 'VIVANT' }}"
+                    data-statut-pere="{{ $certificat->pere->statut_personne ?? 'VIVANT' }}"
+                    data-statut-mere="{{ $certificat->mere->statut_personne ?? 'VIVANT' }}"
                     data-identiteDeclarant="{{ $certificat->declarant ? $certificat->declarant->nomcomplet() : '' }}"
                     data-identitePere="{{ $certificat->pere ? $certificat->pere->nomcomplet() : '' }}"
                     data-identiteMere="{{ $certificat->mere ? $certificat->mere->nomcomplet() : '' }}">
@@ -169,15 +175,15 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de destruction de
                             <th><i class="fa fa-calendar-check text-primary me-1"></i> Date de création</th>
                             <td>{{ $certificat->created_at ? $certificat->created_at->format('d/m/Y H:i') : '-' }}</td>
                         </tr>
-                        <!-- Pièces jointes -->
+                        <!-- Pièces jointes : le déclarant peut être le père, la mère ou toute autre personne ; on utilise le statut de chaque personne concernée -->
                         <tr>
-                            <th><i class="fa fa-id-card text-primary me-1"></i> Pièce d'identité du déclarant</th>
+                            <th><i class="fa fa-id-card text-primary me-1"></i> Pièce d'identité du déclarant<br><small class="text-muted fw-normal">(père, mère ou autre personne)</small></th>
                             <td>
                                 @if($certificat->piece_declarant)
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($certificat->piece_declarant) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($certificat->declarant->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -188,7 +194,7 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de destruction de
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($certificat->piece_pere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($certificat->pere->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -199,7 +205,7 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de destruction de
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($certificat->piece_mere) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
-                                    <span class="text-muted">Non jointe</span>
+                                    <span class="text-muted">{{ ($certificat->mere->statut_personne ?? 'VIVANT') === 'DECEDE' ? 'Optionnelle (non jointe)' : 'Non jointe' }}</span>
                                 @endif
                             </td>
                         </tr>
@@ -445,6 +451,9 @@ $(function(){
         const pieceDeclarant = $(this).data('piece-declarant') || '';
         const piecePere = $(this).data('piece-pere') || '';
         const pieceMere = $(this).data('piece-mere') || '';
+        const statutDeclarant = $(this).data('statut-declarant') || 'VIVANT';
+        const statutPere = $(this).data('statut-pere') || 'VIVANT';
+        const statutMere = $(this).data('statut-mere') || 'VIVANT';
 
         // Remplir les champs dans le modal selon le type de déclaration
         @if($certificat->num_jugement_placement_provisoir != "" && $certificat->num_fiche_placement != "")
@@ -454,28 +463,31 @@ $(function(){
             $('#extrait-main-courante-piece').html(pieceExtraitMainCourante ? `<a href="/${pieceExtraitMainCourante}" target="_blank" class="text-success fw-bold">Afficher le document</a>` : '-');
             $('#extrait-main-courante-status').html(pieceExtraitMainCourante ? '<span class="badge bg-success">Présent</span>' : '<span class="badge bg-warning">Manquant</span>');
         @else
-            // Cas de déclaration normale
+            // Déclarant : pièce toujours obligatoire. Père/Mère : requises seulement si vivants
             $('#declarant-nom').text(declarantNom);
             $('#declarant-piece').html(pieceDeclarant ? `<a href="/${pieceDeclarant}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
             $('#declarant-status').html(pieceDeclarant ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
 
             $('#pere-nom').text(pereNom);
             $('#pere-piece').html(piecePere ? `<a href="/${piecePere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-            $('#pere-status').html(piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+            $('#pere-status').html(statutPere === 'DECEDE'
+                ? (piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                : (piecePere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
 
             $('#mere-nom').text(mereNom);
             $('#mere-piece').html(pieceMere ? `<a href="/${pieceMere}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
-            $('#mere-status').html(pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>');
+            $('#mere-status').html(statutMere === 'DECEDE'
+                ? (pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>')
+                : (pieceMere ? '<span class="badge bg-success">Présente</span>' : '<span class="badge bg-warning">Manquante</span>'));
         @endif
 
-        // Vérification des pièces obligatoires (à adapter selon ta logique métier)
+        // Pièce déclarant toujours obligatoire ; père et mère seulement s'ils sont vivants
         let piecesManquantes = false;
 
-        // Pour les cas de placement provisoire, pas de contraintes sur les pièces
         @if($certificat->num_jugement_placement_provisoir != "" && $certificat->num_fiche_placement != "")
             piecesManquantes = false;
         @else
-            if (!pieceDeclarant || !piecePere || !pieceMere) {
+            if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
                 piecesManquantes = true;
             }
         @endif

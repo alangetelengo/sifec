@@ -51,25 +51,50 @@ class DeclarationNaissanceService
     }
 
     /**
-     * Valide les âges des parents par rapport à l'enfant
+     * Valide les âges des parents par rapport à l'enfant.
+     * Ne s'applique pas au cas "Enfant trouvé" (père et mère inconnus, déclarant = juge).
      */
     private function validerAgesParents($request)
     {
-        $dateNaissancePere = Carbon::create($request->date_naissance_pere);
-        $dateNaissanceEnfant = Carbon::create($request->date_naissance_enfant);
-        $dateNaissanceMere = Carbon::create($request->date_naissance_mere);
+        $personneDeclaree = $request->personne_declaree ?? '';
+        if ($personneDeclaree === 'Enfant trouvé' || $personneDeclaree === 'Enfant abandonné') {
+            return true;
+        }
+
+        try {
+            $dateNaissancePere = Carbon::parse($request->date_naissance_pere);
+            $dateNaissanceEnfant = Carbon::parse($request->date_naissance_enfant);
+            $dateNaissanceMere = Carbon::parse($request->date_naissance_mere);
+        } catch (\Exception $e) {
+            Log::channel('sifec')->error('Erreur validation âges (dates invalides)', [
+                'message' => $e->getMessage(),
+                'request' => $request->only(['date_naissance_pere', 'date_naissance_enfant', 'date_naissance_mere', 'personne_declaree']),
+            ]);
+            return response()->json([
+                "code" => "99",
+                "message" => "Date(s) de naissance invalide(s)."
+            ]);
+        }
 
         $differenceAgeEnfantPere = $dateNaissancePere->diffInYears($dateNaissanceEnfant);
         $differenceAgeEnfantMere = $dateNaissanceMere->diffInYears($dateNaissanceEnfant);
 
-        if ($differenceAgeEnfantPere < 14) {
+        if ($differenceAgeEnfantPere < 15) {
+            Log::channel('sifec')->warning('Validation déclaration naissance : différence d\'âge père/enfant < 15 ans', [
+                'difference' => $differenceAgeEnfantPere,
+                'personne_declaree' => $personneDeclaree,
+            ]);
             return response()->json([
                 "code" => "99",
-                "message" => "La différence d'âge entre le père et l'enfant doit être supérieure ou égale à 14 ans"
+                "message" => "La différence d'âge entre le père et l'enfant doit être supérieure ou égale à 15 ans"
             ]);
         }
 
         if ($differenceAgeEnfantMere < 12) {
+            Log::channel('sifec')->warning('Validation déclaration naissance : différence d\'âge mère/enfant < 12 ans', [
+                'difference' => $differenceAgeEnfantMere,
+                'personne_declaree' => $personneDeclaree,
+            ]);
             return response()->json([
                 "code" => "99",
                 "message" => "La différence d'âge entre la mère et l'enfant doit être supérieure ou égale à 12 ans"
@@ -169,20 +194,23 @@ class DeclarationNaissanceService
             $personnes['mere'] = Sifec::savePersonne($request, "_mere", "F", $uniqueStrings['mere']);
         }
 
-        // Gestion du déclarant et de l'enfant
-        $personnes['declarant'] = Personne::where("personne_string", $uniqueStrings['declarant'])->first();
-
+        // Gestion du déclarant : priorité au code_declarant envoyé par le formulaire (choix explicite)
+        $personnes['declarant'] = null;
+        if ($request->filled('code_declarant')) {
+            $personnes['declarant'] = Personne::find($request->input('code_declarant'));
+        }
         if (!$personnes['declarant']) {
-            if ($request->filiation != "FIL_0001" && $request->filiation != "FIL_0002") {
-                $personnes['declarant'] = Sifec::savePersonne($request, "_declarant", $request->sexe_declarant, $uniqueStrings['declarant']);
-            }
+            $personnes['declarant'] = Personne::where("personne_string", $uniqueStrings['declarant'])->first();
+        }
+        if (!$personnes['declarant'] && $request->filiation != "FIL_0001" && $request->filiation != "FIL_0002") {
+            $personnes['declarant'] = Sifec::savePersonne($request, "_declarant", $request->sexe_declarant, $uniqueStrings['declarant']);
         }
 
         // Gestion de l'enfant
         if ($uniqueStrings['declarant'] != $uniqueStrings['enfant']) {
             $personnes['enfant'] = Sifec::savePersonne($request, "_enfant", $request->sexe_enfant, $uniqueStrings['enfant']);
         } else {
-            $personnes['enfant'] = $personnes['declarant'];
+            $personnes['enfant'] = $personnes['declarant'] ?? Sifec::savePersonne($request, "_enfant", $request->sexe_enfant, $uniqueStrings['enfant']);
         }
 
         return $personnes;
@@ -234,24 +262,32 @@ class DeclarationNaissanceService
     }
 
     /**
-     * Détermine le déclarant selon la filiation
+     * Détermine le déclarant : priorité au code_declarant envoyé par le formulaire (choix explicite),
+     * sinon selon la filiation (père, mère ou autre personne).
      */
     private function determinerDeclarant($request, $personnes)
     {
-        $filiation = $request->input('filiation');
+        // Priorité au choix explicite du formulaire (déclarant peut être le père, la mère ou toute autre personne)
+        if ($request->filled('code_declarant')) {
+            $personneDeclarant = Personne::find($request->input('code_declarant'));
+            if ($personneDeclarant) {
+                return $personneDeclarant->code_personne;
+            }
+        }
 
+        $filiation = $request->input('filiation');
         if ($filiation === 'FIL_0001') {
             return $personnes['pere']->code_personne;
-        } elseif ($filiation === 'FIL_0002') {
-            return $personnes['mere']->code_personne;
-        } else {
-            // Pour les autres cas, utiliser le déclarant spécifique
-            if (!$personnes['declarant']) {
-                $declarantUniqueString = Sifec::uniqueString($request, "_declarant", $request->input('sexe_declarant'));
-                $personnes['declarant'] = Sifec::savePersonne($request, "_declarant", $request->input('sexe_declarant'), $declarantUniqueString);
-            }
-            return $personnes['declarant']->code_personne;
         }
+        if ($filiation === 'FIL_0002') {
+            return $personnes['mere']->code_personne;
+        }
+        // Pour les autres cas (autre personne), utiliser le déclarant spécifique
+        if (!$personnes['declarant']) {
+            $declarantUniqueString = Sifec::uniqueString($request, "_declarant", $request->input('sexe_declarant'));
+            $personnes['declarant'] = Sifec::savePersonne($request, "_declarant", $request->input('sexe_declarant'), $declarantUniqueString);
+        }
+        return $personnes['declarant']->code_personne;
     }
 
     /**
@@ -263,7 +299,13 @@ class DeclarationNaissanceService
         $dn->code_lieu_survenance = $request->input('lieu_survenance') ?? "LSURV_0001";
         $dn->code_user_institution = $user->affectationActive()->cui;
         $dn->code_filiation = $request->input('filiation') == "XXXXXXXXXXXXXXXX" ? "FIL_0008" : $request->input('filiation');
-        $dn->code_situation_mat = $request->input('code_situation_matrimoniale');
+        // Enfant trouvé / abandonné : utiliser SMAT_0007 = "Non renseigné"
+        $codeSituationMat = $request->input('code_situation_matrimoniale');
+        if (in_array($request->personne_declaree ?? '', ['Enfant trouvé', 'Enfant abandonné'], true)) {
+            $dn->code_situation_mat = 'SMAT_0007';
+        } else {
+            $dn->code_situation_mat = $codeSituationMat;
+        }
         $dn->type_declaration = $request->input('type_declaration') ?? 'DECLARATION DE NAISSANCE';
         $dn->formation_sanitaire_naissance = $request->input('formation_sanitaire_naissance');
         $dn->code_institution = $user->affectationActive()->code_institution;
@@ -324,13 +366,21 @@ class DeclarationNaissanceService
                 $dn->date_heure_declaration = date('Y-m-d H:i');
             }
             $dn->date_heure_naissance = $request->input('date_naissance_enfant') . " " . $request->input('heure_naissance_enfant') . ':00';
-            // $dn->type_declarant = 'Personne physique';
-            if (($request->input('filiation')) == 'FIL_0001' && $typeAdoption == '') {
-                $dn->code_declarant = $pere->code_personne;
-            } elseif (($request->input('filiation')) == 'FIL_0002' && $typeAdoption == '') {
-                $dn->code_declarant = $mere->code_personne;
-            } elseif ($typeAdoption == '') {
-                $dn->code_declarant = $declarant->code_personne;
+            // Priorité au code_declarant envoyé par le formulaire (déclarant = père, mère ou autre)
+            if ($typeAdoption == '' && $request->filled('code_declarant')) {
+                $personneDeclarant = Personne::find($request->input('code_declarant'));
+                if ($personneDeclarant) {
+                    $dn->code_declarant = $personneDeclarant->code_personne;
+                }
+            }
+            if (!$dn->code_declarant && $typeAdoption == '') {
+                if (($request->input('filiation')) == 'FIL_0001') {
+                    $dn->code_declarant = $pere->code_personne;
+                } elseif (($request->input('filiation')) == 'FIL_0002') {
+                    $dn->code_declarant = $mere->code_personne;
+                } else {
+                    $dn->code_declarant = $declarant->code_personne;
+                }
             }
             $dn->code_enfant = $enfant->code_personne;
             $dn->code_pere = $pere->code_personne;
@@ -414,6 +464,7 @@ class DeclarationNaissanceService
             $dn->formation_sanitaire_naissance = $request->input('formation_sanitaire_naissance');
             $dn->numero_ancien_acte = $request->input('niupp');
             $dn->code_jugement = $request->input('code_jugement');
+            $dn->code_requisition = $request->input('code_requisition');
             $dn->code_institution = $user->affectationActive()->code_institution;
             $dn->save();
 

@@ -96,12 +96,16 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
             @endphp
             @if($peutModifier)
                 <div class="d-flex flex-wrap gap-2 mb-3">
+                    @if(($declaration->epoux->statut_personne ?? 'VIVANT') !== 'DECEDE')
                     <button class="btn btn-primary btn-piece" data-type="epoux" data-nom="{{ $declaration->epoux->nom ?? '' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'epoux']) }}" data-piece="{{ $declaration->piece_epoux ?? '' }}" data-piece-url="{{ $declaration->piece_epoux ? asset($declaration->piece_epoux) : '' }}">
                         <i class="fa fa-id-card"></i> Pièce Époux
                     </button>
+                    @endif
+                    @if(($declaration->epouse->statut_personne ?? 'VIVANT') !== 'DECEDE')
                     <button class="btn btn-primary btn-piece" data-type="epouse" data-nom="{{ $declaration->epouse->nom ?? '' }}" data-url="{{ route('declarationMariage.piece.store', [$declaration->code_declaration_mariage, 'type' => 'epouse']) }}" data-piece="{{ $declaration->piece_epouse ?? '' }}" data-piece-url="{{ $declaration->piece_epouse ? asset($declaration->piece_epouse) : '' }}">
                         <i class="fa fa-id-card"></i> Pièce Épouse
                     </button>
+                    @endif
                 </div>
 
                 {{-- Boutons pour les témoins individuels --}}
@@ -156,7 +160,9 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <div>
                         <strong>Époux :</strong>
-                        @if($declaration->piece_epoux)
+                        @if(($declaration->epoux->statut_personne ?? 'VIVANT') === 'DECEDE')
+                            <span class="text-muted">Non requise (décédé)</span>
+                        @elseif($declaration->piece_epoux)
                             <a href="{{ asset($declaration->piece_epoux) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir la pièce</a>
                         @else
                             <span class="text-muted">Aucune pièce jointe</span>
@@ -164,7 +170,9 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                     </div>
                     <div>
                         <strong>Épouse :</strong>
-                        @if($declaration->piece_epouse)
+                        @if(($declaration->epouse->statut_personne ?? 'VIVANT') === 'DECEDE')
+                            <span class="text-muted">Non requise (décédée)</span>
+                        @elseif($declaration->piece_epouse)
                             <a href="{{ asset($declaration->piece_epouse) }}" target="_blank" class="btn btn-warning btn-xs"><i class="fa fa-eye"></i> Voir la pièce</a>
                         @else
                             <span class="text-muted">Aucune pièce jointe</span>
@@ -324,7 +332,9 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                         <tr>
                             <th><i class="fa fa-id-card text-primary me-1"></i> Pièce d'identité de l'époux</th>
                             <td>
-                                @if($declaration->piece_epoux)
+                                @if(($declaration->epoux->statut_personne ?? 'VIVANT') === 'DECEDE')
+                                    <span class="text-muted">Non requise (personne décédée)</span>
+                                @elseif($declaration->piece_epoux)
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($declaration->piece_epoux) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else
@@ -335,7 +345,9 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                         <tr>
                             <th><i class="fa fa-id-card text-primary me-1"></i> Pièce d'identité de l'épouse</th>
                             <td>
-                                @if($declaration->piece_epouse)
+                                @if(($declaration->epouse->statut_personne ?? 'VIVANT') === 'DECEDE')
+                                    <span class="text-muted">Non requise (personne décédée)</span>
+                                @elseif($declaration->piece_epouse)
                                     <span class="badge bg-success">Présente</span>
                                     <a href="{{ asset($declaration->piece_epouse) }}" target="_blank" class="btn btn-warning btn-xs ms-2"><i class="fa fa-eye"></i> Voir</a>
                                 @else

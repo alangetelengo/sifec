@@ -171,24 +171,14 @@
     <div class="bb-custom-wrapper">
 
         <div id="bb-bookblock" class="bb-bookblock">
-            @php
-                $pdt = "";
-                $sexep = "";
-                if ($registre->signataire != null) {
-                    $pdt = $registre->signataire->user->personne->nomcomplet();
-                    $sexep = $registre->signataire->user->personne->sexe;
-                }
-            @endphp
               <!-- page 1 -->
             @if($registre->sceau != null)
             <div class="bb-item">
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="card" style="height: 680px; border: 2px solid; text-align: left; padding: 20px; font-size: 12px">
-                            <h2> Ce présent registre contenant <strong>{{ $registre->nombre_acte_prevu }}</strong> feuillets devant servir de  <strong> REGISTRE DE {{ $registre->typeRegistre->lib_type_registre }}</strong>
-                                en <strong>{{ date("Y", strtotime($registre->created_at)) }}</strong> pour le compte du {{ strtolower($registre->institutionUser->institution->typeInstitution->typeCategorieInstitution->lib_type_categorie_institution) }} de <strong>{{ $registre->institutionUser->institution->lib_institution }}</strong>, a été côté et paraphé par nous, <strong>{{ $pdt }}</strong>, {{ $sexep == "M" ? "Président" : "Présidente" }}  du <strong> {{ $registre->institutionUser->institution->institutionparent->lib_institution }} </strong>
-                                ce <strong>{{ date("d-m-Y", strtotime($registre->updated_at)) }}</strong>. <br> <br>
-                                Le registre sera clôturé et arrêté le 31 Décembre par l'officier de l'état-civil.<br><br><br><br><br><br>
+                            <h2>
+                                {!! $registre->getTexteParapheRegistre('mariage') !!}<br><br><br><br><br><br>
                             </h2>
                             <h2><span style="margin-left: 730px;"> Fait à <strong>{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->created_at)) }}</strong> </span></h2>
                             <b style="margin-left: 730px;">

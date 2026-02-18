@@ -1,6 +1,11 @@
 @section("scripts")
 
 <script>
+    /** Évite l'erreur "can't access property style, getElementById(...) is null" sur les pages où ces éléments n'existent pas (ex. enfant trouvé create) */
+    function setElVisibility(id, value) {
+        var el = document.getElementById(id);
+        if (el && el.style) el.style.visibility = value;
+    }
     /**
      * Traite et formate les messages d'erreur reçus du serveur
      */
@@ -319,6 +324,8 @@
              num_jugement_placement_provisoir:num_jugement_placement_provisoir.val(),
          };
 
+        data._token = "{{ csrf_token() }}";
+
         //traitement ajax
         Swal.fire({
             width:2500,
@@ -333,7 +340,7 @@
             +"<tr><td></td><td style='padding:2px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(date_naissance_enfant.val())+"</span></td><td style='padding:2px'>Heure</td><td style='padding:2px'><span style='font-weight:bold;'> "+heure_naissance_enfant.val()+"</span></td></tr>"
 
             //PERE
-            +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:2px'>2)PERE </td><td style='padding:2px'>Nom<br><span style='font-weight:bold;'>"+ nom_pere.val() +" </span></td><td style='padding:2px'>Prenom<br><span style='font-weight:bold;'> "+prenom_pere.val()+"</span></td><td style='padding:2px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(date_naissance_pere.val())+"</span></td><td style='padding:2px'>Adresse<br><span style='font-weight:bold;'>"+domicile_numero_pere.val()+" "+domicile_nomvoie_declarant.val()+" "+domicile_district_declarant.text()+"</span></td><td style='padding:2px'>Telephone<br><span style='font-weight:bold;'>"+telephone_pere.val()+"</span></td></tr>"
+            +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:2px'>2)PERE </td><td style='padding:2px'>Nom<br><span style='font-weight:bold;'>"+ nom_pere.val() +" </span></td><td style='padding:2px'>Prenom<br><span style='font-weight:bold;'> "+prenom_pere.val()+"</span></td><td style='padding:2px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(date_naissance_pere.val())+"</span></td><td style='padding:2px'>Adresse<br><span style='font-weight:bold;'>"+domicile_numero_pere.val()+" "+domicile_nomvoie_declarant.val()+" "+domicile_district_declarant.val()+"</span></td><td style='padding:2px'>Telephone<br><span style='font-weight:bold;'>"+telephone_pere.val()+"</span></td></tr>"
             +"<tr><td style='font-weight:bold; padding:2px'></td><td style='padding:2px'>Document<br><span style='font-weight:bold;'>"+numero_document_pere.val()+"</span></td><td style='padding:2px'>Lieu naissance<br><span style='font-weight:bold;'>"+lieu_naissance_pere.val()+"</span></td><td style='padding:2px'>Nationalité<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_pere" ).options[ document.getElementById( "code_nationalite_pere" ).selectedIndex ].text+"</span></td><td style='padding:2px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "profession_pere" ).options[ document.getElementById( "profession_pere" ).selectedIndex ].text+"</span></td><td style='padding:2px'>Niveau <br><span style='font-weight:bold;'>"+document.getElementById( "niveau_instruction_pere" ).options[ document.getElementById( "niveau_instruction_pere" ).selectedIndex ].text+"</span></td></tr>"
 
             //mere
@@ -344,7 +351,7 @@
 
             //DECLARANT
             +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:2px'>3)DECLARANT</td><td style='padding:2px'>Nom<br><span style='font-weight:bold;'>"+ nom_declarant.val() +" </span></td><td style='padding:2px'>Prenom<br><span style='font-weight:bold;'> "+prenom_declarant.val()+"</span></td><td style='padding:2px'>Sexe<br><span style='font-weight:bold;'>"+document.getElementById( "sexe_declarant" ).options[ document.getElementById( "sexe_declarant" ).selectedIndex ].text+"</span></td><td style='padding:2px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(date_naissance_declarant.val())+"</span></td><td style='padding:2px'>Lieu<br><span style='font-weight:bold;'>"+ lieu_naissance_declarant.val()+"</span></td>"
-            +"<tr><td style='font-weight:bold; padding:2px'></td><td style='padding:2px'>Adresse<br><span style='font-weight:bold;'>"+domicile_numero_declarant.val()+" "+domicile_nomvoie_declarant.val()+" "+domicile_district_declarant.text()+"</span></td><td style='padding:2px'>Filiation<br><span style='font-weight:bold;'>"+document.getElementById( "filiation" ).options[ document.getElementById( "filiation" ).selectedIndex ].text +"</span></td><td style='padding:2px'>Téléphone<br><span style='font-weight:bold;'>"+ telephone_declarant.val()+"</span></td><td style='padding:2px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "profession_declarant" ).options[ document.getElementById( "profession_declarant" ).selectedIndex ].text +"</span></td><td style='padding:2px'>Nationalite<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_declarant" ).options[ document.getElementById( "code_nationalite_declarant" ).selectedIndex ].text+"</span></tr>"
+            +"<tr><td style='font-weight:bold; padding:2px'></td><td style='padding:2px'>Adresse<br><span style='font-weight:bold;'>"+domicile_numero_declarant.val()+" "+domicile_nomvoie_declarant.val()+" "+domicile_district_declarant.val()+"</span></td><td style='padding:2px'>Filiation<br><span style='font-weight:bold;'>"+document.getElementById( "filiation" ).options[ document.getElementById( "filiation" ).selectedIndex ].text +"</span></td><td style='padding:2px'>Téléphone<br><span style='font-weight:bold;'>"+ telephone_declarant.val()+"</span></td><td style='padding:2px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "profession_declarant" ).options[ document.getElementById( "profession_declarant" ).selectedIndex ].text +"</span></td><td style='padding:2px'>Nationalite<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_declarant" ).options[ document.getElementById( "code_nationalite_declarant" ).selectedIndex ].text+"</span></tr>"
 
 
             +"<tr><td style='padding:5px;' colspan=11><hr></td></tr></table></div>",
@@ -358,21 +365,26 @@
 
              if (result.value==true)
               {
-                 $.post("{{route('declarationNaissance.as.store')}}",data,function(response)
-                     {
+                 $.post("{{route('declarationNaissance.as.store')}}", data)
+                     .done(function(response){
                          if(response.code == "200")
                          {
                              flashAlert("Opération réussie","success",response.message);
                              var url = "{{ route('declarationNaissance.index') }}";
                              setTimeout(() => {
-                                 window.open(url);
+                                 window.location.href = url;
                              }, 2000);
                          }else{
-                             // Gestion améliorée des messages d'erreur
                              var messageErreur = traiterMessageErreur(response);
                              flashAlert("Opération échouée","error",messageErreur);
                          }
-
+                     })
+                     .fail(function(xhr){
+                         var msg = "Erreur lors de l'enregistrement.";
+                         if (xhr.status === 419) msg = "Session expirée. Veuillez recharger la page et réessayer.";
+                         else if (xhr.responseJSON && xhr.responseJSON.message) msg = traiterMessageErreur(xhr.responseJSON);
+                         else if (xhr.responseJSON && xhr.responseJSON.errors) msg = Object.values(xhr.responseJSON.errors).flat().join(" ");
+                         if (typeof flashAlert === "function") flashAlert("Erreur","error", msg);
                      });
              }
 
@@ -395,7 +407,16 @@
              return currentIndex > newIndex || !(3 === newIndex && Number($("#age-2").val()) < 18) && (currentIndex < newIndex && (form.find(".body:eq(" + newIndex + ") label.error").remove(), form.find(".body:eq(" + newIndex + ") .error").removeClass("error")), form.validate().settings.ignore = ":disabled,:hidden", form.valid())
          },
          onFinishing: function (event, currentIndex) {
-             return form.validate().settings.ignore = ":disabled", form.valid()
+             var validator = form.validate();
+             validator.settings.ignore = ":disabled, :hidden, .d-none *";
+             var valid = form.valid();
+             if (!valid) {
+                 var firstError = validator.errorList[0];
+                 if (firstError && firstError.message) {
+                     if (typeof flashAlert === "function") flashAlert("Champs requis", "error", firstError.message + " (étape " + (currentIndex + 1) + ")");
+                 }
+             }
+             return valid;
          },
          onFinished: function (event, currentIndex) {
              soumission();
@@ -1533,8 +1554,8 @@
              if((($('#peredeclarant').is(':checked')))&&($('#statut_personne_pere').val()==="VIVANT"))
              {
 
-                 document.getElementById('hide_pere').style.visibility = 'visible';
-                 document.getElementById('search_declarant').style.visibility = 'hidden';
+                 setElVisibility('hide_pere', 'visible');
+                 setElVisibility('search_declarant', 'hidden');
 
                  $('#nom_declarant').val($('#nom_pere').val());
                  document.getElementById('nom_declarant').readOnly = true;
@@ -1637,11 +1658,11 @@
 
             if(($('#statut_personne_mere').val()==="DECEDE"))
             {
-                document.getElementById('hide_mere').style.visibility = 'hidden';
+                setElVisibility('hide_mere', 'hidden');
             }
             if(($('#statut_personne_mere').val()==="VIVANT"))
             {
-                document.getElementById('hide_mere').style.visibility = 'visible';
+                setElVisibility('hide_mere', 'visible');
             }
 
         });
@@ -1653,11 +1674,11 @@
             if (($(this).val() === 'pere')&&($('#statut_personne_pere').val()==="VIVANT"))
              {
                  //Traitement input
-                 document.getElementById('hide_pere').style.visibility = 'visible';
-                 document.getElementById('search_declarant').style.visibility = 'hidden';
+                 setElVisibility('hide_pere', 'visible');
+                 setElVisibility('search_declarant', 'hidden');
 
-                 document.getElementById('hide_pere').style.visibility = 'visible';
-                 document.getElementById('search_declarant').style.visibility = 'hidden';
+                 setElVisibility('hide_pere', 'visible');
+                 setElVisibility('search_declarant', 'hidden');
 
                  $('#nom_declarant').val($('#nom_pere').val());
                  document.getElementById('nom_declarant').readOnly = true;
@@ -1760,10 +1781,10 @@
             if (($(this).val() === 'mere')&&($('#statut_personne_mere').val()==="VIVANT"))
             {
 
-                 document.getElementById('search_declarant').style.visibility = 'hidden';
+                 setElVisibility('search_declarant', 'hidden');
                  //Traitement input
-                 document.getElementById('hide_pere').style.visibility = 'visible';
-                 document.getElementById('search_declarant').style.visibility = 'hidden';
+                 setElVisibility('hide_pere', 'visible');
+                 setElVisibility('search_declarant', 'hidden');
 
                  $('#nom_declarant').val($('#nom_mere').val());
                  document.getElementById('nom_declarant').readOnly = true;
@@ -1870,7 +1891,7 @@
             }
             if (($(this).val() === 'autre'))
             {
-                 document.getElementById('search_declarant').style.visibility = 'visible';
+                 setElVisibility('search_declarant', 'visible');
 
                  $('#nom_declarant').val("");
                  document.getElementById('nom_declarant').readOnly = false;

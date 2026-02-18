@@ -102,7 +102,7 @@
                                     <div class="mb-2 col-md-3 d-none">
                                         <label class="form-label">Situation matrimoniale des parents<span class="text-danger"></span></label>
                                         <select id="code_situation_matrimoniale" name="code_situation_matrimoniale" class="form-control  @error('code_situation_matrimoniale') is-invalid @enderror ">
-                                            <option value="SMAT_0008" selected>Choisissez</option>
+                                            <option value="SMAT_0007" selected>Choisissez</option>
                                             @foreach ($situationMatrimoniales as $item)
                                                 <option value="{{ $item->code_situation_matrimoniale }}">{{ $item->lib_situation_matrimoniale }}</option>
                                             @endforeach
