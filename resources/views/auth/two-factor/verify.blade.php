@@ -27,7 +27,7 @@
 									   </center>
                                    </div>
                                     <div class="form-cover" style="width: 100%">
-										<form class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST">
+										<form class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST" autocomplete="off">
                                         @csrf
 
 										<p class="text-center text-muted mb-4" style="margin-bottom: 20px;">
@@ -43,6 +43,7 @@
 													   maxlength="6"
 													   pattern="[0-9]{6}"
 													   style="font-size: 1.5em; letter-spacing: 0.3em; font-weight: bold; text-align: center;"
+													   autocomplete="off"
 													   autofocus
 													   required>
 											</h6>
@@ -90,7 +91,7 @@
 <div class="modal fade" id="recoveryModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ route('two-factor.verify-recovery') }}">
+            <form method="POST" action="{{ route('two-factor.verify-recovery') }}" autocomplete="off">
                 @csrf
                 <div class="modal-header bg-warning">
                     <h5 class="modal-title"><i class="fa fa-key"></i> Code de Récupération</h5>
@@ -113,6 +114,7 @@
                                placeholder="XXXXXXXX"
                                maxlength="8"
                                style="font-size: 1.5em; letter-spacing: 0.2em;"
+                               autocomplete="off"
                                required>
                         <small class="form-text text-muted">
                             <i class="fa fa-exclamation-triangle"></i> Ce code ne pourra plus être utilisé après cette connexion

@@ -77,6 +77,13 @@ class MouvementService
             // Mettre à jour la déclaration
             $declaration->code_institution_destinataire = $destinataire;
             $declaration->declarant_approuver = "OUI";
+
+            // CEC envoie à lui-même (declaration directe) : approbation immédiate pour "Gestion des actes"
+            if ($destinataire === $declaration->code_institution && $typeDeclaration === "DECLARATION DE NAISSANCE") {
+                $declaration->cec_approuver = "OUI";
+                $declaration->cec_approuve_par = $user->affectationActive()->cui;
+            }
+
             $declaration->save();
             DB::commit();
             return [true, "Déclaration envoyée à l'institution destinataire"];
@@ -109,6 +116,11 @@ class MouvementService
                 $codeMouvement = 'MOUV_0019'; // Code du mouvement pour confirmation du dossier par le centre d'état civil
                 $declaration->cec_approuver = "OUI";
                 $declaration->cec_approuve_par = $user->cui;
+                // Certificat validé au centre : devient déclaration de naissance, affichage centre
+                if ($declaration->type_declaration === 'CERTIFICAT DE NAISSANCE') {
+                    $declaration->type_declaration = 'DECLARATION DE NAISSANCE';
+                    $declaration->contexte_affichage = 'centre_etat_civil';
+                }
                 $declaration->save();
             }
             $mouvementRef = DB::table('tr_mouvement')->where('code_mouvement', $codeMouvement)->first();

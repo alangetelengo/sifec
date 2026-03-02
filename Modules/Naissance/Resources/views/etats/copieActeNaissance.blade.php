@@ -55,7 +55,7 @@
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
         <tr>
-            <td style="width:40%; text-align: center;">
+            <td style="width:35%; text-align: left; vertical-align: middle;">
                 @php
                    setlocale(LC_TIME, "fr_FR", "French");
 
@@ -63,7 +63,6 @@
                     $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
                     $departement = $localisationData['localiteParent'];
                     $communeDistrict = $localisationData['localite'];
-                    // Utiliser 'localisation' qui contient déjà le bon libellé selon le type de localité
                     $libLocalite = $localisationData['localisation'];
                 @endphp
                 @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
@@ -88,13 +87,20 @@
                     {{-- <span>Service Consulaire</span> <br> --}}
                 </p>
                 @endif
+                @if($infos != "")
+                <p style="color: red; margin-top: 4px;">{{ $infos }}</p>
+                @endif
             </td>
-            <td style="width:34%; text-align: center;">
-                <p style="color: red">{{ $infos != "" ? $infos : "" }}</p>
+            <td style="width:30%; text-align: center; vertical-align: middle;">
+                @if ($acte->approbation_tribunal == 1 && $acte->sceau_tribunal)
+                    <img src='{{ public_path('app/'.$acte->sceau_tribunal) }}' alt="" width="100" height="100" style="display: block; margin: 0 auto;">
+                @endif
             </td>
-            <td style="width:33%; text-align: center;">
-                <strong>REPUBLIQUE DU CONGO</strong><br>
-                Unit&eacute; - Travail - Progr&egrave;s
+            <td style="width:35%; text-align: right; vertical-align: middle;">
+                <p style="margin: 0;">
+                    <strong>REPUBLIQUE DU CONGO</strong><br>
+                    Unit&eacute; - Travail - Progr&egrave;s
+                </p>
             </td>
         </tr>
   </table><br><br>

@@ -94,41 +94,34 @@ class ActeNaissanceController extends Controller
                 ]
             ]);
 
-            // Si on recherche par numéro de déclaration ou type de déclaration spécifique,
-            // chercher directement dans la base pour éviter les limitations de getDocumentsAControler
-            $rechercheDirecte = false;
-            if (($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) ||
-                ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0)) {
-                $rechercheDirecte = true;
+            // Recherche : tous les dossiers du CEC (créés par ou reçus par l'institution), validés ou non
+            $documentsAControler = Declarationnaissance::with([
+                'enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement'
+            ])
+                ->where(function ($q) use ($institution) {
+                    $q->where('code_institution_destinataire', $institution->code_institution)
+                        ->orWhere('code_institution', $institution->code_institution);
+                })
+                ->orderByDesc('date_heure_declaration')
+                ->get();
+            $countInitial = $documentsAControler->count();
 
-                // Recherche directe dans tous les documents accessibles à l'institution
-                $query = Declarationnaissance::with(['mouvements', 'enfant', 'acte', 'requisition', 'jugement'])
-                    ->where(function($query) use ($institution) {
-                        // Documents où l'institution est destinataire OU où l'institution est l'institution source
-                        $query->where('code_institution_destinataire', $institution->code_institution)
-                              ->orWhere('code_institution', $institution->code_institution);
-                    })
-                    ->where('declarant_approuver', 'OUI');
-
-                // Ajouter le filtre par numéro de déclaration si fourni
-                if ($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) {
-                    $query->where('code_declaration_naissance', 'LIKE', '%' . $request->numero_declaration . '%');
-                }
-
-                // Ajouter le filtre par type de déclaration si fourni
-                if ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0) {
-                    $query->where('type_declaration', $request->type_declaration);
-                }
-
-                $documentsAControler = $query->get();
-                $countInitial = $documentsAControler->count();
-            } else {
-                // Utiliser la même méthode que getDocumentsAControler pour garantir la cohérence
-                $documentsAControler = $institution->getDocumentsAControler("naissance");
-                $countInitial = $documentsAControler->count();
+            // Filtre par numéro de déclaration
+            if ($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) {
+                $search = trim($request->numero_declaration);
+                $documentsAControler = $documentsAControler->filter(
+                    fn($doc) => stripos($doc->code_declaration_naissance ?? '', $search) !== false
+                );
             }
 
-        // Filtre par période (date de déclaration de naissance)
+            // Filtre par type de déclaration
+            if ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0) {
+                $documentsAControler = $documentsAControler->filter(
+                    fn($doc) => $doc->type_declaration === $request->type_declaration
+                );
+            }
+
+            // Filtre par période (date de déclaration)
         if ($request->filled('date_debut')) {
             $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
                 // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
@@ -152,16 +145,9 @@ class ActeNaissanceController extends Controller
 
         // Filtre par sexe
         if ($request->filled('sexe')) {
-            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
-                return $doc->enfant && $doc->enfant->sexe === $request->sexe;
-            });
-        }
-
-        // Filtre par type de déclaration (si pas déjà appliqué dans la recherche directe)
-        if (!$rechercheDirecte && $request->filled('type_declaration')) {
-            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
-                return $doc->type_declaration === $request->type_declaration;
-            });
+            $documentsAControler = $documentsAControler->filter(
+                fn($doc) => $doc->enfant && $doc->enfant->sexe === $request->sexe
+            );
         }
 
         // Filtre par statut (basé sur les mouvements)

@@ -65,7 +65,7 @@
             @endif
 
              <BR>
-            <strong>{{ $ddc->institutionUser->institution->lib_institution }}</strong>
+            <strong>{{ optional(optional($ddc->institutionUser)->institution)->lib_institution ?? '—' }}</strong>
 
         </div>
 
@@ -137,11 +137,11 @@
                         @endif
                     </td> --}}
                     <td style="border: none; padding:5px 0px;text-align: left" colspan="3">L'Officier du centre d'état civil secondaire des :
-                        @if($ddc->institution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
-                        {{ $ddc->institutionPompeFunebre->lib_institution}}
+                        @if($ddc->institution && optional(optional($ddc->institution->TypeInstitution)->typeCategorieInstitution)->code_type_categorie_ins == "TCINS_0003")
+                        {{ optional($ddc->institutionPompeFunebre)->lib_institution ?? '—' }}
 
                         @else
-                        {{ $ddc->institution->lib_institution }} 
+                        {{ optional($ddc->institution)->lib_institution ?? '—' }} 
 
                          @endif
 
@@ -333,10 +333,10 @@
 
                         <td>
                            <span> Fait à {{ ucfirst(strtolower($localisation)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $ddc->created_at)))}}<br></span>
-                            <span style='text-align:left; margin-top:10px'>@if($ddc->institutionUser->institution->institutionParent->code_institution == "INS_0193")
+                            <span style='text-align:left; margin-top:10px'>@if(optional(optional(optional($ddc->institutionUser)->institution)->institutionParent)->code_institution == "INS_0193")
                                         Chef de bureau
         s
-                                    @elseif($ddc->institutionUser->institution->typeInstitution->code_type_institution == "TPINS_0002" && $diffJour < 15)
+                                    @elseif(optional(optional(optional($ddc->institutionUser)->institution)->typeInstitution)->code_type_institution == "TPINS_0002" && isset($diffJour) && $diffJour < 15)
                                         Chef de bureau:
                                     @else
                                         Chef de service

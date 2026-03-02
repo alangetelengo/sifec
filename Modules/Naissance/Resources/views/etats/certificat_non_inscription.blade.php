@@ -26,11 +26,11 @@
         // Utiliser le service Sifec pour obtenir les informations de localisation
         $institutionCertif = $certificat->institution;
         $localisationDataCertif = \App\Sifec\Sifec::getLocalisationInstitution($institutionCertif);
-        
+
         $departement = $localisationDataCertif['localiteParent'];
         $comDistrict = $localisationDataCertif['localite'];
         $cec = $localisationDataCertif['inst'];
-        
+
         // Pour typeLocalite, on peut utiliser l'objet departement du service
         $typeLocalite = $localisationDataCertif['departement'] ? $localisationDataCertif['departement']->typelocalite->lib_type_localite : "";
     @endphp
@@ -40,9 +40,9 @@
             <td style="width:40%; text-align: center;">
                 <p>
                     <span>
-                        <strong>{{ $typeLocalite." DE ".$departement }}</strong>
+                        <strong>{{ $departement }}</strong>
                     </span> <br>
-                    <span>{{ "COMMUNE DE ".$comDistrict}}</span> <br>
+                    <span>{{ $comDistrict}}</span> <br>
 
                     <span>
                         {{-- @if ($certificat->type_declaration == "DECLARATION NAISSANCE" || $certificat->type_declaration == "DECLARATION TARDIVE DE NAISSANCE" || $certificat->type_declaration == "DECLARATION DE PATERNITE")

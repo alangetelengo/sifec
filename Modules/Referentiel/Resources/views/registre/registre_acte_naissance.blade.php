@@ -603,11 +603,18 @@
             <a id="bb-nav-next" href="#" class="bb-custom-icon bb-custom-icon-arrow-right">Next</a>
             <a id="bb-nav-last" href="#" class="bb-custom-icon bb-custom-icon-last">Last page</a>
         </nav>
+
+
+        @if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0002")
+        <a href="{{ route('registre.tribunal') }}" class="btn btn-primary mb-2" style="float: right;>
+         <i class="fas fa-list"></i>
+        Liste des registres</a>
+        @else
         <a href="{{ route('registre.index') }}" class="btn btn-primary mb-2" style="float: right;">
             <i class="fas fa-list"></i>
             Liste des registres
         </a>
-        <!-- lien vers la page de la liste de registres -->
+        @endif        <!-- lien vers la page de la liste de registres -->
     </div>
 </div><!-- /container -->
 

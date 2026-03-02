@@ -194,64 +194,55 @@ class Institution extends Model
     }
 
     /**
-     * Récupère les déclarations de naissance envoyées par les formations sanitaires
-     * qui sont en attente de validation par le centre d'état civil (declarant_approuver = 'OUI')
+     * Récupère les déclarations envoyées par les formations sanitaires (ou pompes funèbres pour décès)
+     * en attente de confirmation par le centre d'état civil.
+     * Exclut les dossiers déjà confirmés (cec_approuver = 'OUI').
      */
     public function getDeclarationsFormationSanitaireAControler($module)
     {
-        $formationsSanitairesCodes =  $this->descendants()
-            ->filter(function($institution) {
-                return $institution->typeInstitution &&
-                    $institution->typeInstitution->code_type_categorie_ins === 'TCINS_0003';
-            })
+        $formationsSanitairesCodes = $this->descendants()
+            ->filter(fn($institution) =>
+                $institution->typeInstitution?->code_type_categorie_ins === 'TCINS_0003'
+            )
             ->pluck('code_institution')
             ->toArray();
 
-        if($module == "naissance"){
-
-            // return $this->code_institution;
-
+        if ($module === "naissance") {
             return Declarationnaissance::with(['enfant', 'declarant', 'pere', 'mere', 'mouvements'])
-            ->whereIn('code_institution', $formationsSanitairesCodes)
-            ->where('type_declaration', "DECLARATION DE NAISSANCE")
-            ->whereHas('mouvements', function($query) {
-                $query->where('code_mouvement', "MOUV_0001")
-                      ->orWhere('code_mouvement', "MOUV_0011");
-            })
-            // ->orWhere('type_declaration', "CERTIFICAT DE NON INSCRIPTION")
-            ->orWhere('type_declaration', "CERTIFICAT DE DESTRUCTION DE L'ACTE")
-            ->where('declarant_approuver', 'OUI')
-            ->where('code_institution_destinataire', $this->code_institution)
-            ->get();
+                ->whereIn('code_institution', $formationsSanitairesCodes)
+                // ->where('type_declaration', "DECLARATION DE NAISSANCE")
+                ->where('type_declaration', "CERTIFICAT DE NAISSANCE")
+                ->where('declarant_approuver', 'OUI')
+                ->where('cec_approuver', 'NON')
+                ->where('code_institution_destinataire', $this->code_institution)
+                ->whereHas('mouvements', fn($q) => $q->whereIn('code_mouvement', ['MOUV_0001', 'MOUV_0011']))
+                ->get();
+        }
 
-
-
-        }elseif($module == "deces"){
+        if ($module === "deces") {
             $pompesFunebresCodes = $this->getInstitutionsPompeFunebre()->pluck('code_institution')->toArray();
-            // Combiner les codes des formations sanitaires et des pompes funèbres
             $institutionsCodes = array_merge($formationsSanitairesCodes, $pompesFunebresCodes);
 
             return DeclarationDeces::with(['defunt', 'declarant', 'pere', 'mere', 'mouvements'])
-            ->whereIn('code_institution', $institutionsCodes)
-            ->where(function($query) {
-                $query->where('type_declaration', "DECLARATION DE DECES")
-                      ->orWhere('type_declaration', "CERTIFICAT DE CONSTATATION DE DECES");
-            })
-            // ->orWhere('type_declaration', "DECLARATION TARDIVE")
-            // ->orWhere('type_declaration', "CERTIFICAT DE NON INSCRIPTION")
-            ->where('declarant_approuver', 'OUI')
-            ->where('code_institution_destinataire', $this->code_institution)
-            ->get();
-        }elseif($module == "mariage"){
-            return DeclarationMariage::with(['epoux', 'epouse', 'acte'])
-            ->whereIn('code_institution', $formationsSanitairesCodes)
-            ->where('type_declaration', "DECLARATION DE MARIAGE")
-            ->where('declarant_approuver', 'OUI')
-            ->where('code_institution_destinataire', $this->code_institution)
-            ->get();
+                ->whereIn('code_institution', $institutionsCodes)
+                ->whereIn('type_declaration', ["DECLARATION DE DECES", "CERTIFICAT DE CONSTATATION DE DECES"])
+                ->where('declarant_approuver', 'OUI')
+                ->where('cec_approuver', 'NON')
+                ->where('code_institution_destinataire', $this->code_institution)
+                ->get();
         }
 
+        if ($module === "mariage") {
+            return DeclarationMariage::with(['epoux', 'epouse', 'acte'])
+                ->whereIn('code_institution', $formationsSanitairesCodes)
+                ->where('type_declaration', "DECLARATION DE MARIAGE")
+                ->where('declarant_approuver', 'OUI')
+                ->where('cec_approuver', 'NON')
+                ->where('code_institution_destinataire', $this->code_institution)
+                ->get();
+        }
 
+        return collect();
     }
 
     /**
@@ -344,36 +335,41 @@ class Institution extends Model
             throw new \InvalidArgumentException("Module invalide. Valeurs acceptées : naissance, deces, mariage");
         }
 
-        // Configuration spécifique par module
+        // Configuration spécifique par module (CNI/destruction avec réquisition ou jugement du tribunal)
         $config = [
             'naissance' => [
                 'model' => Declarationnaissance::class,
-                'with' => ['enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement']
+                'with' => ['enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement'],
+                'types' => ["CERTIFICAT DE NON INSCRIPTION", "CERTIFICAT DE DESTRUCTION DE L'ACTE"]
             ],
             'deces' => [
                 'model' => DeclarationDeces::class,
-                'with' => ['defunt', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement']
+                'with' => ['defunt', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement'],
+                'types' => null
             ],
             'mariage' => [
                 'model' => DeclarationMariage::class,
-                'with' => ['epoux', 'epouse', 'acte', 'requisition', 'jugement']
+                'with' => ['epoux', 'epouse', 'acte', 'requisition', 'jugement'],
+                'types' => null
             ]
         ];
 
         $moduleConfig = $config[$module];
-        return $moduleConfig['model']::with($moduleConfig['with'])
+        $query = $moduleConfig['model']::with($moduleConfig['with'])
             ->where([
                 'code_institution' => $this->code_institution,
                 'tribunal_approuver' => 'OUI'
             ])
-            ->where(function($query) {
-                $query->whereHas('requisition')
-                    ->orWhereHas('jugement');
+            ->where(function($q) {
+                $q->whereHas('requisition')->orWhereHas('jugement');
             })
-            ->whereHas('mouvements', function($query) {
-                $query->where('code_mouvement', 'MOUV_0011');
-            })
-            ->get();
+            ->whereHas('mouvements', fn($q) => $q->where('code_mouvement', 'MOUV_0011'));
+
+        if (!empty($moduleConfig['types'])) {
+            $query->whereIn('type_declaration', $moduleConfig['types']);
+        }
+
+        return $query->get();
     }
 
 
@@ -395,11 +391,13 @@ class Institution extends Model
         }
 
         // Configuration spécifique par module
+        // Pour naissance : uniquement déclarations directes. CNI et destruction passent par le tribunal
+        // et sont gérés par getDeclarationsWithRequisitionsOrJugements.
         $config = [
             'naissance' => [
                 'model' => Declarationnaissance::class,
                 'with' => ['enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte'],
-                'types' => ['DECLARATION DE NAISSANCE', 'CERTIFICAT DE NON INSCRIPTION','CERTIFICAT DE DESTRUCTION DE L\'ACTE']
+                'types' => ['DECLARATION DE NAISSANCE']
             ],
             'deces' => [
                 'model' => DeclarationDeces::class,
@@ -446,7 +444,8 @@ class Institution extends Model
     {
         $documentsAControler = collect();
         // 1. Déclarations de naissance et de deces envoyées par les formations sanitaires (non approuvées)
-        $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module))->merge($this->getDeclarationsWithRequisitionsOrJugements($module)) : $documentsAControler;
+        // $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module))->merge($this->getDeclarationsWithRequisitionsOrJugements($module)) : $documentsAControler;
+        $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module)) : $documentsAControler;
         return $documentsAControler->sortByDesc('date_heure_declaration');
     }
 

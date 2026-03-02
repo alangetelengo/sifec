@@ -61,9 +61,20 @@
                    class="btn btn-info shadow btn-xs sharp me-1" title="Voir détail">
                     <i class="fas fa-eye"></i>
                 </a>
-                <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
-                    <i class="fas fa-print"></i>
-                </a>
+                @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE']))
+                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le certificat de naissance">
+                        <i class="fas fa-file-medical"></i>
+                    </a>
+                    @if($dn->type_declaration == 'DECLARATION DE NAISSANCE')
+                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir la déclaration de naissance">
+                        <i class="fas fa-file-alt"></i>
+                    </a>
+                    @endif
+                @else
+                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
+                        <i class="fas fa-print"></i>
+                    </a>
+                @endif
 
                 @if($dn->type_declaration != 'DECLARATION DE NAISSANCE')
                     @if(isset($dn->requisition) && $dn->requisition || isset($dn->jugement) && $dn->jugement)

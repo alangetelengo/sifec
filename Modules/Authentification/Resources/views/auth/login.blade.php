@@ -33,11 +33,11 @@
 										Logo sifec
 									</div>
                                     <h4 class="text-center mb-4">Connexion</h4>
-                                    <form action="{{ route("custom.auth") }}" method="POST">
+                                    <form action="{{ route("custom.auth") }}" method="POST" autocomplete="off">
                                         @csrf
                                         <div class="form-group">
                                             <label class="mb-1"><strong>Email</strong></label>
-                                            <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}">
+                                            <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" autocomplete="off">
                                             @error('email')
                                             <div class="invalid-feed-back">
                                                 <span class="text-danger">{{ $message }}</span>
@@ -45,7 +45,7 @@
                                             @enderror                                        </div>
                                         <div class="form-group">
                                             <label class="mb-1"><strong>Password</strong></label>
-                                            <input type="password" class="form-control @error('email') is-invalid @enderror" name="password">
+                                            <input type="password" class="form-control @error('email') is-invalid @enderror" name="password" autocomplete="new-password">
                                             @error('password')
                                             <div class="invalid-feed-back">
                                                 <span class="text-danger">{{ $message }}</span>

@@ -49,8 +49,19 @@ class NaissanceController extends Controller
         $user = Auth::user();
         $title = "Liste des déclarations de naissance";
         $button = "Créer déclaration";
-
         $institution = $user->institution();
+
+        $codeCategorie = optional(optional(optional($user->affectationActive())->institution)->typeInstitution)->typeCategorieInstitution;
+        $codeCategorie = $codeCategorie ? $codeCategorie->code_type_categorie_ins : null;
+
+        if ($codeCategorie == 'TCINS_0003') {
+            $title = "Liste des certificats de déclaration de naissance";
+            $button = "Créer certificat de déclaration";
+        } elseif ($codeCategorie == 'TCINS_0001') {
+            $title = "Liste des déclarations de naissance";
+            $button = "Créer déclaration";
+        }
+
 
         $declarations = Declarationnaissance::query()
             ->with(['enfant', 'declarant', 'pere', 'mere', 'mouvements'])
@@ -65,13 +76,18 @@ class NaissanceController extends Controller
         return view('naissance::declaration.index', compact('declarations', 'title', 'button'));
     }
 
-    public function etat($id)
+    public function etat(Request $request, $id)
     {
+        $contexteForcage = $request->query('contexte');
+        if ($contexteForcage && !in_array($contexteForcage, ['formation_sanitaire', 'centre_etat_civil'])) {
+            $contexteForcage = null;
+        }
 
         $typeDCertifatD = "CERTIFICAT DE DESTRUCTION DE L'ACTE";
         $typeDPaternite = "DECLARATION DE PATERNITE";
         $typeDCertifatN = "CERTIFICAT DE NON INSCRIPTION";
         $typeDNais = "DECLARATION DE NAISSANCE";
+        $typeCertifDeclaration = "CERTIFICAT DE NAISSANCE";
         $typeJSup = "JUGEMENT SUPPLETIF";
         $typeJHomo = "JUGEMENT D'HOMOLOGATION";
         $typeFMNais = "FICHE DE MATERNITE";
@@ -82,6 +98,7 @@ class NaissanceController extends Controller
         $declarationP = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeDPaternite)->first();
         $declarationsN = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeDCertifatN)->first();
         $declarations = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeDNais)->first();
+        $certifDeclaration = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeCertifDeclaration)->first();
         $jugementSuppletif = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeJSup)->first();
         $jugementHomologation = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeJHomo)->first();
         $ficheMat = Declarationnaissance::where("code_declaration_naissance",$id)->where("type_declaration",$typeFMNais)->first();
@@ -94,10 +111,17 @@ class NaissanceController extends Controller
         $dummy = "XXXXXXXXXXXXXXXX";
 
         if($declarations != null){
-
+            $typeDeclaration = $declarations->type_declaration;
             $qrCode = $this->generateDeclarationQr($declarations->code_declaration_naissance);
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy", "qrCode"),["dn"=>$declarations])->render());
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy", "qrCode", "typeDeclaration", "contexteForcage"),["dn"=>$declarations])->render());
            return $html2pdf->output($declarations->code_declaration_naissance.".pdf");
+        }
+
+        if($certifDeclaration != null){
+            $typeDeclaration = $certifDeclaration->type_declaration;
+            $qrCode = $this->generateDeclarationQr($certifDeclaration->code_declaration_naissance);
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy", "qrCode", "typeDeclaration", "contexteForcage"),["dn"=>$certifDeclaration])->render());
+            return $html2pdf->output($certifDeclaration->code_declaration_naissance.".pdf");
         }
 
         if($declarationsN != null){
@@ -111,15 +135,15 @@ class NaissanceController extends Controller
             return $html2pdf->output($declarationsN->code_declaration_naissance.".pdf");
         }
         if($jugementHomologation != null){
-
+            $typeDeclaration = $jugementHomologation->type_declaration;
             $qrCode = $this->generateDeclarationQr($jugementHomologation->code_declaration_naissance);
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$jugementHomologation])->render());
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode","typeDeclaration","contexteForcage"),["dn"=>$jugementHomologation])->render());
             return $html2pdf->output($jugementHomologation->code_declaration_naissance.".pdf");
         }
         if($jugementSuppletif != null){
-            // dd($jugementSuppletif);
+            $typeDeclaration = $jugementSuppletif->type_declaration;
             $qrCode = $this->generateDeclarationQr($jugementSuppletif->code_declaration_naissance);
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$jugementSuppletif])->render());
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode","typeDeclaration","contexteForcage"),["dn"=>$jugementSuppletif])->render());
             return $html2pdf->output($jugementSuppletif->code_declaration_naissance.".pdf");
         }
         if($declarationP != null){
@@ -133,13 +157,15 @@ class NaissanceController extends Controller
             return $html2pdf->output($declarationsD->code_declaration_naissance.".pdf");
         }
         if($ficheMat != null){
+            $typeDeclaration = $ficheMat->type_declaration;
             $qrCode = $this->generateDeclarationQr($ficheMat->code_declaration_naissance);
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$ficheMat])->render());
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode","typeDeclaration","contexteForcage"),["dn"=>$ficheMat])->render());
             return $html2pdf->output($ficheMat->code_declaration_naissance.".pdf");
         }
         if($ficheTransActe != null){
+            $typeDeclaration = $ficheTransActe->type_declaration;
             $qrCode = $this->generateDeclarationQr($ficheTransActe->code_declaration_naissance);
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode"),["dn"=>$ficheTransActe])->render());
+            $html2pdf->writeHTML(view('naissance::etats.declaration', compact("dummy","qrCode","typeDeclaration","contexteForcage"),["dn"=>$ficheTransActe])->render());
             return $html2pdf->output($ficheTransActe->code_declaration_naissance.".pdf");
         }
     }
@@ -218,10 +244,10 @@ class NaissanceController extends Controller
         $ageEnfant = 0;
         $dateNaissance = request("date_naissance_enfant");
 
-        if($user->affectationActive()->fonction->code_fonction == "FONC_0022") //si c'est un agent de maternité
+        if($user->affectationActive()->fonction->code_fonction == "FONC_0006") //si c'est un agent de formation sanitaire
         {
-            $title = "Créer une fiche de maternité";
-            $type_declaration = "FICHE DE MATERNITE";
+            $title = "Créer un certificat de déclaration de naissance";
+            $type_declaration = "CERTIFICAT DE NAISSANCE";
         }
 
         if($user->affectationActive()->fonction->code_fonction == "FONC_0014") //si c'est un agent de la mairie centrale

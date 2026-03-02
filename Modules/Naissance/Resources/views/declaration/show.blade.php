@@ -16,6 +16,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
     // Mapping type_declaration => code mouvement d'envoi
     $mappingMouvement = [
         'DECLARATION DE NAISSANCE' => 'MOUV_0001',
+        'CERTIFICAT DE NAISSANCE' => 'MOUV_0001',
         'DECLARATION TARDIVE' => 'MOUV_0001',
         'CERTIFICAT DE NON INSCRIPTION' => 'MOUV_0026',
         "CERTIFICAT DE DESTRUCTION DE L'ACTE" => 'MOUV_0027',

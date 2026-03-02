@@ -311,6 +311,13 @@ class DeclarationNaissanceService
         $dn->code_institution = $user->affectationActive()->code_institution;
         $dn->type_declarant = $request->type_declarant;
 
+        // Contexte d'affichage (option 2) : uniquement pour certificat et déclaration de naissance
+        $typeDecl = $dn->type_declaration;
+        if ($typeDecl === 'CERTIFICAT DE NAISSANCE' || $typeDecl === 'DECLARATION DE NAISSANCE') {
+            $codeCategorie = optional(optional($user->affectationActive()->institution)->typeInstitution)->typeCategorieInstitution->code_type_categorie_ins ?? null;
+            $dn->contexte_affichage = ($codeCategorie === 'TCINS_0003') ? 'formation_sanitaire' : 'centre_etat_civil';
+        }
+
         // Champs spécifiques pour les enfants abandonnés
         $dn->lieu_placement = $request->lieu_placement;
         $dn->num_fiche_placement = $request->num_fiche_placement;

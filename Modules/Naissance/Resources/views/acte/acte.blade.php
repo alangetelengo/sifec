@@ -72,18 +72,20 @@ Acte de naissance
                 <h4></h4>
                 <div class="row">
                     <div id="dupcreer" class="d-flex gap-2 justify-content-end">
-                        @if($acte && $acte->retirer == 0)
-                            <button type="button" class="btn btn-primary" id="btn-imprimer-acte" title="Imprimer l'acte de naissance">
-                                <i class="fas fa-print me-1"></i>
-                                Imprimer l'acte
-                            </button>
-                        @elseif($acte && $acte->retirer == 1)
-                            <button type="button" class="btn btn-secondary" id="btn-imprimer-acte" disabled title="L'acte a été retiré, l'impression n'est plus autorisée">
-                                <i class="fas fa-print me-1"></i>
-                                Imprimer l'acte
-                            </button>
+                        @if($acte && $acte->approbation_mairie != null)
+                            @if($acte->retirer == 0)
+                                <button type="button" class="btn btn-primary" id="btn-imprimer-acte" title="Imprimer l'acte de naissance">
+                                    <i class="fas fa-print me-1"></i>
+                                    Imprimer l'acte
+                                </button>
+                            @else
+                                <button type="button" class="btn btn-secondary" id="btn-imprimer-acte" disabled title="L'acte a été retiré, l'impression n'est plus autorisée">
+                                    <i class="fas fa-print me-1"></i>
+                                    Imprimer l'acte
+                                </button>
+                            @endif
                         @endif
-                        @if($acte && $acte->retirer == 0 && $acte->approbation_mairie !=null)
+                        @if($acte && $acte->retirer == 0 && $acte->approbation_mairie != null)
                             <button type="button"
                                     class="btn btn-warning text-white"
                                     id="btn-open-retrait-modal"

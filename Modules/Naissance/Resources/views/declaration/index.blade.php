@@ -9,15 +9,15 @@ Déclaration
     <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
 @endsection
 @section('sous-titre')
-    Liste des déclarations de naissance
+    {{ $title }}
 @endsection
 @section('corps')
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
-                <h4>Liste des déclarations de naissance</h4>
-                <a href="{{ route("declarationNaissance.create") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >Créer déclaration  <i class="fa fa-plus-circle"></i></button></a>
+                <h4>{{ $title }}</h4>
+                <a href="{{ route("declarationNaissance.create") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >{{ $button }}  <i class="fa fa-plus-circle"></i></button></a>
             </div>
             <div class="col-12">
                 <div class="card">
@@ -33,8 +33,6 @@ Déclaration
                                         <th>Enfant: Date naissance</th>
                                         <th>Enfant: Date déclaration</th>
                                         <th>Enfant: Sexe</th>
-                                        <th>Type: Document</th>
-                                        <th>Statut: Document</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -108,27 +106,8 @@ Déclaration
                                         <td>{{ date('d-m-Y', strtotime($dn->enfant->date_naissance)) }}</td>
                                         <td>{{ $dn->date_heure_declaration ? date('d-m-Y H:i', strtotime($dn->date_heure_declaration)) : '-' }}</td>
                                         <td>{{ $dn->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
-                                        @if($dn->type_declaration != "FICHE DE MATERNITE" )
-                                            <td>
-                                                {{ $dn->type_declaration }}
-                                            </td>
-                                        @else
-                                            <td>
-                                                <a href="{{ $dn->code_declaration_naissance }}" telephone="{{ $dn->mere->telephone_parent }}" class="badge badge badge-danger show-send-sms-to-parent" style="font-size: 13px;font-weight:600;">{{ $dn->type_declaration }}</a>
-                                            </td>
-                                        @endif
-                                        <td>
-                                            <span class="badge light {{ $statutBadge['class'] }}" style="font-size: 13px;font-weight:600;">
-                                                {{ $statutBadge['label'] }}
-                                            </span>
-                                            @if($dernierMouvement && $dernierMouvement->observation)
-                                                <br><small>Observation : {{ $dernierMouvement->observation }}</small>
-                                            @endif
-                                            @if($dernierMouvement && $dernierMouvement->motif_renvoi)
-                                                <br><small>Motif : {{ $dernierMouvement->motif_renvoi }}</small>
-                                            @endif
-                                        </td>
                                         <td style="width: 18%">
+                                            @if($dn->type_declaration != "FICHE DE MATERNITE")
                                             <div class="btn-group btn-group-xs">
                                                 {{-- Voir le détail --}}
                                                 <a href="{{ route('declarationNaissance.show',$dn->code_declaration_naissance) }}" class="btn btn-primary shadow btn-xs sharp me-1" title="Voir détail">
@@ -156,19 +135,32 @@ Déclaration
                                                         <i class="fas fa-paper-plane"></i>
                                                     </button>
                                                 @endif
-                                                {{-- Supprimer --}}
-                                                @if($peutSupprimer)
-                                                    <form action="{{ route('declarationNaissance.destroy',$dn->code_declaration_naissance) }}" method="POST" style="display: inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette déclaration ?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
-                                                    </form>
+
+                                                {{-- Consulter le PDF --}}
+                                                @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE']))
+                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le certificat de naissance">
+                                                        <i class="fas fa-file-medical"></i>
+                                                    </a>
+                                                    @if($dn->type_declaration == 'DECLARATION DE NAISSANCE')
+                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir la déclaration de naissance">
+                                                        <i class="fas fa-file-alt"></i>
+                                                    </a>
+                                                    @endif
+                                                @else
+                                                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
                                                 @endif
-                                                {{-- Consulter le PDF pour impression --}}
-                                                <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
-                                                    <i class="fas fa-print"></i>
-                                                </a>
+                                                   {{-- Supprimer --}}
+                                                   @if($peutSupprimer)
+                                                   <form action="{{ route('declarationNaissance.destroy',$dn->code_declaration_naissance) }}" method="POST" style="display: inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette déclaration ?');">
+                                                       @csrf
+                                                       @method('DELETE')
+                                                       <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
+                                                   </form>
+                                               @endif
                                             </div>
+                                            @endif
                                         </td>
                                     </tr>
                                     @endforeach
@@ -182,8 +174,6 @@ Déclaration
                                         <th>Enfant: Date naissance</th>
                                         <th>Enfant: Date déclaration</th>
                                         <th>Enfant: Sexe</th>
-                                        <th>Type: Document</th>
-                                        <th>Statut: Document</th>
                                         <th>Action</th>
                                     </tr>
                                 </tfoot>

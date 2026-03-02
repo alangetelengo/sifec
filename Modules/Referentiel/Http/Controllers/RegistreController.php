@@ -146,40 +146,40 @@ class RegistreController extends Controller
             $registre->identifiant_registre = $request->prefix.Auth::user()->institution()->code_institution.date("dmYHis");
             $registre->save();
 
-            $indicatif = substr($registre->institutionUser->institution->institutionParent->telephone(),0,4);
+            // Envoi de notification au tribunal de ressort (parent du CEC)
+            $institution = optional($registre->institutionUser)->institution;
+            $tribunal = $institution ? optional($institution)->institutionParent : null;
+            $validateur = $tribunal ? $tribunal->validateur() : null;
 
+            if ($tribunal && $validateur) {
+                $otp = substr(time(), 2);
 
-            //envoie de notification au tribunal de ressort
-            $otp = substr(time(),2);
+                $temp = config("sifec.sms.templates.actions.creation_registre");
+                $temp = str_replace(":tribunal", $validateur->nom, $temp);
+                $temp = str_replace(":code_registre", $registre->numeroOrdreRegistre(), $temp);
+                $temp = str_replace(":cec", Auth::user()->affectationActive()->institution->lib_institution, $temp);
+                $temp = str_replace(":type_registre", $registre->typeRegistre->lib_type_registre, $temp);
+                $temp = str_replace(":code_otp", $otp, $temp);
 
-            $temp = config("sifec.sms.templates.actions.creation_registre");
-            $temp = str_replace(":tribunal",$registre->institutionUser->institution->institutionParent->validateur()->nom,$temp);
-            // $temp = str_replace(":code_registre",$registre->getcode(),$temp);
-            $temp = str_replace(":code_registre",$registre->numeroOrdreRegistre(),$temp);
-            $temp = str_replace(":cec",Auth::user()->affectationActive()->institution->lib_institution,$temp);
-            $temp = str_replace(":type_registre",$registre->typeRegistre->lib_type_registre,$temp);
-            $temp = str_replace(":code_otp",$otp,$temp);
+                $contactValidateur = optional($validateur->contacts)->first();
+                $telephone = $contactValidateur ? $contactValidateur->indicatif . $contactValidateur->telephone : null;
 
+                if ($telephone) {
+                    SifecFacade::sendSms($telephone, $temp);
+                    dispatch(new SendSmsJob($telephone, $temp));
+                }
 
-            // SifecFacade::sendSms($registre->institutionUser->institution->institutionParent->telephone(), $temp);
-            SifecFacade::sendSms($registre->institutionUser->institution->institutionParent->telephone(), $temp);
-            dispatch(new SendSmsJob($registre->institutionUser->institution->institutionParent->telephone(),$temp));
-
-            // if($indicatif != "+242"){
-            //     SifecFacade::infobipSms($registre->institutionUser->institution->institutionParent->telephone(), $temp);
-            // }else{
-            //     // dispatch(new SendSmsJob($registre->institutionUser->institution->institutionParent->telephone(),$temp));
-            //     dispatch(new SendSmsJob("+242066835332",$temp));
-            // }
-            // dd($registre->institutionUser->institution->institutionParent->telephone());
-
-            dispatch(new CreationRegistreJob($registre->institutionUser->institution->institutionParent->validateur()->nom,
-            $registre->typeRegistre->lib_type_registre,
-            $registre->numeroOrdreRegistre(),
-            Auth::user()->affectationActive()->institution->lib_institution,
-            // $registre->institutionUser->user->email
-            "alangetelengo87@gmail.com"
-            ));
+                $emailTribunal = $contactValidateur ? ($contactValidateur->email_professionnelle ?? null) : null;
+                if ($emailTribunal) {
+                    dispatch(new CreationRegistreJob(
+                        $validateur->nom,
+                        $registre->typeRegistre->lib_type_registre,
+                        $registre->numeroOrdreRegistre(),
+                        Auth::user()->affectationActive()->institution->lib_institution,
+                        $emailTribunal
+                    ));
+                }
+            }
 
 
             DB::commit();

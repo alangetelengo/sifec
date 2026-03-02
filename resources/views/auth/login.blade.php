@@ -28,13 +28,13 @@
                                    </div>
                                     <div class="form-cover" style="width: 100%">
 										<h1 style="color:green; border-bottom: 2px solid green; margin-bottom:20px">Authentification </h1>
-										<form class="form-login" action="{{ route("dashboard.login") }}" method="POST">
+										<form class="form-login" action="{{ route("dashboard.login") }}" method="POST" autocomplete="off">
                                         @csrf
 										
 										
                                         <div class="form-group">
 											<h6>Nom utilisateur <br>
-												<input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}">
+												<input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" autocomplete="off">
 											</h6>
 											 @error('email')
                                                 <div class="invalid-feed-back">
@@ -45,7 +45,7 @@
 										
 										 <div class="form-group">
 											<h6>Mot de passe <br>
-												<input type="password" class="form-control @error('email') is-invalid @enderror" name="password">
+												<input type="password" class="form-control @error('email') is-invalid @enderror" name="password" autocomplete="new-password">
                                            </h6>
 											@error('password')
 												<div class="invalid-feed-back">

@@ -54,29 +54,41 @@
         <div style="width: 100%; position: relative; height: 80px;">
         <div id="entete_rprt_suite">
 
-            <?php
+            @php
                 setlocale(LC_TIME, "fr_FR", "French");
-                $typeDeclaration = $dn->type_declaration;
-            // CAS DE FORMATION SANITAIRE
-            if($dn->institution->typeInstitution->code_type_institution != "TPINS_0002")
-
-            {
-                echo "<strong>".htmlentities("MINISTERE DE LA SANTE ET DE LA POPULATION  ")."</strong> <BR><strong style='margin-left:100px'>************************ </strong><BR>";
-            ?>
-            <?php
-            }else {
-                $institution = $dn->institution;
-                $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-                $localiteParent = $localisationData['localiteParent'];
-                $localite = $localisationData['localite'];
-             echo  " <span>".
-                   $localiteParent. "<br>".
-                      $localite.
-                   "</span> <br>";
-            }
-
-            ?>
-            <strong style="margin-left:10px"> {{ $dn->institution->lib_institution }}</strong>
+                $afficherFormationSanitaire = false;
+                $institutionAffichage = $dn->institution;
+                $contexteEffectif = $contexteForcage ?? $dn->contexte_affichage ?? null;
+                if (in_array($dn->type_declaration ?? '', ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'])) {
+                    if ($contexteEffectif) {
+                        $afficherFormationSanitaire = ($contexteEffectif === 'formation_sanitaire');
+                        if ($contexteEffectif === 'centre_etat_civil' && $dn->institutionDestinataire) {
+                            $institutionAffichage = $dn->institutionDestinataire;
+                        }
+                    }
+                }
+                if (!$contexteEffectif) {
+                    $codeCategorie = optional(optional($dn->institution)->typeInstitution)->typeCategorieInstitution;
+                    $codeCategorie = $codeCategorie ? $codeCategorie->code_type_categorie_ins : null;
+                    $afficherFormationSanitaire = ($codeCategorie == 'TCINS_0003');
+                }
+            @endphp
+            @if($afficherFormationSanitaire)
+                {{-- Formation sanitaire --}}
+                <strong>{{ htmlentities("MINISTERE DE LA SANTE ET DE LA POPULATION  ") }}</strong><br>
+                <strong style="margin-left:100px">************************</strong><br>
+            @else
+                {{-- Centre d'état civil (TCINS_0001) ou autre --}}
+                @if($institutionAffichage)
+                    @php
+                        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institutionAffichage);
+                        $localiteParent = $localisationData['localiteParent'] ?? '';
+                        $localite = $localisationData['localite'] ?? '';
+                    @endphp
+                    <span>{{ $localiteParent }}<br>{{ $localite }}</span><br>
+                @endif
+            @endif
+            <strong style="margin-left:10px">{{ optional($institutionAffichage)->lib_institution ?? optional($dn->institution)->lib_institution ?? '—' }}</strong>
 
         </div>
 
@@ -116,7 +128,16 @@
 		<tr>
 			<td style="border-right: solid; padding:2px 0px;text-align: center">&nbsp;</td>
 			<td style="border: solid; padding:2px 0px;text-align: center" colspan="2"><span style="font-size: 18px;font-weight:bold;">
-                {{ $typeDeclaration }}
+                @php
+                    $titreAffiche = $typeDeclaration;
+                    if (in_array($dn->type_declaration ?? '', ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'])) {
+                        $ctx = $contexteForcage ?? $dn->contexte_affichage ?? null;
+                        if ($ctx) {
+                            $titreAffiche = ($ctx === 'formation_sanitaire') ? 'CERTIFICAT DE NAISSANCE' : 'DECLARATION DE NAISSANCE';
+                        }
+                    }
+                @endphp
+                {{ $titreAffiche }}
             </span>
             </td>
 			<td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
@@ -149,7 +170,7 @@
         <fieldset>
             <legend><strong>Renseignements enfant</strong></legend>
 
-            @if($dn->type_declaration == "FICHE DE MATERNITE") {{-- CAS DE FICHE DE MATERNITE ET LE PERE N'EST PAS RENSEIGNE --}}
+
             <table cellspacing="0" style="border-collapse: collapse; ">
                 <col style="width: 25%">
                 <col style="width: 25%">
@@ -157,78 +178,48 @@
                 <col style="width: 25%">
                 <tr>
                     <td style="border: none; padding:2px 0px;text-align: left" colspan="3">
-                    </td>
-                    <td style="border: none; padding:2px 0px;text-align: center">&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Le {{ utf8_encode(strftime("%d %B %Y", strtotime($dn->date_heure_naissance))) . " A " .date("H", strtotime($dn->date_heure_naissance))." heure(s) ".date("i", strtotime($dn->date_heure_naissance))." miniute(s)" }}</td>
-                    <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Naissance d'un enfant de sexe: <span style="font-size: 11px;font-weight:bold;">{{ $dn->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</span></td>
-                    <td style="border: none; padding:2px 0px;text-align: " >&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">
 
-                        {{ $dn->enfant->sexe=="M" ? "Nommé" : "Nommée"  }} :
-                        @if($dn->type_declarant == "Personne morale")
-                            <span style="font-size: 11px;font-weight:bold;text-transform: capitalize;">{{ $dn->enfant->prenom }}</span>
+                        @php
+                            $ctxSignature = $contexteForcage ?? $dn->contexte_affichage ?? null;
+                            $afficherFormationSanitaireSignature = false;
+                            $institutionSignature = $dn->institution;
+                            if (in_array($dn->type_declaration ?? '', ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'])) {
+                                if ($ctxSignature) {
+                                    $afficherFormationSanitaireSignature = ($ctxSignature === 'formation_sanitaire');
+                                    if ($ctxSignature === 'centre_etat_civil' && $dn->institutionDestinataire) {
+                                        $institutionSignature = $dn->institutionDestinataire;
+                                    }
+                                }
+                            }
+                            if (!$ctxSignature) {
+                                $codeCat = optional(optional($dn->institution)->typeInstitution)->typeCategorieInstitution;
+                                $codeCat = $codeCat ? $codeCat->code_type_categorie_ins : null;
+                                $afficherFormationSanitaireSignature = ($codeCat == 'TCINS_0003');
+                            }
+                        @endphp
+                        @if($afficherFormationSanitaireSignature)
+                        Le chef de l’établissement sanitaire
+                        {{ optional($institutionSignature)->lib_institution }}
+                            @php
+                                $infosque = "atteste par la présente que le ";
+                            @endphp
                         @else
-                            {{ $dn->enfant->nom }} <span style="font-size: 11px;font-weight:bold;text-transform: capitalize;">{{ $dn->enfant->prenom }}</span>
-                        @endif
-                    </td>
-                    <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
-                </tr>
-
-                @if($dn->type_declaration == "JUGEMENT D'HOMOLOGATION")
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">numero ancien acte de naissance :<span style="font-size: 11px;font-weight:bold;color:red"> {{  $dn->numero_ancien_acte }} </span></td>
-                    <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
-                </tr>
-                @endif
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Date de naissance : <span style="font-size: 11px;font-weight:bold;"> {{utf8_encode(strftime("%d %B %Y", strtotime($dn->date_heure_naissance))) }} </span>
-                    &nbsp; &nbsp;&nbsp;&nbsp;&nbsp; Lieu de naissance :<span style="font-size: 11px;font-weight:bold;"> {{ $dn->enfant->lieu_naissance }}</span></td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Situation matrimoniale des parents :<span style="font-size: 11px;font-weight:bold;"> {{ $dn->sitMatParent ? $dn->sitMatParent->lib_situation_matrimoniale : $dummy}} </span></td>
-                    <td style="border: none; padding:2px 0px;text-align: " >&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Lieu de survenance : <span style="font-size: 11px;font-weight:bold;">
-                        {{ $dn->lieuSurvenance->lib_lieu_survenance ?? $dummy  }}
-                    </span> </td>
-                    <td style="border: none; padding:2px 0px;text-align: " >&nbsp;</td>
-                </tr>
-            </table>
-            @endif
-            <table cellspacing="0" style="border-collapse: collapse; ">
-                <col style="width: 25%">
-                <col style="width: 25%">
-                <col style="width: 25%">
-                <col style="width: 25%">
-                <tr>
-                    <td style="border: none; padding:2px 0px;text-align: left" colspan="3">L'Officier du centre d'état civil principal de :
-
-
-                        @if($dn->institution->TypeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0003")
-                        {{ $dn->institutionUser->institution->institutionParent->lib_institution }}
-
-                        @else
-                        {{ $dn->institution->lib_institution }}
-
+                        L'Officier du centre d'état civil principal de :
+                        {{ optional($institutionSignature)->lib_institution }}
+                            @php
+                                $infosque = "Est informé que le";
+                            @endphp
                         @endif
 
                     </td>
                     <td style="border: none; padding:2px 0px;text-align: center">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Est informé que: {{ utf8_encode(strftime("%d %B %Y", strtotime($dn->date_heure_naissance))) . " A " .date("H", strtotime($dn->date_heure_naissance))." heure(s) ".date("i", strtotime($dn->date_heure_naissance))." miniute(s)" }}</td>
+                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">{{ $infosque ? $infosque : "Est informé que le" }} {{ utf8_encode(strftime("%d %B %Y", strtotime($dn->date_heure_naissance))) . " A " .date("H", strtotime($dn->date_heure_naissance))." heure(s) ".date("i", strtotime($dn->date_heure_naissance))." miniute(s)" }}</td>
                     <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">Naissance d'un enfant de sexe: <span style="font-size: 11px;font-weight:bold;">{{ $dn->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</span></td>
+                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">a eu lieu la naissance  d'un enfant de sexe: <span style="font-size: 11px;font-weight:bold;">{{ $dn->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</span></td>
                     <td style="border: none; padding:2px 0px;text-align: " >&nbsp;</td>
                 </tr>
                 <tr>
