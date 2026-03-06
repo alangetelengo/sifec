@@ -239,7 +239,7 @@
         $isAmbassade => 'Ambassade',
         default      => 'Vue globale',
     };
-@endphp
+    @endphp
 
 <div class="db-wrap">
 
@@ -295,7 +295,7 @@
                 </div>
                 <span style="background:rgba(255,255,255,0.2);border-radius:20px;padding:2px 12px;font-size:.72rem;color:#fff;font-weight:600;">
                     {{ $totDeclN + $totActeN }} opérations
-                </span>
+                        </span>
             </div>
             <div class="fait-body">
                 <div class="fait-metrics">
@@ -549,9 +549,9 @@
                     </tfoot>
                 </table>
             </div>
-        </div>
-    </div>
-</div>
+                    </div>
+                </div>
+            </div>
 
 {{-- ══════════════════════════════════════════════
      ACCÈS RAPIDE AUX MODULES
@@ -696,9 +696,9 @@
                 plugins:{ legend:{display:false}, tooltip:tooltip },
                 scales: scaleOpts,
                 animation:{ duration:900, easing:'easeOutQuart' }
-            }
-        });
-    }
+                }
+            });
+        }
 
     /* ══════════════════════════════════════════
        2. Bilan horizontal — Décl vs Actes (filtré)
@@ -722,9 +722,9 @@
                 },
                 scales:{ x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{precision:0}}, y:{grid:{display:false},ticks:{font:{weight:'700'}}} },
                 animation:{ duration:900, easing:'easeOutQuart' }
-            }
-        });
-    }
+                }
+            });
+        }
 
     /* ══════════════════════════════════════════
        3. Lignes — Actes produits (filtré)

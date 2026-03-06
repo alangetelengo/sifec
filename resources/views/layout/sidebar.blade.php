@@ -385,6 +385,8 @@
                     @can("module.fonctionnalites.fonctionnalites")
                     <li><a href="{{ route('fonctionnalite.index') }}">Fonctionalité</a></li>
                     @endcan
+                    <li><a href="{{ route('appareil.index') }}">Appareils</a></li>
+                    <li><a href="{{ route('two-factor.index') }}">Double Authentification</a></li>
                 </ul>
             </li>
             @endcan

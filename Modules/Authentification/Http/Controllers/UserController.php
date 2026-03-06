@@ -11,6 +11,9 @@ use App\Models\InstitutionUser;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\TwoFactorBulkMailable;
+use PragmaRX\Google2FA\Google2FA;
 use Modules\Referentiel\Entities\Document;
 use Modules\Referentiel\Entities\Fonction;
 use Modules\Referentiel\Entities\Personne;
@@ -539,6 +542,192 @@ class UserController extends Controller
         }
 
         return view("authentification::utilisateur.change-password", compact("user"));
+    }
+
+    /**
+     * Activer / désactiver le compte d'un utilisateur.
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            toastr()->error('Utilisateur introuvable.', 'Erreur');
+            return back();
+        }
+
+        if ($user->code_user === auth()->user()?->code_user) {
+            toastr()->warning('Vous ne pouvez pas modifier votre propre statut.', 'Action refusée');
+            return back();
+        }
+
+        $user->status = $user->status ? 0 : 1;
+        $user->save();
+
+        $label = $user->status ? 'activé' : 'désactivé';
+        $nom   = trim(($user->personne->nom ?? '') . ' ' . ($user->personne->prenom ?? ''));
+
+        Log::channel('sifec')->info("Compte {$label} : #{$user->code_user} ({$nom}) par " . auth()->user()?->email);
+
+        toastr()->success("Compte de {$nom} {$label} avec succès.", 'Statut utilisateur');
+        return back();
+    }
+
+    /**
+     * Activer / désactiver la 2FA en masse pour une sélection d'utilisateurs.
+     * Chaque utilisateur activé reçoit son QR code + codes de récupération par email.
+     */
+    public function bulkToggle2FA(Request $request)
+    {
+        Log::channel('sifec')->info('[bulk2FA] Requête reçue', [
+            'action'    => $request->input('action'),
+            'nb_users'  => count($request->input('user_ids', [])),
+            'user_ids'  => $request->input('user_ids', []),
+            'ip'        => $request->ip(),
+            'admin'     => auth()->user()?->email,
+        ]);
+
+        $validated = validator($request->all(), [
+            'user_ids'   => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['required', 'string'],
+            'action'     => ['required', 'in:enable,disable'],
+        ]);
+
+        if ($validated->fails()) {
+            $errMsg = $validated->errors()->first();
+            Log::channel('sifec')->warning('[bulk2FA] Validation échouée : ' . $errMsg);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $errMsg], 422);
+            }
+            toastr()->error($errMsg, 'Gestion 2FA');
+            return back();
+        }
+
+        $action  = $request->input('action');
+        $userIds = $request->input('user_ids');
+        $users   = User::whereIn('code_user', $userIds)->get();
+
+        Log::channel('sifec')->info('[bulk2FA] Utilisateurs trouvés : ' . $users->count());
+
+        if ($users->isEmpty()) {
+            Log::channel('sifec')->warning('[bulk2FA] Aucun utilisateur trouvé pour les IDs : ' . implode(',', $userIds));
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Aucun utilisateur trouvé dans la sélection.'], 404);
+            }
+            toastr()->error('Aucun utilisateur trouvé dans la sélection.', 'Gestion 2FA');
+            return back();
+        }
+
+        $google2fa    = new Google2FA();
+        $successCount = 0;
+        $mailErrors   = [];
+        $appName      = config('app.name', 'SIFEC');
+
+        DB::beginTransaction();
+        try {
+            foreach ($users as $user) {
+                Log::channel('sifec')->info("[bulk2FA] Traitement user #{$user->code_user} ({$user->email}) — action={$action}");
+
+                if ($action === 'enable') {
+                    if ($user->hasTwoFactorEnabled()) {
+                        // Déjà actif : régénérer uniquement les codes de récupération
+                        $codes      = $user->generateRecoveryCodes();
+                        $rawSecret  = $user->getTwoFactorSecret();
+                        Log::channel('sifec')->info("[bulk2FA] 2FA déjà active pour #{$user->code_user}, codes régénérés.");
+                    } else {
+                        $rawSecret = $google2fa->generateSecretKey();
+                        $user->enableTwoFactor($rawSecret);
+                        $codes     = $user->getRecoveryCodes();
+                        Log::channel('sifec')->info("[bulk2FA] 2FA activée pour #{$user->code_user}.");
+                    }
+
+                    // Construction de l'URL otpauth pour le QR code Google Authenticator
+                    $label   = urlencode($appName . ':' . ($user->email ?? $user->code_user));
+                    $otpUrl  = "otpauth://totp/{$label}?secret={$rawSecret}&issuer=" . urlencode($appName);
+                    $qrUrl   = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=' . urlencode($otpUrl);
+
+                    if (!empty($user->email)) {
+                        try {
+                            Mail::to($user->email)
+                                ->send(new TwoFactorBulkMailable($user, $codes, 'enabled', $rawSecret, $qrUrl));
+                            Log::channel('sifec')->info("[bulk2FA] Email envoyé à {$user->email}.");
+                        } catch (\Throwable $mailEx) {
+                            Log::channel('sifec')->warning("[bulk2FA] Email non envoyé à {$user->email} : " . $mailEx->getMessage());
+                            $mailErrors[] = ($user->personne->nom ?? '') . ' <' . $user->email . '>';
+                        }
+                    } else {
+                        Log::channel('sifec')->warning("[bulk2FA] Aucun email pour #{$user->code_user} — email non envoyé.");
+                    }
+
+                } else {
+                    // Désactivation
+                    if ($user->hasTwoFactorEnabled()) {
+                        $user->disableTwoFactor();
+                        Log::channel('sifec')->info("[bulk2FA] 2FA désactivée pour #{$user->code_user}.");
+
+                        if (!empty($user->email)) {
+                            try {
+                                Mail::to($user->email)
+                                    ->send(new TwoFactorBulkMailable($user, [], 'disabled', null, null));
+                                Log::channel('sifec')->info("[bulk2FA] Email désactivation envoyé à {$user->email}.");
+                            } catch (\Throwable $mailEx) {
+                                Log::channel('sifec')->warning("[bulk2FA] Email désactivation non envoyé à {$user->email} : " . $mailEx->getMessage());
+                                $mailErrors[] = ($user->personne->nom ?? '') . ' <' . $user->email . '>';
+                            }
+                        }
+                    } else {
+                        Log::channel('sifec')->info("[bulk2FA] 2FA déjà inactive pour #{$user->code_user} — ignoré.");
+                    }
+                }
+
+                $successCount++;
+            }
+
+            DB::commit();
+            Log::channel('sifec')->info("[bulk2FA] Opération terminée. Succès: {$successCount}, Emails en erreur: " . count($mailErrors));
+
+            $label = $action === 'enable' ? 'activée' : 'désactivée';
+            $msg   = "2FA <strong>{$label}</strong> pour <strong>{$successCount}</strong> utilisateur(s).";
+
+            if (!empty($mailErrors)) {
+                $msg .= '<br><small style="color:#856404;">⚠️ Emails non envoyés : ' . implode(', ', $mailErrors) . '</small>';
+            }
+
+            // Réponse JSON pour les appels AJAX
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success'     => true,
+                    'message'     => $msg,
+                    'count'       => $successCount,
+                    'mailErrors'  => $mailErrors,
+                ]);
+            }
+
+            // Fallback non-AJAX
+            if (!empty($mailErrors)) {
+                toastr()->warning(strip_tags($msg), 'Gestion 2FA');
+            } else {
+                toastr()->success(strip_tags($msg), 'Gestion 2FA');
+            }
+            return redirect()->route('utilisateur.index');
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::channel('sifec')->error('[bulk2FA] ERREUR : ' . $e->getMessage(), [
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $errMsg = 'Erreur : ' . $e->getMessage();
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $errMsg], 500);
+            }
+
+            toastr()->error($errMsg, 'Gestion 2FA');
+            return back();
+        }
     }
 
     /**

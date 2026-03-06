@@ -2,6 +2,7 @@
 
 namespace Modules\Mariage\Services;
 
+use App\Models\Appareil;
 use App\Sifec\SifecFacade;
 use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Mariage\Entities\ActeMariage;
@@ -13,16 +14,15 @@ class OtpService
 {
     public function envoyerOtpValidationActes($user, $actes)
     {
-        // Générer un OTP plus stable (8 chiffres)
-        $otp = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
+        $otp = str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+        $expireAt = now()->addMinute();
 
-        // Stocker l'OTP sur tous les actes concernés
         foreach ($actes as $acte) {
             $acte->otp_approbation_mairie = $otp;
+            $acte->otp_expire_at = $expireAt;
             $acte->save();
         }
 
-        // Choix du template selon le nombre d'actes
         if (count($actes) > 1) {
             $temp = config("sifec.sms.templates.actions.validation_multiples_acte_mariages");
         } else {
@@ -33,40 +33,54 @@ class OtpService
         $temp = str_replace(":nombre", count($actes), $temp);
         $temp = str_replace(":code_otp", $otp, $temp);
 
-        // Envoyer le SMS
         $contact = $user->personne->contacts->first();
         if ($contact) {
             SifecFacade::sendSms($contact->indicatif . $contact->telephone, $temp);
             dispatch(new SendSmsJob($contact->indicatif . $contact->telephone, $temp));
-            dispatch(new ValidationActeMariageJob($user->personne->nomComplet(), count($actes), $otp, $contact->email_professionnelle));
+            dispatch(new ValidationActeMariageJob(
+                $user->personne->nomComplet(),
+                count($actes),
+                $otp,
+                $contact->email_professionnelle
+            ));
         }
 
         return $otp;
     }
 
-    public function validerOtpActes($codes, $otp)
+    public function validerOtpActes($codes, $otp, string $adresseMac = null)
     {
+        if ($adresseMac && !Appareil::estAutorise($adresseMac)) {
+            return [false, "Appareil non autorisé. Veuillez contacter l'administrateur."];
+        }
+
         $actes = ActeMariage::whereIn("code_declaration_mariage", $codes)->get();
         if ($actes->count() == 0) {
             return [false, "Aucun acte trouvé"];
         }
 
-        if ($otp != $actes->first()->otp_approbation_mairie) {
-            return [false, "Code de validation incorrect ou expiré"];
+        $premierActe = $actes->first();
+
+        if ($otp != $premierActe->otp_approbation_mairie) {
+            return [false, "Code de validation incorrect"];
         }
 
-        // Mettre à jour chaque acte validé
+        if ($premierActe->otp_expire_at && now()->gt($premierActe->otp_expire_at)) {
+            return [false, "Code OTP expiré. Veuillez en demander un nouveau."];
+        }
+
         $user = Auth::user();
         $affectation = $user->affectationActive();
         $cui = $affectation ? $affectation->cui : null;
         $signature = $user->personne->signature;
+
         foreach ($actes as $am) {
             $am->approbation_mairie = $cui;
             $am->signature_maire = $signature;
             $am->date_heure_approbation_mairie = now();
+            $am->otp_expire_at = null;
             $am->save();
 
-            // Ajout du mouvement MOUV_0015 (Acte produit non rétiré)
             $mouvementService = app(\Modules\Mariage\Services\MouvementMariageService::class);
             $declaration = $am->declaration;
             $mouvementService->ajouterEvenementActe($user, $declaration, 'non_retiré');

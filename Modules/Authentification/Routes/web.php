@@ -30,6 +30,12 @@ Route::middleware('auth')->prefix('utilisateur')->group(function() {
     Route::get('{id}/change-password', [UserController::class,'showChangePasswordForm'])->name("utilisateur.change-password");
     Route::post('{id}/change-password', [UserController::class,'changePassword'])->name('utilisateur.change-password.store');
 
+    // Activer / désactiver un compte utilisateur
+    Route::patch('{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('utilisateur.toggle-status');
+
+    // Gestion 2FA en masse (activation / désactivation pour une sélection d'utilisateurs)
+    Route::post('bulk-2fa', [UserController::class, 'bulkToggle2FA'])->name('utilisateur.bulk-2fa');
+
 });
 Route::middleware('auth')->prefix('fonctionnalite')->group(function() {
     Route::get('/', [FonctionnaliteController::class, 'index'])->name('fonctionnalite.index'); //->middleware("can:module.fonctionnalites.fonctionnalites");
