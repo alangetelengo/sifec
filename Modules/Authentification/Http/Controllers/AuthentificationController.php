@@ -18,6 +18,29 @@ class AuthentificationController extends Controller
 {
     public function index()
     {
+        // ── Institution de l'utilisateur connecté ──────────────────────────
+        $user        = Auth::user();
+        $affectation = $user ? $user->affectationActive() : null;
+        $institution = $affectation ? $affectation->institution : null;
+
+        $codeInstitution     = $institution ? $institution->code_institution : null;
+        $libInstitution      = $institution ? $institution->lib_institution   : 'Système';
+
+        $typeIns             = $institution ? $institution->typeInstitution : null;
+        $codeTypeInstitution = $typeIns ? $typeIns->code_type_institution : null;
+
+        $categorie           = $typeIns ? $typeIns->typeCategorieInstitution : null;
+        $codeTypeCategorie   = $categorie ? $categorie->code_type_categorie_ins : null;
+
+        /*
+         * Stratégie de filtrage par institution :
+         *   TCINS_0002 (Tribunal) et null (super admin) → vue globale, pas de filtre
+         *   Tous les autres → données filtrées par code_institution
+         */
+        $vueGlobale = in_array($codeTypeCategorie, ['TCINS_0002', null]) || $codeInstitution === null;
+        $ins        = $vueGlobale ? '' : "AND code_institution = '{$codeInstitution}'";
+
+        // ── Calcul de la semaine ───────────────────────────────────────────
         $lun = date('Y-m-d', strtotime('last week monday'));
         $mar = date('Y-m-d', strtotime($lun.'+1 day'));
         $mer = date('Y-m-d', strtotime($lun.'+2 day'));
@@ -26,43 +49,76 @@ class AuthentificationController extends Controller
         $sam = date('Y-m-d', strtotime($lun.'+5 day'));
         $dim = date('Y-m-d', strtotime($lun.'+6 day'));
 
-        // dd($dim);
+        // ── Helper : requête quotidienne ───────────────────────────────────
+        $q = function(string $table, string $date, string $whereExtra = '') {
+            return DB::select("SELECT COUNT(*) AS TOTAL FROM {$table} WHERE date(created_at) = '{$date}' {$whereExtra}");
+        };
 
-        $pr = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$lun."'"));
-        $dx = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$mar."'"));
-        $tr = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$mer."'"));
-        $qt = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$jeu."'"));
-        $cq = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$ven."'"));
-        $sx = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$sam."'"));
-        $sp = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE date(t_declaration_naissance.created_at) = '".$dim."'"));
+        // ── Déclarations de naissance ──────────────────────────────────────
+        $pr  = $q('t_declaration_naissance', $lun, $ins);
+        $dx  = $q('t_declaration_naissance', $mar, $ins);
+        $tr  = $q('t_declaration_naissance', $mer, $ins);
+        $qt  = $q('t_declaration_naissance', $jeu, $ins);
+        $cq  = $q('t_declaration_naissance', $ven, $ins);
+        $sx  = $q('t_declaration_naissance', $sam, $ins);
+        $sp  = $q('t_declaration_naissance', $dim, $ins);
 
-        // $declarationsN = [$pr[0]->TOTAL, $dx[0]->TOTAL, $tr[0]->TOTAL, $qt[0]->TOTAL, $cq[0]->TOTAL, $sx[0]->TOTAL, $sp[0]->TOTAL];
+        // ── Déclarations de décès ──────────────────────────────────────────
+        $prd = $q('t_declaration_deces', $lun, $ins);
+        $dxd = $q('t_declaration_deces', $mar, $ins);
+        $trd = $q('t_declaration_deces', $mer, $ins);
+        $qtd = $q('t_declaration_deces', $jeu, $ins);
+        $cqd = $q('t_declaration_deces', $ven, $ins);
+        $sxd = $q('t_declaration_deces', $sam, $ins);
+        $spd = $q('t_declaration_deces', $dim, $ins);
 
-        $prd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$lun."'"));
-        $dxd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$mar."'"));
-        $trd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$mer."'"));
-        $qtd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$jeu."'"));
-        $cqd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$ven."'"));
-        $sxd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$sam."'"));
-        $spd = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE date(t_declaration_deces.created_at) = '".$dim."'"));
+        // ── Actes de naissance ─────────────────────────────────────────────
+        $pra = $q('t_acte_naissance', $lun, $ins);
+        $dxa = $q('t_acte_naissance', $mar, $ins);
+        $tra = $q('t_acte_naissance', $mer, $ins);
+        $qta = $q('t_acte_naissance', $jeu, $ins);
+        $cqa = $q('t_acte_naissance', $ven, $ins);
+        $sxa = $q('t_acte_naissance', $sam, $ins);
+        $spa = $q('t_acte_naissance', $dim, $ins);
 
-        $pra = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$lun."'"));
-        $dxa = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$mar."'"));
-        $tra = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$mer."'"));
-        $qta = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$jeu."'"));
-        $cqa = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$ven."'"));
-        $sxa = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$sam."'"));
-        $spa = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance WHERE date(t_acte_naissance.created_at) = '".$dim."'"));
+        // ── Actes de décès ─────────────────────────────────────────────────
+        $prb = $q('t_acte_deces', $lun, $ins);
+        $dxb = $q('t_acte_deces', $mar, $ins);
+        $trb = $q('t_acte_deces', $mer, $ins);
+        $qtb = $q('t_acte_deces', $jeu, $ins);
+        $cqb = $q('t_acte_deces', $ven, $ins);
+        $sxb = $q('t_acte_deces', $sam, $ins);
+        $spb = $q('t_acte_deces', $dim, $ins);
 
-        $prb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$lun."'"));
-        $dxb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$mar."'"));
-        $trb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$mer."'"));
-        $qtb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$jeu."'"));
-        $cqb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$ven."'"));
-        $sxb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$sam."'"));
-        $spb = (DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces WHERE date(t_acte_deces.created_at) = '".$dim."'"));
+        // ── Déclarations de mariage ────────────────────────────────────────
+        $insMar = $vueGlobale ? '' : "AND cui IN (SELECT cui FROM tr_ins_user WHERE code_institution = '{$codeInstitution}')";
+        $prm  = $q('t_declaration_mariage', $lun, $insMar);
+        $dxm  = $q('t_declaration_mariage', $mar, $insMar);
+        $trm  = $q('t_declaration_mariage', $mer, $insMar);
+        $qtm  = $q('t_declaration_mariage', $jeu, $insMar);
+        $cqm  = $q('t_declaration_mariage', $ven, $insMar);
+        $sxm  = $q('t_declaration_mariage', $sam, $insMar);
+        $spm  = $q('t_declaration_mariage', $dim, $insMar);
 
-        return view('admin.dashboard.index', compact('pr','dx','tr','qt','cq','sx','sp','prd','dxd','trd','qtd','cqd','sxd','spd','pra','dxa','tra','qta','cqa','sxa','spa','prb','dxb','trb','qtb','cqb','sxb','spb','lun','dim'));
+        // ── Actes de mariage ───────────────────────────────────────────────
+        $prma = $q('t_acte_mariage', $lun, $ins);
+        $dxma = $q('t_acte_mariage', $mar, $ins);
+        $trma = $q('t_acte_mariage', $mer, $ins);
+        $qtma = $q('t_acte_mariage', $jeu, $ins);
+        $cqma = $q('t_acte_mariage', $ven, $ins);
+        $sxma = $q('t_acte_mariage', $sam, $ins);
+        $spma = $q('t_acte_mariage', $dim, $ins);
+
+        return view('admin.dashboard.index', compact(
+            'pr','dx','tr','qt','cq','sx','sp',
+            'prd','dxd','trd','qtd','cqd','sxd','spd',
+            'pra','dxa','tra','qta','cqa','sxa','spa',
+            'prb','dxb','trb','qtb','cqb','sxb','spb',
+            'prm','dxm','trm','qtm','cqm','sxm','spm',
+            'prma','dxma','trma','qtma','cqma','sxma','spma',
+            'lun','dim',
+            'codeTypeCategorie','codeTypeInstitution','libInstitution','vueGlobale'
+        ));
     }
 
 

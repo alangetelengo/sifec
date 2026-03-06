@@ -28,6 +28,8 @@ class CreateTActeNaissanceTable extends Migration
             $table->string("sceau_tribunal",175)->nullable();
             $table->timestamp("date_heure_approbation_mairie")->nullable();
             $table->string("otp_approbation_mairie",8)->nullable();
+            $table->string("adresse_mac_approbation",50)->nullable()->comment("Adresse MAC de l'appareil utilisé pour signer l'acte");
+            $table->string("nom_appareil_approbation",100)->nullable()->comment("Nom de l'appareil utilisé pour signer l'acte");
             $table->boolean("retirer")->default(0);
             $table->boolean("statut")->default("0")->comment("permet de savoir si acte est annule ou pas");
             $table->string("motif_annulation",100)->nullable();

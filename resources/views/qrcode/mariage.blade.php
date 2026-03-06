@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SIFEC | Vérification de l'acte de naissance</title>
+    <title>SIFEC | Vérification de l'acte de mariage</title>
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon.ico') }}">
     <link rel="stylesheet" href="{{ asset('tpl/vendor/bootstrap/css/bootstrap.css') }}">
     <link rel="stylesheet" href="{{ asset('tpl/css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('tpl/icons/font-awesome/css/fontawesome-all.min.css') }}">
     <style>
         body {
-            background: linear-gradient(135deg, rgba(33,185,49,0.12), rgba(68,157,68,0.2));
+            background: linear-gradient(135deg, rgba(251,222,74,0.15), rgba(200,150,10,0.18));
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -24,7 +24,7 @@
             overflow:hidden; background:#fff;
         }
         .verification-header {
-            background: linear-gradient(135deg, #21B931, #449D44);
+            background: linear-gradient(135deg, #a07800, #c8960a);
             color:#fff;
         }
         .verification-header h1 { font-size:1.4rem; margin:0; letter-spacing:.03em; }
@@ -43,15 +43,15 @@
     <div class="card verification-card">
         <div class="card-header verification-header py-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between">
             <div>
-                <h1>Vérification de l'acte de naissance</h1>
-                <span class="fw-semibold">Acte n° {{ $acte->niupp }}</span>
+                <h1>Vérification de l'acte de mariage</h1>
+                <span class="fw-semibold">Acte n° {{ $acte->code_acte_mariage }}</span>
             </div>
         </div>
 
         <div class="card-body p-4">
             <div class="alert alert-info border-0 mb-4" role="alert">
                 <strong>Document scanné :</strong>
-                <span class="text-uppercase">Acte de naissance</span>
+                <span class="text-uppercase">Acte de mariage</span>
                 (acte authentifié délivré par l'officier d'état civil)
             </div>
             <p class="text-muted mb-4">
@@ -78,60 +78,54 @@
                         <small class="d-block text-muted mt-1">Retiré le {{ $acte->retrait->created_at?->format('d/m/Y à H:i') ?? '—' }}</small>
                     @else
                         <span class="badge bg-info">Signé, non encore retiré</span>
-                        <small class="d-block text-muted mt-1">L'acte a été signé et peut être retiré par le déclarant.</small>
+                        <small class="d-block text-muted mt-1">L'acte a été signé et peut être retiré par les époux.</small>
                     @endif
                 </dd>
 
-                <dt class="col-sm-5 col-md-4">Enfant</dt>
+                {{-- Époux --}}
+                <dt class="col-sm-5 col-md-4">Époux</dt>
                 <dd class="col-sm-7 col-md-8">
-                    <strong>{{ $acte->declaration?->enfant?->nom }} {{ $acte->declaration?->enfant?->prenom }}</strong>
+                    @if($acte->declaration?->epoux)
+                        <strong>{{ $acte->declaration->epoux->nom }} {{ $acte->declaration->epoux->prenom }}</strong>
+                    @else
+                        <span class="text-muted fst-italic">—</span>
+                    @endif
                 </dd>
 
-                <dt class="col-sm-5 col-md-4">Sexe</dt>
+                <dt class="col-sm-5 col-md-4">Date de naissance (époux)</dt>
                 <dd class="col-sm-7 col-md-8">
-                    {{ $acte->declaration?->enfant?->sexe == 'M' ? 'Masculin' : 'Féminin' }}
-                </dd>
-
-                <dt class="col-sm-5 col-md-4">Date de naissance</dt>
-                <dd class="col-sm-7 col-md-8">
-                    {{ $acte->declaration?->date_heure_naissance
-                        ? date('d/m/Y à H:i', strtotime($acte->declaration->date_heure_naissance))
+                    {{ $acte->declaration?->epoux?->date_naissance
+                        ? date('d/m/Y', strtotime($acte->declaration->epoux->date_naissance))
                         : '—' }}
                 </dd>
 
-                <dt class="col-sm-5 col-md-4">Lieu de naissance</dt>
+                {{-- Épouse --}}
+                <dt class="col-sm-5 col-md-4">Épouse</dt>
                 <dd class="col-sm-7 col-md-8">
-                    {{ $acte->declaration?->enfant?->lieu_naissance ?? '—' }}
-                </dd>
-
-                <dt class="col-sm-5 col-md-4">Père</dt>
-                <dd class="col-sm-7 col-md-8">
-                    @if($acte->declaration?->pere)
-                        {{ $acte->declaration->pere->nom }} {{ $acte->declaration->pere->prenom }}
+                    @if($acte->declaration?->epouse)
+                        <strong>{{ $acte->declaration->epouse->nom }} {{ $acte->declaration->epouse->prenom }}</strong>
                     @else
                         <span class="text-muted fst-italic">—</span>
                     @endif
                 </dd>
 
-                <dt class="col-sm-5 col-md-4">Mère</dt>
+                <dt class="col-sm-5 col-md-4">Date de naissance (épouse)</dt>
                 <dd class="col-sm-7 col-md-8">
-                    @if($acte->declaration?->mere)
-                        {{ $acte->declaration->mere->nom }} {{ $acte->declaration->mere->prenom }}
-                    @else
-                        <span class="text-muted fst-italic">—</span>
-                    @endif
+                    {{ $acte->declaration?->epouse?->date_naissance
+                        ? date('d/m/Y', strtotime($acte->declaration->epouse->date_naissance))
+                        : '—' }}
                 </dd>
 
-                <dt class="col-sm-5 col-md-4">Lieu de survenance</dt>
-                <dd class="col-sm-7 col-md-8">
-                    {{ $acte->declaration?->lieuSurvenance?->lib_lieu_survenance ?? '—' }}
-                </dd>
-
-                <dt class="col-sm-5 col-md-4">Date de déclaration</dt>
+                <dt class="col-sm-5 col-md-4">Date du mariage</dt>
                 <dd class="col-sm-7 col-md-8">
                     {{ $acte->declaration?->date_heure_declaration
                         ? date('d/m/Y H:i', strtotime($acte->declaration->date_heure_declaration))
                         : '—' }}
+                </dd>
+
+                <dt class="col-sm-5 col-md-4">Lieu du mariage</dt>
+                <dd class="col-sm-7 col-md-8">
+                    {{ $acte->institutionUser?->institution?->lib_institution ?? '—' }}
                 </dd>
 
                 <dt class="col-sm-5 col-md-4">Date d'émission</dt>
@@ -141,8 +135,8 @@
             </dl>
 
             {{-- ── Bloc signature & traçabilité ── --}}
-            <hr class="my-3" style="border-color:#009E49; opacity:.3;">
-            <h6 class="fw-bold mb-3" style="color:#006B31;">
+            <hr class="my-3" style="border-color:#c8960a; opacity:.4;">
+            <h6 class="fw-bold mb-3" style="color:#a07800;">
                 <i class="fa fa-shield-alt me-2"></i>Signature &amp; Traçabilité
             </h6>
             <dl class="row">
@@ -165,8 +159,8 @@
                 <dt class="col-sm-5 col-md-4">Code OTP utilisé</dt>
                 <dd class="col-sm-7 col-md-8">
                     @if($acte->otp_approbation_mairie)
-                        <span class="badge text-white font-monospace px-3 py-2"
-                              style="background:#009E49; letter-spacing:.15em; font-size:.9rem;">
+                        <span class="badge font-monospace px-3 py-2"
+                              style="background:#c8960a; color:#fff; letter-spacing:.15em; font-size:.9rem;">
                             {{ $acte->otp_approbation_mairie }}
                         </span>
                     @else

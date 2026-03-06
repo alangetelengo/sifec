@@ -57,6 +57,8 @@ class CreateTDeclarationNaissanceTable extends Migration
                 'DECLARATION TARDIVE DE NAISSANCE',
                 'CERTIFICAT DE TRANSCRIPTION',
             ])->nullable();
+            $table->string('contexte_affichage', 30)->nullable()
+                ->comment("Contexte pour l'en-tête/titre: formation_sanitaire | centre_etat_civil (certificat et déclaration de naissance uniquement)");
             $table->string("formation_sanitaire_naissance")->nullable();
             $table->enum("cec_approuver", ["OUI","NON"])->default("NON")->comment("permet de savoir si la declaration est prête ou pas pour la transcription de l'acte");
             $table->string("cec_approuve_par")->nullable();

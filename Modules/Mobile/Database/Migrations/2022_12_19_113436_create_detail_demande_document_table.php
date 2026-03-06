@@ -26,7 +26,7 @@ class CreateDetailDemandeDocumentTable extends Migration
             $table->integer("nombre_telechargement")->default(1);
             $table->timestamps();
 
-            // Note: La clé étrangère pour code_demande_document sera ajoutée dans une migration ultérieure après la création de t_demande_document
+            $table->foreign("code_demande_document")->references("code_demande_document")->on("t_demande_document")->onDelete("cascade")->onUpdate("cascade");
         });
     }
 

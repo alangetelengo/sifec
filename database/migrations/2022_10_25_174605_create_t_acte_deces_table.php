@@ -28,6 +28,8 @@ class CreateTActeDecesTable extends Migration
 
 
             $table->string("otp_approbation_pompe_funebre",8)->nullable();
+            $table->string("adresse_mac_approbation",50)->nullable()->comment("Adresse MAC de l'appareil utilisé pour signer l'acte");
+            $table->string("nom_appareil_approbation",100)->nullable()->comment("Nom de l'appareil utilisé pour signer l'acte");
             $table->string("signature_pompe_funebre",175)->nullable();
             $table->string("sceau_tribunal",175)->nullable();
 

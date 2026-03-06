@@ -21,6 +21,12 @@ class CreateUsersTable extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('pseudo_verified_at')->nullable();
             $table->string('password');
+            $table->text('google2fa_secret')->nullable()->comment('Secret chiffré pour l\'authentification 2FA');
+            $table->boolean('google2fa_enabled')->default(false)->comment('Indique si la 2FA est activée pour cet utilisateur');
+            $table->text('recovery_codes')->nullable()->comment('Codes de récupération chiffrés (8 codes)');
+            $table->timestamp('two_factor_verified_at')->nullable()->comment('Date et heure de la dernière vérification 2FA réussie');
+            $table->enum('two_factor_method', ['totp', 'sms', 'email'])->default('totp')->comment('Méthode de 2FA utilisée (TOTP par défaut)');
+            $table->boolean('two_factor_required')->default(false)->comment('Si true, l\'utilisateur doit activer la 2FA');
             $table->rememberToken();
             $table->boolean('status')->default(true);
             $table->string("code_personne",16);
