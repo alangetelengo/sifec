@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon.ico') }}">
     <link rel="stylesheet" href="{{ asset('tpl/vendor/bootstrap/css/bootstrap.css') }}">
     <link rel="stylesheet" href="{{ asset('tpl/css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('tpl/icons/font-awesome/css/fontawesome-all.min.css') }}">
     <style>
         body {
             background: linear-gradient(135deg, rgba(33,185,49,0.12), rgba(68,157,68,0.2));
@@ -115,6 +116,62 @@
 
                     <dt class="col-sm-5 col-md-4">Date d'émission</dt>
                     <dd class="col-sm-7 col-md-8">{{ $acte->date_emission ? date('d/m/Y H:i', strtotime($acte->date_emission)) : '-' }}</dd>
+                </dl>
+
+                {{-- ── Bloc signature & traçabilité ── --}}
+                <hr class="my-3" style="border-color:#009E49; opacity:.3;">
+                <h6 class="fw-bold mb-3" style="color:#006B31;">
+                    <i class="fa fa-shield-alt me-2"></i>Signature &amp; Traçabilité
+                </h6>
+                <dl class="row">
+                    <dt class="col-sm-5 col-md-4">Officier signataire</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        @if($acte->signataire)
+                            {{ $acte->signataire->user?->name ?? $acte->approbation_mairie }}
+                        @else
+                            <span class="text-muted fst-italic">Non encore signé</span>
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-5 col-md-4">Date de validation</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        {{ $acte->date_heure_approbation_mairie
+                            ? \Carbon\Carbon::parse($acte->date_heure_approbation_mairie)->format('d/m/Y \à H:i:s')
+                            : '—' }}
+                    </dd>
+
+                    <dt class="col-sm-5 col-md-4">Code OTP utilisé</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        @if($acte->otp_approbation_mairie)
+                            <span class="badge text-white font-monospace px-3 py-2"
+                                  style="background:#009E49; letter-spacing:.15em; font-size:.9rem;">
+                                {{ $acte->otp_approbation_mairie }}
+                            </span>
+                        @else
+                            <span class="text-muted fst-italic">—</span>
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-5 col-md-4">Adresse MAC</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        @if($acte->adresse_mac_approbation)
+                            <code class="text-dark" style="font-size:.88rem;">{{ $acte->adresse_mac_approbation }}</code>
+                        @else
+                            <span class="text-muted fst-italic">—</span>
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-5 col-md-4">Appareil utilisé</dt>
+                    <dd class="col-sm-7 col-md-8">
+                        @if($acte->nom_appareil_approbation)
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <i class="fa fa-laptop" style="color:#2781d5;"></i>
+                                {{ $acte->nom_appareil_approbation }}
+                            </span>
+                        @else
+                            <span class="text-muted fst-italic">—</span>
+                        @endif
+                    </dd>
                 </dl>
             </div>
 

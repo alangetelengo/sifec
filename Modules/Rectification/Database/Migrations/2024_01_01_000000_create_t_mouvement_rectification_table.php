@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
             $table->foreign('code_mouvement')->references("code_mouvement")->on('tr_mouvement')->onUpdate("cascade")->onDelete("cascade");
-            // Note: La clé étrangère pour code_rectification sera ajoutée dans une migration ultérieure après la création de t_rectification
+            $table->foreign('code_rectification')->references("code_rectification")->on('t_rectification')->onUpdate("cascade")->onDelete("cascade");
             $table->foreign('cui')->references("cui")->on('tr_ins_user')->onUpdate("cascade")->onDelete("cascade");
             $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
         });

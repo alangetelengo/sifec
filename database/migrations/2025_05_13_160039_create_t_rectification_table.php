@@ -29,6 +29,7 @@ class CreateTRectificationTable extends Migration
             $table->date("date_rectification")->nullable();
             $table->string("code_filiation",16)->nullable()->comment("Code de la filiation du requérant, exple: père, mère, époux, épouse, etc.");
             $table->string("numero_acte",30)->nullable()->comment("Numero de l'acte à rectifier");
+            $table->string('piece_justificative', 255)->nullable()->comment('Chemin du fichier pièce justificative (PDF, image)');
             $table->enum("statut",["En cours de traitement","Envoyé au tribunal","Validé","Annulé"])->default("En cours de traitement")->comment("Statut de la rectification");
 
 
