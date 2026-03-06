@@ -16,6 +16,7 @@ use Modules\Referentiel\Http\Controllers\TypeInstitutionController;
 use Modules\Referentiel\Http\Controllers\TypeCategorieInstitutionController;
 use Modules\Referentiel\Http\Controllers\SubCommuneDistrictController;
 use Modules\Referentiel\Http\Controllers\InstitutionSecondaireController;
+use Modules\Referentiel\Http\Controllers\AppareilController;
 use Modules\Referentiel\Http\Controllers\RetraitActeController;
 use Modules\Referentiel\Http\Controllers\SubArrondissementComUrbaineController;
 
@@ -155,6 +156,16 @@ Route::middleware('auth')->prefix('typelocalite')->group(function() {
     Route::post('store', [TypeLocaliteController::class, 'store'])->name('typelocalite.store');
     Route::put('{id}/update', [TypeLocaliteController::class, 'update'])->name('typelocalite.update');
     Route::delete('{id}/destroy', [TypeLocaliteController::class, 'destroy'])->name('typelocalite.destroy');
+});
+
+// Appareils autorisés
+Route::middleware('auth')->prefix('appareil')->group(function () {
+    Route::get('/', [AppareilController::class, 'index'])->name('appareil.index');
+    Route::post('filter', [AppareilController::class, 'filterAppareils'])->name('appareil.filter');
+    Route::post('store', [AppareilController::class, 'store'])->name('appareil.store');
+    Route::put('{id}/update', [AppareilController::class, 'update'])->name('appareil.update');
+    Route::patch('{id}/toggle-statut', [AppareilController::class, 'toggleStatut'])->name('appareil.toggle.statut');
+    Route::delete('{id}/destroy', [AppareilController::class, 'destroy'])->name('appareil.destroy');
 });
 
 // Localités

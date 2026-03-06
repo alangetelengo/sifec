@@ -19,7 +19,7 @@ class TypeLocaliteSeeder extends Seeder
         DB::statement('truncate tr_type_localite');
 
         $donnes = ["DEPARTEMENT","DISTRICT","COMMUNE","ARRONDISSEMENT","COMMUNAUTE URBAINE",
-        "COMMUNAUTE RURALE","QUARTIER","VILLAGE"];
+        "COMMUNAUTE RURALE","QUARTIER","VILLAGE","NON DECLARE"];
 
         $data = [];
         for($i = 0; $i < count($donnes); $i++){

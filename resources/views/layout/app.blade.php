@@ -82,6 +82,27 @@
         a{
             color: #FFF!important;
         }
+        /* Correction visibilité btn-secondary sur les liens <a> */
+        a.btn-secondary,
+        a.btn-secondary:hover,
+        a.btn-secondary:focus {
+            background-color: #6c757d !important;
+            color: #fff !important;
+            border-color: #6c757d !important;
+        }
+        a.btn-secondary:hover {
+            background-color: #5a6268 !important;
+            border-color: #545b62 !important;
+        }
+        a.btn-outline-secondary,
+        a.btn-outline-secondary:hover {
+            color: #6c757d !important;
+            border-color: #6c757d !important;
+        }
+        a.btn-outline-secondary:hover {
+            background-color: #6c757d !important;
+            color: #fff !important;
+        }
         .mm-active, .wizard-content .wizard.wizard-circle>.steps .step, .wizard-content .wizard>.actions>ul>li>a{
             background-color: #21B931!important;
         }
@@ -308,9 +329,18 @@
                                         }
                                     @endphp
 
-                                    <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" style="color: white">
-                                        <small class="ms-3 text-black">{{ $civilite }} {{ $nom }}</small>
-                                        <img src="{{asset('tpl/images/images.png')}}" class="rounded-circle" width="80"><p class="mb-0 text-success" style="margin-left:-10px; font-size:56px;">.</p>
+                                    <a class="nav-link d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown"
+                                       style="text-decoration:none;">
+                                        {{-- Avatar initiales --}}
+                                        <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#009A44,#007A35);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;font-size:0.85rem;color:#fff;box-shadow:0 2px 6px rgba(0,154,68,0.35);">
+                                            {{ strtoupper(substr($nom, 0, 1)) }}
+                                        </div>
+                                        {{-- Nom + rôle --}}
+                                        <div class="d-none d-md-block" style="line-height:1.2;">
+                                            <span style="font-size:0.85rem;font-weight:700;color:#2d3748 !important;display:block;">{{ $civilite }} {{ $nom }}</span>
+                                            <span style="font-size:0.72rem;color:#6b7280 !important;">{{ $currentUser->fonction()?->lib_fonction ?? 'Utilisateur' }}</span>
+                                        </div>
+                                        <i class="fas fa-chevron-down" style="font-size:0.65rem;color:#9ca3af !important;margin-left:2px;"></i>
                                     </a>
 
                                     <div class="dropdown-menu dropdown-menu-end">
@@ -320,14 +350,6 @@
                                             <span class="ms-2 text-black">Profile </span>
                                         </a>
 
-                                        <a href="{{ route('two-factor.index') }}" class="dropdown-item ai-icon">
-                                            <svg id="icon-shield" class="text-success" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                                            <span class="ms-2 text-black">Double Authentification
-                                                @if($currentUser->hasTwoFactorEnabled())
-                                                    <i class="fas fa-check-circle text-success" title="2FA Activée"></i>
-                                                @endif
-                                            </span>
-                                        </a>
 
                                         <a class="dropdown-item ai-icon" href="{{ route('logout') }}" onclick="event.preventDefault();
 

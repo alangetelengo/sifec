@@ -201,7 +201,7 @@
                                 <!-- Boutons -->
                                 <div class="d-flex justify-content-between">
                                     <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Annuler
+                                        <i class="fas fa-times me-1"></i> Annuler
                                     </a>
                                     <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
                                         <i class="fas fa-save"></i> Modifier le Mot de Passe
@@ -334,19 +334,19 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
 
     if (!currentPassword || !newPassword || !confirmation) {
         e.preventDefault();
-        flashAlert('Erreur', 'error', 'Tous les champs sont requis');
+        flashAlert('Champs requis', 'error', 'Tous les champs sont obligatoires.');
         return false;
     }
 
     if (newPassword !== confirmation) {
         e.preventDefault();
-        flashAlert('Erreur', 'error', 'Les mots de passe ne correspondent pas');
+        flashAlert('Erreur', 'error', 'Les mots de passe ne correspondent pas.');
         return false;
     }
 
     if (newPassword.length < 8) {
         e.preventDefault();
-        flashAlert('Erreur', 'error', 'Le mot de passe doit contenir au moins 8 caractères');
+        flashAlert('Mot de passe trop court', 'error', 'Le mot de passe doit contenir au moins 8 caractères.');
         return false;
     }
 });

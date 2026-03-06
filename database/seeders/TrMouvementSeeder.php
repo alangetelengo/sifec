@@ -252,7 +252,12 @@ class TrMouvementSeeder extends Seeder
                 'code_mouvement' => 'MOUV_2010',
                 'lib_mouvement' => 'Célébration de mariage effectuée',
                 'description' => 'La cérémonie de mariage a été célébrée officiellement par l\'officier d\'état civil.'
-            ]
+            ],
+            [
+                'code_mouvement' => 'MOUV_2011',
+                'lib_mouvement' => 'Certificat de transcription enregistré',
+                'description' => 'Le certificat de transcription est enregistré dans le système.'
+            ],
         ];
 
         foreach ($donnes as $d){

@@ -230,7 +230,7 @@
                             <div class="col-12">
                                 <div class="d-flex justify-content-between">
                                     <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Annuler
+                                        <i class="fas fa-times me-1"></i> Annuler
                                     </a>
                                     <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-save"></i> Enregistrer les Permissions
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const checkedCount = document.querySelectorAll('.permission-checkbox:checked').length;
         if (checkedCount === 0) {
             e.preventDefault();
-            flashAlert('Attention', 'warning', 'Vous devez sélectionner au moins une permission');
+            flashAlert('Attention', 'warning', 'Veuillez sélectionner au moins une permission avant d\'enregistrer.');
             return false;
         }
     });
