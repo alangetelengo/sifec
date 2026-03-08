@@ -357,25 +357,81 @@ Actes de naissance
 <div class="modal fade" id="modal-validate-acte" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Validation de l'acte de naissance</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal">
-                </button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-shield-alt me-2"></i>Validation de l'acte de naissance
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="mb-2 col-md-6">
-                        <input type="hidden" id="code_declaration_naissance_validate">
-                        <input type="hidden" id="validation_type">
-                        <label class="form-label">Code de validation<span class="text-danger">*</span></label>
-                        <input type="text" class="form-control"lass="form-control"  placeholder="" id="otp_approbation_mairie" required>
+                <input type="hidden" id="code_declaration_naissance_validate">
+                <input type="hidden" id="validation_type">
+
+                {{-- Alerte info --}}
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <small>Un code à usage unique a été envoyé par SMS à l'officier d'état civil.
+                        Ce code est valide pendant <strong>1 minute</strong>.</small>
+                </div>
+
+                <div class="row g-3">
+                    {{-- Champ OTP --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">
+                            Code de validation <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control form-control-lg text-center fw-bold"
+                               id="otp_approbation_mairie"
+                               name="otp_approbation_mairie"
+                               placeholder="_ _ _ _ _ _ _ _"
+                               maxlength="8"
+                               inputmode="numeric"
+                               pattern="[0-9]{4,8}"
+                               autocomplete="one-time-code"
+                               required>
+                        <small class="text-muted">Saisissez les chiffres reçus par SMS.</small>
                     </div>
-                    <span class="text-success"><i>Veuillez saisir le code de validation reçu par SMS.</i>
+
+                    {{-- Countdown --}}
+                    <div class="col-md-6 d-flex flex-column justify-content-center">
+                        {{-- Timer actif --}}
+                        <div id="otp-timer-block" class="mb-2">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="fas fa-clock text-warning"></i>
+                                <span class="small">Code valide encore :
+                                    <strong id="otp-countdown" class="text-warning fs-5">60s</strong>
+                                </span>
+                            </div>
+                            <div class="progress" style="height:6px;">
+                                <div id="otp-progress"
+                                     class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+                                     role="progressbar"
+                                     style="width:100%;transition:width 1s linear;">
+                                </div>
+                            </div>
+                        </div>
+                        {{-- Timer expiré --}}
+                        <div id="otp-expired-block" class="d-none mb-2">
+                            <div class="alert alert-danger py-2 mb-1">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <strong>Code expiré.</strong> Veuillez demander un nouveau code.
+                            </div>
+                        </div>
+                        {{-- Bouton renvoyer --}}
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-resend-otp" disabled>
+                            <i class="fas fa-redo me-1"></i> Renvoyer le code
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-info btn-sm text-white" id="btn-validate">Valider</button>
-                <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-validate">
+                    <i class="fas fa-check me-1"></i> Valider
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Fermer
+                </button>
             </div>
         </div>
     </div>
@@ -737,6 +793,51 @@ Actes de naissance
     var codesActes = [];
     var actesGeneres = [];
     var actesNonGeneres = [];
+
+    // ── Gestion du timer OTP ─────────────────────────────────────────────
+    var otpTimerInterval = null;
+    var otpTimerSeconds  = 30;
+    var otpExpired       = false;
+
+    function startOtpTimer() {
+        clearInterval(otpTimerInterval);
+        otpExpired       = false;
+        otpTimerSeconds  = 60;
+
+        // Réinitialiser l'UI
+        $('#otp-countdown').text('60s').css('color', '');
+        $('#otp-progress').css('width', '100%')
+                          .removeClass('bg-danger').addClass('bg-warning');
+        $('#otp-timer-block').removeClass('d-none');
+        $('#otp-expired-block').addClass('d-none');
+        $('#btn-validate').prop('disabled', false);
+        $('#btn-resend-otp').prop('disabled', true);
+        $('#otp_approbation_mairie').prop('disabled', false).val('').trigger('focus');
+
+        otpTimerInterval = setInterval(function () {
+            otpTimerSeconds--;
+            var pct = Math.round((otpTimerSeconds / 60) * 100);
+
+            $('#otp-countdown').text(otpTimerSeconds + 's');
+            $('#otp-progress').css('width', pct + '%');
+
+            // Passage au rouge dans les 10 dernières secondes
+            if (otpTimerSeconds <= 10) {
+                $('#otp-countdown').css('color', '#DC241F');
+                $('#otp-progress').removeClass('bg-warning').addClass('bg-danger');
+            }
+
+            if (otpTimerSeconds <= 0) {
+                clearInterval(otpTimerInterval);
+                otpExpired = true;
+                $('#otp-timer-block').addClass('d-none');
+                $('#otp-expired-block').removeClass('d-none');
+                $('#btn-validate').prop('disabled', true);
+                $('#btn-resend-otp').prop('disabled', false);
+                $('#otp_approbation_mairie').prop('disabled', true);
+            }
+        }, 1000);
+    }
 
     // Initialisation des DataTables sans pagination
     // Utiliser une traduction inline pour éviter les erreurs CORS
@@ -1271,8 +1372,8 @@ Actes de naissance
 
                 $(".over-loader-page").fadeOut(600);
                 $("#validation_type").val("bulk");
-
                 $("#modal-validate-acte").modal('show');
+                startOtpTimer();
 
             }else{
                 $(".over-loader-page").fadeOut(600);
@@ -1289,14 +1390,43 @@ Actes de naissance
 
     // Validation OTP (singleton ou bulk)
     $("#btn-validate").on("click", function(){
+        // ── Gardes côté client (UX) — la vraie sécurité est dans OtpService côté serveur ──
+        var otp = $("#otp_approbation_mairie").val().trim();
+        if (!otp) {
+            flashAlert("Attention", "warning", "Veuillez saisir le code reçu par SMS.");
+            return false;
+        }
+        if (!/^\d{4,8}$/.test(otp)) {
+            flashAlert("Attention", "warning", "Le code doit être composé de chiffres uniquement (4 à 8 chiffres).");
+            return false;
+        }
+
+        // Désactiver le bouton pour éviter la double soumission
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
+
         var code_declaration_naissance = $("#code_declaration_naissance_validate").val();
         var validation_type = $("#validation_type").val();
-        var otp_approbation_mairie = $("#otp_approbation_mairie").val();
+        var otp_approbation_mairie = otp;
         var inputs = {
             codes : actesGeneres,
             code_declaration_naissance: code_declaration_naissance,
             otp_approbation_mairie: otp_approbation_mairie
         };
+        /**
+         * Extrait le texte lisible d'un message renvoyé par le serveur.
+         * Formats supportés : string | ["msg"] | {reponse:"..."} | {error:"..."}
+         */
+        function extraireMsg(message) {
+            if (!message) return 'Réponse inconnue du serveur.';
+            if (typeof message === 'string')  return message;
+            if (Array.isArray(message))       return message[0] || 'Erreur inconnue.';
+            if (typeof message === 'object') {
+                if (message.reponse) return message.reponse;
+                if (message.error)   return message.error;
+            }
+            return JSON.stringify(message);
+        }
+
         if(validation_type=="simple"){
             $.ajax({
                 url: "{{ route('acteNaissance.validate.otp') }}",
@@ -1306,14 +1436,25 @@ Actes de naissance
                     otp_approbation_mairie: inputs.otp_approbation_mairie
                 },
                 success: function(response){
-                    let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                    flashAlert("Réponse","success",msg);
-                    $('#modal-validate-acte').modal('hide');
-                    setTimeout(()=>location.reload(), 1000);
+                    var msg = extraireMsg(response.message);
+                    if (response.code === '200') {
+                        flashAlert("Succès", "success", msg);
+                        clearInterval(otpTimerInterval);
+                        $('#modal-validate-acte').modal('hide');
+                        setTimeout(function(){ location.reload(); }, 1500);
+                    } else {
+                        flashAlert("Échec", "error", msg);
+                        $('#btn-validate').prop('disabled', false)
+                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                    }
                 },
                 error: function(xhr){
-                    let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation de l\'acte';
-                    flashAlert("Réponse","error",msg);
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? extraireMsg(xhr.responseJSON.message)
+                        : 'Erreur lors de la validation de l\'acte.';
+                    flashAlert("Erreur", "error", msg);
+                    $('#btn-validate').prop('disabled', false)
+                                     .html('<i class="fas fa-check me-1"></i> Valider');
                 }
             });
         }else{
@@ -1325,18 +1466,78 @@ Actes de naissance
                     otp_approbation_mairie: inputs.otp_approbation_mairie
                 },
                 success: function(response){
-                    let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                    flashAlert("Réponse","success",msg);
-                    $('#modal-validate-acte').modal('hide');
-                    setTimeout(()=>location.reload(), 1000);
+                    var msg = extraireMsg(response.message);
+                    if (response.code === '200') {
+                        flashAlert("Succès", "success", msg);
+                        clearInterval(otpTimerInterval);
+                        $('#modal-validate-acte').modal('hide');
+                        setTimeout(function(){ location.reload(); }, 1500);
+                    } else {
+                        flashAlert("Échec", "error", msg);
+                        $('#btn-validate').prop('disabled', false)
+                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                    }
                 },
                 error: function(xhr){
-                    let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation des actes';
-                    flashAlert("Réponse","error",msg);
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? extraireMsg(xhr.responseJSON.message)
+                        : 'Erreur lors de la validation des actes.';
+                    flashAlert("Erreur", "error", msg);
+                    $('#btn-validate').prop('disabled', false)
+                                     .html('<i class="fas fa-check me-1"></i> Valider');
                 }
             });
         }
         return false;
+    });
+
+    // ── Renvoyer le code OTP ──────────────────────────────────────────────
+    $("#btn-resend-otp").on("click", function() {
+        var validationType = $("#validation_type").val();
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Envoi...');
+
+        if (validationType === "simple") {
+            var code = $("#code_declaration_naissance_validate").val();
+            $.post("{{ route('acteNaissance.send.otp') }}", {
+                code_declaration_naissance: code,
+                _token: '{{ csrf_token() }}'
+            }, function(response){
+                if (response.code == "200") {
+                    startOtpTimer();
+                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS.");
+                } else {
+                    let msg = response.message && response.message.error ? response.message.error : response.message;
+                    flashAlert("Erreur", "error", msg);
+                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
+                }
+            }).fail(function(){
+                flashAlert("Erreur", "error", "Impossible d'envoyer le code.");
+                $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
+            });
+        } else {
+            var url  = "{{ route('acteNaissance.send.otp.bulk') }}";
+            var data = { codes: actesGeneres, _token: '{{ csrf_token() }}' };
+            $.post(url, data, function(response){
+                if (response.code == "200") {
+                    startOtpTimer();
+                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS.");
+                } else {
+                    let msg = typeof response.message === 'object' ? JSON.stringify(response.message) : response.message;
+                    flashAlert("Erreur", "error", msg);
+                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
+                }
+            }).fail(function(){
+                flashAlert("Erreur", "error", "Impossible d'envoyer le code.");
+                $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
+            });
+        }
+    });
+
+    // ── Nettoyage du timer à la fermeture du modal ────────────────────────
+    $('#modal-validate-acte').on('hidden.bs.modal', function() {
+        clearInterval(otpTimerInterval);
+        otpExpired = false;
+        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-check me-1"></i> Valider');
     });
 
     // Renvoi individuel (modale)
@@ -1641,16 +1842,15 @@ Actes de naissance
         });
     });
 
-    // Ouvre la modale de validation OTP
+    // Ouvre la modale de validation OTP (singleton)
     $('.btn-validate-single').on('click', function() {
         var code = $(this).data('id');
         $.post("{{ route('acteNaissance.send.otp') }}", {code_declaration_naissance: code, _token: '{{ csrf_token() }}'}, function(response){
             if(response.code == "200"){
-                // flashAlert("Succès", "success", "Un code de validation a été envoyé par SMS.");
                 $('#code_declaration_naissance_validate').val(code);
-                $('#otp_approbation_mairie').val('');
                 $("#validation_type").val("simple");
                 $("#modal-validate-acte").modal('show');
+                startOtpTimer();
             }else{
                 let msg = response.message && response.message.error ? response.message.error : response.message;
                 flashAlert("Erreur", "error", msg);

@@ -13,6 +13,7 @@ class CreateTrTypeExtraitTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('tr_type_extrait', function (Blueprint $table) {
             $table->string("code_type_extrait",16);
             $table->primary("code_type_extrait");

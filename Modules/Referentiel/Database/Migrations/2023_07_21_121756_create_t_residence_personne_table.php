@@ -13,6 +13,7 @@ class CreateTResidencePersonneTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_residence_personne', function (Blueprint $table) {
             $table->id();
             $table->string("lib_pays", 50)->nullable();

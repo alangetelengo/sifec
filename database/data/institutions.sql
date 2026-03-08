@@ -1,6 +1,5 @@
 -- Institutions extraites de sifec.sql
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE tr_institution;
+-- Note : TRUNCATE et FOREIGN_KEY_CHECKS sont gérés par InstitutionSeeder.php
 
 INSERT INTO `tr_institution` (`code_institution`, `lib_institution`, `longitude_institution`, `latitude_institution`, `code_institution_parent`, `code_pompe_funebre`, `code_type_institution`, `code_localite`, `statut`, `sceau`, `created_at`, `updated_at`, `deleted_at`) VALUES
 ('INS_0001', 'COUR D\'APPEL DE BRAZZAVILLE', NULL, NULL, NULL, NULL, 'TPINS_0006', 'LOC_0053', 1, NULL, '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
@@ -192,28 +191,9 @@ INSERT INTO `tr_institution` (`code_institution`, `lib_institution`, `longitude_
 ('INS_0191', 'AMBASSADE DU CONGO EN TURQUIE', NULL, NULL, NULL, NULL, 'TPINS_0005', NULL, 1, NULL, '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
 ('INS_0192', 'POMPES FUNEBRES MUNICIPALES DE BRAZZAVILLE', NULL, NULL, 'INS_0006', NULL, 'TPINS_0003', 'LOC_0054', 1, 'sceau/9xdMPP31wOpeQs4AFzxlt1h94w1w4Gs59M0IU3WL.png', NULL, '2023-12-22 08:15:52', NULL),
 ('INS_0193', 'BUREAU D\'ENREGISTREMENT DE DECES', NULL, NULL, 'INS_0007', NULL, 'TPINS_0003', 'LOC_0036', 1, 'sceau/zwEaiL9xqf2e5wtgch39lXSQlCn155NvbWoZUpYO.png', NULL, '2023-12-21 06:27:39', NULL),
-('INS_0194', 'POMPES FUNEBRES D\"OYO', NULL, NULL, NULL, NULL, 'TPINS_0003', 'LOC_0022', 1, NULL, '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
+('INS_0194', 'POMPES FUNEBRES D\'OYO', NULL, NULL, NULL, NULL, 'TPINS_0003', 'LOC_0022', 1, NULL, '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
 ('INS_0195', 'COMMUNE D\'OWANDO', NULL, NULL, 'INS_0009', NULL, 'TPINS_0002', 'LOC_0046', 1, 'sceau/uffSgwXrZhyJTrnZ9GdxOIchuyknRJHUDoHdwa8V.png', '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
 ('INS_0196', 'HÔPITAL 31 JUILLET 1968', NULL, NULL, 'INS_0195', NULL, 'TPINS_0012', 'LOC_0046', 1, NULL, '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
 ('INS_0197', 'CENTRE D\'HYGIENE DE POINTE-NOIRE', NULL, NULL, 'INS_0193', NULL, 'TPINS_0003', 'LOC_0036', 1, 'sceau/9xdMPP31wOpeQs4AFzxlt1h94w1w4Gs59M0IU3WL.png', NULL, NULL, NULL),
 ('INS_0198', 'CENTRE D\'HYGIENE DE BRAZZAVILLE', NULL, NULL, 'INS_0192', 'INS_0192', 'TPINS_0019', 'LOC_0054', 1, NULL, '2023-02-14 17:35:05', '2023-12-01 07:19:43', NULL),
-('INS_0199', 'HÔPITAL DE REFERENCE DE KINKALA', NULL, NULL, 'INS_0077', NULL, 'TPINS_0017', 'LOC_0043', 1, NULL, '2023-12-01 16:14:33', '2023-12-01 16:14:33', NULL),
-
--- --------------------------------------------------------
-
---
--- Table structure for table `tr_ins_user`
---
-
-CREATE TABLE `tr_ins_user` (
-  `cui` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `code_institution` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `code_user` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `code_fonction` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `active` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SET FOREIGN_KEY_CHECKS = 1;
+('INS_0199', 'HÔPITAL DE REFERENCE DE KINKALA', NULL, NULL, 'INS_0077', NULL, 'TPINS_0017', 'LOC_0043', 1, NULL, '2023-12-01 16:14:33', '2023-12-01 16:14:33', NULL);

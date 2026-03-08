@@ -13,6 +13,7 @@ class CreateTDetailLivretTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_detail_livret', function (Blueprint $table) {
             $table->string("code_detail_livret", 16);
             $table->primary("code_detail_livret");

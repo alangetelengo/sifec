@@ -13,6 +13,7 @@ class AddCodeDemandeDocumentForeignKeyToPaiementDetailsTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::table('paiement_details', function (Blueprint $table) {
             $table->foreign('code_demande_document')
                 ->references('code_demande_document')

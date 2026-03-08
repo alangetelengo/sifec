@@ -13,6 +13,7 @@ class CreateTrTypeDocumentDemandeTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('tr_type_document_demande', function (Blueprint $table) {
             $table->string("code_type_document_demande",16);
             $table->primary("code_type_document_demande");

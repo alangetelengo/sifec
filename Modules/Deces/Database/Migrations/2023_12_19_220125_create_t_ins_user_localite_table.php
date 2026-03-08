@@ -13,6 +13,7 @@ class CreateTInsUserLocaliteTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_ins_user_localite', function (Blueprint $table) {
             $table->increments("id");
             $table->string("cui",16);

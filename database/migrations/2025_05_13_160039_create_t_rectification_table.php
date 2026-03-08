@@ -13,6 +13,7 @@ class CreateTRectificationTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_rectification', function (Blueprint $table) {
             $table->string("code_rectification",16);
             $table->primary("code_rectification");

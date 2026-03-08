@@ -13,7 +13,7 @@ class AppareilSeeder extends Seeder
             [
                 'code_appareil'       => 'APP_0001',
                 'nom_appareil'        => 'ALANGE-PC',
-                'adresse_mac'         => '90:E8:68:13:C3:60',
+                'adresse_mac'         => '90-E8-68-13-C3-61',
                 'type_appareil'       => 'ordinateur',
                 'code_institution'    => null,
                 'enregistre_par'      => null,

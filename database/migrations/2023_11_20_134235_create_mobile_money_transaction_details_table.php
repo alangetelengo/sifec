@@ -11,6 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('mobile_money_transaction_details', function (Blueprint $table) {
             $table->id();
             $table->string("code_paiement_document", 16)->nullable();

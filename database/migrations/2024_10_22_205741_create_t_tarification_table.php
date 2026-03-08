@@ -13,6 +13,7 @@ class CreateTTarificationTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_tarification', function (Blueprint $table) {
             $table->string("code_tarification",16);
             $table->primary("code_tarification");

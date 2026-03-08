@@ -13,6 +13,7 @@ class CreateTMouvementDossierTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_mouvement_dossier', function (Blueprint $table) {
             $table->primary("code_mouvement");
             $table->string('code_mouvement',16);

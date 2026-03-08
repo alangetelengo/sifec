@@ -13,6 +13,7 @@ class CreateTrRubriqueTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('tr_rubrique', function (Blueprint $table) {
             $table->string("code_rubrique",16);
             $table->primary("code_rubrique");

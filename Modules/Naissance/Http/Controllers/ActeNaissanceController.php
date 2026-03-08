@@ -792,9 +792,13 @@ class ActeNaissanceController extends Controller
         }
 
         $code = $request->code_declaration_naissance;
-        $otp = $request->otp_approbation_mairie;
+        $otp  = $request->otp_approbation_mairie;
 
-        [$ok, $result] = $otpService->validerOtpActes([$code], $otp);
+        [$ok, $result] = $otpService->validerOtpActes(
+            [$code], $otp,
+            $request->ip(),
+            $request->userAgent()
+        );
 
         if (!$ok) {
             Log::channel("sifec")->info($result);
@@ -859,7 +863,11 @@ class ActeNaissanceController extends Controller
         }
         DB::beginTransaction();
         try {
-            [$ok, $result] = $otpService->validerOtpActes($codes, $otp);
+            [$ok, $result] = $otpService->validerOtpActes(
+                $codes, $otp,
+                $request->ip(),
+                $request->userAgent()
+            );
             if (!$ok) {
                 DB::rollBack();
                 Log::channel("sifec")->info($result);

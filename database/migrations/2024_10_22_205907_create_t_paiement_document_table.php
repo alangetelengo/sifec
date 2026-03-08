@@ -13,6 +13,7 @@ class CreateTPaiementDocumentTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_paiement_document', function (Blueprint $table) {
             $table->string("code_paiement_document",16);
             $table->primary("code_paiement_document");

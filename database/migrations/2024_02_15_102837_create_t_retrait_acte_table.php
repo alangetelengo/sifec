@@ -13,6 +13,7 @@ class CreateTRetraitActeTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
 
 
 

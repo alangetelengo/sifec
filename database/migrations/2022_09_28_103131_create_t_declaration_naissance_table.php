@@ -45,14 +45,14 @@ class CreateTDeclarationNaissanceTable extends Migration
                 'CERTIFICAT DE NAISSANCE',
                 'DECLARATION DE NAISSANCE',
                 'CERTIFICAT DE NON INSCRIPTION',
-                "CERTIFICAT DE DESTRUCTION DE L'ACTE",
+                "CERTIFICAT DE DESTRUCTION DE L''ACTE",
                 'FICHE DE TRANSCRIPTION',
-                "FICHE DE TRANSCRIPTION DE L'ACTE",
+                "FICHE DE TRANSCRIPTION DE L''ACTE",
                 'DECLARATION DE PATERNITE',
                 'JUGEMENT SUPPLETIF',
-                "JUGEMENT D'HOMOLOGATION",
-                "JUGEMENT D'ADOPTION",
-                "JUGEMENT D'ANNULATION D'ACTE",
+                "JUGEMENT D''HOMOLOGATION",
+                "JUGEMENT D''ADOPTION",
+                "JUGEMENT D''ANNULATION D''ACTE",
                 'DECLARATION TARDIVE',
                 'DECLARATION TARDIVE DE NAISSANCE',
                 'CERTIFICAT DE TRANSCRIPTION',
@@ -96,8 +96,7 @@ class CreateTDeclarationNaissanceTable extends Migration
             $table->foreign("code_user_institution")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");
             $table->foreign('code_lieu_survenance')->references('code_lieu_survenance')->on('tr_lieu_survenance')->onDelete('cascade')->onUpdate("cascade");
             $table->foreign("code_situation_mat")->references('code_situation_matrimoniale')->on("tr_situation_matrimoniale")->onDelete("cascade")->onUpdate("cascade");
-            $table->foreign("code_jugement")->references("code_jugement")->on("t_jugement")->onDelete("cascade")->onUpdate("cascade");
-            $table->foreign("code_requisition")->references("code_requisition")->on("t_requisition")->onDelete("cascade")->onUpdate("cascade");
+            // FK code_jugement → t_jugement et code_requisition → t_requisition ajoutées dans 2025_03_20_000001_add_jugement_foreign_keys
             $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate("cascade");
 
             $table->foreign("cec_approuve_par")->references("cui")->on("tr_ins_user")->onDelete("cascade")->onUpdate("cascade");

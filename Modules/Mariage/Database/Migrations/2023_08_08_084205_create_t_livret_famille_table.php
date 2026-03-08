@@ -13,6 +13,7 @@ class CreateTLivretFamilleTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_livret_famille', function (Blueprint $table) {
             $table->string("code_livret_famille",16);
             $table->primary("code_livret_famille");

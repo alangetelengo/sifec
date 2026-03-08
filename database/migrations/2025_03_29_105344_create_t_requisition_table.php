@@ -13,6 +13,7 @@ class CreateTRequisitionTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_requisition', function (Blueprint $table) {
             $table->string("code_requisition",16);
             $table->primary("code_requisition");

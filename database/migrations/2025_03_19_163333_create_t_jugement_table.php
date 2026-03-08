@@ -13,6 +13,7 @@ class CreateTJugementTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_jugement', function (Blueprint $table) {
             $table->string("code_jugement",16);
             $table->primary("code_jugement");

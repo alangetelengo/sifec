@@ -36,7 +36,7 @@ class CreateTDeclarationDecesTable extends Migration
             $table->boolean("top_requisition")->default(false);
             $table->string("numero_req",16)->nullable();
             $table->string("numero_certificat",16)->nullable();
-            $table->enum('type_declaration',["DECLARATION DE DECES","DECLARATION TARDIVE","CERTIFICAT DE CONSTATATION DE DECES","CERTIFICAT DE NON INSCRIPTION", "CERTIFICAT DE DESTRUCTION DE L\'ACTE","FICHE DE TRANSCRIPTION"])->nullable();
+            $table->enum('type_declaration',["DECLARATION DE DECES","DECLARATION TARDIVE","CERTIFICAT DE CONSTATATION DE DECES","CERTIFICAT DE NON INSCRIPTION", "CERTIFICAT DE DESTRUCTION DE L''ACTE","FICHE DE TRANSCRIPTION"])->nullable();
             $table->enum("fonction_medecin",["Medécin","Infirmier(e)","Autre personne de la santé"])->nullable();
             $table->string('nom_medecin')->nullable();
             $table->string('code_conjoint')->nullable();
@@ -92,8 +92,7 @@ class CreateTDeclarationDecesTable extends Migration
 
             $table->foreign("code_institution_destinataire")->references("code_institution")->on("tr_institution")->onDelete('cascade')->onUpdate('cascade');
             $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign("code_jugement")->references("code_jugement")->on("t_jugement")->onDelete("cascade")->onUpdate("cascade");
-            $table->foreign("code_requisition")->references("code_requisition")->on("t_requisition")->onDelete("cascade")->onUpdate("cascade");
+            // FK code_jugement → t_jugement et code_requisition → t_requisition ajoutées dans 2025_03_20_000001_add_jugement_foreign_keys
         });
 
          Schema::create("t_ddecescause", function (Blueprint $table) {

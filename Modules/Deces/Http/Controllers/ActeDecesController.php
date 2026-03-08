@@ -706,7 +706,11 @@ class ActeDecesController extends Controller
         }
         $cdn = $request->code_declaration_deces;
         $otp = $request->otp_approbation_pompe_funebre;
-        [$ok, $result] = $otpService->validerOtpActes([$cdn], $otp);
+        [$ok, $result] = $otpService->validerOtpActes(
+            [$cdn], $otp,
+            $request->ip(),
+            $request->userAgent()
+        );
         if (!$ok) {
             return response()->json([
                 "code"=>"183",
@@ -752,7 +756,11 @@ class ActeDecesController extends Controller
         }
         $codes = $request->codes;
         $otp = $request->otp_approbation_pompe_funebre;
-        [$ok, $result] = $otpService->validerOtpActes($codes, $otp);
+        [$ok, $result] = $otpService->validerOtpActes(
+            $codes, $otp,
+            $request->ip(),
+            $request->userAgent()
+        );
         if (!$ok) {
             return response()->json([
                 "code"=>"183",

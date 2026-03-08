@@ -54,7 +54,7 @@ class DatabaseSeeder extends Seeder
             // ── Comptes utilisateurs (optionnel — décommenter si nécessaire) ─
             PersonneSeeder::class,
             UserSeederTableSeeder::class,
-            // InstitutionUserSeeder::class,
+            InstitutionUserSeeder::class,
 
             // ── Appareils autorisés ───────────────────────────────────────────
             AppareilSeeder::class,

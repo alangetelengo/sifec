@@ -13,6 +13,7 @@ class CreateTUserArrondissementTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_user_arrondissement', function (Blueprint $table) {
             $table->primary(["code_arrondissement","cui"]);
             $table->string("cui",16);
