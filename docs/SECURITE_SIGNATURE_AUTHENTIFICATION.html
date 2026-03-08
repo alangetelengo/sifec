@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIFEC — Sécurité : Signature &amp; Authentification</title>
+    <style>
+        :root {
+            --green-dark:  #006B31;
+            --green:       #009E49;
+            --green-light: #21B931;
+            --yellow:      #FBDE4A;
+            --red:         #DC241F;
+            --blue:        #2781d5;
+            --gray-bg:     #f8fafb;
+            --gray-border: #dee2e6;
+            --text:        #1c2b2b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-bg);
+            color: var(--text);
+            line-height: 1.65;
+        }
+
+        /* ── En-tête ── */
+        header {
+            background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 60%, var(--green-light) 100%);
+            color: #fff;
+            padding: 48px 40px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+        header::after {
+            content: '';
+            position: absolute; right: -60px; top: -60px;
+            width: 280px; height: 280px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.07);
+        }
+        header .badge-doc {
+            display: inline-block;
+            background: rgba(255,255,255,.18);
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: .8rem;
+            letter-spacing: .05em;
+            margin-bottom: 14px;
+        }
+        header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 6px; }
+        header p  { opacity: .88; font-size: 1rem; max-width: 640px; }
+        header .meta {
+            margin-top: 18px;
+            font-size: .82rem;
+            opacity: .72;
+            display: flex; gap: 24px; flex-wrap: wrap;
+        }
+
+        /* ── Contenu ── */
+        main { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+
+        /* ── Sections ── */
+        section { margin-bottom: 48px; }
+        section h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--green-dark);
+            border-left: 4px solid var(--green);
+            padding-left: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* ── Chaîne de confiance ── */
+        .chain {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .chain-step {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .chain-step .line {
+            display: flex; flex-direction: column; align-items: center;
+            min-width: 40px;
+        }
+        .chain-step .circle {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: var(--green);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(0,158,73,.3);
+        }
+        .chain-step .connector {
+            width: 3px; flex: 1; min-height: 28px;
+            background: linear-gradient(to bottom, var(--green), var(--green-light));
+            margin: 4px 0;
+        }
+        .chain-step:last-child .connector { display: none; }
+        .chain-step .content {
+            background: #fff;
+            border: 1px solid var(--gray-border);
+            border-left: 4px solid var(--green);
+            border-radius: 0 10px 10px 0;
+            padding: 14px 18px;
+            flex: 1;
+            margin-bottom: 8px;
+        }
+        .chain-step .content strong { display: block; color: var(--green-dark); margin-bottom: 4px; }
+        .chain-step .content p { font-size: .9rem; color: #555; margin: 0; }
+
+        /* ── Cartes de mesures ── */
+        .measures-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .measure-card {
+            background: #fff;
+            border: 1px solid var(--gray-border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .measure-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        }
+        .measure-card.green::before  { background: linear-gradient(90deg, var(--green-dark), var(--green)); }
+        .measure-card.blue::before   { background: linear-gradient(90deg, #1a5fa0, var(--blue)); }
+        .measure-card.orange::before { background: linear-gradient(90deg, #b45309, #f59e0b); }
+        .measure-card.purple::before { background: linear-gradient(90deg, #5b21b6, #8b5cf6); }
+
+        .measure-card .icon {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .measure-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+        .measure-card p  { font-size: .87rem; color: #555; margin-bottom: 10px; }
+        .measure-card .tag {
+            display: inline-block;
+            font-size: .72rem;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 3px 10px;
+            letter-spacing: .03em;
+        }
+        .tag.implemented { background: #d1fae5; color: #065f46; }
+        .tag.future      { background: #fef3c7; color: #92400e; }
+        .tag.partial     { background: #dbeafe; color: #1e40af; }
+
+        /* ── Tableau comparatif ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            font-size: .9rem;
+        }
+        thead tr { background: linear-gradient(90deg, var(--green-dark), var(--green)); color: #fff; }
+        thead th { padding: 14px 16px; text-align: left; font-weight: 600; }
+        tbody tr { border-bottom: 1px solid #f0f0f0; }
+        tbody tr:last-child { border: none; }
+        tbody td { padding: 12px 16px; vertical-align: top; }
+        tbody tr:hover { background: #f0faf4; }
+        .status-ok   { color: #059669; font-weight: 700; }
+        .status-warn { color: #d97706; font-weight: 700; }
+        .status-no   { color: #dc2626; font-weight: 700; }
+
+        /* ── Améliorations futures ── */
+        .future-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+        .future-card {
+            background: #fff;
+            border: 1px solid #fde68a;
+            border-left: 5px solid #f59e0b;
+            border-radius: 0 10px 10px 0;
+            padding: 18px 20px;
+        }
+        .future-card .priority {
+            font-size: .72rem;
+            font-weight: 700;
+            border-radius: 20px;
+            padding: 2px 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .priority.high   { background: #fee2e2; color: #991b1b; }
+        .priority.medium { background: #fef3c7; color: #92400e; }
+        .priority.low    { background: #dbeafe; color: #1e40af; }
+        .future-card h3 { font-size: .97rem; font-weight: 700; margin-bottom: 6px; }
+        .future-card p  { font-size: .85rem; color: #555; }
+
+        /* ── Score de sécurité ── */
+        .score-box {
+            background: linear-gradient(135deg, var(--green-dark), var(--green));
+            border-radius: 16px;
+            padding: 32px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+        .score-circle {
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.15);
+            border: 4px solid rgba(255,255,255,.5);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .score-circle .num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+        .score-circle .den { font-size: .85rem; opacity: .8; }
+        .score-info h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+        .score-info p  { opacity: .88; font-size: .9rem; max-width: 560px; }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 24px;
+            font-size: .8rem;
+            color: #888;
+            border-top: 1px solid var(--gray-border);
+            margin-top: 40px;
+        }
+
+        @media (max-width: 600px) {
+            header { padding: 28px 20px; }
+            header h1 { font-size: 1.4rem; }
+            main { padding: 24px 16px 60px; }
+            .score-box { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="badge-doc">📄 Document Technique Interne — SIFEC</div>
+    <h1>🔐 Sécurité : Signature &amp; Authentification des Actes</h1>
+    <p>Résumé des mesures de sécurité implémentées pour la protection de l'intégrité,
+       de l'authenticité et de la traçabilité des actes d'état civil.</p>
+    <div class="meta">
+        <span>📅 Mars 2026</span>
+        <span>🏛️ Système SIFEC — République du Congo</span>
+        <span>📦 Modules : Naissance · Mariage · Décès</span>
+    </div>
+</header>
+
+<main>
+
+    <!-- ── 1. Chaîne de confiance ── -->
+    <section>
+        <h2>1. Chaîne de confiance — Validation d'un acte</h2>
+        <div class="chain">
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">1</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="content">
+                    <strong>Authentification de l'officier (2 facteurs)</strong>
+                    <p>L'officier d'état civil se connecte avec son identifiant + mot de passe.
+                       La 2FA (Two-Factor Authentication) est activable sur chaque compte pour une couche supplémentaire.</p>
+                </div>
+            </div>
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">2</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="content">
+                    <strong>Vérification des droits (Gate/Permission)</strong>
+                    <p>Le système vérifie que l'officier possède la fonctionnalité
+                       <code>module.acteNaissance.signature</code> (ou mariage/décès)
+                       avant d'afficher le bouton de validation. Sans cette permission, l'accès est refusé.</p>
+                </div>
+            </div>
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">3</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="content">
+                    <strong>Génération du code OTP (8 chiffres, 1 minute)</strong>
+                    <p>Un code OTP de 8 chiffres est généré côté serveur (<code>random_int</code>),
+                       stocké en base, et envoyé par <strong>SMS + e-mail</strong> sur les coordonnées
+                       enregistrées de l'officier. La date d'expiration (<code>otp_expire_at</code>) est
+                       fixée à <strong>1 minute</strong> après génération.</p>
+                </div>
+            </div>
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">4</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="content">
+                    <strong>Purge serveur des OTP expirés (Laravel Scheduler)</strong>
+                    <p>Toutes les minutes, le scheduler Laravel exécute
+                       <code>validiteCodeOtpActeNaissance/Mariage/Deces()</code> qui met à
+                       <code>NULL</code> les OTP expirés. Même si l'utilisateur bloque la minuterie
+                       côté navigateur, le serveur invalide le code indépendamment.</p>
+                </div>
+            </div>
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">5</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="content">
+                    <strong>Validation OTP — contrôles serveur en cascade</strong>
+                    <p>Le service <code>OtpService::validerOtpActes()</code> effectue dans l'ordre :</p>
+                    <ul style="margin: 8px 0 0 18px; font-size:.88rem; color:#444;">
+                        <li>Anti-replay : l'acte est-il déjà signé ? (<code>approbation_mairie !== NULL</code>)</li>
+                        <li>OTP null ? → expiré/purgé par le scheduler</li>
+                        <li>OTP temporellement expiré ? (<code>otp_expire_at &lt; now()</code>)</li>
+                        <li>OTP correspondant ? (comparaison stricte <code>===</code>)</li>
+                        <li>CUI de l'officier présent ? (affectation active requise)</li>
+                        <li>Signature numérique de l'officier présente ?</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">6</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="content">
+                    <strong>Application de la signature sur l'acte</strong>
+                    <p>Si tous les contrôles passent, le système grave dans la base :
+                       le <strong>CUI de l'officier</strong>, le <strong>fichier de sa signature numérique</strong>,
+                       la <strong>date/heure précise</strong>, l'<strong>OTP utilisé</strong> (conservé pour traçabilité QR),
+                       l'<strong>adresse IP</strong> de connexion, et la <strong>plateforme navigateur</strong>.</p>
+                </div>
+            </div>
+
+            <div class="chain-step">
+                <div class="line">
+                    <div class="circle">7</div>
+                </div>
+                <div class="content">
+                    <strong>QR Code de vérification (URL signée Laravel)</strong>
+                    <p>L'acte PDF contient un QR code pointant vers une URL signée cryptographiquement par Laravel.
+                       Toute modification de l'URL invalide la signature. Le scan affiche les données
+                       <strong>directement depuis le serveur</strong> (pas depuis le PDF) : officier, OTP, IP, horodatage.</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── 2. Mesures implémentées ── -->
+    <section>
+        <h2>2. Mesures de sécurité implémentées</h2>
+        <div class="measures-grid">
+
+            <div class="measure-card green">
+                <span class="icon">🔑</span>
+                <h3>OTP à usage unique — 8 chiffres</h3>
+                <p>Code généré par <code>random_int(0, 99999999)</code> côté serveur, jamais côté client.
+                   Valide 1 minute. Envoyé uniquement sur le téléphone/email enregistré de l'officier.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card green">
+                <span class="icon">⏱️</span>
+                <h3>Expiration double (client + serveur)</h3>
+                <p>Minuterie visuelle 60s côté navigateur (UX). Purge indépendante toutes les minutes par
+                   le scheduler Laravel (sécurité réelle). Les deux sont indépendants.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card green">
+                <span class="icon">🚫</span>
+                <h3>Anti-replay</h3>
+                <p>Un acte déjà signé (<code>approbation_mairie ≠ NULL</code>) ne peut plus être re-validé,
+                   même avec un OTP valide. Protection contre la double validation.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card green">
+                <span class="icon">✍️</span>
+                <h3>Signature numérique de l'officier</h3>
+                <p>Le fichier de signature de l'officier est vérifié avant validation.
+                   Si absent, la validation est bloquée avec un message explicite.
+                   La signature est gravée dans le PDF généré.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card green">
+                <span class="icon">🪪</span>
+                <h3>CUI — Identifiant Unique d'Officier</h3>
+                <p>Le CUI est requis (affectation active). Il est enregistré dans l'acte
+                   (<code>approbation_mairie</code>) et lié à la personne physique signataire.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card green">
+                <span class="icon">🔐</span>
+                <h3>Contrôle d'accès par permission</h3>
+                <p>Seuls les utilisateurs disposant de <code>module.acteNaissance.signature</code>
+                   (ou équivalent mariage/décès) peuvent accéder au bouton et à l'endpoint de validation.
+                   Vérification via <code>Gate::allows()</code>.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card blue">
+                <span class="icon">🌍</span>
+                <h3>Validation depuis n'importe où</h3>
+                <p>L'officier peut valider depuis n'importe quel appareil (téléphone, PC, tablette)
+                   et n'importe où dans le monde. L'OTP reçu sur son téléphone personnel est la
+                   liaison de confiance, pas le poste de travail.</p>
+                <span class="tag implemented">✅ Conçu ainsi</span>
+            </div>
+
+            <div class="measure-card blue">
+                <span class="icon">🔍</span>
+                <h3>Traçabilité forensique</h3>
+                <p>À chaque validation : IP de connexion + navigateur/OS enregistrés automatiquement
+                   côté serveur. Permet une investigation en cas de litige.
+                   Visible dans la page de vérification QR.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card blue">
+                <span class="icon">📱</span>
+                <h3>Vérification par QR code (URL signée)</h3>
+                <p>Chaque acte contient un QR code avec URL signée cryptographiquement par Laravel
+                   (<code>URL::signedRoute()</code>). Les données proviennent du serveur,
+                   pas du document imprimé.</p>
+                <span class="tag implemented">✅ Implémenté</span>
+            </div>
+
+            <div class="measure-card orange">
+                <span class="icon">🔒</span>
+                <h3>2FA sur les comptes utilisateurs</h3>
+                <p>La 2FA est disponible et activable sur chaque compte. Elle ajoute une
+                   couche d'authentification à la connexion, indépendante de l'OTP de signature.</p>
+                <span class="tag partial">⚡ Disponible (activation recommandée)</span>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── 3. Tableau synthèse ── -->
+    <section>
+        <h2>3. Matrice des risques — État actuel</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Risque / Scénario d'attaque</th>
+                    <th>Couverture actuelle</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Usurpation d'identité de l'officier</strong><br>
+                        <small>Quelqu'un se connecte avec les identifiants de l'officier</small></td>
+                    <td>Login + mot de passe. OTP supplémentaire envoyé sur le téléphone personnel de l'officier.
+                        Sans accès au téléphone, impossible de valider.</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Replay d'un OTP déjà utilisé</strong><br>
+                        <small>Réutiliser un code OTP capturé</small></td>
+                    <td><code>otp_expire_at = NULL</code> après validation. Anti-replay sur
+                        <code>approbation_mairie</code>. Le code reste en base mais ne peut plus être appliqué.</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Validation hors délai</strong><br>
+                        <small>Utiliser un OTP après l'expiration d'1 minute</small></td>
+                    <td>Double vérification : <code>otp_expire_at &lt; now()</code> côté serveur +
+                        purge scheduler indépendante toutes les minutes.</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Falsification du QR code</strong><br>
+                        <small>Modifier l'URL du QR pour pointer vers de fausses données</small></td>
+                    <td>URL signée Laravel. Toute modification invalide la signature cryptographique
+                        et retourne une erreur 403.</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Validation sans signature numérique</strong><br>
+                        <small>Signer un acte sans que le fichier de signature de l'officier soit uploadé</small></td>
+                    <td><code>OtpService</code> vérifie <code>$signature !== NULL</code> avant validation.
+                        Retourne une erreur explicite si absent.</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Double validation d'un même acte</strong><br>
+                        <small>Valider deux fois le même acte (avec deux OTP différents)</small></td>
+                    <td>Contrôle <code>approbation_mairie !== NULL</code> en début de validation.
+                        Retourne "Cet acte a déjà été validé."</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Accès non autorisé à la validation</strong><br>
+                        <small>Un utilisateur sans rôle tente de signer</small></td>
+                    <td><code>Gate::allows('module.acteNaissance.signature')</code> bloqué côté serveur.
+                        Retourne code <code>181</code>.</td>
+                    <td class="status-ok">✅ Couvert</td>
+                </tr>
+                <tr>
+                    <td><strong>Altération du PDF imprimé</strong><br>
+                        <small>Modifier le contenu d'un acte après impression</small></td>
+                    <td>La vérification QR lit les données depuis la base (pas le PDF).
+                        Toute altération du papier est détectable visuellement.</td>
+                    <td class="status-warn">⚠️ Partiel</td>
+                </tr>
+                <tr>
+                    <td><strong>Interception OTP (réseau)</strong><br>
+                        <small>Intercepter le SMS/email contenant l'OTP</small></td>
+                    <td>Dépend du canal SMS (hors SIFEC). L'OTP expire en 1 minute, limitant la fenêtre d'attaque.</td>
+                    <td class="status-warn">⚠️ Risque résiduel SMS</td>
+                </tr>
+                <tr>
+                    <td><strong>Hachage/intégrité du document</strong><br>
+                        <small>Prouver cryptographiquement que le PDF n'a pas été altéré</small></td>
+                    <td>Non implémenté. Le QR code et la signature visuelle sont les seuls marqueurs.</td>
+                    <td class="status-no">❌ Non couvert</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ── 4. Améliorations futures ── -->
+    <section>
+        <h2>4. Améliorations à envisager à l'avenir</h2>
+        <div class="future-grid">
+
+            <div class="future-card">
+                <span class="priority high">🔴 Priorité haute</span>
+                <h3>HTTPS obligatoire en production</h3>
+                <p>Tout le trafic (OTP, identifiants, QR) doit transiter sur HTTPS/TLS.
+                   Sans HTTPS, les OTP et les cookies de session peuvent être interceptés
+                   sur le réseau. À configurer sur le serveur web (Nginx/Apache) avec
+                   un certificat SSL valide.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority high">🔴 Priorité haute</span>
+                <h3>Empreinte SHA-256 du document PDF</h3>
+                <p>Calculer et stocker un hash SHA-256 du PDF généré au moment de la
+                   création. Afficher ce hash sur la page QR. Permettre à n'importe qui
+                   de vérifier que son exemplaire imprimé correspond exactement à l'original,
+                   en recalculant le hash du PDF téléchargé.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority high">🔴 Priorité haute</span>
+                <h3>2FA obligatoire pour les officiers signataires</h3>
+                <p>Rendre la 2FA obligatoire (non optionnelle) pour tous les utilisateurs
+                   disposant de la permission <code>*.signature</code>. Actuellement activable,
+                   elle devrait être imposée dès la première connexion de ces profils.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority medium">🟡 Priorité moyenne</span>
+                <h3>Journal d'audit immuable</h3>
+                <p>Créer une table <code>t_audit_log</code> en écriture seule (INSERT uniquement,
+                   sans UPDATE/DELETE) enregistrant chaque action sensible : connexion, génération
+                   d'OTP, validation, annulation. Horodatage serveur, adresse IP, agent HTTP.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority medium">🟡 Priorité moyenne</span>
+                <h3>Limitation du taux de tentatives OTP</h3>
+                <p>Implémenter un rate limiting sur l'endpoint de validation OTP :
+                   ex. 5 tentatives incorrectes → blocage temporaire de 15 minutes.
+                   Protège contre les attaques par force brute sur le code à 8 chiffres.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority medium">🟡 Priorité moyenne</span>
+                <h3>Notification de sécurité à l'officier</h3>
+                <p>Envoyer un SMS/email à l'officier à chaque validation effectuée sous
+                   son identité, avec l'IP et l'horodatage. Il peut ainsi détecter
+                   immédiatement toute validation frauduleuse en son nom.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority medium">🟡 Priorité moyenne</span>
+                <h3>Révocation d'OTP par l'officier</h3>
+                <p>Permettre à l'officier de révoquer un OTP envoyé s'il estime que
+                   son téléphone a été compromis ou s'il n'a pas demandé de code.
+                   Bouton "Ce n'est pas moi" dans la page de gestion du compte.</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority low">🔵 Priorité basse</span>
+                <h3>Signature électronique qualifiée (eIDAS)</h3>
+                <p>À long terme, intégrer une PKI (Infrastructure à Clé Publique) pour
+                   remplacer la signature image par une <strong>signature cryptographique</strong>
+                   basée sur un certificat numérique qualifié, conforme aux standards
+                   internationaux (eIDAS, RFC 3161 pour l'horodatage).</p>
+            </div>
+
+            <div class="future-card">
+                <span class="priority low">🔵 Priorité basse</span>
+                <h3>Historique de toutes les validations par officier</h3>
+                <p>Page de tableau de bord pour les administrateurs montrant tous les
+                   actes signés par officier, avec filtres par période, module, IP.
+                   Permet de détecter des comportements anormaux (ex. 50 actes signés
+                   en 2 minutes).</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── 5. Score global ── -->
+    <section>
+        <h2>5. Score de sécurité actuel</h2>
+        <div class="score-box">
+            <div class="score-circle">
+                <span class="num">7.5</span>
+                <span class="den">/ 10</span>
+            </div>
+            <div class="score-info">
+                <h3>Niveau : Bon — Adapté à un système d'état civil en production</h3>
+                <p>
+                    Les mesures actuelles couvrent efficacement les risques principaux : usurpation d'identité,
+                    replay d'OTP, accès non autorisé, falsification du QR code et double validation.
+                    La chaîne de confiance repose sur un <strong>OTP lié au téléphone personnel de l'officier</strong>
+                    (2FA de facto), sa <strong>signature numérique gravée dans l'acte</strong> et une
+                    <strong>URL de vérification signée cryptographiquement</strong>.
+                    Le passage à <strong>HTTPS obligatoire</strong> et l'ajout d'un <strong>hash SHA-256 du PDF</strong>
+                    permettraient d'atteindre un niveau 9/10.
+                </p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    Document technique interne — SIFEC (Système Intégré des Faits d'État Civil) —
+    République du Congo · Généré le 08 mars 2026 · Confidentiel
+</footer>
+
+</body>
+</html>
