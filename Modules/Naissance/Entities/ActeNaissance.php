@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class ActeNaissance extends Model
 {
@@ -22,8 +23,31 @@ class ActeNaissance extends Model
 
     protected $guarded = [];
     protected $table = "t_acte_naissance";
-    protected $primaryKey = "niupp";
+    protected $primaryKey = 'code_acte_naissance';
+    protected $keyType = 'string';
     public $incrementing = false;
+
+    public static function findByIdentifier(?string $id): ?self
+    {
+        if ($id === null || $id === '') {
+            return null;
+        }
+        if (Str::isUuid($id)) {
+            return static::query()->where('code_acte_naissance', $id)->first();
+        }
+
+        return static::query()->where('niupp', $id)->first();
+    }
+
+    public static function findByIdentifierOrFail(string $id): self
+    {
+        $acte = static::findByIdentifier($id);
+        if ($acte === null) {
+            abort(404);
+        }
+
+        return $acte;
+    }
 
 
 

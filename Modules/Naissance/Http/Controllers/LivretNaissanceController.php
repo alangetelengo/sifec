@@ -34,7 +34,7 @@ class LivretNaissanceController extends Controller
     public function show($id)
     {
 
-        $acte = ActeNaissance::find($id);
+        $acte = ActeNaissance::findByIdentifier($id);
         $dummy = "XXXXXXXXXXXXXXXX";
         return view('naissance::registre.show', compact('acte','dummy'));
     }

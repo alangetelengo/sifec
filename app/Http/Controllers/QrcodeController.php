@@ -14,12 +14,15 @@ class QrcodeController extends Controller
     public function index()
     {
         $niupp = request("niupp");
-        $acte = ActeNaissance::find($niupp);
+        $acte = ActeNaissance::findByIdentifier($niupp);
         $dummy = "XXXXXXXXXXXXXXXX";
-        if($acte == null){
+        if ($acte == null) {
             return "Aucune donnée trouvée";
         }
-        return view("qrcode.index",compact("acte","dummy"));
+        if (! $acte->niupp) {
+            return "Acte en attente de signature : aucune donnée de vérification publique disponible.";
+        }
+        return view("qrcode.index", compact("acte", "dummy"));
     }
 
     public function certificatNaissance()

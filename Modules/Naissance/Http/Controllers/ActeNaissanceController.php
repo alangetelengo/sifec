@@ -392,6 +392,11 @@ class ActeNaissanceController extends Controller
                 return back();
             }
 
+            if (! $acte->niupp) {
+                toastr()->error("L’acte officiel (NIUPP, QR code) n’est disponible qu’après signature par l’officier d’état civil.");
+                return back();
+            }
+
             // Vérifier que la déclaration existe
             if(!$acte->declaration) {
                 Log::channel('sifec')->error("Déclaration manquante pour acte: {$acte->code_acte_naissance}");
@@ -491,6 +496,11 @@ class ActeNaissanceController extends Controller
                 return back();
             }
 
+            if (! $acte->niupp) {
+                toastr()->error("La copie d’acte n’est disponible qu’après signature par l’officier d’état civil.");
+                return back();
+            }
+
             $declarationDeces = DeclarationDeces::where("num_acte_naissance", $acte->niupp)->first();
 
             $mariage = null;
@@ -538,19 +548,15 @@ class ActeNaissanceController extends Controller
         try {
             $service->genererActe($declaration, $registre, $user);
             $mouvementService->ajouterEvenementActe($user, $declaration, 'attente_approbation');
-            // Notifier les officiers de l'état civil de la disponibilité de l'acte à valider
+            // Lien vers l’acte : code déclaration (le NIUPP n’existe qu’après signature)
             $codeInstitutionCentre = $user->affectationActive()->institution->code_institution;
-            $numeroActe = $declaration->acte ? $declaration->acte->niupp : null;
-            if($numeroActe) {
-
-                  // Notification centralisée via le module Notification
-                  NotificationService::notifierAgentsInstitution(
-                    $codeInstitutionCentre,
-                    new \Modules\Notification\Notifications\ActeAValiderNotification(
-                        $numeroActe,
-                        "Acte de naissance généré et en attente de la signature de l'officier d'état civil"
-                    ));
-            }
+            NotificationService::notifierAgentsInstitution(
+                $codeInstitutionCentre,
+                new \Modules\Notification\Notifications\ActeAValiderNotification(
+                    $declaration->code_declaration_naissance,
+                    "Acte de naissance généré et en attente de la signature de l'officier d'état civil"
+                )
+            );
 
             DB::commit();
             return response()->json([
@@ -627,19 +633,14 @@ class ActeNaissanceController extends Controller
               foreach ($dn as $d) {
                   $service->genererActe($d, $rn, $user);
                   $mouvementService->ajouterEvenementActe($user, $d, 'attente_approbation');
-                  // Notifier les officiers de l'état civil pour chaque acte généré
                   $codeInstitutionCentre = $user->affectationActive()->institution->code_institution;
-                  $numeroActe = $d->acte ? $d->acte->niupp : null;
-                  if($numeroActe) {
-
-                      // Notification centralisée via le module Notification
-                      NotificationService::notifierAgentsInstitution(
+                  NotificationService::notifierAgentsInstitution(
                       $codeInstitutionCentre,
                       new \Modules\Notification\Notifications\ActeAValiderNotification(
-                          $numeroActe,
+                          $d->code_declaration_naissance,
                           "Acte de naissance généré et en attente de la signature de l'officier d'état civil"
-                      ));
-                  }
+                      )
+                  );
               }
               DB::commit();
               return response()->json([
@@ -660,9 +661,9 @@ class ActeNaissanceController extends Controller
     public function naissanceApprouver($id)
     {
 
-        $acte = ActeNaissance::find($id);
+        $acte = ActeNaissance::findByIdentifier($id);
 
-        if($acte==null){
+        if ($acte == null) {
             toastr()->error("Vous ne pouvez pas approuver cet acte de naissance");
             return back();
         }
@@ -670,9 +671,15 @@ class ActeNaissanceController extends Controller
         if ( Gate::allows("module.acteNaissance.signature")) {
 
            try{
+                DB::beginTransaction();
+                app(\Modules\Naissance\Services\ActeNaissanceSignatureFinalizer::class)
+                    ->assignNiuppFeuilletRegistre($acte, Auth::user());
+                $acte->refresh();
+
                 $acte->approbation_mairie = 1;
                 $acte->signature_mairie =  Auth::user()->personne->signature;
                 $acte->save();
+                DB::commit();
 
                 $otp = substr(time(),2);
 
@@ -686,6 +693,7 @@ class ActeNaissanceController extends Controller
                 return back();
 
             }catch(Exception $e){
+                DB::rollBack();
                 toastr()->error($e->getMessage());
                 return back();
             }
@@ -731,6 +739,11 @@ class ActeNaissanceController extends Controller
 
         if($acte == null){
             toastr()->error("Vous ne pouvez pas généré un acte de naissance");
+            return back();
+        }
+
+        if (! $acte->niupp) {
+            toastr()->error("Le duplicata n’est disponible qu’après signature par l’officier d’état civil.");
             return back();
         }
 
@@ -994,14 +1007,20 @@ class ActeNaissanceController extends Controller
 
 
         $retire_par = $request->nominteresse." ".$request->prenominteresse;
-        $acte = ActeNaissance::findOrFail($request->niupp);
+        $acte = ActeNaissance::findByIdentifierOrFail($request->niupp);
+        if (! $acte->niupp) {
+            return response()->json([
+                'code' => '201',
+                'message' => ['error' => 'Retrait impossible : l’acte n’a pas encore été signé (NIUPP non attribué).'],
+            ]);
+        }
         $observations = trim($request->observations) ?? "Acte rétiré";
 
         DB::beginTransaction();
         try {
             $retrait = new RetraitActe;
             $retrait->code_retrait_acte = Sifec::genererCodeUniqueReferentiel($retrait, "code_retrait_acte", 8, "RET_");
-            $retrait->code_acte = $request->niupp;
+            $retrait->code_acte = $acte->niupp;
             $retrait->retirer_par = $retire_par;
             $retrait->telephone = $request->telephoneinteresse;
             $retrait->piece_identite = $request->piece_identite;
@@ -1054,6 +1073,11 @@ class ActeNaissanceController extends Controller
             return back();
         }
 
+        if (! $acte->niupp) {
+            toastr()->error("L’extrait n’est disponible qu’après signature par l’officier d’état civil.");
+            return back();
+        }
+
             view()->share("tester", "extrait");
             $html2pdf = new Html2Pdf('L', 'A5', 'fr');
             $html2pdf->setDefaultFont('Arial');
@@ -1069,7 +1093,7 @@ class ActeNaissanceController extends Controller
 
     public function findActe(Request $request)
     {
-        $acte = ActeNaissance::find($request->niupp);
+        $acte = ActeNaissance::findByIdentifier($request->niupp);
 
         if($acte == null){
             return response()->json([
@@ -1116,7 +1140,7 @@ class ActeNaissanceController extends Controller
     public function printActe($id)
     {
 
-        $acte = ActeNaissance::where("code_declaration_naissance",$id)->orWhere("niupp",$id)->first();
+        $acte = ActeNaissance::where("code_declaration_naissance",$id)->orWhere("niupp",$id)->orWhere('code_acte_naissance', $id)->first();
 
         // Pas besoin de redirection ici, la vue gère le cas où $acte est null
         return view('naissance::acte.acte',compact("acte"));
@@ -1145,13 +1169,13 @@ class ActeNaissanceController extends Controller
     {
         DB::beginTransaction();
         try {
-            $acte = ActeNaissance::find($id);
+            $acte = ActeNaissance::findByIdentifier($id);
             if ($acte == null) {
                 toastr()->error("Acte de naissance indisponible");
                 return back();
             }
 
-            $declaration = DeclarationNaissance::where("code_declaration_naissance",$acte->code_declaration_naissance)->first();
+            $declaration = Declarationnaissance::where("code_declaration_naissance",$acte->code_declaration_naissance)->first();
             if ($declaration == null) {
                 toastr()->error("Déclaration indisponible");
                 return back();
@@ -1193,7 +1217,7 @@ class ActeNaissanceController extends Controller
 
         try {
 
-            $acte = ActeNaissance::find($id);
+            $acte = ActeNaissance::findByIdentifier($id);
             if ($acte == null) {
                 toastr()->error("Acte de naissance indisponible");
                 return back();

@@ -491,7 +491,7 @@ class TribunalController extends Controller
         // Récupération de l'objet selon le module et le mode
         if ($module === 'naissance') {
             $objet = $mode === 'acte'
-                ? \Modules\Naissance\Entities\ActeNaissance::find($id)
+                ? \Modules\Naissance\Entities\ActeNaissance::findByIdentifier($id)
                 :  \Modules\Naissance\Entities\Declarationnaissance::find($id);
             if(!$objet){
                 return response()->json([

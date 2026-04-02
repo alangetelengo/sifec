@@ -417,7 +417,7 @@ class RegistreController extends Controller
 
     public function feuilletRN($id)
     {
-        $acte = ActeNaissance::find($id);
+        $acte = ActeNaissance::findByIdentifier($id);
         $dummy = "XXXXXXXXXXXXXXXX";
         return view('referentiel::registre.feuillet_acte_naissance', compact('acte','dummy'));
     }

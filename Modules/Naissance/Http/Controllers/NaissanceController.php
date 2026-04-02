@@ -974,7 +974,7 @@ class NaissanceController extends Controller
             $type_declaration = $jugement->type_jugement;
 
             //vérification de l'acte
-            $an = ActeNaissance::find($jugement->numero_ancien_acte);
+            $an = ActeNaissance::findByIdentifier($jugement->numero_ancien_acte);
             return view('naissance::acte.annuler',compact("jugement","an"));
         }
         if($jugement->type_jugement == "JUGEMENT D'ADOPTION"){
@@ -982,7 +982,7 @@ class NaissanceController extends Controller
             $type_declaration = $jugement->type_jugement;
 
             //vérification de l'acte
-            $an = ActeNaissance::find($jugement->numero_ancien_acte);
+            $an = ActeNaissance::findByIdentifier($jugement->numero_ancien_acte);
             return view('naissance::adoption.indentification_acte',compact("jugement","an"));
         }
 

@@ -61,8 +61,8 @@ class AuthentificationActeController extends Controller
 
         if($typeActe == 'Acte de naissance'){
 
-            $an = ActeNaissance::find($numeroActe);
-            if($an == null){
+            $an = ActeNaissance::findByIdentifier($numeroActe);
+            if ($an == null || ! $an->niupp) {
 
                 // $auth->statut_authentification = "NON AUTHENTIQUE";
                 // $auth->save();
@@ -212,8 +212,8 @@ class AuthentificationActeController extends Controller
              //-1 vérification de l'existence de l'authenticité de l'acte
             if($numeroActe!=''){
                 //cas de recherche par numéro acte
-                $an = ActeNaissance::find($numeroActe);
-                if($an != null){
+                $an = ActeNaissance::findByIdentifier($numeroActe);
+                if ($an != null && $an->niupp) {
                     //récupération code déclaration pour l'appel des services Etats
                     $numDec =  $an->code_declaration_naissance;
 

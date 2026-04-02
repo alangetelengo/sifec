@@ -477,7 +477,7 @@ class DeclarationNaissanceService
 
             // Mise à jour de l'ancien acte si besoin
             if (!empty($request->input('niupp'))) {
-                $updtaeOldActe =  ActeNaissance::find($request->input('niupp'));
+                $updtaeOldActe = ActeNaissance::findByIdentifier($request->input('niupp'));
                 if ($updtaeOldActe) {
                     $updtaeOldActe->statut = 1;
                     $updtaeOldActe->save();

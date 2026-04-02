@@ -3,11 +3,12 @@
 namespace Modules\Naissance\Services;
 
 use App\Sifec\SifecFacade;
-use Modules\Notification\Jobs\SendSmsJob;
-use Modules\Naissance\Entities\ActeNaissance;
-use Modules\Notification\Jobs\ValidationacteNaissanceJob;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\Naissance\Entities\ActeNaissance;
+use Modules\Notification\Jobs\SendSmsJob;
+use Modules\Notification\Jobs\ValidationacteNaissanceJob;
 
 class OtpService
 {
@@ -89,35 +90,49 @@ class OtpService
             return [false, "Validation impossible : la signature numérique de l'officier est absente. Veuillez contacter l'administrateur."];
         }
 
-        // ── 8. Application de la signature sur chaque acte ───────────────
-        foreach ($actes as $an) {
-            $an->approbation_mairie            = $cui;
-            $an->signature_mairie              = $signature;
-            $an->date_heure_approbation_mairie = now();
-            // OTP conservé pour traçabilité QR code — expiry nullé pour bloquer réutilisation
-            $an->otp_expire_at                 = null;
-            // Traçabilité forensique : IP de connexion + plateforme navigateur
-            $an->adresse_mac_approbation       = $ipAddress;
-            $an->nom_appareil_approbation      = $this->simplifierUserAgent($userAgent);
-            $an->save();
+        // ── 8. NIUPP + registre + feuillet, puis signature sur chaque acte ─
+        $finalizer = app(ActeNaissanceSignatureFinalizer::class);
+        $mouvementService = app(\Modules\Naissance\Services\MouvementService::class);
 
-            $mouvementService = app(\Modules\Naissance\Services\MouvementService::class);
-            $mouvementService->ajouterEvenementActe($user, $an->declaration, 'non_retiré');
+        try {
+            DB::beginTransaction();
+            foreach ($actes as $an) {
+                $finalizer->assignNiuppFeuilletRegistre($an, $user);
+                $an->refresh();
+
+                $an->approbation_mairie = $cui;
+                $an->signature_mairie = $signature;
+                $an->date_heure_approbation_mairie = now();
+                $an->otp_expire_at = null;
+                $an->adresse_mac_approbation = $ipAddress;
+                $an->nom_appareil_approbation = $this->simplifierUserAgent($userAgent);
+                $an->save();
+
+                $mouvementService->ajouterEvenementActe($user, $an->declaration, 'non_retiré');
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::channel('sifec')->error('Validation OTP acte naissance : '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
+            return [false, $e->getMessage()];
         }
 
-        // ── 8. Notification du déclarant ─────────────────────────────────
+        $actes = ActeNaissance::whereIn('code_declaration_naissance', $codes)->get();
+
+        // ── 9. Notification du déclarant ─────────────────────────────────
         foreach ($actes as $an) {
             $contactDeclarant = $an->declaration->declarant->contacts->first();
             if ($contactDeclarant !== null) {
-                $temp = config("sifec.sms.templates.actions.acte_naissance");
-                $temp = str_replace(":declarant",         $an->declaration->declarant->nomcomplet(), $temp);
-                $temp = str_replace(":code_acte_naissance", $an->niupp, $temp);
-                $temp = str_replace(":libCec",            $an->institutionUser->institution->lib_institution, $temp);
-                SifecFacade::sendSms($contactDeclarant->indicatif . $contactDeclarant->telephone, $temp);
-                dispatch(new SendSmsJob($contactDeclarant->indicatif . $contactDeclarant->telephone, $temp));
+                $temp = config('sifec.sms.templates.actions.acte_naissance');
+                $temp = str_replace(':declarant', $an->declaration->declarant->nomcomplet(), $temp);
+                $temp = str_replace(':code_acte_naissance', $an->niupp ?? '', $temp);
+                $temp = str_replace(':libCec', $an->institutionUser->institution->lib_institution, $temp);
+                SifecFacade::sendSms($contactDeclarant->indicatif.$contactDeclarant->telephone, $temp);
+                dispatch(new SendSmsJob($contactDeclarant->indicatif.$contactDeclarant->telephone, $temp));
                 dispatch(new ValidationacteNaissanceJob(
                     $user->personne->nomComplet(),
-                    $an->count(),
+                    $actes->count(),
                     $otp,
                     $contactDeclarant->email_professionnelle
                 ));
