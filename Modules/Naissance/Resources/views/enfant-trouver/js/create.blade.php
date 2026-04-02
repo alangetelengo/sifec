@@ -365,6 +365,7 @@
 
              if (result.value==true)
               {
+                 Swal.close();
                  $.post("{{route('declarationNaissance.as.store')}}", data)
                      .done(function(response){
                          if(response.code == "200")

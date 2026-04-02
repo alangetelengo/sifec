@@ -1333,6 +1333,8 @@ Actes de naissance
             flashAlert("ALERTE","error",'Veuillez sélectionner un motif d\'annulation');
             return;
         }
+        sifecBtnLoading(this, "Annulation...");
+        var $btn = $(this);
         $.ajax({
             url: "{{ route('acteNaissance.annuler') }}",
             type: 'POST',
@@ -1343,6 +1345,7 @@ Actes de naissance
                 _token: '{{ csrf_token() }}'
             },
             success: function(resp){
+                sifecBtnReset($btn[0], "Annuler l'acte");
                 if(resp.code == "200"){
                     let msg = Array.isArray(resp.message) ? resp.message[0] : (typeof resp.message === 'object' && resp.message.reponse) ? resp.message.reponse : resp.message;
                     flashAlert("Réponse","success",msg);
@@ -1354,6 +1357,7 @@ Actes de naissance
                 }
             },
             error: function(xhr){
+                sifecBtnReset($btn[0], "Annuler l'acte");
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation de l\'acte';
                 flashAlert("Erreur","error",msg);
             }
@@ -1673,8 +1677,10 @@ Actes de naissance
 
     // Ajout du JS pour la confirmation singleton
     $("#btn-confirmer-final").on("click", function(){
+        var $btn = $(this);
         var codeDeclaration = $("#code-declaration-confirmation").val();
         var observation = $("#observation-confirmation").val();
+        sifecBtnLoading(this, "Confirmation...");
         $.ajax({
             url: "{{ route('acteNaissance.confirmer') }}",
             type: 'POST',
@@ -1684,6 +1690,7 @@ Actes de naissance
                 _token: '{{ csrf_token() }}'
             },
             success: function(resp){
+                sifecBtnReset($btn[0], "Confirmer");
                 if(resp.code == "200"){
                     let msg = Array.isArray(resp.message) ? resp.message[0] : (typeof resp.message === 'object' && resp.message.reponse) ? resp.message.reponse : resp.message;
                     flashAlert("Réponse","success",msg);
@@ -1695,6 +1702,7 @@ Actes de naissance
                 }
             },
             error: function(xhr){
+                sifecBtnReset($btn[0], "Confirmer");
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation du dossier';
                 flashAlert("Erreur","error",msg);
             }

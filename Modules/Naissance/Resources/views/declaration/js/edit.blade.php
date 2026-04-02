@@ -1437,6 +1437,7 @@ $(function(){
 
             if (result.value==true)
             {
+                Swal.close();
                 var typeDeclaration = $("#type_declaration").val();
                 var url = "{{ route('declarationNaissance.index') }}";
                 var url2 = "{{ route('fiche_maternite.index') }}";
@@ -1446,13 +1447,12 @@ $(function(){
 
                 routeupdate = routeupdate.replace(':id',codeDeclarationNaissance);
 
-                // alert(type_adoption);
-                // return false;
                 $.ajax({
                     url : routeupdate,
                     type: "PUT",
                     data: data,
                     success: function(response){
+                        Swal.close();
                         if(response.code == "200")
                         {
                             var type_declaration = $("#type_declaration").val();
@@ -1474,8 +1474,8 @@ $(function(){
                         }else{
                             flashAlert("Opération échouée","error",response.message);
                         }
-                    }
-
+                    },
+                    error: function() { }
                 });
             }
 

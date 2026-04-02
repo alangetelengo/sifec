@@ -389,6 +389,8 @@ $(function(){
     // Soumission AJAX pièce
     $('#form-piece').on('submit', function(e){
         e.preventDefault();
+        var $btn = $(this).find('button[type="submit"]');
+        sifecBtnLoading($btn[0], "Enregistrement...");
         let formData = new FormData(this);
         $.ajax({
             url: urlPiece,
@@ -397,6 +399,7 @@ $(function(){
             processData: false,
             contentType: false,
             success: function(resp){
+                sifecBtnReset($btn[0], "Enregistrer");
                 if(resp.code == "200"){
                     flashAlert("Réponse","success",resp.message);
                     $('#modal-piece').modal('hide');
@@ -406,6 +409,7 @@ $(function(){
                 }
             },
             error: function(xhr){
+                sifecBtnReset($btn[0], "Enregistrer");
                 flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'upload');
             }
         });
@@ -473,12 +477,15 @@ $(function(){
 
     $('#form-envoyer-centre').on('submit', function(e){
         e.preventDefault();
+        var $btn = $('#btn-envoyer-final');
+        sifecBtnLoading($btn[0], "Envoi...");
         let url = "{{ route('declarationNaissance.mouvement') }}";
         $.ajax({
             url: url,
             type: 'POST',
             data: $(this).serialize(),
             success: function(resp){
+                sifecBtnReset($btn[0], "Envoyer");
                 if(resp.code == "200"){
                     flashAlert("Réponse","success",resp.message);
                     $('#modal-envoyer-centre').modal('hide');
@@ -488,6 +495,7 @@ $(function(){
                 }
             },
             error: function(xhr){
+                sifecBtnReset($btn[0], "Envoyer");
                 flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
             }
         });

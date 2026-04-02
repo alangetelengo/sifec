@@ -11,7 +11,11 @@
     <link rel="shortcut icon" href="{{asset('assets-login/images/fav.png')}}">
     <link rel="stylesheet" href="{{asset('assets-login/css/bootstrap.min.css')}}">
 	<link rel="stylesheet" href="{{asset('assets-login/css/style.css')}}">
-
+	<style>
+	.sifec-2fa-spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sifec-2fa-spin 0.6s linear infinite; vertical-align: -0.2em; margin-right: 0.35rem; }
+	@keyframes sifec-2fa-spin { to { transform: rotate(360deg); } }
+	#btn-verify-2fa-sifec:disabled { opacity: 0.7; cursor: not-allowed; }
+	</style>
 </head>
 <body>
     <div class="container-fluid bg-login">
@@ -27,7 +31,7 @@
 									   </center>
                                    </div>
                                     <div class="form-cover" style="width: 100%">
-										<form class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST" autocomplete="off">
+										<form id="form-2fa-verify-sifec" class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST" autocomplete="off">
                                         @csrf
 
 										<p class="text-center text-muted mb-4" style="margin-bottom: 20px;">
@@ -58,7 +62,7 @@
 										</div>
                                          <div class="row form-footer">
 											 <div class="col-md-12 button-div">
-                                                <button type="submit" class="btn btn-primary btn-block"> <i class="fa fa-shield-alt"></i> Vérifier et Se Connecter</button>
+                                                <button type="submit" id="btn-verify-2fa-sifec" class="btn btn-primary btn-block"> <i class="fa fa-shield-alt"></i> Vérifier et Se Connecter</button>
                                              </div>
                                              <div class="col-md-12 forget-paswd" style="margin-top:20px">
                                                  <button type="button" class="btn btn-link" style="text-decoration: none; color: #007bff; border: none; background: none; padding: 0;" data-toggle="modal" data-target="#recoveryModal">
@@ -139,6 +143,11 @@
 <script src="{{ asset('assets-login/js/popper.min.js')}}"></script>
 <script src="{{asset('assets-login/js/bootstrap.min.js')}}"></script>
 <script>
+document.getElementById('form-2fa-verify-sifec').addEventListener('submit', function() {
+    var btn = document.getElementById('btn-verify-2fa-sifec');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="sifec-2fa-spinner"></span> Vérification...';
+});
 // Auto-format pour le code 2FA
 document.querySelector('input[name="one_time_password"]').addEventListener('input', function(e) {
     this.value = this.value.replace(/[^0-9]/g, '');
