@@ -32,7 +32,7 @@ class LocaliteController extends Controller
             ->orderBy('lib_localite')
             ->get();
 
-        $typeLocalites = TypeLocalite::where("supprimer", 0)->get();
+        $typeLocalites = TypeLocalite::query()->orderBy('lib_type_localite')->get();
 
         // Log pour déboguer
         Log::channel('sifec')->info('=== CHARGEMENT PAGE LOCALITÉS ===', [

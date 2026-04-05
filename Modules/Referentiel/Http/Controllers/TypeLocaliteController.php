@@ -18,7 +18,7 @@ class TypeLocaliteController extends Controller
      */
     public function index()
     {
-        $typeLocalites = TypeLocalite::where("supprimer", 0)->get();
+        $typeLocalites = TypeLocalite::query()->orderBy('lib_type_localite')->get();
         return view('referentiel::type-localite.index', compact("typeLocalites"));
     }
 
@@ -106,7 +106,7 @@ class TypeLocaliteController extends Controller
                 return redirect()->back();
             }
 
-            TypeLocalite::where('code_type_localite', $id)->update(['supprimer' => 1]);
+            $typeLocalite->delete();
             toastr()->success("Suppression effectuée avec succès");
             return redirect()->route("typelocalite.index");
         } catch (Exception $e) {
