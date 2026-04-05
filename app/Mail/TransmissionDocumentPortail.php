@@ -57,7 +57,7 @@ class TransmissionDocumentPortail extends Mailable
             }
 
             if($this->demande->type_acte=="Naissance"){
-                $ad = ActeNaissance::find($this->demande->num_acte);
+                $ad = ActeNaissance::findByIdentifier($this->demande->num_acte);
                 $numDec =  $ad->code_declaration_naissance;
                 if($this->demande->type_document == "Copie"){
 

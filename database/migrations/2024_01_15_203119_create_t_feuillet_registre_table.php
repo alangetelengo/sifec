@@ -13,6 +13,7 @@ class CreateTFeuilletRegistreTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_feuillet_registre', function (Blueprint $table) {
             $table->string("code_feuillet_registre",16);
             $table->primary("code_feuillet_registre");

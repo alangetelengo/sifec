@@ -13,6 +13,7 @@ class CreateNotificationsTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
        
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();

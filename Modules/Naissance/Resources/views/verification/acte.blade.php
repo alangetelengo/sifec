@@ -127,7 +127,7 @@
                     <dt class="col-sm-5 col-md-4">Officier signataire</dt>
                     <dd class="col-sm-7 col-md-8">
                         @if($acte->signataire)
-                            {{ $acte->signataire->user?->name ?? $acte->approbation_mairie }}
+                            {{ $acte->signataire->user?->personne->nomcomplet() ?? "//" }}
                         @else
                             <span class="text-muted fst-italic">Non encore signé</span>
                         @endif
@@ -152,7 +152,7 @@
                         @endif
                     </dd>
 
-                    <dt class="col-sm-5 col-md-4">Adresse MAC</dt>
+                    <dt class="col-sm-5 col-md-4">Adresse IP</dt>
                     <dd class="col-sm-7 col-md-8">
                         @if($acte->adresse_mac_approbation)
                             <code class="text-dark" style="font-size:.88rem;">{{ $acte->adresse_mac_approbation }}</code>

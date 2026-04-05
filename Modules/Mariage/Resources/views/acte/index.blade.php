@@ -463,7 +463,7 @@ Actes de mariage
                             <input type="hidden" id="code_declaration_mariage_validate">
                             <input type="hidden" id="validation_type">
                             <label class="form-label">Code de validation<span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" placeholder="" id="otp_approbation_mairie" required>
+                            <input type="text" class="form-control form-control-lg text-center fw-bold" id="otp_approbation_mairie" placeholder="_ _ _ _ _ _ _ _" maxlength="8" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="one-time-code" required>
                         </div>
                         <span class="text-success"><i>Veuillez saisir le code de validation reçu par SMS.</i> Code non reçu ? <a href="#" class="resend_otp">Renvoyez le code de validation</a></span>
                     </div>
@@ -830,8 +830,19 @@ Actes de mariage
                     }
                 },
 
+                extraireMsg: function(message) {
+                    if (!message) return 'Réponse inconnue du serveur.';
+                    if (typeof message === 'string')  return message;
+                    if (Array.isArray(message))       return message[0] || 'Erreur inconnue.';
+                    if (typeof message === 'object') {
+                        if (message.reponse) return message.reponse;
+                        if (message.error)   return message.error;
+                    }
+                    return JSON.stringify(message);
+                },
+
                 validateSingleActe: function(inputs, trigger) {
-                    trigger.prop("disabled", true).html("Traitement en cours...");
+                    trigger.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
                     const url = "{{ route('acteMariage.validate.otp') }}";
 
                     $.post(url, {
@@ -839,26 +850,27 @@ Actes de mariage
                         otp_approbation_mairie: inputs.otp_approbation_mairie
                     })
                     .done((response) => {
-                        trigger.prop("disabled", false).html("Valider");
+                        var msg = this.extraireMsg(response.message);
                         if (response.code === "200") {
-                            let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                            flashAlert("Réponse","success",msg);
+                            flashAlert("Succès", "success", msg);
                             $('#modal-validate-acte').modal('hide');
-                            setTimeout(()=>location.reload(), 1000);
+                            setTimeout(function(){ location.reload(); }, 1500);
                         } else {
-                            let msg = Array.isArray(response.message) ? response.message[0] : response.message;
-                            flashAlert("Réponse","error",msg);
+                            flashAlert("Échec", "error", msg);
+                            trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
                         }
                     })
                     .fail((xhr) => {
-                        trigger.prop("disabled", false).html("Valider");
-                        let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation de l\'acte';
-                        flashAlert("Réponse","error",msg);
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? this.extraireMsg(xhr.responseJSON.message)
+                            : 'Erreur lors de la validation de l\'acte.';
+                        flashAlert("Erreur", "error", msg);
+                        trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
                     });
                 },
 
                 validateMultipleActes: function(inputs, trigger) {
-                    trigger.prop("disabled", true).html("Traitement en cours...");
+                    trigger.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
                     const url = "{{ route('acteMariage.validate.otp.bulk') }}";
 
                     $.post(url, {
@@ -866,21 +878,22 @@ Actes de mariage
                         otp_approbation_mairie: inputs.otp_approbation_mairie
                     })
                     .done((response) => {
-                        trigger.prop("disabled", false).html("Valider");
+                        var msg = this.extraireMsg(response.message);
                         if (response.code === "200") {
-                            let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                            flashAlert("Réponse","success",msg);
+                            flashAlert("Succès", "success", msg);
                             $('#modal-validate-acte').modal('hide');
-                            setTimeout(()=>location.reload(), 1000);
+                            setTimeout(function(){ location.reload(); }, 1500);
                         } else {
-                            let msg = Array.isArray(response.message) ? response.message[0] : response.message;
-                            flashAlert("Réponse","error",msg);
+                            flashAlert("Échec", "error", msg);
+                            trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
                         }
                     })
                     .fail((xhr) => {
-                        trigger.prop("disabled", false).html("Valider");
-                        let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation des actes';
-                        flashAlert("Réponse","error",msg);
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? this.extraireMsg(xhr.responseJSON.message)
+                            : 'Erreur lors de la validation des actes.';
+                        flashAlert("Erreur", "error", msg);
+                        trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
                     });
                 },
 
@@ -1114,56 +1127,7 @@ Actes de mariage
         });
 
         // Validation OTP (singleton ou bulk) - conforme au module Naissance
-        $("#btn-validate").on("click", function(){
-            var code_declaration_mariage = $("#code_declaration_mariage_validate").val();
-            var validation_type = $("#validation_type").val();
-            var otp_approbation_mairie = $("#otp_approbation_mairie").val();
-            var inputs = {
-                codes : actesGeneres,
-                code_declaration_mariage: code_declaration_mariage,
-                otp_approbation_mairie: otp_approbation_mairie
-            };
-            if(validation_type=="simple"){
-                $.ajax({
-                    url: "{{ route('acteMariage.validate.otp') }}",
-                    type: 'POST',
-                    data: {
-                        code_declaration_mariage: inputs.code_declaration_mariage,
-                        otp_approbation_mairie: inputs.otp_approbation_mairie
-                    },
-                    success: function(response){
-                        let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                        flashAlert("Réponse","success",msg);
-                        $('#modal-validate-acte').modal('hide');
-                        setTimeout(()=>location.reload(), 1000);
-                    },
-                    error: function(xhr){
-                        let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation de l\'acte';
-                        flashAlert("Réponse","error",msg);
-                    }
-                });
-            }else{
-                $.ajax({
-                    url: "{{ route('acteMariage.validate.otp.bulk') }}",
-                    type: 'POST',
-                    data: {
-                        codes: inputs.codes,
-                        otp_approbation_mairie: inputs.otp_approbation_mairie
-                    },
-                    success: function(response){
-                        let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                        flashAlert("Réponse","success",msg);
-                        $('#modal-validate-acte').modal('hide');
-                        setTimeout(()=>location.reload(), 1000);
-                    },
-                    error: function(xhr){
-                        let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation des actes';
-                        flashAlert("Réponse","error",msg);
-                    }
-                });
-            }
-            return false;
-        });
+        // Handler #btn-validate géré exclusivement par ActeManager.handleValidate (ci-dessus)
 
         // Mise à jour des variables globales lors de la sélection
         $('.single-check').on('change', function() {

@@ -13,6 +13,7 @@ class CreateUserAuditTrailTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('tr_user_audit_trail', function (Blueprint $table) {
             $table->id();
             $table->string('code_user', 20); // Référence vers tr_user

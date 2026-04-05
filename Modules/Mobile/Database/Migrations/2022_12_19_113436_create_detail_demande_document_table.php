@@ -13,6 +13,7 @@ class CreateDetailDemandeDocumentTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('detail_demande_document', function (Blueprint $table) {
             $table->string("code_detail_demande_document",16);
 
@@ -26,7 +27,7 @@ class CreateDetailDemandeDocumentTable extends Migration
             $table->integer("nombre_telechargement")->default(1);
             $table->timestamps();
 
-            $table->foreign("code_demande_document")->references("code_demande_document")->on("t_demande_document")->onDelete("cascade")->onUpdate("cascade");
+            // FK code_demande_document → t_demande_document ajoutée dans 2025_03_30_000001_add_jugement_requisition_foreign_keys
         });
     }
 

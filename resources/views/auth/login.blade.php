@@ -11,7 +11,11 @@
     <link rel="shortcut icon" href="{{asset('assets-login/images/fav.png')}}">
     <link rel="stylesheet" href="{{asset('assets-login/css/bootstrap.min.css')}}">
 	<link rel="stylesheet" href="{{asset('assets-login/css/style.css')}}">
-	
+	<style>
+	.sifec-login-spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sifec-spin 0.6s linear infinite; vertical-align: -0.2em; margin-right: 0.35rem; }
+	@keyframes sifec-spin { to { transform: rotate(360deg); } }
+	#btn-connexion-sifec:disabled { opacity: 0.7; cursor: not-allowed; }
+	</style>
 </head>
 <body>
     <div class="container-fluid bg-login">
@@ -28,7 +32,7 @@
                                    </div>
                                     <div class="form-cover" style="width: 100%">
 										<h1 style="color:green; border-bottom: 2px solid green; margin-bottom:20px">Authentification </h1>
-										<form class="form-login" action="{{ route("dashboard.login") }}" method="POST" autocomplete="off">
+										<form id="form-login-sifec" class="form-login" action="{{ route("dashboard.login") }}" method="POST" autocomplete="off">
                                         @csrf
 										
 										
@@ -55,7 +59,7 @@
 										</div>
                                          <div class="row form-footer">
 											 <div class="col-md-12 button-div">
-                                                <button type="submit" class="btn btn-primary btn-block"> <i class="fa fa-lock"></i> Connexion</button>
+                                                <button type="submit" id="btn-connexion-sifec" class="btn btn-primary btn-block"> <i class="fa fa-lock"></i> Connexion</button>
                                              </div>
                                              <div class="col-md-12 forget-paswd" style="margin-top:20px">
                                                  <a href="">Mot de passe oublié ?</a>    
@@ -83,4 +87,11 @@
 <script src="{{ asset('assets-login/js/jquery-3.2.1.min.js')}}"></script>
 <script src="{{ asset('assets-login/js/popper.min.js')}}"></script>
 <script src="{{asset('assets-login/js/bootstrap.min.js')}}"></script>
+<script>
+document.getElementById('form-login-sifec').addEventListener('submit', function() {
+    var btn = document.getElementById('btn-connexion-sifec');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="sifec-login-spinner"></span> Connexion...';
+});
+</script>
 </html>

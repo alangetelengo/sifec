@@ -1772,12 +1772,10 @@
 
             if (result.value==true)
              {
+                Swal.close();
                 var code = "{{$dn->code_declaration_naissance}}";
                 var route = "{{route('declarationNaissance.update',':id')}}";
                 route = route.replace(':id',code);
-
-                // console.log(data);
-                // return false;
 
                 $.post(route,data,function(response)
                 {
@@ -1796,7 +1794,7 @@
                             flashAlert("Opération échouée","error",messageErreur);
                     }
 
-                });
+                }).fail(function(){ });
             }
 
         });

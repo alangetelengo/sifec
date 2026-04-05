@@ -85,7 +85,7 @@ class ReportingController extends Controller
 
     public function genererCopie(Request $request)
     {
-        $numActe = ActeNaissance::find($request->numero_acte) ?? ActeDeces::find($request->numero_acte) ?? ActeMariage::find($request->numero_acte);
+        $numActe = ActeNaissance::findByIdentifier($request->numero_acte) ?? ActeDeces::find($request->numero_acte) ?? ActeMariage::find($request->numero_acte);
 
         return response()->json($request->all());
 

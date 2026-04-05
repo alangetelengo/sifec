@@ -416,7 +416,6 @@
                     </li>
                 </ul>
             </li>
-
         </ul>
         <div class="copyright" style="position: fixed; bottom:0px; margin-left: 0px">
             <p style="font-size: 10px; text-align:center">SYSTEME INTEGRE DES FAITS D'ETAT-CIVIL(SIFEC)</p>

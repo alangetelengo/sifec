@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIFEC — Génération du NIUPP (en ligne et hors ligne)</title>
+    <style>
+        :root {
+            --green-dark:  #006B31;
+            --green:       #009E49;
+            --green-light: #21B931;
+            --gray-bg:     #f8fafb;
+            --gray-border: #dee2e6;
+            --text:        #1c2b2b;
+            --code-bg:     #f0f4f1;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-bg);
+            color: var(--text);
+            line-height: 1.65;
+        }
+        header {
+            background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 60%, var(--green-light) 100%);
+            color: #fff;
+            padding: 48px 40px 36px;
+        }
+        header .badge-doc {
+            display: inline-block;
+            background: rgba(255,255,255,.18);
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: .8rem;
+            margin-bottom: 14px;
+        }
+        header h1 { font-size: 1.85rem; font-weight: 700; margin-bottom: 10px; }
+        header p { opacity: .9; max-width: 720px; }
+        header .meta { margin-top: 16px; font-size: .82rem; opacity: .75; }
+        main { max-width: 960px; margin: 0 auto; padding: 40px 24px 72px; }
+        section { margin-bottom: 44px; }
+        section h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--green-dark);
+            border-left: 4px solid var(--green);
+            padding-left: 12px;
+            margin-bottom: 18px;
+        }
+        section h3 {
+            font-size: 1.05rem;
+            margin: 22px 0 10px;
+            color: var(--green-dark);
+        }
+        p { margin-bottom: 12px; }
+        ul, ol { margin: 10px 0 16px 22px; }
+        li { margin-bottom: 8px; }
+        .note {
+            background: #fff;
+            border: 1px solid var(--gray-border);
+            border-radius: 8px;
+            padding: 16px 18px;
+            margin: 16px 0;
+        }
+        .note strong { color: var(--green-dark); }
+        pre, .formula {
+            background: var(--code-bg);
+            border: 1px solid var(--gray-border);
+            border-radius: 6px;
+            padding: 14px 16px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: .88rem;
+            overflow-x: auto;
+            margin: 14px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: #fff;
+            border: 1px solid var(--gray-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-border);
+        }
+        th { background: #eef5f0; font-weight: 600; color: var(--green-dark); }
+        tr:last-child td { border-bottom: none; }
+        footer {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
+            font-size: .85rem;
+            color: #5a6a6a;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <span class="badge-doc">Documentation technique</span>
+        <h1>Génération d’un NIUPP unique par CEC — modes en ligne et hors ligne</h1>
+        <p>
+            Ce document décrit comment la plateforme <strong>SIFEC</strong> assure l’unicité du numéro d’identification
+            de l’acte de naissance (<strong>NIUPP</strong>, assimilé au NIUPP national) pour chaque centre d’état civil (CEC),
+            selon que le poste de travail est connecté au serveur central ou opère en mode déconnecté.
+        </p>
+        <p class="meta">Document de référence — à tenir à jour avec les évolutions du code et des procédures opérationnelles.</p>
+    </header>
+
+    <main>
+        <section id="definition">
+            <h2>1. Rappel : qu’est-ce que le NIUPP dans SIFEC ?</h2>
+            <p>
+                Le NIUPP est un identifiant <strong>national</strong> attribué à l’acte de naissance une fois celui-ci
+                <strong>validé par l’officier</strong> (signature / OTP). Il n’est pas attribué à la simple génération
+                de l’acte en attente de signature. La clé technique interne de l’enregistrement acte est un
+                <strong>UUID</strong> (<code>code_acte_naissance</code>), distinct du NIUPP.
+            </p>
+            <h3>Composition du NIUPP (chaîne concaténée)</h3>
+            <p>La valeur est construite par la logique métier (ex. <code>Sifec::genererNiupp</code>) à partir de :</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Segment</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sexe</td>
+                        <td><code>1</code> (masculin) ou <code>2</code> (féminin) — enfant</td>
+                    </tr>
+                    <tr>
+                        <td>Année / mois de naissance</td>
+                        <td>Sur 4 et 2 chiffres (calendrier de naissance de l’enfant)</td>
+                    </tr>
+                    <tr>
+                        <td>Codes géographiques &amp; CEC</td>
+                        <td>Département (<code>code_officel</code>), localité parente, type CEC (<code>type_cec</code>) — dérivés de l’institution liée à la déclaration</td>
+                    </tr>
+                    <tr>
+                        <td>Ordre séquentiel</td>
+                        <td><strong>4 chiffres</strong> (padded zéros), unique par couple <em>CEC (institution)</em> + <em>année</em> + <em>mois de naissance</em></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="formula">
+                NIUPP = sexe + AAAA + MM + codeDept + codeLoc + typeCEC + ordre0001→9999
+            </div>
+            <p>
+                L’unicité <strong>nationale</strong> repose sur la combinaison des segments géographiques / typologie CEC
+                et d’un <strong>compteur d’ordre</strong> géré sans collision entre sites (voir ci-dessous).
+            </p>
+        </section>
+
+        <section id="online">
+            <h2>2. Mode en ligne (connecté au serveur central)</h2>
+            <p>
+                Lorsque l’application SIFEC (interface web Laravel) accède à la base centrale, l’ordre séquentiel est
+                alloué de façon <strong>atomique</strong> au moment de la <strong>finalisation après signature</strong>
+                (service de finalisation d’acte + validation OTP).
+            </p>
+            <h3>2.1 Table de compteur</h3>
+            <p>
+                Une table dédiée — par exemple <code>tr_compteur_niupp_naissance</code> — enregistre, pour chaque
+                <strong>code institution (CEC)</strong>, chaque <strong>année</strong> et chaque <strong>mois</strong>
+                (mois de naissance de l’enfant), le dernier ordre utilisé (<code>dernier_ordre</code>).
+            </p>
+            <ul>
+                <li>Contrainte d’unicité sur le triplet <code>(code_institution, annee, mois)</code>.</li>
+                <li>Lecture avec verrouillage pessimiste (<code>lockForUpdate</code>) dans une transaction pour éviter deux attributions identiques en parallèle.</li>
+                <li>Première naissance du mois pour ce CEC : création de la ligne avec ordre <code>1</code> ; sinon incrément de <code>dernier_ordre</code>.</li>
+            </ul>
+            <h3>2.2 Enchaînement métier</h3>
+            <ol>
+                <li>Génération de l’acte : création de l’enregistrement avec UUID, <code>niupp</code> encore <code>NULL</code>, sans consommation du compteur ni création de feuillet de registre.</li>
+                <li>Signature / validation OTP : ouverture d’une transaction ; verrouillage de l’acte et du registre ; allocation du prochain ordre via le compteur ; calcul du NIUPP ; contrôle d’unicité sur <code>niupp</code> ; mise à jour du registre ; création du feuillet (numéro sur feuillet seulement à cette étape).</li>
+                <li>En cas d’échec : annulation de la transaction (pas de « trou » durable si la politique de base le garantit).</li>
+            </ol>
+            <div class="note">
+                <strong>Capacité.</strong> Quatre chiffres pour l’ordre permettent jusqu’à <strong>9 999</strong> actes
+                validés par CEC et par mois civil de naissance — volume jugé largement suffisant par typologie d’usage SIFEC.
+                Un CEC très sollicité sur un même mois de naissance pourrait nécessiter une évolution (passage à 5 chiffres ou autre règle), à traiter par évolution fonctionnelle.
+            </div>
+        </section>
+
+        <section id="offline">
+            <h2>3. Mode hors ligne (offline) — application mobile ou Laravel local par site</h2>
+            <p>
+                Hors connexion, le serveur central ne peut pas exécuter le verrou du compteur en temps réel. SIFEC prévoit
+                l’usage combiné de <strong>deux familles d’outils</strong> selon le contexte local : application mobile
+                dédiée et/ou instance <strong>Laravel déployée sur site</strong>. Le principe d’unicité reste le même :
+                un <strong>ordre</strong> ne doit être utilisé qu’<strong>une seule fois</strong> pour un couple
+                (CEC, année, mois de naissance) au niveau national après consolidation.
+            </p>
+            <h3>3.1 Stratégie recommandée : plages (blocs) d’ordres réservées</h3>
+            <p>
+                Pour éviter les collisions entre plusieurs nœuds offline et le central, SIFEC s’appuie sur le principe de
+                <strong>réservation de plages séquentielles</strong> :
+            </p>
+            <ul>
+                <li>
+                    <strong>Synchronisation opportuniste</strong> : lorsque le site ou le terminal retrouve le réseau,
+                    il contacte l’API centrale pour obtenir un <strong>bloc</strong> d’ordres consécutifs
+                    (ex. ordres 120–219 pour <code>INS_XXXX</code>, année 2026, mois 04), marqués comme « attribués » côté central.
+                </li>
+                <li>
+                    <strong>Consommation locale</strong> : tant que le bloc n’est pas épuisé, le poste offline incrémente
+                    localement (fichier ou petite table locale) sans autre appel réseau.
+                </li>
+                <li>
+                    <strong>Reprise</strong> : bloc presque vide → nouvelle demande de plage ; en cas de conflit prolongé,
+                    procédure d’administration (réassignation, réconciliation des actes en file d’attente).
+                </li>
+            </ul>
+            <h3>3.2 Laravel local par site</h3>
+            <p>
+                Une instance installée dans un CEC peut implémenter la même table de compteur <strong>en local</strong>
+                pour les actes saisis sans internet, à condition que les ordres utilisés proviennent exclusivement de
+                <strong>plages préalablement réservées</strong> auprès du central (ou d’un serveur régional faisant foi).
+                À la synchronisation, les actes validés sont poussés vers le central ; le NIUPP définitif doit reprendre
+                la <strong>même formule</strong> que en ligne (mêmes segments + ordre issu d’une allocation autorisée).
+            </p>
+            <h3>3.3 Application mobile</h3>
+            <p>
+                Le mobile suit la même logique : stockage local des déclarations et des brouillons d’acte, réservation de
+                plages via API lorsque la connectivité est disponible, génération du NIUPP au moment de la
+                <strong>validation avec équivalent de signature</strong> (selon le dispositif de sécurité retenu), puis
+                envoi des enregistrements au hub central pour intégration dans la base nationale.
+            </p>
+            <div class="note">
+                <strong>Cohérence avec l’existant central.</strong> Le mode online décrit en section 2 est la référence :
+                toute implémentation offline doit converger vers la même structure de NIUPP et des mêmes règles de
+                comptage par CEC / année / mois de naissance, sous réserve des mécanismes de réservation et de sync
+                décrits ci-dessus.
+            </div>
+        </section>
+
+        <section id="synthese">
+            <h2>4. Synthèse comparative</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Critère</th>
+                        <th>En ligne</th>
+                        <th>Hors ligne</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Source de vérité pour l’ordre</td>
+                        <td>Table <code>tr_compteur_niupp_naissance</code> sur la base centrale, transaction + verrou</td>
+                        <td>Plages réservées + compteur local dans la plage ; sync vers le central</td>
+                    </tr>
+                    <tr>
+                        <td>Moment d’attribution du NIUPP</td>
+                        <td>Après validation officier (OTP / signature)</td>
+                        <td>Même principe métier, après validation locale conforme au référentiel sécurité</td>
+                    </tr>
+                    <tr>
+                        <td>Risque de doublon</td>
+                        <td>Limité par verrou SQL et contrainte unique sur <code>niupp</code></td>
+                        <td>Maîtrisé par plages exclusives et procédures de réconciliation</td>
+                    </tr>
+                    <tr>
+                        <td>Déploiement</td>
+                        <td>Laravel / module Naissance connecté</td>
+                        <td>Mobile et/ou Laravel local selon la zone ou la localité</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>SIFEC — Documentation NIUPP. Pour toute évolution du schéma ou des API de réservation de plages, mettre à jour ce fichier et les migrations associées.</p>
+    </footer>
+</body>
+</html>

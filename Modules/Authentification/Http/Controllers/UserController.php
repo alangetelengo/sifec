@@ -358,33 +358,31 @@ class UserController extends Controller
             return back();
         }
 
+        // Dossier cible : public/app/signature (cohérent avec les fichiers existants)
+        $destDir = public_path('app/signature');
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0755, true);
+        }
+
         DB::beginTransaction();
         try{
 
-            if(!empty($user->personne->signature)){
+            // Supprimer l'ancienne signature si elle existe
+            if (!empty($user->personne->signature)) {
                 $signatureExistant = $user->personne->signature;
-                $cheminSignature = public_path("storage/".$signatureExistant);
-                if(!empty($signatureExistant) && file_exists($cheminSignature)){
+                $cheminSignature = public_path('app/' . $signatureExistant);
+                if (file_exists($cheminSignature)) {
                     unlink($cheminSignature);
                 }
             }
 
-            // Log de debug pour l'upload de signature
-            Log::channel('sifec')->info('Debug signature upload', [
-                'hasFile' => $request->hasFile('signature'),
-                'isValid' => $request->file('signature') ? $request->file('signature')->isValid() : null,
-                'all' => $request->all(),
-                'files' => $request->files->all(),
-            ]);
-            // Ajout de la vérification de la présence et validité du fichier signature
             if ($request->hasFile('signature')) {
                 $file = $request->file('signature');
                 if ($file->isValid()) {
-                    $signature = $file->store('signature', 'public');
-                    if (empty($signature)) {
-                        toastr()->error("Erreur lors de l'enregistrement du fichier de signature.", "Gestion des utilisateurs");
-                        return back()->withInput();
-                    }
+                    $filename  = $file->hashName();
+                    $file->move($destDir, $filename);
+                    $signature = 'signature/' . $filename;
+
                     $personne = Personne::find($user->code_personne);
                     $personne->signature = $signature;
                     $personne->save();

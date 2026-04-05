@@ -376,14 +376,11 @@ Déclaration
             $("#btn-send").on("click",function(){
                 var cdn = $("#codedeclaration").val();
                 var route = "{{ route('declarationNaissance.mouvement') }}";
-                var data = {
-                    code_declaration_naissance:cdn
-                };
-
-                $(this).attr("disabled",true);
-                $(this).html("Traitement en cours ...");
+                var data = { code_declaration_naissance:cdn };
+                var $btn = $(this);
+                sifecBtnLoading(this, "Traitement en cours...");
                 $.post(route, data, function(response){
-
+                    sifecBtnReset($btn[0], "Envoyer");
                     if(response.code == "200"){
                         // notification("success",response.message);
                         flashAlert("Réponse","success",response.message);
@@ -441,13 +438,13 @@ Déclaration
             });
 
             $("#btn-send-notification").on('click', function(){
-                var phone = $("#tepehoneparent").val();
+                var $btn = $(this);
                 var codedn = $("#codedn").val();
                 var url = "{{ route('fiche_maternite.send.notification', ':id') }}";
                 url = url.replace(":id", codedn);
-
-                    $.get(url, function(response){
-
+                sifecBtnLoading(this, "Envoi...");
+                $.get(url, function(response){
+                    sifecBtnReset($btn[0], "Envoyer");
                     if(response.code == "200"){
 
                         flashAlert("Réponse","success",response.message);
@@ -456,10 +453,9 @@ Déclaration
                         //     location.reload();
                         // }, 2000);
                     }else{
-                        // notification("error",response.message);
                         flashAlert("Réponse","error",response.message);
                     }
-                });
+                }).fail(function(){ sifecBtnReset($btn[0], "Envoyer"); });
                 return false;
             });
 
@@ -513,12 +509,15 @@ Déclaration
             });
             $('#form-envoyer-centre').on('submit', function(e){
                 e.preventDefault();
+                var $btn = $('#btn-envoyer-final');
+                sifecBtnLoading($btn[0], "Envoi...");
                 let url = "{{ route('declarationNaissance.mouvement') }}";
                 $.ajax({
                     url: url,
                     type: 'POST',
                     data: $(this).serialize(),
                     success: function(resp){
+                        sifecBtnReset($btn[0], "Envoyer");
                         if(resp.code == "200"){
                             flashAlert("Réponse","success",resp.message);
                             $('#modal-envoyer-centre').modal('hide');
@@ -528,6 +527,7 @@ Déclaration
                         }
                     },
                     error: function(xhr){
+                        sifecBtnReset($btn[0], "Envoyer");
                         flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
                     }
                 });

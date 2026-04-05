@@ -8,6 +8,7 @@ class CreateTrAppareilsTable extends Migration
 {
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('tr_appareils', function (Blueprint $table) {
             $table->string('code_appareil', 16)->primary();
             $table->string('adresse_mac', 50)->unique()->comment('Adresse MAC de l\'appareil');

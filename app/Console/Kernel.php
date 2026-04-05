@@ -33,25 +33,26 @@ class Kernel extends ConsoleKernel
             $service->checkMatching();
         })->everyMinute()->runInBackground();
 
-        // $schedule->call(function(){
-        //     $service = new Sifec;
-        //     $service->validiteCodeOtpRegistre();
-        // })->everyMinute()->runInBackground();
+        // Purge des OTP expirés — s'exécute chaque minute (côté serveur, non contournable)
+        $schedule->call(function(){
+            $service = new Sifec;
+            $service->validiteCodeOtpRegistre();
+        })->everyMinute()->runInBackground();
 
-        // $schedule->call(function(){
-        //     $service = new Sifec;
-        //     $service->validiteCodeOtpActeNaissance();
-        // })->everyMinute()->runInBackground();
+        $schedule->call(function(){
+            $service = new Sifec;
+            $service->validiteCodeOtpActeNaissance();
+        })->everyMinute()->runInBackground();
 
-        // $schedule->call(function(){
-        //     $service = new Sifec;
-        //     $service->validiteCodeOtpActeMariage();
-        // })->everyMinute()->runInBackground();
+        $schedule->call(function(){
+            $service = new Sifec;
+            $service->validiteCodeOtpActeMariage();
+        })->everyMinute()->runInBackground();
 
-        // $schedule->call(function(){
-        //     $service = new Sifec;
-        //     $service->validiteCodeOtpActeDeces();
-        // })->everyMinute()->runInBackground();
+        $schedule->call(function(){
+            $service = new Sifec;
+            $service->validiteCodeOtpActeDeces();
+        })->everyMinute()->runInBackground();
     }
 
     /**

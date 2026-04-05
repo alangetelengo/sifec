@@ -547,13 +547,7 @@ Acte de naissance
         }
 
         const btn = $('#btn-retrait');
-        const btnText = btn.find('.btn-text');
-        const spinner = btn.find('.spinner-border');
-
-        // Désactiver le bouton et afficher le spinner
-        btn.prop('disabled', true);
-        btnText.addClass('d-none');
-        spinner.removeClass('d-none');
+        sifecBtnLoading(btn[0], "Enregistrement...");
 
         const data = {
             niupp: $('#leniupp').val(),
@@ -589,10 +583,7 @@ Acte de naissance
                 flashAlert("Erreur", "error", errorMessage);
             },
             complete: function() {
-                // Réactiver le bouton
-                btn.prop('disabled', false);
-                btnText.removeClass('d-none');
-                spinner.addClass('d-none');
+                sifecBtnReset(btn[0], "Enregistrer le retrait");
             }
         });
     }

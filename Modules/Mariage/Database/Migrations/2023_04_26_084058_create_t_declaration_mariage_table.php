@@ -13,6 +13,7 @@ class CreateTDeclarationMariageTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_declaration_mariage', function (Blueprint $table) {
             $table->primary("code_declaration_mariage");
             $table->string("code_declaration_mariage",16);

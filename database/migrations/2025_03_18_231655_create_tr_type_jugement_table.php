@@ -13,6 +13,7 @@ class CreateTrTypeJugementTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('tr_type_jugement', function (Blueprint $table) {
             $table->string("code_type_jugement",16);
             $table->primary("code_type_jugement");

@@ -305,7 +305,11 @@ class ActeMariageController extends Controller
         }
 
         try {
-            [$success, $message] = $otpService->validerOtpActes([$request->code_declaration_mariage], $request->otp_approbation_mairie);
+            [$success, $message] = $otpService->validerOtpActes(
+                [$request->code_declaration_mariage], $request->otp_approbation_mairie,
+                $request->ip(),
+                $request->userAgent()
+            );
 
             if (!$success) {
                 return response()->json([
@@ -398,7 +402,11 @@ class ActeMariageController extends Controller
         $otp = $request->otp_approbation_mairie;
 
         try {
-            [$success, $message] = $otpService->validerOtpActes($codes, $otp);
+            [$success, $message] = $otpService->validerOtpActes(
+                $codes, $otp,
+                $request->ip(),
+                $request->userAgent()
+            );
 
             if (!$success) {
                 return response()->json([

@@ -457,7 +457,7 @@ class RectificationController extends Controller
 
         // Récupération de l'acte et de la déclaration (support TPA_* et TAC_*)
         if (in_array($typeActe, ['TPA_0001', 'TAC_0001'], true)) {
-            $acte = ActeNaissance::where('niupp', $numeroActe)->first();
+            $acte = ActeNaissance::findByIdentifier($numeroActe);
             if ($acte) {
                 $declaration = $acte->declaration;
             }

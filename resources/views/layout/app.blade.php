@@ -149,6 +149,15 @@
             opacity: 0.85;
         }
 
+        /* SIFEC - Spinner et chargement boutons */
+        .sifec-spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sifec-spin 0.6s linear infinite; vertical-align: -0.2em; margin-right: 0.35rem; }
+        @keyframes sifec-spin { to { transform: rotate(360deg); } }
+        button.sifec-loading:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Notification dropdown loading */
+        .notif-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px 16px; color: #6b7280; font-size: 0.875rem; }
+        .notif-spinner { width: 18px; height: 18px; border: 2px solid #e5e7eb; border-top-color: #21B931; border-radius: 50%; animation: sifec-spin 0.7s linear infinite; }
+
 
 
 
@@ -560,6 +569,34 @@
             });
         }
 
+        /** Utilitaire chargement bouton (formulaires submit classiques) */
+        function sifecBtnLoading(btn, text) {
+            if (!btn) return;
+            var $btn = $(btn);
+            $btn.addClass('sifec-loading').prop('disabled', true);
+            var html = $btn.data('sifec-original-html');
+            if (typeof html === 'undefined') {
+                $btn.data('sifec-original-html', $btn.html());
+            }
+            $btn.html('<span class="sifec-spinner"></span> ' + (text || 'Chargement...'));
+        }
+        function sifecBtnReset(btn, text) {
+            if (!btn) return;
+            var $btn = $(btn);
+            $btn.removeClass('sifec-loading').prop('disabled', false);
+            var html = $btn.data('sifec-original-html');
+            $btn.html(typeof html !== 'undefined' ? html : (text || 'Enregistrer'));
+        }
+        /** SweetAlert en mode loading (pour formulaires AJAX) */
+        function sifecSwalLoading(title) {
+            return Swal.fire({
+                title: title || 'Enregistrement...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: function() { Swal.showLoading(); }
+            });
+        }
+
         function verif_nombre(champ)
         {
             var chiffres = new RegExp("[0-9-.]");
@@ -618,8 +655,12 @@
         }
 
         function refreshNotificationDropdown() {
+            var $list = $('#notif-list');
+            $list.html('<div class="notif-loading"><span class="notif-spinner"></span><span>Chargement...</span></div>');
             $.get("{{ route('notifications.unreadList') }}", function(data) {
-                $('#notif-list').html(data.html);
+                $list.html(data.html || '<span class="dropdown-item text-center">Aucune notification</span>');
+            }).fail(function() {
+                $list.html('<span class="dropdown-item text-center text-danger">Impossible de charger</span>');
             });
         }
 

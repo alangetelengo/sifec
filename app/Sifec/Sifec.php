@@ -490,43 +490,35 @@ class Sifec {
     }
 
     public function validiteCodeOtpRegistre(){
-        $otps = Registre::whereNull("signature_tribunal")->get();
-        if($otps->count() > 0){
-            foreach ($otps as $otp) {
-                $otp->otp_paraphage = null;
-                $otp->save();
-            }
-        }
+        // Purge uniquement les OTP dont la date d'expiration est dépassée
+        Registre::whereNotNull('otp_paraphage')
+                ->where('otp_expire_at', '<', now())
+                ->update(['otp_paraphage' => null, 'otp_expire_at' => null]);
         return true;
     }
+
     public function validiteCodeOtpActeNaissance(){
-        $otps = ActeNaissance::whereNull("signature_mairie")->get();
-        if($otps->count() > 0){
-            foreach ($otps as $otp) {
-                $otp->otp_approbation_mairie = null;
-                $otp->save();
-            }
-        }
+        // Purge uniquement les OTP expirés — les codes encore valides sont conservés
+        ActeNaissance::whereNotNull('otp_approbation_mairie')
+                     ->whereNotNull('otp_expire_at')
+                     ->where('otp_expire_at', '<', now())
+                     ->update(['otp_approbation_mairie' => null, 'otp_expire_at' => null]);
         return true;
     }
+
     public function validiteCodeOtpActeMariage(){
-        $otps = ActeMariage::whereNull("signature_mairie")->get();
-        if($otps->count() > 0){
-            foreach ($otps as $otp) {
-                $otp->otp_approbation_mairie = null;
-                $otp->save();
-            }
-        }
+        ActeMariage::whereNotNull('otp_approbation_mairie')
+                   ->whereNotNull('otp_expire_at')
+                   ->where('otp_expire_at', '<', now())
+                   ->update(['otp_approbation_mairie' => null, 'otp_expire_at' => null]);
         return true;
     }
+
     public function validiteCodeOtpActeDeces(){
-        $otps = ActeNaissance::whereNull("signature_pompe_funebre")->get();
-        if($otps->count() > 0){
-            foreach ($otps as $otp) {
-                $otp->otp_approbation_pompe_funebre = null;
-                $otp->save();
-            }
-        }
+        ActeDeces::whereNotNull('otp_approbation_pompe_funebre')
+                 ->whereNotNull('otp_expire_at')
+                 ->where('otp_expire_at', '<', now())
+                 ->update(['otp_approbation_pompe_funebre' => null, 'otp_expire_at' => null]);
         return true;
     }
 
@@ -789,7 +781,7 @@ class Sifec {
             return;
         }
 
-        $naissance = ActeNaissance::find($dec->num_acte_naissance);
+        $naissance = ActeNaissance::findByIdentifier($dec->num_acte_naissance);
 
         if($dec->date_naissance == null){
             Log::channel("sifec")->info("Aucune date de naissance trouvée");
@@ -846,8 +838,12 @@ class Sifec {
         return strtoupper($str);
     }
 
-    public static function rechercherPersonne($niupp){
-        return ActeNaissance::with(['declaration.enfant.nationalite','declaration.enfant.profession','declaration.enfant.localite','declaration.pere','declaration.mere','institutionUser.institution'])->where("niupp",$niupp)->first();
+    public static function rechercherPersonne($niupp)
+    {
+        return ActeNaissance::with(['declaration.enfant.nationalite', 'declaration.enfant.profession', 'declaration.enfant.localite', 'declaration.pere', 'declaration.mere', 'institutionUser.institution'])
+            ->where('niupp', $niupp)
+            ->orWhere('code_acte_naissance', $niupp)
+            ->first();
     }
 
     //update adresse enfant en cas d'eventuels evenements (Mariage,Décès,etc...)
@@ -1887,7 +1883,7 @@ class Sifec {
             return null;
         }
         if (in_array($typeActe, ['TPA_0001', 'TAC_0001'], true)) {
-            return ActeNaissance::where('niupp', $numeroActe)->first() ?? null;
+            return ActeNaissance::findByIdentifier($numeroActe);
         }
         if (in_array($typeActe, ['TPA_0002', 'TAC_0002'], true)) {
             return ActeMariage::where('code_acte_mariage', $numeroActe)->first() ?? null;
@@ -1901,7 +1897,7 @@ class Sifec {
     //rechercher une acte à partier du code de l'acte simple
     public function getActe($numeroActe)
     {
-        return  ActeNaissance::where("niupp", $numeroActe)->first() ?? ActeMariage::where("code_acte_mariage", $numeroActe)->first() ?? ActeDeces::where("code_acte_deces", $numeroActe)->first() ?? null;
+        return ActeNaissance::findByIdentifier($numeroActe) ?? ActeMariage::where('code_acte_mariage', $numeroActe)->first() ?? ActeDeces::where('code_acte_deces', $numeroActe)->first() ?? null;
     }
     //rechercher code declaration d'un acte à partier du code de l'acte simple
     public function getDeclaration($numeroActe)
@@ -1921,32 +1917,30 @@ class Sifec {
         return $codeDeclaration;
     }
 
-    public static function genererNiupp(string $codeDn)
+    /**
+     * Compose le NIUPP (NIUPP national) à partir de la déclaration et de l’ordre séquentiel (CEC / mois de naissance).
+     */
+    public static function genererNiupp(string $codeDn, int $numOrdre): string
     {
-        // $cec =
         $dn = Declarationnaissance::find($codeDn);
 
-        if($dn == null) return "Aucune déclaration naissance trouvée";
+        if ($dn === null) {
+            throw new \InvalidArgumentException('Aucune déclaration de naissance trouvée pour le code : '.$codeDn);
+        }
 
+        $dept = $dn->institutionUser->institution->lieu->localiteParent->localiteParent ?? $dn->institutionUser->institution->lieu->localiteParent;
+        $codeDept = $dept->code_officel;
+        $institution = $dn->institution;
+        $codeCec = $institution->lieu->localiteParent->typeLocalite->type_cec;
+        $codeLoc = $institution->lieu->localiteParent->code_officel;
 
+        $sexe = $dn->enfant->sexe == 'M' ? '1' : '2';
+        $anneeNais = new Carbon($dn->enfant->date_naissance);
+        $annee = $anneeNais->year;
+        $mois = $anneeNais->format('m');
+        $numOrdreFormate = SifecFacade::format_nombre($numOrdre, 4);
 
-            $dept = $dn->institutionUser->institution->lieu->localiteParent->localiteParent ?? $dn->institutionUser->institution->lieu->localiteParent;
-            $codeDept = $dept->code_officel;
-            $institution = $dn->institution;
-            $codeCec = $institution->lieu->localiteParent->typeLocalite->type_cec;
-            $codeLoc = $institution->lieu->localiteParent->code_officel;
-
-            $sexe = $dn->enfant->sexe == 'M' ? "1" : "2";
-            $anneeNais = new Carbon($dn->enfant->date_naissance);
-            $annee = $anneeNais->year;
-            $mois = $anneeNais->format('m');
-            $position = substr($dn->code_declaration_naissance,7);
-            $numOrdre = SifecFacade::format_nombre($position,4);
-            // $niupp = $sexe.$annee.$mois.$dpt.$subdpt.$numOrdre;
-            $niupp = $sexe.$annee.$mois.$codeDept.$codeLoc.$codeCec.$numOrdre;
-
-            return $niupp;
-
+        return $sexe.$annee.$mois.$codeDept.$codeLoc.$codeCec.$numOrdreFormate;
     }
 
     /**

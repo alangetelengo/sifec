@@ -1,4 +1,4 @@
-﻿@extends('layout.app')
+@extends('layout.app')
 @section('titre')
 Actes de décès
 @endsection
@@ -365,7 +365,7 @@ Actes de décès
                         <input type="hidden" id="code_declaration_deces_validate">
                         <input type="hidden" id="validation_type">
                         <label class="form-label">Code de validation<span class="text-danger">*</span></label>
-                        <input type="text" class="form-control"lass="form-control"  placeholder="" id="otp_approbation_pompe_funebre" required>
+                        <input type="text" class="form-control form-control-lg text-center fw-bold" id="otp_approbation_pompe_funebre" name="otp_approbation_pompe_funebre" placeholder="_ _ _ _ _ _ _ _" maxlength="8" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="one-time-code" required>
                     </div>
                     <span class="text-success"><i>Veuillez saisir le code de validation reçu par SMS.</i> </span>
                 </div>
@@ -1034,15 +1034,38 @@ Actes de décès
     });
 
     // Validation OTP (singleton ou bulk)
+    function extraireMsgDeces(message) {
+        if (!message) return 'Réponse inconnue du serveur.';
+        if (typeof message === 'string')  return message;
+        if (Array.isArray(message))       return message[0] || 'Erreur inconnue.';
+        if (typeof message === 'object') {
+            if (message.reponse) return message.reponse;
+            if (message.error)   return message.error;
+        }
+        return JSON.stringify(message);
+    }
+
     $("#btn-validate").on("click", function(){
+        var otp = $("#otp_approbation_pompe_funebre").val().trim();
+        if (!otp) {
+            flashAlert("Attention", "warning", "Veuillez saisir le code reçu par SMS.");
+            return false;
+        }
+        if (!/^\d{4,8}$/.test(otp)) {
+            flashAlert("Attention", "warning", "Le code doit être composé de chiffres uniquement.");
+            return false;
+        }
+
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
+
         var code_declaration_deces = $("#code_declaration_deces_validate").val();
         var validation_type = $("#validation_type").val();
-        var otp_approbation_pompe_funebre = $("#otp_approbation_pompe_funebre").val();
         var inputs = {
             codes : actesGeneres,
             code_declaration_deces: code_declaration_deces,
-            otp_approbation_pompe_funebre: otp_approbation_pompe_funebre
+            otp_approbation_pompe_funebre: otp
         };
+
         if(validation_type=="simple"){
             $.ajax({
                 url: "{{ route('acteDeces.validate.otp') }}",
@@ -1052,14 +1075,24 @@ Actes de décès
                     otp_approbation_pompe_funebre: inputs.otp_approbation_pompe_funebre
                 },
                 success: function(response){
-                    let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                    flashAlert("Réponse","success",msg);
-                    $('#modal-validate-acte').modal('hide');
-                    setTimeout(()=>location.reload(), 1000);
+                    var msg = extraireMsgDeces(response.message);
+                    if (response.code === '200') {
+                        flashAlert("Succès", "success", msg);
+                        $('#modal-validate-acte').modal('hide');
+                        setTimeout(function(){ location.reload(); }, 1500);
+                    } else {
+                        flashAlert("Échec", "error", msg);
+                        $('#btn-validate').prop('disabled', false)
+                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                    }
                 },
                 error: function(xhr){
-                    let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation de l\'acte';
-                    flashAlert("Réponse","error",msg);
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? extraireMsgDeces(xhr.responseJSON.message)
+                        : 'Erreur lors de la validation de l\'acte.';
+                    flashAlert("Erreur", "error", msg);
+                    $('#btn-validate').prop('disabled', false)
+                                     .html('<i class="fas fa-check me-1"></i> Valider');
                 }
             });
         }else{
@@ -1071,14 +1104,24 @@ Actes de décès
                     otp_approbation_pompe_funebre: inputs.otp_approbation_pompe_funebre
                 },
                 success: function(response){
-                    let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                    flashAlert("Réponse","success",msg);
-                    $('#modal-validate-acte').modal('hide');
-                    setTimeout(()=>location.reload(), 1000);
+                    var msg = extraireMsgDeces(response.message);
+                    if (response.code === '200') {
+                        flashAlert("Succès", "success", msg);
+                        $('#modal-validate-acte').modal('hide');
+                        setTimeout(function(){ location.reload(); }, 1500);
+                    } else {
+                        flashAlert("Échec", "error", msg);
+                        $('#btn-validate').prop('disabled', false)
+                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                    }
                 },
                 error: function(xhr){
-                    let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la validation des actes';
-                    flashAlert("Réponse","error",msg);
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? extraireMsgDeces(xhr.responseJSON.message)
+                        : 'Erreur lors de la validation des actes.';
+                    flashAlert("Erreur", "error", msg);
+                    $('#btn-validate').prop('disabled', false)
+                                     .html('<i class="fas fa-check me-1"></i> Valider');
                 }
             });
         }

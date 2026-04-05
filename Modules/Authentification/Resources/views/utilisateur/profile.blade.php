@@ -1,535 +1,557 @@
 @extends("layout.app")
 @section("titre")
-    Profil - {{ $user->personne->nom.' '.$user->personne->prenom }}
+    Profil — {{ $user->personne->nom.' '.$user->personne->prenom }}
 @endsection
 
 @section('styles')
 <style>
-    .breadcrumb-item a {
-        color: #007bff !important;
-        text-decoration: none;
-    }
-    .breadcrumb-item a:hover {
-        color: #0056b3 !important;
-        text-decoration: underline;
-    }
-    .breadcrumb-item.active {
-        color: #6c757d;
-    }
+    /* ── Palette ───────────────────────────────────────────────────────────
+       Vert charte   : #009A44
+       Vert sombre   : #1b4332  (hero)
+       Vert moyen    : #2d6a4f  (card-header)
+       Vert pâle     : #e8f5ee  (fond accentué)
+       Gris ardoise  : #546e7a  (texte secondaire)
+    ──────────────────────────────────────────────────────────────────────── */
 
-    .profile-header-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 15px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    body { background-color: #f4f6f8; }
+
+    /* Hero */
+    .profile-hero {
+        background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+        border-radius: 0 0 20px 20px;
+        padding: 2rem;
+        color: #fff;
     }
-
-    .profile-avatar {
-        width: 140px;
-        height: 140px;
-        border: 5px solid white;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease;
-    }
-
-    .profile-avatar:hover {
-        transform: scale(1.05);
-    }
-
-    .profile-avatar-icon {
-        width: 140px;
-        height: 140px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 5px solid white;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease;
-    }
-
-    .profile-avatar-icon:hover {
-        transform: scale(1.05);
-    }
-
-    .stats-card {
-        transition: all 0.3s ease;
-        border-left: 4px solid transparent;
-    }
-
-    .stats-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
-        border-left-color: #007bff;
-    }
-
-
-    .nav-tabs .nav-link {
-        border-radius: 8px 8px 0 0;
-        margin-right: 5px;
-        transition: all 0.3s ease;
-    }
-
-    .nav-tabs .nav-link:hover {
-        background-color: #f8f9fa;
-    }
-
-    .nav-tabs .nav-link.active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-color: transparent;
-    }
-
-    .timeline-item {
-        position: relative;
-        padding-left: 40px;
-        padding-bottom: 30px;
-    }
-
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        left: 8px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: #dee2e6;
-    }
-
-    .timeline-item:last-child::before {
-        display: none;
-    }
-
-    .timeline-marker {
-        position: absolute;
-        left: 0;
-        top: 5px;
-        width: 18px;
-        height: 18px;
+    .profile-hero .avatar-wrap {
+        width: 90px; height: 90px;
+        border: 3px solid rgba(255,255,255,.5);
         border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        overflow: hidden;
+        background: rgba(255,255,255,.15);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .profile-hero .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-hero .avatar-wrap .initials {
+        font-size: 2rem; font-weight: 700; color: #fff;
+        text-transform: uppercase;
+    }
+    .profile-hero .meta-line { font-size: .85rem; opacity: .8; margin-bottom: .25rem; }
+    .profile-hero .badge-role {
+        background: rgba(255,255,255,.2);
+        border: 1px solid rgba(255,255,255,.3);
+        color: #fff; font-size: .78rem;
+        padding: 3px 10px; border-radius: 20px;
     }
 
-    .timeline-content {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 3px solid #007bff;
+    /* Stat cards */
+    .stat-card {
+        background: #fff;
+        border-radius: 10px;
+        border-left: 4px solid transparent;
+        box-shadow: 0 1px 6px rgba(0,0,0,.07);
+        padding: 1rem 1.25rem;
+        display: flex; align-items: center; gap: 1rem;
     }
-
-    .badge-lg {
-        padding: 8px 16px;
-        font-size: 0.95rem;
-        font-weight: 600;
+    .stat-card .stat-icon {
+        width: 48px; height: 48px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem; flex-shrink: 0;
     }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .stat-card .stat-label { font-size: .78rem; color: #6c757d; margin-top: 2px; }
 
-    .action-card {
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
+    .stat-card.green  { border-left-color: #009A44; }
+    .stat-card.blue   { border-left-color: #1976d2; }
+    .stat-card.orange { border-left-color: #e65100; }
+    .stat-card.purple { border-left-color: #6a1b9a; }
+
+    .stat-card.green  .stat-icon { background: #e8f5ee; color: #009A44; }
+    .stat-card.blue   .stat-icon { background: #e3f2fd; color: #1976d2; }
+    .stat-card.orange .stat-icon { background: #fff3e0; color: #e65100; }
+    .stat-card.purple .stat-icon { background: #f3e5f5; color: #6a1b9a; }
+
+    .stat-card.green  .stat-value { color: #009A44; }
+    .stat-card.blue   .stat-value { color: #1976d2; }
+    .stat-card.orange .stat-value { color: #e65100; }
+    .stat-card.purple .stat-value { color: #6a1b9a; }
+
+    /* Section cards */
+    .section-card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 6px rgba(0,0,0,.07);
+        overflow: hidden;
     }
-
-    .action-card:hover {
-        transform: translateY(-5px);
-        border-color: #007bff;
-        box-shadow: 0 8px 20px rgba(0,123,255,0.15);
+    .section-card .sc-header {
+        background: #2d6a4f;
+        color: #fff;
+        padding: .65rem 1rem;
+        font-size: .88rem; font-weight: 600;
     }
+    .section-card .sc-header i { margin-right: .4rem; }
 
-    .stat-number {
-        font-size: 2.5rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+    /* Table inside cards */
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table tr { border-bottom: 1px solid #f0f0f0; }
+    .info-table tr:last-child { border-bottom: none; }
+    .info-table td { padding: .55rem .85rem; font-size: .875rem; vertical-align: middle; }
+    .info-table td.lbl { color: #546e7a; width: 42%; font-weight: 500; white-space: nowrap; }
+
+    /* Tabs */
+    .profile-tabs .nav-link {
+        color: #546e7a; border: none; border-bottom: 2px solid transparent;
+        padding: .6rem 1rem; font-size: .875rem; border-radius: 0;
+        background: transparent;
     }
+    .profile-tabs .nav-link:hover { color: #2d6a4f; border-bottom-color: #a8d5be; }
+    .profile-tabs .nav-link.active { color: #009A44; border-bottom-color: #009A44; font-weight: 600; }
+    .profile-tabs { border-bottom: 1px solid #e0e0e0; margin-bottom: 1.25rem; }
 
-    .profile-info-section {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    /* Badges */
+    .badge-status-on  { background: #e8f5ee; color: #1b4332; border: 1px solid #a8d5be; }
+    .badge-status-off { background: #fce8e8; color: #7f1d1d; border: 1px solid #f5c6c6; }
+    .badge-2fa-on     { background: #e8f5ee; color: #1b4332; border: 1px solid #a8d5be; }
+    .badge-2fa-off    { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+    .badge-soft { padding: 4px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+
+    /* Action buttons in hero */
+    .btn-hero-primary {
+        background: rgba(255,255,255,.18);
+        border: 1px solid rgba(255,255,255,.4);
+        color: #fff; font-size: .8rem; border-radius: 6px;
+        padding: 5px 14px; white-space: nowrap;
+        transition: background .2s;
+    }
+    .btn-hero-primary:hover { background: rgba(255,255,255,.3); color: #fff; }
+
+    /* Activity list */
+    .activity-item {
+        display: flex; align-items: flex-start; gap: .85rem;
+        padding: .7rem 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+        width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem; flex-shrink: 0;
+    }
+    .activity-dot.green  { background: #e8f5ee; color: #009A44; }
+    .activity-dot.blue   { background: #e3f2fd; color: #1976d2; }
+    .activity-dot.teal   { background: #e0f7fa; color: #00838f; }
+
+    /* Security action tiles */
+    .sec-tile {
+        background: #fff; border-radius: 10px;
+        box-shadow: 0 1px 6px rgba(0,0,0,.07);
+        padding: 1.5rem 1rem; text-align: center;
+    }
+    .sec-tile .sec-icon-wrap {
+        width: 60px; height: 60px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; margin: 0 auto 1rem;
     }
 </style>
 @endsection
 
 @section("corps")
-<div class="container-fluid">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3 mt-2">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}"><i class="fas fa-home"></i> Accueil</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('utilisateur.index') }}"><i class="fas fa-users"></i> Utilisateurs</a></li>
-            <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-user"></i> Profil de {{ $user->personne->nom.' '.$user->personne->prenom }}</li>
-        </ol>
-    </nav>
 
-    <!-- En-tête du profil amélioré -->
-    <div class="row mb-4">
-        <div class="col-xl-12">
-            <div class="card profile-header-card border-0">
-                <div class="card-body text-white p-4">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <div class="profile-photo">
-                                @if($user->personne && $user->personne->signature)
-                                    @php
-                                        $signaturePath = $user->personne->signature;
-                                        if (strpos($signaturePath, 'signature/') === 0) {
-                                            $signaturePath = str_replace('signature/', 'signatures/', $signaturePath);
-                                        }
-                                        if (strpos($signaturePath, 'signatures/') === 0 || strpos($signaturePath, 'storage/') === 0) {
-                                            $imageUrl = asset($signaturePath);
-                                        } else {
-                                            $imageUrl = asset('storage/'.$signaturePath);
-                                        }
-                                    @endphp
-                                    <img src="{{ $imageUrl }}" alt="Photo de profil" class="profile-avatar rounded-circle img-fluid" style="object-fit: cover;">
-                                @else
-                                    @if($user->personne && $user->personne->sexe == 'F')
-                                        <div class="profile-avatar-icon rounded-circle" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                                            <i class="fas fa-female fa-4x text-white"></i>
-                                        </div>
-                                    @else
-                                        <div class="profile-avatar-icon rounded-circle bg-primary">
-                                            <i class="fas fa-male fa-4x text-white"></i>
-                                        </div>
-                                    @endif
-                                @endif
-                            </div>
-                        </div>
-                        <div class="col">
-                            <h2 class="mb-2 text-white"><strong>{{ $user->personne->nom.' '.$user->personne->prenom }}</strong></h2>
-                            <p class="mb-2 text-white-50"><i class="fas fa-briefcase me-2"></i>{{ $user->affectationActive()?->fonction?->lib_fonction ?? "Fonction non définie" }}</p>
-                            <p class="mb-2 text-white-50"><i class="fas fa-envelope me-2"></i>{{ $user->email }}</p>
-                            <p class="mb-0 text-white-50"><i class="fas fa-building me-2"></i>{{ $user->affectationActive()?->institution?->lib_institution ?? "Non affecté" }}</p>
-                        </div>
-                        <div class="col-auto">
-                            <div class="d-flex flex-column gap-2">
-                                <a href="{{ route('utilisateur.edit', $user->code_user) }}" class="btn btn-primary btn-sm shadow-sm">
-                                    <i class="fas fa-edit me-2"></i>Modifier
-                                </a>
-                                <a href="{{ route('utilisateur.assigner.permission', $user->code_user) }}" class="btn btn-info btn-sm shadow-sm">
-                                    <i class="fas fa-key me-2"></i>Permissions
-                                </a>
-                                <a href="{{ route('two-factor.index') }}" class="btn btn-success btn-sm shadow-sm">
-                                    <i class="fas fa-shield-alt me-2"></i>Sécurité
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+{{-- Hero --}}
+<div class="profile-hero mb-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        {{-- Avatar --}}
+        <div class="avatar-wrap">
+            @if($user->personne && $user->personne->signature)
+                <img src="{{ asset('app/'.$user->personne->signature) }}" alt="Avatar">
+            @else
+                <span class="initials">
+                    {{ mb_substr($user->personne->nom, 0, 1) }}{{ mb_substr($user->personne->prenom, 0, 1) }}
+                </span>
+            @endif
+        </div>
+
+        {{-- Info --}}
+        <div class="flex-grow-1">
+            <h4 class="mb-1 text-white fw-bold">{{ $user->personne->nom.' '.$user->personne->prenom }}</h4>
+            <span class="badge-role me-2">{{ $user->affectationActive()?->fonction?->lib_fonction ?? "Fonction non définie" }}</span>
+            <div class="mt-2">
+                <p class="meta-line mb-1"><i class="fas fa-envelope me-1"></i>{{ $user->email }}</p>
+                <p class="meta-line mb-0"><i class="fas fa-building me-1"></i>{{ $user->affectationActive()?->institution?->lib_institution ?? "Non affecté" }}</p>
+            </div>
+        </div>
+
+        {{-- Actions --}}
+        <div class="d-flex flex-column gap-2 flex-shrink-0">
+            <a href="{{ route('utilisateur.edit', $user->code_user) }}" class="btn-hero-primary">
+                <i class="fas fa-edit me-1"></i>Modifier
+            </a>
+            <a href="{{ route('utilisateur.assigner.permission', $user->code_user) }}" class="btn-hero-primary">
+                <i class="fas fa-key me-1"></i>Permissions
+            </a>
+            <a href="{{ route('two-factor.index') }}" class="btn-hero-primary">
+                <i class="fas fa-shield-alt me-1"></i>Sécurité
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-3">
+
+    {{-- Stat cards --}}
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card green">
+                <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+                <div>
+                    <div class="stat-value">{{ $user->created_at->diffInDays(now()) }}</div>
+                    <div class="stat-label">Jours actifs</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card {{ $user->hasTwoFactorEnabled() ? 'green' : 'orange' }}">
+                <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
+                <div>
+                    <div class="stat-value" style="font-size:1.1rem;">{{ $user->hasTwoFactorEnabled() ? 'Activée' : 'Désactivée' }}</div>
+                    <div class="stat-label">Double Authentification</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card {{ $user->status ? 'green' : 'orange' }}">
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div>
+                    <div class="stat-value" style="font-size:1.1rem;">{{ $user->status ? 'Actif' : 'Inactif' }}</div>
+                    <div class="stat-label">Statut du compte</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card purple">
+                <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+                <div>
+                    <div class="stat-value">{{ $user->created_at->format('Y') }}</div>
+                    <div class="stat-label">Inscrit le {{ $user->created_at->format('d/m/Y') }}</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div class="card stats-card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="stat-number">{{ $user->created_at->diffInDays(now()) }}</div>
-                    <h6 class="text-muted mb-0"><i class="fas fa-calendar-day me-2"></i>Jours actifs</h6>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div class="card stats-card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="stat-number">{{ $user->hasTwoFactorEnabled() ? '1' : '0' }}</div>
-                    <h6 class="text-muted mb-0">
-                        <i class="fas fa-shield-alt me-2 {{ $user->hasTwoFactorEnabled() ? 'text-success' : 'text-danger' }}"></i>
-                        2FA {{ $user->hasTwoFactorEnabled() ? 'Activée' : 'Désactivée' }}
-                    </h6>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div class="card stats-card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <span class="badge {{ $user->status ? 'bg-success' : 'bg-danger' }} badge-lg">
-                        {{ $user->status ? 'Actif' : 'Inactif' }}
-                    </span>
-                    <h6 class="text-muted mb-0 mt-2"><i class="fas fa-user-check me-2"></i>Statut du compte</h6>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div class="card stats-card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="stat-number">{{ $user->created_at->format('Y') }}</div>
-                    <h6 class="text-muted mb-0"><i class="fas fa-calendar me-2"></i>Année d'inscription</h6>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <!-- Colonne de gauche - Informations personnelles -->
+    <div class="row g-3">
+        {{-- Colonne gauche --}}
         <div class="col-xl-4">
-            <!-- Informations personnelles et professionnelles -->
-            <div class="card profile-info-section mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-user-circle me-2"></i>Informations Personnelles</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
-                        <tbody>
-                            <tr>
-                                <td width="40%" class="bg-light"><strong><i class="fas fa-user text-primary me-2"></i>Nom complet</strong></td>
-                                <td>{{ $user->personne->nom.' '.$user->personne->prenom }}</td>
-                            </tr>
-                            @if($user->personne->date_naissance)
-                            <tr>
-                                <td class="bg-light"><strong><i class="fas fa-birthday-cake text-primary me-2"></i>Date de naissance</strong></td>
-                                <td>{{ \Carbon\Carbon::parse($user->personne->date_naissance)->format('d/m/Y') }}</td>
-                            </tr>
-                            @endif
-                            @if($user->personne->sexe)
-                            <tr>
-                                <td class="bg-light"><strong><i class="fas fa-{{ $user->personne->sexe == 'F' ? 'female' : 'male' }} text-primary me-2"></i>Sexe</strong></td>
-                                <td>{{ $user->personne->sexe == 'F' ? 'Féminin' : 'Masculin' }}</td>
-                            </tr>
-                            @endif
-                            @if($user->personne->telephone)
-                            <tr>
-                                <td class="bg-light"><strong><i class="fas fa-phone text-primary me-2"></i>Téléphone</strong></td>
-                                <td>{{ $user->personne->telephone }}</td>
-                            </tr>
-                            @endif
-                        </tbody>
-                    </table>
+
+            {{-- Infos personnelles --}}
+            <div class="section-card mb-3">
+                <div class="sc-header"><i class="fas fa-user-circle"></i>Informations Personnelles</div>
+                <table class="info-table">
+                    <tr>
+                        <td class="lbl">Nom complet</td>
+                        <td>{{ $user->personne->nom.' '.$user->personne->prenom }}</td>
+                    </tr>
+                    @if($user->personne->date_naissance)
+                    <tr>
+                        <td class="lbl">Date de naissance</td>
+                        <td>{{ \Carbon\Carbon::parse($user->personne->date_naissance)->format('d/m/Y') }}</td>
+                    </tr>
+                    @endif
+                    @if($user->personne->sexe)
+                    <tr>
+                        <td class="lbl">Sexe</td>
+                        <td>{{ $user->personne->sexe == 'F' ? 'Féminin' : 'Masculin' }}</td>
+                    </tr>
+                    @endif
+                    @if($user->personne->telephone)
+                    <tr>
+                        <td class="lbl">Téléphone</td>
+                        <td>{{ $user->personne->telephone }}</td>
+                    </tr>
+                    @endif
+                </table>
+            </div>
+
+            {{-- Infos professionnelles --}}
+            <div class="section-card mb-3">
+                <div class="sc-header"><i class="fas fa-briefcase"></i>Informations Professionnelles</div>
+                <table class="info-table">
+                    <tr>
+                        <td class="lbl">Institution</td>
+                        <td>{{ $user->affectationActive()?->institution?->lib_institution ?? "Non affecté" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Fonction</td>
+                        <td>{{ $user->affectationActive()?->fonction?->lib_fonction ?? "Non définie" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Type</td>
+                        <td>{{ $user->affectationActive()?->institution?->typeInstitution?->lib_type_institution ?? "Non défini" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Membre depuis</td>
+                        <td>{{ $user->created_at->format('d/m/Y') }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            {{-- Signature de l'agent --}}
+            <div class="section-card">
+                <div class="sc-header"><i class="fas fa-signature"></i>Signature de l'agent</div>
+                <div class="p-3">
+
+                    {{-- Aperçu de la signature actuelle --}}
+                    <div class="text-center mb-3">
+                        @if($user->personne && $user->personne->signature)
+                            <div class="mb-2" style="background:#f8f9fa;border:1px dashed #ced4da;border-radius:8px;padding:12px;">
+                                <img src="{{ asset('app/'.$user->personne->signature) }}"
+                                     alt="Signature de {{ $user->personne->nom }}"
+                                     id="sig-preview"
+                                     style="max-height:100px;max-width:100%;object-fit:contain;">
+                            </div>
+                            <small class="text-muted"><i class="fas fa-check-circle text-success me-1"></i>Signature enregistrée</small>
+                        @else
+                            <div id="sig-placeholder" class="mb-2" style="background:#f8f9fa;border:2px dashed #ced4da;border-radius:8px;padding:24px;">
+                                <i class="fas fa-signature fa-2x text-muted mb-2 d-block"></i>
+                                <span class="text-muted small">Aucune signature enregistrée</span>
+                            </div>
+                            <img src="" alt="" id="sig-preview" class="d-none mb-2"
+                                 style="max-height:100px;max-width:100%;object-fit:contain;border:1px dashed #ced4da;border-radius:8px;padding:8px;">
+                        @endif
+                    </div>
+
+                    {{-- Formulaire d'upload --}}
+                    <form action="{{ route('utilisateur.signature', $user->code_user) }}"
+                          method="POST"
+                          enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold text-muted mb-1">
+                                <i class="fas fa-upload me-1"></i>
+                                {{ $user->personne?->signature ? 'Remplacer la signature' : 'Ajouter une signature' }}
+                            </label>
+                            <input type="file"
+                                   class="form-control form-control-sm @error('signature') is-invalid @enderror"
+                                   name="signature"
+                                   id="sig-input"
+                                   accept="image/png,image/jpeg">
+                            <div class="form-text" style="font-size:.75rem;">
+                                Formats acceptés : PNG, JPG — max 2 Mo
+                            </div>
+                            @error('signature')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <button type="submit" class="btn btn-sm w-100 text-white"
+                                style="background-color:#2d6a4f;">
+                            <i class="fas fa-save me-1"></i>Enregistrer la signature
+                        </button>
+                    </form>
                 </div>
             </div>
 
-            <!-- Informations professionnelles -->
-            <div class="card profile-info-section">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-briefcase me-2"></i>Informations Professionnelles</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
-                        <tbody>
-                            <tr>
-                                <td width="40%" class="bg-light"><strong><i class="fas fa-building text-success me-2"></i>Institution</strong></td>
-                                <td>{{ $user->affectationActive()?->institution?->lib_institution ?? "Non affecté" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="bg-light"><strong><i class="fas fa-briefcase text-success me-2"></i>Fonction</strong></td>
-                                <td>{{ $user->affectationActive()?->fonction?->lib_fonction ?? "Non définie" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="bg-light"><strong><i class="fas fa-tag text-success me-2"></i>Type d'institution</strong></td>
-                                <td>{{ $user->affectationActive()?->institution?->typeInstitution?->lib_type_institution ?? "Non défini" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="bg-light"><strong><i class="fas fa-calendar text-success me-2"></i>Membre depuis</strong></td>
-                                <td>{{ $user->created_at->format('d/m/Y') }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
-        <!-- Colonne de droite - Onglets -->
+        {{-- Colonne droite --}}
         <div class="col-xl-8">
-            <div class="card profile-info-section">
-                <div class="card-header bg-white border-bottom">
-                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <div class="section-card">
+                <div class="card-body p-3">
+
+                    {{-- Onglets --}}
+                    <ul class="nav profile-tabs" role="tablist">
                         <li class="nav-item">
-                            <a class="nav-link active" data-bs-toggle="tab" href="#profile-overview" role="tab">
-                                <i class="fas fa-info-circle me-2"></i>Aperçu
+                            <a class="nav-link active" data-bs-toggle="tab" href="#tab-overview" role="tab">
+                                <i class="fas fa-info-circle me-1"></i>Aperçu
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#profile-security" role="tab">
-                                <i class="fas fa-shield-alt me-2"></i>Sécurité
+                            <a class="nav-link" data-bs-toggle="tab" href="#tab-security" role="tab">
+                                <i class="fas fa-shield-alt me-1"></i>Sécurité
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#profile-activity" role="tab">
-                                <i class="fas fa-history me-2"></i>Activité
+                            <a class="nav-link" data-bs-toggle="tab" href="#tab-activity" role="tab">
+                                <i class="fas fa-history me-1"></i>Activité
                             </a>
                         </li>
                     </ul>
-                </div>
-                <div class="card-body">
+
                     <div class="tab-content">
-                        <!-- Onglet Aperçu -->
-                        <div class="tab-pane fade show active" id="profile-overview" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6 mb-4">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-header bg-primary text-white">
-                                            <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Informations Générales</h5>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <table class="table table-hover mb-0">
-                                                <tbody>
-                                                    <tr>
-                                                        <td width="40%" class="bg-light"><strong><i class="fas fa-envelope text-primary me-2"></i>Email</strong></td>
-                                                        <td>{{ $user->email }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="bg-light"><strong><i class="fas fa-user-check text-primary me-2"></i>Statut</strong></td>
-                                                        <td>
-                                                            <span class="badge {{ $user->status ? 'bg-success' : 'bg-danger' }} badge-lg">
-                                                                {{ $user->status ? 'Actif' : 'Inactif' }}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="bg-light"><strong><i class="fas fa-shield-alt text-primary me-2"></i>2FA</strong></td>
-                                                        <td>
-                                                            <span class="badge {{ $user->hasTwoFactorEnabled() ? 'bg-success' : 'bg-danger' }} badge-lg">
-                                                                {{ $user->hasTwoFactorEnabled() ? 'Activée' : 'Désactivée' }}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="bg-light"><strong><i class="fas fa-calendar-plus text-primary me-2"></i>Créé le</strong></td>
-                                                        <td>{{ $user->created_at->format('d/m/Y à H:i') }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="bg-light"><strong><i class="fas fa-clock text-primary me-2"></i>Dernière connexion</strong></td>
-                                                        <td>{{ $user->updated_at->format('d/m/Y à H:i') }}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
+
+                        {{-- Aperçu --}}
+                        <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="section-card">
+                                        <div class="sc-header"><i class="fas fa-info-circle"></i>Informations Générales</div>
+                                        <table class="info-table">
+                                            <tr>
+                                                <td class="lbl">Email</td>
+                                                <td>{{ $user->email }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="lbl">Statut</td>
+                                                <td>
+                                                    <span class="badge-soft {{ $user->status ? 'badge-status-on' : 'badge-status-off' }}">
+                                                        <i class="fas fa-circle me-1" style="font-size:.5rem;vertical-align:middle;"></i>
+                                                        {{ $user->status ? 'Actif' : 'Inactif' }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="lbl">2FA</td>
+                                                <td>
+                                                    <span class="badge-soft {{ $user->hasTwoFactorEnabled() ? 'badge-2fa-on' : 'badge-2fa-off' }}">
+                                                        <i class="fas fa-{{ $user->hasTwoFactorEnabled() ? 'check' : 'times' }} me-1"></i>
+                                                        {{ $user->hasTwoFactorEnabled() ? 'Activée' : 'Non activée' }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="lbl">Créé le</td>
+                                                <td>{{ $user->created_at->format('d/m/Y à H:i') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="lbl">Dernière modif.</td>
+                                                <td>{{ $user->updated_at->format('d/m/Y à H:i') }}</td>
+                                            </tr>
+                                        </table>
                                     </div>
                                 </div>
-                                <div class="col-md-6 mb-4">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-header bg-success text-white">
-                                            <h5 class="card-title mb-0"><i class="fas fa-briefcase me-2"></i>Affectation Actuelle</h5>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <table class="table table-hover mb-0">
-                                                <tbody>
-                                                    <tr>
-                                                        <td width="40%" class="bg-light"><strong><i class="fas fa-building text-success me-2"></i>Institution</strong></td>
-                                                        <td>{{ $user->affectationActive()?->institution?->lib_institution ?? "Non affecté" }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="bg-light"><strong><i class="fas fa-briefcase text-success me-2"></i>Fonction</strong></td>
-                                                        <td>{{ $user->affectationActive()?->fonction?->lib_fonction ?? "Non définie" }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="bg-light"><strong><i class="fas fa-tag text-success me-2"></i>Type</strong></td>
-                                                        <td>{{ $user->affectationActive()?->institution?->typeInstitution?->lib_type_institution ?? "Non défini" }}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="section-card">
+                                        <div class="sc-header"><i class="fas fa-briefcase"></i>Affectation Actuelle</div>
+                                        <table class="info-table">
+                                            <tr>
+                                                <td class="lbl">Institution</td>
+                                                <td>{{ $user->affectationActive()?->institution?->lib_institution ?? "Non affecté" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="lbl">Fonction</td>
+                                                <td>{{ $user->affectationActive()?->fonction?->lib_fonction ?? "Non définie" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="lbl">Type</td>
+                                                <td>{{ $user->affectationActive()?->institution?->typeInstitution?->lib_type_institution ?? "Non défini" }}</td>
+                                            </tr>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Onglet Sécurité -->
-                        <div class="tab-pane fade" id="profile-security" role="tabpanel">
-                            <h5 class="text-primary mb-4"><i class="fas fa-shield-alt me-2"></i>Paramètres de Sécurité</h5>
-                            <div class="row">
-                                <div class="col-md-6 mb-4">
-                                    <div class="card action-card border-0 shadow-sm h-100">
-                                        <div class="card-body text-center">
-                                            <div class="mb-3">
-                                                <i class="fas fa-shield-alt fa-4x {{ $user->hasTwoFactorEnabled() ? 'text-success' : 'text-danger' }}"></i>
-                                            </div>
-                                            <h5>Double Authentification</h5>
-                                            <p class="text-muted mb-3">Statut actuel :
-                                                <span class="badge {{ $user->hasTwoFactorEnabled() ? 'bg-success' : 'bg-danger' }} badge-lg">
-                                                    {{ $user->hasTwoFactorEnabled() ? 'Activée' : 'Désactivée' }}
-                                                </span>
-                                            </p>
-                                            <a href="{{ route('two-factor.index') }}" class="btn {{ $user->hasTwoFactorEnabled() ? 'btn-info' : 'btn-primary' }}">
-                                                <i class="fas {{ $user->hasTwoFactorEnabled() ? 'fa-cog' : 'fa-shield-alt' }} me-2"></i>
-                                                {{ $user->hasTwoFactorEnabled() ? 'Gérer la 2FA' : 'Activer la 2FA' }}
-                                            </a>
+                        {{-- Sécurité --}}
+                        <div class="tab-pane fade" id="tab-security" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="sec-tile">
+                                        <div class="sec-icon-wrap {{ $user->hasTwoFactorEnabled() ? '' : '' }}"
+                                             style="background:{{ $user->hasTwoFactorEnabled() ? '#e8f5ee' : '#fff3e0' }};">
+                                            <i class="fas fa-shield-alt"
+                                               style="color:{{ $user->hasTwoFactorEnabled() ? '#009A44' : '#e65100' }};"></i>
                                         </div>
+                                        <h6 class="fw-bold mb-1">Double Authentification</h6>
+                                        <p class="text-muted small mb-3">
+                                            Statut :
+                                            <span class="badge-soft {{ $user->hasTwoFactorEnabled() ? 'badge-2fa-on' : 'badge-2fa-off' }}">
+                                                {{ $user->hasTwoFactorEnabled() ? 'Activée' : 'Non activée' }}
+                                            </span>
+                                        </p>
+                                        <a href="{{ route('two-factor.index') }}"
+                                           class="btn btn-sm {{ $user->hasTwoFactorEnabled() ? 'btn-outline-success' : 'btn-outline-primary' }}">
+                                            <i class="fas {{ $user->hasTwoFactorEnabled() ? 'fa-cog' : 'fa-shield-alt' }} me-1"></i>
+                                            {{ $user->hasTwoFactorEnabled() ? 'Gérer la 2FA' : 'Activer la 2FA' }}
+                                        </a>
                                     </div>
                                 </div>
-                                <div class="col-md-6 mb-4">
-                                    <div class="card action-card border-0 shadow-sm h-100">
-                                        <div class="card-body text-center">
-                                            <div class="mb-3">
-                                                <i class="fas fa-key fa-4x text-warning"></i>
-                                            </div>
-                                            <h5>Mot de passe</h5>
-                                            <p class="text-muted mb-3">Dernière modification :<br>{{ $user->updated_at->format('d/m/Y') }}</p>
-                                            <a href="{{ route('utilisateur.change-password', $user->code_user) }}" class="btn btn-warning">
-                                                <i class="fas fa-edit me-2"></i>Modifier le mot de passe
-                                            </a>
+                                <div class="col-md-6">
+                                    <div class="sec-tile">
+                                        <div class="sec-icon-wrap" style="background:#fff8e1;">
+                                            <i class="fas fa-lock" style="color:#f59e0b;"></i>
                                         </div>
+                                        <h6 class="fw-bold mb-1">Mot de passe</h6>
+                                        <p class="text-muted small mb-3">
+                                            Dernière modification :<br>
+                                            <strong>{{ $user->updated_at->format('d/m/Y') }}</strong>
+                                        </p>
+                                        <a href="{{ route('utilisateur.change-password', $user->code_user) }}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-edit me-1"></i>Modifier le mot de passe
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Onglet Activité -->
-                        <div class="tab-pane fade" id="profile-activity" role="tabpanel">
-                            <h5 class="text-primary mb-4"><i class="fas fa-history me-2"></i>Activité Récente</h5>
-                            <div class="timeline">
-                                <div class="timeline-item">
-                                    <div class="timeline-marker bg-primary"></div>
-                                    <div class="timeline-content">
-                                        <h6><i class="fas fa-user-plus text-primary me-2"></i>Compte créé</h6>
-                                        <p class="text-muted mb-0">{{ $user->created_at->format('d/m/Y à H:i') }}</p>
-                                    </div>
+                        {{-- Activité --}}
+                        <div class="tab-pane fade" id="tab-activity" role="tabpanel">
+                            <div class="activity-item">
+                                <div class="activity-dot green"><i class="fas fa-user-plus"></i></div>
+                                <div>
+                                    <div class="fw-semibold small">Compte créé</div>
+                                    <div class="text-muted" style="font-size:.8rem;">{{ $user->created_at->format('d/m/Y à H:i') }}</div>
                                 </div>
-                                <div class="timeline-item">
-                                    <div class="timeline-marker bg-success"></div>
-                                    <div class="timeline-content">
-                                        <h6><i class="fas fa-sign-in-alt text-success me-2"></i>Dernière connexion</h6>
-                                        <p class="text-muted mb-0">{{ $user->updated_at->format('d/m/Y à H:i') }}</p>
-                                    </div>
-                                </div>
-                                @if($user->hasTwoFactorEnabled())
-                                <div class="timeline-item">
-                                    <div class="timeline-marker bg-info"></div>
-                                    <div class="timeline-content">
-                                        <h6><i class="fas fa-shield-alt text-info me-2"></i>2FA activée</h6>
-                                        <p class="text-muted mb-0">Double authentification activée le {{ $user->two_factor_verified_at ? $user->two_factor_verified_at->format('d/m/Y à H:i') : 'Récemment' }}</p>
-                                    </div>
-                                </div>
-                                @endif
                             </div>
+                            <div class="activity-item">
+                                <div class="activity-dot blue"><i class="fas fa-sign-in-alt"></i></div>
+                                <div>
+                                    <div class="fw-semibold small">Dernière modification</div>
+                                    <div class="text-muted" style="font-size:.8rem;">{{ $user->updated_at->format('d/m/Y à H:i') }}</div>
+                                </div>
+                            </div>
+                            @if($user->hasTwoFactorEnabled())
+                            <div class="activity-item">
+                                <div class="activity-dot teal"><i class="fas fa-shield-alt"></i></div>
+                                <div>
+                                    <div class="fw-semibold small">2FA activée</div>
+                                    <div class="text-muted" style="font-size:.8rem;">
+                                        {{ $user->two_factor_verified_at ? $user->two_factor_verified_at->format('d/m/Y à H:i') : 'Récemment' }}
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 @endsection
 
 @section('scripts')
 <script>
-// Flash alert function
+// Prévisualisation de la signature avant upload
+document.getElementById('sig-input')?.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    const preview    = document.getElementById('sig-preview');
+    const placeholder = document.getElementById('sig-placeholder');
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        preview.src = e.target.result;
+        preview.classList.remove('d-none');
+        if (placeholder) placeholder.classList.add('d-none');
+    };
+    reader.readAsDataURL(file);
+});
+
 function flashAlert(type, message) {
-    const alertClass = type === 'success' ? 'alert-success' :
-                      type === 'error' ? 'alert-danger' :
-                      type === 'warning' ? 'alert-warning' : 'alert-info';
-    const icon = type === 'success' ? 'fa-check-circle' :
-                 type === 'error' ? 'fa-exclamation-circle' :
-                 type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show position-fixed"
-             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-            <i class="fas ${icon}"></i> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', alertHtml);
-
-    setTimeout(() => {
-        const alert = document.querySelector('.alert:last-of-type');
-        if (alert) {
-            alert.remove();
-        }
-    }, 3000);
+    const cls  = {success:'alert-success', error:'alert-danger', warning:'alert-warning', info:'alert-info'};
+    const icon = {success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle'};
+    const html = `<div class="alert ${cls[type]||'alert-info'} alert-dismissible fade show position-fixed"
+                       style="top:20px;right:20px;z-index:9999;min-width:300px;">
+                      <i class="fas ${icon[type]||'fa-info-circle'}"></i> ${message}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    setTimeout(() => { const a = document.querySelector('.alert:last-of-type'); if(a) a.remove(); }, 3000);
 }
 </script>
 @endsection

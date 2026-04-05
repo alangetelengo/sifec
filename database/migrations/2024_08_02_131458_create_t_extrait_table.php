@@ -13,6 +13,7 @@ class CreateTExtraitTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_extrait', function (Blueprint $table) {
             $table->id();
             $table->string("numero_acte",16);

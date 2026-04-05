@@ -2,19 +2,20 @@
 
 namespace Modules\Referentiel\Entities;
 
-use App\Models\User;
+use App\Models\Appareil;
+use App\Models\InstitutionUser;
 use App\Models\Jugement;
 use App\Models\Requisition;
-use App\Models\InstitutionUser;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Mariage\Entities\DeclarationMariage;
-use Modules\Rectification\Entities\Rectification;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Naissance\Entities\Declarationnaissance;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Rectification\Entities\Rectification;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
 
 
@@ -517,5 +518,17 @@ class Institution extends Model
     public function getInstitutionsPompeFunebre()
     {
         return $this->where('code_pompe_funebre', $this->code_institution)->get();
+    }
+
+    //les appareils de l'institution
+    public function appareils()
+    {
+        return $this->hasMany(Appareil::class, 'code_institution', 'code_institution');
+    }
+
+    //retourne un appareil de l'institution par son adresse MAC
+    public function appareilParAdresseMac(string $adresseMac)
+    {
+        return $this->appareils->where('adresse_mac', $adresseMac)->first();
     }
 }

@@ -13,6 +13,7 @@ class RecreateActeMariageTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         // Supprimer la table existante
         Schema::dropIfExists('t_acte_mariage');
 

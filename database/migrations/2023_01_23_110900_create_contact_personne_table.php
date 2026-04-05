@@ -13,6 +13,7 @@ class CreateContactPersonneTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_contact_personne', function (Blueprint $table) {
             $table->id();
             $table->string("indicatif", 5)->nullable();

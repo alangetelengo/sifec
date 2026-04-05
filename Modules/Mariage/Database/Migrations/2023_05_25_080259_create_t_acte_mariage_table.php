@@ -13,6 +13,7 @@ class CreateTActeMariageTable extends Migration
      */
     public function up()
     {
+        Schema::disableForeignKeyConstraints();
         Schema::create('t_acte_mariage', function (Blueprint $table) {
             $table->string("code_acte_mariage",16);
             $table->primary("code_acte_mariage");

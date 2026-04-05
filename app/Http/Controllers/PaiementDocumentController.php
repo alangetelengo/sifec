@@ -90,7 +90,7 @@ class PaiementDocumentController extends Controller
         $telephoneInteresse = $request->telephone_interesse;
         $typedocument = $request->typedocument;
         $cui  = Auth::user()->affectationActive()->cui;
-        $acte = ActeNaissance::find($request->niupp);
+        $acte = ActeNaissance::findByIdentifier($request->niupp);
 
         try {
 

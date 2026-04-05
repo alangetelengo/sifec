@@ -22,14 +22,45 @@ class InstitutionSeeder extends Seeder
             return;
         }
 
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+        DB::statement('TRUNCATE tr_institution');
+
         $sql = file_get_contents($sqlFile);
 
+        // Normaliser les fins de ligne Windows → Unix
+        $sql = str_replace("\r\n", "\n", $sql);
+
         foreach (explode(";\n", $sql) as $statement) {
-            $stmt = trim($statement);
-            if ($stmt !== '' && !str_starts_with($stmt, '--')) {
+            // Supprimer les lignes de commentaires (-- ...) du fragment
+            $lines = array_filter(
+                explode("\n", $statement),
+                fn($line) => !str_starts_with(trim($line), '--')
+            );
+            $stmt = trim(implode("\n", $lines));
+
+            if ($stmt === '') {
+                continue;
+            }
+
+            $upper = strtoupper($stmt);
+
+            // Ignorer DDL et instructions FK
+            if (
+                str_starts_with($upper, 'CREATE')                 ||
+                str_starts_with($upper, 'DROP')                   ||
+                str_starts_with($upper, 'ALTER')                  ||
+                str_starts_with($upper, 'SET FOREIGN_KEY_CHECKS')
+            ) {
+                continue;
+            }
+
+            // N'exécuter que les INSERT et TRUNCATE
+            if (str_starts_with($upper, 'INSERT') || str_starts_with($upper, 'TRUNCATE')) {
                 DB::unprepared($stmt);
             }
         }
+
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
         $total = DB::table('tr_institution')->count();
         $this->command->info("tr_institution : {$total} institutions insérées.");
