@@ -11,40 +11,56 @@
     button#print{
         display: none;
     }
-    /* Empêcher le débordement des adresses longues (Domicilié au) */
-    .acte-contenu td {
+    .acte-corps-principal table td {
         word-wrap: break-word;
         overflow-wrap: break-word;
         word-break: break-word;
-        max-width: 650px;
     }
-    /* Nom d'institution long : forcer le retour à la ligne sans débordement */
-    .acte-contenu td.institution-officier {
+    table.acte-bi-colonne {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+    }
+    /* Bordure à droite de la marge : mieux rendue par Html2Pdf/TCPDF que border-left sur la 2e colonne */
+    table.acte-bi-colonne td.acte-marge {
+        width: 18%;
+        vertical-align: top;
+        font-size: 10px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        padding-right: 2mm;
+        border-right: 0.5mm solid #000000;
+    }
+    table.acte-bi-colonne td.acte-texte {
+        width: 82%;
+        vertical-align: top;
+        padding-left: 3mm;
+        font-size: 14px;
+        text-align: left;
+    }
+    /* Corps un peu plus compact : limite les sauts à 2 pages sur actes longs (pied en absolute) */
+    table.acte-bi-colonne td.acte-texte table td {
+        font-size: 13px;
+        line-height: 1.2;
+    }
+    table.acte-bi-colonne td.acte-texte b {
+        font-size: 13px;
+    }
+    td.acte-ligne-institution {
         overflow-wrap: anywhere;
-        word-break: break-word;
-        max-width: 100%;
-    }
-    /* Zone signature : dans le bloc acte (position absolute bottom) — voir styles inline */
-    .zone-signature-acte {
-        min-height: 52mm;
-        page-break-inside: avoid;
+        word-wrap: break-word;
+        word-break: normal;
     }
 </style>
-  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 14px">
+  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="22mm" style="font-size: 14px">
     @php
     $infos = "";
+    // Tribunal : t_declaration_naissance → réquisition/jugement (code_* ou code_declaration) → tr_institution
     $tribunal = null;
     try {
-        // Vérifier si la relation tribunal existe et est accessible
-        $institution = $acte->declaration->institutionUser->institution ?? null;
-        if ($institution && method_exists($institution, 'tribunal')) {
-            $tribunal = $institution->tribunal;
-            if ($tribunal != null && isset($tribunal->lib_tribunal)) {
-                $tribunal = $tribunal->lib_tribunal;
-            }
-        }
-    } catch (\Exception $e) {
-        // Si la relation n'existe pas, on continue avec $tribunal = null
+        $tribunal = $acte->declaration->libInstitutionTribunalPourMentionActe();
+    } catch (\Throwable $e) {
         $tribunal = null;
     }
 
@@ -57,109 +73,66 @@
         }
     }
 
-    // Numéro de réquisition : priorité à requisition.num_requisition, sinon declaration.numero_req
-    $numeroRequisition = optional($acte->declaration->requisition)->num_requisition ?? $acte->declaration->numero_req ?? '';
-    $anneeRequisition = optional($acte->declaration->requisition)->date_requisition
-        ? date("Y", strtotime($acte->declaration->requisition->date_requisition))
-        : date("Y", strtotime($acte->declaration->date_heure_declaration));
-
     if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$numeroRequisition.($numeroRequisition ? '/'.$anneeRequisition : '')." ".$num;
+        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
     }
 
     if($acte->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
-        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$numeroRequisition.($numeroRequisition ? '/'.$anneeRequisition : '')." ".$num;
+        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
     }
 
     if($acte->declaration->type_declaration == "CERTIFICAT DE TRANSCRIPTION"){
-        $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION N° '.$numeroRequisition.($numeroRequisition ? '/'.$anneeRequisition : '')." ".$num;
-    }
-
-    if($acte->declaration->type_declaration == "FICHE DE TRANSCRIPTION"){
-        $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION N° '.$numeroRequisition.($numeroRequisition ? '/'.$anneeRequisition : '')." ".$num;
-    }
-
-    if($acte->declaration->personne_declaree == "Enfant abandonné"){
-        $infos = 'E.A';
-    }
-
-    if($acte->declaration->personne_declaree == "Enfant trouvé"){
-        $infos = 'E.T';
+        $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
     }
 
 
-        $mentionAuDessusDuSceau = $infos !== ''
-            && (int) $acte->approbation_tribunal === 1
-            && filled($acte->sceau_tribunal);
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
         <tr>
-            <td style="width:40%; text-align: left; vertical-align: middle;">
+            <td style="width:40%; text-align: center;">
                 @php
                    setlocale(LC_TIME, "fr_FR", "French");
 
                     $institution = $acte->institutionUser->institution;
-                    $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-                    $departement = $localisationData['localiteParent'];
-                    $communeDistrict = $localisationData['localite'];
-                    $localisation = $localisationData['localisation'];
+                    $departement = $institution->lieu->localiteParent->localiteParent;
+                    $communeDistrict = $institution->lieu->localiteParent;
                 @endphp
                 @if(Auth::user() != null && Auth::user()->affectationactive()->institution->typeInstitution->code_type_institution != "TPINS_0005")
                 <p>
                     <span>
-                    {{ $departement }}
+                    {{ "DEPARTEMENT DE ".$departement->lib_localite }}
                     <br>
-                        {{ $communeDistrict }}
+                        {{ "COMMUNE DE ".$communeDistrict->lib_localite }}
                     </span> <br>
-                    <span><strong>{{ $localisationData['inst'] }}</strong></span>
+                    <span><strong>{{ $institution->lib_institution }}</strong></span>
                 </p>
                 @else
                 <p>
                     <span>
-                        {{ $departement }}
-                        <br>
-                            {{ $communeDistrict }}
-                        </span> <br>
-                    <span>
                         <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
                     </span> <br>
-                    {{-- <span>Service Consulaire</span> <br> --}}
+                    <span>Service Consulaire</span> <br>
                 </p>
                 @endif
-                {{-- Mention reconstitution / transcription : au-dessus du sceau (colonne centre) si sceau présent ; sinon ici --}}
-                @if($infos != "" && ! $mentionAuDessusDuSceau)
-                <p style="color: red; margin-top: 4px;">{{ $infos }}</p>
-                @endif
             </td>
-            <td style="width:25%; text-align: center; vertical-align: middle;">
-                @if ($mentionAuDessusDuSceau)
-                    <p style="color: #c00; font-size: 7.5pt; line-height: 1.2; text-align: center; margin: 0 0 4px 0; font-weight: bold; max-width: 48mm; margin-left: auto; margin-right: auto;">
-                        {{ $infos }}
-                    </p>
-                @endif
-                @if ($acte->approbation_tribunal == 1 && $acte->sceau_tribunal)
-                    <img src='{{ public_path('app/'.$acte->sceau_tribunal) }}' alt="" width="100" height="100" style="display: block; margin: 0 auto;">
-                @endif
+            <td style="width:34%; text-align: center;">
+                <p style="color: red">{{ $infos != "" ? $infos : "" }}</p>
             </td>
-            <td style="width:35%; text-align: right; vertical-align: middle;">
-                <p style="margin: 0;">
-                    <strong>REPUBLIQUE DU CONGO</strong><br>
-                    Unit&eacute; - Travail - Progr&egrave;s
-                </p>
+            <td style="width:33%; text-align: center;">
+                <strong>REPUBLIQUE DU CONGO</strong><br>
+                Unit&eacute; - Travail - Progr&egrave;s
             </td>
         </tr>
   </table><br><br>
-    @if(! filled($acte->niupp))
-    <p style="text-align:center;color:#b91c1c;font-size:11px;margin:0 0 8px 0;">
-        <strong>APERÇU</strong> — Le numéro définitif (NIUPP) et le QR de vérification seront apposés après signature par l&rsquo;officier d&rsquo;&eacute;tat civil.
-    </p>
-    @endif
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
+                @if ((int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
+                    <img src="{{ public_path('app/'.$acte->sceau_tribunal) }}" alt="" width="100" height="100" style="display: block; margin: 0 auto 3mm auto;">
+                @endif
                 <p><strong style="font-size: 18px;">ACTE DE NAISSANCE</strong>
                     {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
-                    <br>N°: <strong style="color: red">{{ filled($acte->niupp) ? $acte->niupp : '— EN ATTENTE DE SIGNATURE —' }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong></p>
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -167,64 +140,55 @@
 
         </tr><br>
     </table>
-    @php
-        $hasMentionsMarginales = ($mariage != null)
-            || ($declarationDeces != null)
-            || ($acte->declaration->jugement != null)
-            || (isset($acte->rectifications) && $acte->rectifications->count() > 0);
-        /*
-         * Bloc central : mentions + texte d'acte sont en position absolute → le conteneur n'a pas de
-         * hauteur en flux. Un pied en position:absolute;bottom:0 se calait alors trop haut et le QR
-         * chevauchait le texte. On impose une hauteur min. dès qu'il y a mentions marginales ou mention
-         * d'en-tête (reconstitution, transcription, etc.).
-         */
-        $blocActeMinHeightStyle = '';
-        if ($hasMentionsMarginales) {
-            $blocActeMinHeightStyle = 'min-height: 200mm;';
-        }
-        if (filled($infos)) {
-            $blocActeMinHeightStyle = 'min-height: 220mm;';
-        }
-        // Pied QR + signatures : ancré au bas du même conteneur (évite remontée au milieu du texte en flux)
-        $sigZonePosStyle = $hasMentionsMarginales
-            ? 'position: absolute; z-index: 2; bottom: 4mm; left: 148px; right: 0;'
-            : 'position: absolute; z-index: 2; bottom: 4mm; left: 0; right: 0;';
-    @endphp
-    <div style="margin-top: 60px;margin-left: 6%;margin-right: 6%;border-radius: 2mm; position: relative; {{ $blocActeMinHeightStyle }}">
-        @if($hasMentionsMarginales)
-        @php
-            $wrapMention = fn($t, $w = 22) => nl2br(e(wordwrap((string)($t ?? ''), $w, "\n", true)));
-        @endphp
-        <div style="position: absolute; left: 0; top: 60px; width: 140px; min-height: 400px; text-align: left; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word;">
-            <p style="text-align: center; margin: 0 0 4px 0; line-height: 1.2;"><strong>Marge réservée aux mentions d'officier ({{ $nombreMentions ?? 0 }})</strong></p>
+    {{-- Bi-colonne en flux (pas en position:absolute) : évite le chevauchement avec le sceau / titre sous Html2Pdf --}}
+    <div style="margin-top: 5mm; margin-left: 5%; margin-right: 5%;">
+        <table class="acte-bi-colonne" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="acte-marge" style="text-align: center; border-right: 0.5mm solid #000;">
+            <p style="margin: 0 0 4px 0; line-height: 1.2;"><strong>Marge réservée aux mentions <br> d'officier ({{ $nombreMentions ?? 0 }})</strong></p>
 
             @if ($mariage != null)
                 <small>Marié(e) le: <br> {{ date("d-m-Y", strtotime($mariage->date_prevue_mariage))}}</small><br>
                 @if ($mariage->acte != NULL)
                     @php
+                        $inst = "";
                         $institution = $acte->institutionUser->institution;
-                        $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-                        $inst = $localisationData['inst'];
+
+                        if ($institution->code_arrondissement != NULL) {
+                            $inst = $institution->lib_institution;
+                        }
+
+                        if ($institution->code_commune != NULL) {
+                            $inst = "COMMUNE DE ".$institution->commune->lib_commune;
+                        }
+
+                        if ($institution->code_communaute_urbaine != NULL) {
+                            $inst = $institution->lib_institution;
+                        }
+
+                        if ($institution->code_district != NULL) {
+                            $inst = $institution->lib_institution;
+                        }
                     @endphp
-                    <small>A : LA {!! $wrapMention($inst) !!}</small><br>
+                    <small>A : LA {{$inst}}</small><br>
                     <small>N° acte de mariage : {{$mariage->acte->code_acte_mariage}}</small>
-                    <small>{!! $wrapMention($acte->declaration->enfant->sexe=="M" ? "Epouse: ".\App\Sifec\Sifec::formatNomPrenomPourActe(optional($mariage->acte->declaration->epouse)->nom, optional($mariage->acte->declaration->epouse)->prenom) : "Epoux: ".\App\Sifec\Sifec::formatNomPrenomPourActe(optional($mariage->acte->declaration->epoux)->nom, optional($mariage->acte->declaration->epoux)->prenom)) !!}</small>
+                    <small>{{ $acte->declaration->enfant->sexe=="M" ? "Epouse: ".\App\Sifec\Sifec::formatNomPrenomPourActe(optional($mariage->acte->declaration->epouse)->nom, optional($mariage->acte->declaration->epouse)->prenom) : "Epoux: ".\App\Sifec\Sifec::formatNomPrenomPourActe(optional($mariage->acte->declaration->epoux)->nom, optional($mariage->acte->declaration->epoux)->prenom) }}</small>
                 @endif
             @endif
 
             @if ($declarationDeces != NULL)
                 <small>Décédé le: <br> {{utf8_encode(strftime("%d %B %Y", strtotime($declarationDeces->date_heure_deces)))." à ".date("H:i", strtotime($declarationDeces->date_heure_deces))}} minute(s)</small><br>
-                <small>A : {!! $wrapMention($declarationDeces->lieu_deces) !!}</small><br>
+                <small>A : {{$declarationDeces->lieu_deces}}</small><br>
                 @if ($declarationDeces->acte != NULL)
                 <small>N° acte de décès : {{$declarationDeces->acte->code_acte_deces}}</small>
                 @endif
             @endif
            @if($acte->declaration->jugement != null)
                 @if($acte->declaration->adoptant != "")
-                <small>{{ $acte->declaration->enfant->sexe == "M" ? "Adopté" : "Adoptée" }} par <strong>{!! $wrapMention(\App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->adoptant->nom, $acte->declaration->adoptant->prenom)) !!}</strong></small><br>
+                <small>{{ $acte->declaration->enfant->sexe == "M" ? "Adopté" : "Adoptée" }} par <strong>{{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->adoptant->nom, $acte->declaration->adoptant->prenom) }}</strong></small><br>
                 <small>Jugement N&deg; : <strong> {{ $acte->declaration->jugement->num_jugement }}</strong> </small>
                 <small>du : <strong>{{ date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)) }}</strong> </small>
-                <small>au : <strong>{!! $wrapMention(optional($acte->declaration->jugement->institutionUser->institution->institutionParent)->lib_institution) !!}</strong></small> <br>
+                <small>au : <strong>{{ $acte->declaration->jugement->institutionUser->institution->institutionParent->lib_institution }}</strong></small> <br>
                 @if($acte->declaration->type_adoption == "adoption pleniere")
                     <small>N&deg; ancien acte de naissance  <strong>{{ $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
                 @endif
@@ -233,49 +197,42 @@
                     {{-- <small>{{ $acte->declaration->enfant->sexe == "M" ? "Adopté" : "Adoptée" }} par <strong>{{ $acte->declaration->adoptant->nomcomplet() }}</strong></small><br> --}}
                     <small>{{ $acte->declaration->jugement->type_jugement }} N&deg;: <strong> {{ $acte->declaration->jugement->num_jugement }}</strong> </small>
                     <small><br>du : <strong>{{ date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)) }}</strong> </small>
-                    <small><br>au : <strong>{!! $wrapMention(optional($acte->declaration->jugement->institutionUser->institution->institutionParent)->lib_institution) !!}</strong></small> <br>
+                    <small><br>au : <strong>{{ $acte->declaration->jugement->institutionUser->institution->institutionParent->lib_institution }}</strong></small> <br>
                     @if($acte->declaration->jugement->type_jugement == "JUGEMENT D'HOMOLOGATION")
                     <small>N&deg; ancien acte de naissance  <strong>{{ $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
                     @endif
                 @endif
            @endif
-          {{-- Récupérer les rectifications de l'acte avec leurs détails (mention marginale) --}}
+          {{-- recuperer les rectification de l'acte avec ses détails--}}
             @if (isset($acte->rectifications) && $acte->rectifications->count() > 0)
-                @foreach ($acte->rectifications as $rectification)
-                    <small>Suivant la décision émanant du <strong>{!! $wrapMention(optional($rectification->institutionUser->institution->institutionParent)->lib_institution) !!}</strong>
-                        en date du <strong>{{ date("d-m-Y", strtotime($rectification->updated_at)) }}</strong>, sous le
-                        N&deg;: <strong>{{ $rectification->numero_rectification }}</strong>, l'acte ci-contre est rectifié en ce sens que :
-                    </small>
-                    @if ($rectification->detailsRectification->count() > 0)
-                        @foreach ($rectification->detailsRectification as $index => $detail)
-                            <small>
-                                @if ($index > 0)<br>@endif
-                                le <strong>{!! $wrapMention(optional($detail->rubrique)->lib_rubrique) !!}</strong> du titulaire est
-                                <strong>{!! $wrapMention($detail->nouvelle_valeur) !!}</strong> au lieu de <strong>{!! $wrapMention($detail->ancienne_valeur) !!}</strong>.
-                            </small>
-                        @endforeach
-                        <br>
-                    @endif
-                @endforeach
+                @if ($acte->rectifications->count() > 0)
+
+                    @foreach ($acte->rectifications as $rectification)
+                        <small>Suivant le jugement émanant du <strong>{{  $rectification->institutionUser->institution->institutionParent->lib_institution  }}</strong>
+                            en date du <strong>{{ date("d-m-Y", strtotime($rectification->updated_at)) }}</strong>, sous le
+                            N&deg;: <strong>{{ $rectification->numero_rectification }}</strong>, l"acte ci-contre est réctifié en ce sens
+                            que,
+                        </small>
+                        @if ($rectification->detailsRectification->count() > 0)
+
+                            @foreach ($rectification->detailsRectification as $detail)
+                                <small>le <strong>{{ $detail->rubrique->lib_rubrique }}</strong> du titulaire est</small>
+                                <small><strong>{{ $detail->nouvelle_valeur }}</strong> au lieu de <strong>{{ $detail->ancienne_valeur }}</strong></small><br>
+                            @endforeach
+                        @endif
+                    @endforeach
+                @endif
             @endif
-        </div>
-        @endif
-        @php
-            $fmt = fn($t, $w = 55) => $hasMentionsMarginales ? nl2br(e(wordwrap((string)($t ?? ''), $w, "\n", true))) : e($t ?? '');
-            $personneDecl = filled(optional($acte->declaration)->code_adoptant) && $acte->declaration->adoptant
-                ? $acte->declaration->adoptant
-                : $acte->declaration->declarant;
-            $ligneDeclarant = $personneDecl
-                ? \App\Sifec\Sifec::formatNomPrenomPourActe($personneDecl->nom ?? '', $personneDecl->prenom ?? '')
-                : '';
-        @endphp
-        <div style="{{ $hasMentionsMarginales ? 'position: absolute; left: 150px; top: 60px; width: 700px; min-height: 500px; border-left: 1px solid black;' : 'position: relative; width: 100%; min-height: 500px;' }} padding: 0; overflow: visible; text-align: left; font-weight: normal; font-size:14px;">
-            <table class="acte-contenu" align="left" style="margin-left: 2%; border-radius: 1mm; border: none; table-layout: fixed; width: 96%;">
+                </td>
+                <td class="acte-texte acte-corps-principal">
+            <table align="left" style="width: 100%; border-radius: 1mm; border: none; table-layout: fixed;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td class="institution-officier">L'Officier du centre d'état civil principal de: <strong>{!! $fmt(optional($acte->institutionUser->institution)->lib_institution ?? '', 35) !!}</strong></td>
+                    <td class="acte-ligne-institution">L'Officier du centre d'état civil principal de: <strong>{!! Sifec::wrapLibInstitutionPourActePdf($acte->institutionUser->institution->lib_institution ?? null, 30) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Est informé le <strong>{!! $fmt(Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration))).' '.Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))).' '.Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))).' à '.Sifec::asLetters((int)date("H", strtotime($acte->declaration->date_heure_declaration))).' heure(s) '.Sifec::asLetters((int)date("i", strtotime($acte->declaration->date_heure_declaration))).' minutes') !!}</strong>
+                    <td>Est informé le: <br> <strong>
+
+                        {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong>
 
                     </td>
                 </tr>
@@ -283,54 +240,53 @@
                     <td>Est né(e), un enfant de sexe: <strong>{{ $acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {!! $fmt(Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance))).' '.Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))).' '.Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance)))) !!}</strong> à
-
-                        <strong> {{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong>
-                    </td>
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong> à </td>
                 </tr>
-                {{-- <tr style="width:100%; text-align: left;">
-                    <td style=""> <strong> {{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
-                </tr> --}}
                 <tr style="width:100%; text-align: left;">
-                    <td>A: <strong>{!! $fmt($acte->declaration->enfant->lieu_naissance) !!}</strong></td>
+                    <td style=""> <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
+                </tr>
+                <tr style="width:100%; text-align: left;">
+                    <td>A: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }}
                        <span style="color: red;">
-
-
-
                          @php
-                         $nomEnfant = $acte->declaration->enfant->nom ?? '';
-                         $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
-                         // Appliquer toutes les rectifications de la dernière fiche (nom/prénom et autres champs enfant)
-                         if ($acte->lastRectification && $acte->lastRectification->detailsRectification->count() > 0) {
-                             foreach ($acte->lastRectification->detailsRectification as $d) {
-                                 if ($d->code_rubrique === 'RUB_0001') {
-                                     $nomEnfant = $d->nouvelle_valeur ?? $nomEnfant;
-                                 }
-                                 if ($d->code_rubrique === 'RUB_0002') {
-                                     $prenomEnfant = $d->nouvelle_valeur ?? $prenomEnfant;
-                                 }
-                             }
-                         }
-                         $prenomEnfant = \App\Sifec\Sifec::formatPrenomPourActe($prenomEnfant);
+                         $nomEnfant = "";
+                         $prenomEnfant = "";
                          @endphp
+                        {{-- Si l'acte a une dernière rectification, on prend les valeurs de la dernière rectification --}}
+                        {{-- Sinon, on prend les valeurs de la déclaration --}}
+                        @if($acte->lastRectification)
 
-
-                        @if($acte->declaration->personne_declaree == "Enfant trouvé")
-                            {!! $fmt(trim($prenomEnfant)) !!}
+                            @if($acte->lastRectification->detailsRectification->last()->code_rubrique == "RUB_0001")
+                            @php
+                                $nomEnfant = $acte->lastRectification->detailsRectification->last()->nouvelle_valeur;
+                            @endphp
+                            @endif
+                            @if($acte->lastRectification->detailsRectification->last()->code_rubrique == "RUB_0002")
+                            @php
+                                $prenomEnfant = $acte->lastRectification->detailsRectification->last()->nouvelle_valeur;
+                            @endphp
+                            @endif
                         @else
-                            {!! $fmt(trim($nomEnfant.' '.$prenomEnfant)) !!}
+                            @php
+                                $nomEnfant = $acte->declaration->enfant->nom;
+                                $prenomEnfant = $acte->declaration->enfant->prenom;
+                            @endphp
                         @endif
+                        {{ \App\Sifec\Sifec::formatNomPrenomPourActe($nomEnfant, $prenomEnfant) }}
                         </span></strong>
                     </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Situation matrimoniale des parents: <strong>{!! $fmt($acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy) !!}</strong></td>
+                    <td>Déclaré par: <strong>{{ $acte->declaration->adoptant != "" ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->adoptant->nom, $acte->declaration->adoptant->prenom) : \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->declarant->nom, $acte->declaration->declarant->prenom) }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {!! $fmt($acte->declaration->pere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->pere->nom, $acte->declaration->pere->prenom) : $dummy) !!}</strong></td>
+                    <td>Situation matrimoniale des parents: <strong>{{ $acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy }}</strong></td>
+                </tr>
+                <tr style="width:100%; text-align: left;">
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {{ $acte->declaration->pere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->pere->nom, $acte->declaration->pere->prenom) : $dummy}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Né le : <strong>
@@ -340,22 +296,22 @@
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>A : <strong>{!! $fmt(optional($acte->declaration->pere)->lieu_naissance) !!}</strong></td>
+                    <td>A : <strong>{{ $acte->declaration->pere->lieu_naissance }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Nationalité: <strong>{!! $fmt(optional(optional($acte->declaration->pere)->nationalite)->lib_nationalite ?? $dummy) !!}</strong></td>
+                    <td>Nationalité: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->nationalite->lib_nationalite : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Niveau d'instruction: <strong>{!! $fmt(optional($acte->declaration->pere)->niveau_instruction ?? $dummy) !!}</strong></td>
+                    <td>Niveau d'instruction: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->niveau_instruction : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Domicilié au : <strong>{!! $fmt(optional($acte->declaration->pere)->adresse) !!}</strong></td>
+                    <td>Domicilié au : <strong>{{ $acte->declaration->pere->adresse }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Proféssion: <strong>{!! $fmt(optional(optional($acte->declaration->pere)->profession)->lib_profession ?? $dummy) !!}</strong></td>
+                    <td>Proféssion: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->profession->lib_profession : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Et de :<strong> {!! $fmt($acte->declaration->mere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->mere->nom, $acte->declaration->mere->prenom) : $dummy) !!}</strong></td>
+                    <td>Et de :<strong> {{ $acte->declaration->mere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->mere->nom, $acte->declaration->mere->prenom) : $dummy}}</strong></td>
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
@@ -366,34 +322,35 @@
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>A : <strong>{!! $fmt(optional($acte->declaration->mere)->lieu_naissance) !!}</strong></td>
+                    <td>A : <strong>{{ $acte->declaration->mere->lieu_naissance }}</strong></td>
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
-                    <td>Nationalité: <strong>{!! $fmt(optional(optional($acte->declaration->mere)->nationalite)->lib_nationalite ?? $dummy) !!}</strong></td>
+                    <td>Nationalité: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->nationalite->lib_nationalite : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Niveau d'instruction: <strong>{!! $fmt(optional($acte->declaration->mere)->niveau_instruction ?? $dummy) !!}</strong></td>
+                    <td>Niveau d'instruction: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->niveau_instruction : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Domicilié au : <strong>{!! $fmt(optional($acte->declaration->mere)->adresse) !!}</strong></td>
+                    <td>Domicilié au : <strong>{{ $acte->declaration->mere->adresse }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Proféssion: <strong>{!! $fmt(optional(optional($acte->declaration->mere)->profession)->lib_profession ?? $dummy) !!}</strong></td>
+                    <td>Proféssion: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->profession->lib_profession : $dummy }}</strong></td>
                 </tr>
                 @if($acte->declaration->type_declarant == "Personne physique")
                 <tr style="width:100%; text-align: left;">
                     <td>Nombre d'enfant nés vivant y compris celui-ci : <strong>{{ (int)$acte->declaration->nombre_enfant }}</strong></td>
                 </tr>
                 @endif
-                <tr style="width:100%; text-align: left;">
-                    <td>Déclaré par: <strong>{!! $fmt($ligneDeclarant) !!}</strong></td>
-                </tr>
             </table>
-        </div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-        <div class="zone-signature-acte" style="{{ $sigZonePosStyle }}">
-        <table class="historique" cellspacing="0" style="width: {{ $hasMentionsMarginales ? '100%' : '95%' }}; font-size: 14px;">
+    {{-- Pied hors flux : bottom:0 uniquement (valeur négative → débordement Html2Pdf et retour à 2 pages) --}}
+    <div style="position:absolute; bottom:0; margin-left:10px;">
+        <table class="historique" cellspacing="0" style="width: 95%; font-size: 14px;">
             <col style="width: 35%">
             <col style="width: 25%">
             <col style="width: 40%">
@@ -407,39 +364,28 @@
             <tbody>
                 <tr>
                     <td style="text-align: center;">Le déclarant</td>
-                    <td style="text-align: left; vertical-align: top;">
-                         @if($acte->approbation_mairie != "" && filled($acte->niupp))
+                    <td style="text-align: left;">
+                         @if($acte->approbation_mairie != "")
                          <div style="margin-bottom:0;">
-                             @php
-                                 $acteVerificationUrl = \Illuminate\Support\Facades\URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
-                             @endphp
-                             <div style="width: 30mm;">
-                                 <qrcode value="{{ $acteVerificationUrl }}" ec="H" style="width: 100%;"></qrcode>
-                             </div>
+                             @isset($qrCode)
+                                <div style="width: 30mm;">
+                                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                                </div>
+                             @endisset
                          </div>
-                         @else
-                         {{-- Réserve d'espace identique pour pagination cohérente (avec ou sans signature) --}}
-                         <div style="width: 30mm; height: 30mm;"></div>
                          @endif
+
+                        {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
-                    <td style="text-align: left; vertical-align: top;">
-                     @php
-                         $datePourActe = $acte->date_emission
-                             ?? optional($acte->declaration)->date_heure_declaration
-                             ?? now();
-                     @endphp
-                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower($localisation)) }}, le {{ utf8_encode(strftime('%d %B %Y', strtotime($datePourActe))) }}<br>L'officier de l'état civil</p>
+                    <td style="text-align: left;">
+                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
                          @if ($acte->approbation_mairie != "")
                              <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
                              <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
-                         @else
-                         {{-- Réserve d'espace pour la signature (pagination cohérente) --}}
-                         <div style="height: 25mm;"></div>
                          @endif
                      </td>
                   </tr>
             </tbody>
         </table>
-        </div>
     </div>
 </page>

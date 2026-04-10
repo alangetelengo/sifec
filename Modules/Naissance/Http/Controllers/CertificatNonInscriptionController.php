@@ -143,7 +143,7 @@ class CertificatNonInscriptionController extends Controller
 
     public function show($id)
     {
-        $certificat = Declarationnaissance::findOrFail($id);
+        $certificat = Declarationnaissance::with(Declarationnaissance::relationsPourEagerLoadCertificatDetail())->findOrFail($id);
         return view('naissance::certificat-non-inscription.show', compact('certificat'));
     }
 

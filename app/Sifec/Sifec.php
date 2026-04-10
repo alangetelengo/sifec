@@ -163,11 +163,14 @@ class Sifec {
     }
 
     /**
-     * Nom + prénom sur acte : le nom est conservé tel qu'en base, le prénom est formaté (voir formatPrenomPourActe).
+     * Nom + prénom sur acte : nom entièrement en majuscules, prénom(s) en casse titre (voir formatPrenomPourActe).
      */
     public static function formatNomPrenomPourActe(?string $nom, ?string $prenom): string
     {
         $n = trim((string) ($nom ?? ''));
+        if ($n !== '') {
+            $n = function_exists('mb_strtoupper') ? mb_strtoupper($n, 'UTF-8') : strtoupper($n);
+        }
         $p = self::formatPrenomPourActe($prenom);
         if ($n === '' && $p === '') {
             return '';
@@ -180,6 +183,82 @@ class Sifec {
         }
 
         return $n.' '.$p;
+    }
+
+    /**
+     * Découpe un texte en lignes (UTF-8) selon une largeur max en caractères par ligne.
+     *
+     * @return list<string>
+     */
+    private static function splitTextToWrappedLines(string $text, int $maxCharsPerLine): array
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+        $lines = [];
+        $current = '';
+        $words = preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        foreach ($words as $word) {
+            $trial = $current === '' ? $word : $current.' '.$word;
+            if (mb_strlen($trial, 'UTF-8') <= $maxCharsPerLine) {
+                $current = $trial;
+
+                continue;
+            }
+            if ($current !== '') {
+                $lines[] = $current;
+            }
+            while (mb_strlen($word, 'UTF-8') > $maxCharsPerLine) {
+                $lines[] = mb_substr($word, 0, $maxCharsPerLine, 'UTF-8');
+                $word = mb_substr($word, $maxCharsPerLine, null, 'UTF-8');
+            }
+            $current = $word;
+        }
+        if ($current !== '') {
+            $lines[] = $current;
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Coupe un texte long en lignes pour acte PDF (Html2Pdf) : évite le débordement du bloc.
+     * Découpe par mots (UTF-8) ; un mot plus long que la limite est tronqué par segments.
+     * Retour prêt pour affichage Blade avec {!! ... !!} (entités HTML + <br>).
+     */
+    public static function wrapTextForActePdf(?string $text, int $maxCharsPerLine = 32): string
+    {
+        if ($text === null || trim($text) === '') {
+            return '';
+        }
+        $lines = self::splitTextToWrappedLines(trim($text), $maxCharsPerLine);
+
+        return nl2br(e(implode("\n", $lines)));
+    }
+
+    /**
+     * Libellé d'institution sur acte PDF : retour à la ligne après « ARRONDISSEMENT n » (ex. MAKELEKELE sur la ligne suivante),
+     * puis découpe supplémentaire si une ligne dépasse encore la largeur (colonne PDF plus étroite que le nombre de caractères).
+     */
+    public static function wrapLibInstitutionPourActePdf(?string $text, int $maxCharsPerLine = 30): string
+    {
+        if ($text === null || trim($text) === '') {
+            return '';
+        }
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+        if (preg_match('/ARRONDISSEMENT\s+\d+\s+\S/iu', $text)) {
+            $text = preg_replace('/(ARRONDISSEMENT\s+\d+)\s+/iu', '$1'."\n", $text, 1);
+        }
+        $blocks = preg_split('/\r\n|\r|\n/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $allLines = [];
+        foreach ($blocks as $block) {
+            $block = trim($block);
+            if ($block === '') {
+                continue;
+            }
+            $allLines = array_merge($allLines, self::splitTextToWrappedLines($block, $maxCharsPerLine));
+        }
+
+        return nl2br(e(implode("\n", $allLines)));
     }
 
     //Transcription date

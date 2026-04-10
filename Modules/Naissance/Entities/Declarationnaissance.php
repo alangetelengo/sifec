@@ -123,6 +123,99 @@ class Declarationnaissance extends Model
         return $this->hasOne(Requisition::class, 'code_declaration', 'code_declaration_naissance');
     }
 
+    /**
+     * Réquisition pointée par t_declaration_naissance.code_requisition (lien direct, souvent rempli sans code_declaration côté t_requisition).
+     */
+    public function requisitionParCode(): BelongsTo
+    {
+        return $this->belongsTo(Requisition::class, 'code_requisition', 'code_requisition');
+    }
+
+    /**
+     * Jugement pointé par t_declaration_naissance.code_jugement (lien direct).
+     */
+    public function jugementParCode(): BelongsTo
+    {
+        return $this->belongsTo(Jugement::class, 'code_jugement', 'code_jugement');
+    }
+
+    /**
+     * Libellé du tribunal (tr_institution) pour les mentions d’acte : réquisition puis jugement, par clé directe puis par code_declaration.
+     */
+    public function libInstitutionTribunalPourMentionActe(): ?string
+    {
+        $lib = static function ($institution): ?string {
+            $l = $institution?->lib_institution;
+
+            return ($l !== null && $l !== '') ? $l : null;
+        };
+
+        if ($v = $lib(optional($this->requisitionParCode)->institution)) {
+            return $v;
+        }
+        if ($v = $lib(optional($this->requisition)->institution)) {
+            return $v;
+        }
+        if ($v = $lib(optional($this->jugementParCode)->institution)) {
+            return $v;
+        }
+        if ($v = $lib(optional($this->jugement)->institution)) {
+            return $v;
+        }
+
+        return null;
+    }
+
+    /**
+     * Préfixer par "declaration." pour eager-load depuis ActeNaissance (ex. affichage PDF acte / copie / extrait).
+     *
+     * @return list<string>
+     */
+    public static function relationsPourEagerLoadTribunalMentionActe(): array
+    {
+        return [
+            'requisition.institution',
+            'requisitionParCode.institution',
+            'jugement.institution',
+            'jugementParCode.institution',
+        ];
+    }
+
+    /**
+     * Chaînes à passer à ActeNaissance::with() pour résoudre le tribunal (mention acte / copie / extrait).
+     *
+     * @return list<string>
+     */
+    public static function eagerLoadDeclarationTribunalMentionDepuisActeNaissance(): array
+    {
+        return array_map(
+            static fn (string $r) => 'declaration.'.$r,
+            self::relationsPourEagerLoadTribunalMentionActe()
+        );
+    }
+
+    /**
+     * Relations usuelles pour les vues détail certificat (évite N+1 sur tribunal + tableau de bord).
+     *
+     * @return list<string>
+     */
+    public static function relationsPourEagerLoadCertificatDetail(): array
+    {
+        return array_values(array_unique(array_merge(
+            self::relationsPourEagerLoadTribunalMentionActe(),
+            [
+                'institution.institutionParent',
+                'mouvements',
+                'declarant',
+                'pere',
+                'mere',
+                'enfant',
+                'lieuSurvenance',
+                'filiation',
+            ]
+        )));
+    }
+
     //institution appartement le document
     public function institution(): BelongsTo
     {

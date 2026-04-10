@@ -229,9 +229,20 @@
                             </td>
                             <td style="text-align: center;padding-top: 5px;">L'officier d'état civil <br>
 
-                                @if ($acte->approbation_mairie != null && $acte->signature_maire && file_exists(public_path("app/".$acte->signature_maire)))
-                                    <img src='{{ public_path('app/'.$acte->signature_maire) }}' width="100" height="100">
-                                    {{ $acte->signataire->user->personne->nomcomplet() }}
+                                {{-- Colonne BD : signature_maire (t_acte_mariage), pas signature_mairie. Même logique que naissance : public/app + chemin avec / pour Html2Pdf (Windows). --}}
+                                @if ($acte->approbation_mairie != null && filled($acte->signature_maire))
+                                    @php
+                                        $pathSigMariage = public_path('app/'.ltrim(trim((string) $acte->signature_maire), '/'));
+                                        $srcSigMariagePdf = (is_file($pathSigMariage) && is_readable($pathSigMariage))
+                                            ? str_replace('\\', '/', $pathSigMariage)
+                                            : '';
+                                    @endphp
+                                    @if ($srcSigMariagePdf !== '')
+                                        <img src="{{ $srcSigMariagePdf }}" width="100" height="100" alt="">
+                                    @endif
+                                    @if (optional(optional($acte->signataire)->user)->personne)
+                                        {{ $acte->signataire->user->personne->nomcomplet() }}
+                                    @endif
                                 @endif
                             </td>
                             <td>

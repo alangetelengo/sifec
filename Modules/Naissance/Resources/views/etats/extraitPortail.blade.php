@@ -15,7 +15,8 @@
 
    @php
    $infos = "";
-   $tribunal = $acte->declaration->institutionUser->institution->institutionParent->lib_institution;
+   $tribunal = $acte->declaration->libInstitutionTribunalPourMentionActe()
+       ?? optional($acte->declaration->institutionUser->institution->institutionParent)->lib_institution;
    setlocale(LC_TIME, "fr_FR", "French");
 
 

@@ -345,13 +345,18 @@ class ActeNaissanceController extends Controller
                 'declaration.declarant',
                 'declaration.adoptant',
                 'declaration.jugement.institutionUser.institution.institutionParent',
+                'declaration.jugement.institution',
                 'declaration.institutionUser.institution.institutionParent',
                 'declaration.institutionUser.institution.lieu.localiteParent',
                 'declaration.requisition.typeRequisition',
+                'declaration.requisition.institution',
+                'declaration.requisitionParCode.institution',
+                'declaration.jugementParCode.institution',
                 'declaration.institution.institutionParent',
                 'institutionUser.institution',
                 'institutionUser.institution.institutionParent.lieu.localiteParent',
                 'registre',
+                'signataire.user.personne',
             ])->where(function ($q) use ($id) {
                 $q->where('code_declaration_naissance', $id)
                     ->orWhere('niupp', $id)
@@ -505,7 +510,9 @@ class ActeNaissanceController extends Controller
     public function displayCopie($id)
     {
         try {
-            $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
+            $acte = ActeNaissance::with(Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance())
+                ->where("code_declaration_naissance", $id)
+                ->first();
             $dummy = "XXXXXXXXXXXXXXXX";
 
             if($acte == null){
@@ -1146,7 +1153,14 @@ class ActeNaissanceController extends Controller
     public function displayExtrait($id)
     {
 
-        $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
+        $acte = ActeNaissance::with(array_merge(
+            Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance(),
+            [
+                'declaration.enfant',
+                'declaration.institutionUser.institution.institutionParent',
+                'institutionUser.institution.lieu.localiteParent',
+            ]
+        ))->where("code_declaration_naissance", $id)->first();
         $dummy = "XXXXXXXXXXXXXXXX";
         $numExtrait = substr(time(),2);
 

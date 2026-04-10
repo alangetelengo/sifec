@@ -23,7 +23,8 @@ Détail du certificat N° {{ $certificat->numero_certificat }} de transcription 
     ];
     $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
     $dummy = "XXXXXXXXXXXXXXXX";
-    $tribunal = $certificat->institution->institutionParent->lib_institution;
+    $tribunal = $certificat->libInstitutionTribunalPourMentionActe()
+        ?? optional($certificat->institution->institutionParent)->lib_institution;
 @endphp
 
 <div class="row">

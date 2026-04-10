@@ -7,6 +7,7 @@ use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Naissance\Entities\Declarationnaissance;
+use Modules\Referentiel\Entities\Institution;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,14 @@ class Jugement extends Model
     public function institutionUser(): BelongsTo
     {
         return $this->belongsTo(InstitutionUser::class, 'cui', 'cui');
+    }
+
+    /**
+     * Tribunal / juridiction ayant émis le jugement (tr_institution via t_jugement.code_institution).
+     */
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class, 'code_institution', 'code_institution');
     }
 
     /**

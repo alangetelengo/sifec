@@ -27,16 +27,20 @@
   <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 14px">
     @php
     $infos = "";
-    $tribunal = $acte->declaration->institutionUser->institution->tribunal;
-    if ($tribunal != NULL) {
-        $tribunal = $acte->declaration->institutionUser->institution->tribunal->lib_tribunal;
+    $tribunal = null;
+    try {
+        $tribunal = $acte->declaration->libInstitutionTribunalPourMentionActe();
+    } catch (\Throwable $e) {
+        $tribunal = null;
     }
 
     $num = "";
-    if (str_contains($tribunal, "TRIBUNAL D'INSTANCE")) {
-        $num = str_replace("TRIBUNAL D'INSTANCE","TI ",$tribunal);
-    } else {
-        $num = str_replace("TRIBUNAL DE GRANDE INSTANCE","TGI ",$tribunal);
+    if ($tribunal) {
+        if (str_contains($tribunal, "TRIBUNAL D'INSTANCE")) {
+            $num = str_replace("TRIBUNAL D'INSTANCE","TI ",$tribunal);
+        } else {
+            $num = str_replace("TRIBUNAL DE GRANDE INSTANCE","TGI ",$tribunal);
+        }
     }
 
     if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){

@@ -438,7 +438,9 @@ class AuthentificationActeController extends Controller
     public function displayCopie($id)
     {
 
-        $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
+        $acte = ActeNaissance::with(Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance())
+            ->where("code_declaration_naissance", $id)
+            ->first();
         $dummy = "XXXXXXXXXXXXXXXX";
 
         if($acte == null){
@@ -502,7 +504,9 @@ class AuthentificationActeController extends Controller
             ->first();
 
 
-        $acte = ActeNaissance::where("code_declaration_naissance",$numActe)->first();
+        $acte = ActeNaissance::with(Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance())
+            ->where("code_declaration_naissance", $numActe)
+            ->first();
         $dummy = "XXXXXXXXXXXXXXXX";
 
         if($acte == null){
@@ -557,7 +561,14 @@ class AuthentificationActeController extends Controller
 
     public function displayExtraitActe($id)
     {
-        $acte = ActeNaissance::where("code_declaration_naissance",$id)->first();
+        $acte = ActeNaissance::with(array_merge(
+            Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance(),
+            [
+                'declaration.enfant',
+                'declaration.institutionUser.institution.institutionParent',
+                'institutionUser.institution.lieu.localiteParent',
+            ]
+        ))->where("code_declaration_naissance", $id)->first();
         $numExtrait = substr(time(), 2);
 
         if($acte == null){
@@ -568,7 +579,7 @@ class AuthentificationActeController extends Controller
         view()->share("tester", "Alange");
         $html2pdf = new Html2Pdf('L', 'A5', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('naissance::etats.Extrait', compact("acte", "numExtrait"))->render());
+        $html2pdf->writeHTML(view('naissance::etats.extrait', compact("acte", "numExtrait"))->render());
         return $html2pdf->output($acte->code_acte_naissance.".pdf");
 
     }
@@ -604,7 +615,14 @@ class AuthentificationActeController extends Controller
             ->select('p.nom', 'p.prenom', 'signature')
             ->first();
 
-        $acte = ActeNaissance::where("code_declaration_naissance",$numActe)->first();
+        $acte = ActeNaissance::with(array_merge(
+            Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance(),
+            [
+                'declaration.enfant',
+                'declaration.institutionUser.institution.institutionParent',
+                'institutionUser.institution.lieu.localiteParent',
+            ]
+        ))->where("code_declaration_naissance", $numActe)->first();
         $numExtrait = substr(time(), 2);
 
         if($acte == null){
@@ -615,7 +633,7 @@ class AuthentificationActeController extends Controller
         view()->share("tester", "Alange");
         $html2pdf = new Html2Pdf('L', 'A5', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('naissance::etats.ExtraitPortail', compact("acte", "numExtrait", 'signatairePortail', 'institutionPortail'))->render());
+        $html2pdf->writeHTML(view('naissance::etats.extraitPortail', compact("acte", "numExtrait", 'signatairePortail', 'institutionPortail'))->render());
         return $html2pdf->output($acte->code_acte_naissance.".pdf");
 
     }
@@ -669,9 +687,13 @@ class AuthentificationActeController extends Controller
                 'declaration.declarant',
                 'declaration.adoptant',
                 'declaration.jugement.institutionUser.institution.institutionParent',
+                'declaration.jugement.institution',
                 'declaration.institutionUser.institution.institutionParent',
                 'declaration.institutionUser.institution.lieu.localiteParent',
                 'declaration.requisition.typeRequisition',
+                'declaration.requisition.institution',
+                'declaration.requisitionParCode.institution',
+                'declaration.jugementParCode.institution',
                 'declaration.institution.institutionParent',
                 'institutionUser.institution',
                 'institutionUser.institution.institutionParent.lieu.localiteParent'

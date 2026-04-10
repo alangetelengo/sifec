@@ -307,7 +307,7 @@ class CertificatTranscriptionController extends Controller
 
     public function show($id)
     {
-        $certificat = Declarationnaissance::find($id);
+        $certificat = Declarationnaissance::with(Declarationnaissance::relationsPourEagerLoadCertificatDetail())->find($id);
         if($certificat == null){
             toastr()->error("Certificat indisponible");
             return back();
