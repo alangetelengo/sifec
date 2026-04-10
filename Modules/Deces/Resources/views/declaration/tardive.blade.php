@@ -73,6 +73,7 @@ Actes Décès
                                                         $peutSupprimer = false;
                                                         break;
                                                     case 'MOUV_0032':
+                                                    case 'MOUV_2005':
                                                         $statutBadge = ['class' => 'badge-primary', 'label' => $dernierMouvement->lib_mouvement];
                                                         $peutEnvoyer = true;
                                                         $peutModifier = true;

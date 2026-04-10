@@ -519,10 +519,19 @@
         border-top: 1px solid var(--u-line);
         padding: 1rem 1.35rem;
     }
+
+    .page-users-sifec .btn-users-primary.sifec-btn-loading,
+    .page-users-sifec .btn-danger.sifec-btn-loading {
+        pointer-events: none;
+        opacity: 0.92;
+    }
 </style>
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row page-users-sifec">
     <div class="col-12">
         <div class="users-shell">
@@ -616,7 +625,7 @@
                                 <div class="input-group">
                                     <input type="text" class="form-control" name="search" id="searchInput"
                                            placeholder="Nom, e-mail…" value="{{ request('search') }}">
-                                    <button type="submit" class="btn btn-users-primary px-3"><i class="fas fa-search"></i></button>
+                                    <button type="submit" class="btn btn-users-primary px-3" id="filterSearchBtn"><i class="fas fa-search"></i></button>
                                     <a href="{{ route('utilisateur.index') }}" class="btn btn-outline-secondary px-3" title="Réinitialiser">
                                         <i class="fas fa-redo"></i>
                                     </a>
@@ -794,10 +803,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-                <form id="deleteForm" method="POST" style="display:inline;">
+                    <form id="deleteForm" method="POST" style="display:inline;">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                    <button type="submit" class="btn btn-danger" id="deleteUserConfirmBtn">Supprimer</button>
                 </form>
             </div>
         </div>
@@ -808,7 +817,9 @@
     @csrf
     @method('PATCH')
 </form>
-
+</div>
+</div>
+</div>
 @endsection
 
 @section('scripts')
@@ -945,7 +956,61 @@ function toggleUserStatus(userId, currentStatus) {
 function deleteUser(userId, userName) {
     $('#userName').text(userName);
     $('#deleteForm').attr('action', '/utilisateur/' + userId);
+    var delBtn = document.getElementById('deleteUserConfirmBtn');
+    if (delBtn) {
+        delBtn.removeAttribute('data-sifec-submitting');
+        delBtn.disabled = false;
+        delBtn.removeAttribute('aria-busy');
+        delBtn.classList.remove('sifec-btn-loading');
+        if (delBtn.getAttribute('data-sifec-html')) {
+            delBtn.innerHTML = delBtn.getAttribute('data-sifec-html');
+        }
+    }
     $('#deleteModal').modal('show');
 }
+
+(function () {
+    var filterForm = document.getElementById('filterForm');
+    var filterBtn = document.getElementById('filterSearchBtn');
+    if (filterForm && filterBtn) {
+        filterForm.addEventListener('submit', function () {
+            if (filterBtn.getAttribute('data-sifec-submitting') === '1') return;
+            filterBtn.setAttribute('data-sifec-submitting', '1');
+            if (!filterBtn.getAttribute('data-sifec-html')) {
+                filterBtn.setAttribute('data-sifec-html', filterBtn.innerHTML);
+            }
+            filterBtn.disabled = true;
+            filterBtn.setAttribute('aria-busy', 'true');
+            filterBtn.classList.add('sifec-btn-loading');
+            filterBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+        });
+    }
+
+    var perPageForm = document.getElementById('perPageForm');
+    if (perPageForm) {
+        perPageForm.addEventListener('submit', function () {
+            var sel = perPageForm.querySelector('select[name="per_page"]');
+            if (!sel || sel.getAttribute('data-sifec-loading') === '1') return;
+            sel.setAttribute('data-sifec-loading', '1');
+            sel.disabled = true;
+        });
+    }
+
+    var deleteForm = document.getElementById('deleteForm');
+    var deleteBtn = document.getElementById('deleteUserConfirmBtn');
+    if (deleteForm && deleteBtn) {
+        deleteForm.addEventListener('submit', function () {
+            if (deleteBtn.getAttribute('data-sifec-submitting') === '1') return;
+            deleteBtn.setAttribute('data-sifec-submitting', '1');
+            if (!deleteBtn.getAttribute('data-sifec-html')) {
+                deleteBtn.setAttribute('data-sifec-html', deleteBtn.innerHTML);
+            }
+            deleteBtn.disabled = true;
+            deleteBtn.setAttribute('aria-busy', 'true');
+            deleteBtn.classList.add('sifec-btn-loading');
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>Suppression…';
+        });
+    }
+})();
 </script>
 @endsection

@@ -26,7 +26,7 @@ class ActeMariage extends Model
 
     public function declaration(): BelongsTo
     {
-        return $this->belongsTo(Declarationmariage::class, 'code_declaration_mariage', 'code_declaration_mariage');
+        return $this->belongsTo(DeclarationMariage::class, 'code_declaration_mariage', 'code_declaration_mariage');
     }
 
     public function registre(): BelongsTo

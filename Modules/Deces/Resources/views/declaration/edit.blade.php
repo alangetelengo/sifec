@@ -22,6 +22,7 @@
 @endsection
 @section("corps")
 
+<div class="page-sifec-form">
         <!-- row -->
     <div class="row" id="validation">
         <div class="col-12">
@@ -51,7 +52,7 @@
     </div>
 
     @include('deces::declaration.modal-search')
-
+</div>
 @endsection
 @section("scripts")
 @include("deces::declaration.js.edit")

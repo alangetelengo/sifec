@@ -198,16 +198,16 @@
                             }
                         @endphp
                         @if($afficherFormationSanitaireSignature)
-                        Le chef de l’établissement sanitaire
-                        {{ optional($institutionSignature)->lib_institution }}
+                        Le chef de l’établissement sanitaire,
+                        {{ optional($institutionSignature)->lib_institution }},
                             @php
-                                $infosque = "atteste par la présente que le ";
+                                $infosque = "atteste par la présente que, le ";
                             @endphp
                         @else
                         L'Officier du centre d'état civil principal de :
                         {{ optional($institutionSignature)->lib_institution }}
                             @php
-                                $infosque = "Est informé que le";
+                                $infosque = "Est informé que, le";
                             @endphp
                         @endif
 
@@ -215,7 +215,7 @@
                     <td style="border: none; padding:2px 0px;text-align: center">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">{{ $infosque ? $infosque : "Est informé que le" }} {{ utf8_encode(strftime("%d %B %Y", strtotime($dn->date_heure_naissance))) . " A " .date("H", strtotime($dn->date_heure_naissance))." heure(s) ".date("i", strtotime($dn->date_heure_naissance))." miniute(s)" }}</td>
+                    <td style="border: none; padding:2px 0px;text-align: " colspan="3">{{ $infosque ? $infosque : "Est informé que le" }} {{ utf8_encode(strftime("%d %B %Y", strtotime($dn->date_heure_naissance))) . " A " .date("H", strtotime($dn->date_heure_naissance))." heure(s) ".date("i", strtotime($dn->date_heure_naissance))." miniute(s)," }}</td>
                     <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>
@@ -235,7 +235,7 @@
                     <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
                 </tr>
 
-                @if($dn->type_declaration == "JUGEMENT D'HOMOLOGATION")
+                @if($dn->estJugementHomologation())
                 <tr>
                     <td style="border: none; padding:2px 0px;text-align: " colspan="3">numero ancien acte de naissance :<span style="font-size: 11px;font-weight:bold;color:red"> {{  $dn->numero_ancien_acte }} </span></td>
                     <td style="border: none; padding:2px 0px;text-align: ">&nbsp;</td>
@@ -263,7 +263,7 @@
         <fieldset style="margin-top:2px">
             <legend><strong>Renseignements père</strong></legend>
 
-            @if($dn->type_declaration == "FICHE DE MATERNITE" && $dn->pere->nom == "XXXXXXXXXXXXXXXX")  {{-- CAS DE FICHE DE MATERNITE ET LE PERE N'EST PAS RENSEIGNE --}}
+            @if($dn->pere && $dn->pere->nom == "XXXXXXXXXXXXXXXX")
 
             <table cellspacing="0" style="border-collapse: collapse; font-size: 9pt">
                 <col style="width: 25%">
@@ -443,8 +443,7 @@
             @endif
         </fieldset>
 
-        @if($dn->type_declaration != "FICHE DE MATERNITE")
-            <fieldset style="margin-top:2px">
+        <fieldset style="margin-top:2px">
                 <legend><strong>Renseignements déclarant</strong></legend>
                 <table cellspacing="0" style="border-collapse: collapse; ">
                     <col style="width: 25%">
@@ -480,12 +479,10 @@
 
                 </table>
             </fieldset>
-        @endif
     </div>
 
     {{-- QR code déplacé dans l'en-tête --}}
 
-    @if($dn->type_declaration != "FICHE DE MATERNITE")
     <div style="bottom:0;margin-left:8px;margin-top:5px">
         <table class="historique" cellspacing="0" style="width: 95%; font-size: 12px;">
             <col style="width: 50%">
@@ -509,7 +506,5 @@
             </tbody>
         </table>
     </div>
-
-    @endif
 
 </page>

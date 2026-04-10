@@ -126,16 +126,32 @@ class FonctionController extends Controller
 
     public function assigner($id)
     {
-        $fonction = Fonction::find($id);
+        $fonction = Fonction::with('fonctionnalites')->find($id);
 
-        if($fonction == null){
-            toastr()->error("Impossible de charger cette page");
+        if ($fonction == null) {
+            toastr()->error('Impossible de charger cette page');
+
             return back();
         }
 
-        $modules = Module::all();
+        $modules = Module::with('fonctionnalites')->get();
 
-        return view("authentification::fonction.assignation",compact("modules","fonction"));
+        $assignedCodes = $fonction->fonctionnalites
+            ->pluck('code_fonctionnalite')
+            ->unique()
+            ->values()
+            ->all();
+
+        $totalFonctionnalites = (int) $modules->sum(static function ($m) {
+            return $m->fonctionnalites->count();
+        });
+
+        return view('authentification::fonction.assignation', compact(
+            'modules',
+            'fonction',
+            'assignedCodes',
+            'totalFonctionnalites'
+        ));
     }
 
     public function storeAssigner(Request $request, $id)
@@ -149,22 +165,23 @@ class FonctionController extends Controller
 
 
         DB::beginTransaction();
-        try{
-
-            if($request->fonctionnalites != null){
+        try {
+            if ($request->fonctionnalites != null) {
                 $fonction->fonctionnalites()->sync($request->fonctionnalites);
+            } else {
+                $fonction->fonctionnalites()->sync([]);
             }
 
             DB::commit();
 
-            toastr()->success("Fonctionnalité assignée avec succès","Gestion des fonctions");
-            return redirect()->route("fonction.index");
+            toastr()->success('Fonctionnalités enregistrées avec succès', 'Gestion des fonctions');
 
-        }catch(Exception $e){
+            return redirect()->route('fonction.index');
+        } catch (Exception $e) {
             DB::rollBack();
             toastr()->error($e->getMessage());
-            return back()->withInput();
 
+            return back()->withInput();
         }
     }
 }

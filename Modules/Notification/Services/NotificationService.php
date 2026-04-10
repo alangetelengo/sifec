@@ -24,17 +24,20 @@ class NotificationService
      * @param string|\App\Models\Institution $institution  Le code institution ou l'objet institution
      * @param \Illuminate\Notifications\Notification $notification  La notification à envoyer
      * @param string|array|null $codesFonction  (optionnel) Un ou plusieurs codes fonction à filtrer (ex : 'FONC_0008' ou ['FONC_0008','FONC_0002'])
+     * @return int Nombre d'utilisateurs notifiés
      */
-    public static function notifierAgentsInstitution($institution, $notification, $codesFonction = null)
+    public static function notifierAgentsInstitution($institution, $notification, $codesFonction = null): int
     {
         $codeInstitution = is_object($institution) && isset($institution->code_institution)
             ? $institution->code_institution
             : $institution;
 
-        DB::transaction(function () use ($codeInstitution, $notification, $codesFonction) {
-            $agents = User::whereHas('affectations', function($q) use ($codeInstitution, $codesFonction) {
+        return (int) DB::transaction(function () use ($codeInstitution, $notification, $codesFonction) {
+            $agents = User::whereHas('affectations', function ($q) use ($codeInstitution, $codesFonction) {
                 $q->where('code_institution', $codeInstitution)
-                  ->where('active', 1);
+                    ->where(function ($q2) {
+                        $q2->where('active', 1)->orWhere('active', true);
+                    });
 
                 if ($codesFonction) {
                     if (is_array($codesFonction)) {
@@ -45,51 +48,37 @@ class NotificationService
                 }
             })->get();
 
-
-
-            // Log::channel('sifec')->info('[NotificationService] Agents trouvés pour notification', [
-            //     'agents' => $agents->map(function($user) {
-            //         return [
-            //             'code_user' => $user->code_user,
-            //             'code_fonction' => $user->affectations->first() ? $user->affectations->first()->code_fonction : null
-            //         ];
-            //     })
-            // ]);
-
             foreach ($agents as $user) {
-                $user->notify($notification);
-
-                // Log::channel('sifec')->info('[NotificationService] Notification envoyée institution', [
-                //     'user_id' => $user->code_user,
-                //     'notification' => get_class($notification)
-                // ]);
+                try {
+                    $user->notify($notification);
+                } catch (\Throwable $e) {
+                    Log::channel('sifec')->error('[NotificationService] notifierAgentsInstitution : notify() a échoué', [
+                        'code_institution' => $codeInstitution,
+                        'code_user' => $user->code_user ?? null,
+                        'notification' => is_object($notification) ? $notification::class : null,
+                        'message' => $e->getMessage(),
+                        'exception' => $e::class,
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    throw $e;
+                }
             }
+
+            return $agents->count();
         });
-
-
     }
 
     /**
-     * Notifie le président du tribunal lorsqu'un centre d'état civil ajoute des feuillets à un registre
-     * Le code fonction du président du tribunal est FONC_0009 (selon FonctionSeeder)
-     * @param \App\Models\Institution|string $tribunal L'objet Institution du tribunal ou son code
-     * @param \Illuminate\Notifications\Notification $notification La notification à envoyer
+     * Feuillets ajoutés : même logique que les certificats (tous les agents actifs du tribunal).
      */
-    public static function notifierFeuilletRegistreAjoute($tribunal, $notification)
+    public static function notifierFeuilletRegistreAjoute($tribunal, $notification): int
     {
         $codeInstitution = is_object($tribunal) && isset($tribunal->code_institution)
             ? $tribunal->code_institution
             : $tribunal;
 
-        // Le président du tribunal a le code fonction FONC_0009 (voir FonctionSeeder et Registre::validateur())
-        $president = User::whereHas('affectations', function($q) use ($codeInstitution) {
-            $q->where('code_institution', $codeInstitution)
-              ->where('active', 1)
-              ->where('code_fonction', 'FONC_0009');
-        })->first();
-
-        if ($president) {
-            $president->notify($notification);
-        }
+        return self::notifierAgentsInstitution($codeInstitution, $notification);
     }
 }

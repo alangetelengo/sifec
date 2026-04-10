@@ -1,0 +1,52 @@
+/**
+ * Modales Bootstrap — même esprit que la validation OTP acte de naissance
+ * (#92b885 → #a3ce85, texte blanc, pied discret)
+ * Périmètre : back-office (#main-wrapper .content-body)
+ */
+#main-wrapper .content-body .modal .modal-content {
+    border: none;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 0.5rem 1.35rem rgba(26, 46, 38, 0.14);
+}
+
+/* En-tête vert sauf variantes explicites (danger, neutre, etc.) */
+#main-wrapper .content-body .modal .modal-header:not(.sifec-modal-header-plain):not(.bg-danger):not(.bg-dark):not(.bg-secondary):not(.bg-black) {
+    background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%) !important;
+    color: #fff !important;
+    border-bottom: none !important;
+}
+
+#main-wrapper .content-body .modal .modal-header:not(.sifec-modal-header-plain):not(.bg-danger):not(.bg-dark):not(.bg-secondary):not(.bg-black) .modal-title {
+    color: #fff !important;
+}
+
+#main-wrapper .content-body .modal .modal-header:not(.sifec-modal-header-plain):not(.bg-danger):not(.bg-dark):not(.bg-secondary):not(.bg-black) .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.88;
+}
+
+#main-wrapper .content-body .modal .modal-header:not(.sifec-modal-header-plain):not(.bg-danger):not(.bg-dark):not(.bg-secondary):not(.bg-black) .btn-close:hover {
+    opacity: 1;
+}
+
+#main-wrapper .content-body .modal .modal-footer {
+    border-top: 1px solid #e2e8e4;
+    background: #fafcfb;
+}
+
+/* Modale recherche personne (utilisateur) : titre lisible sur bandeau clair si conservée */
+#main-wrapper .content-body .modal-utilisateur-sifec .modal-header {
+    background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%) !important;
+    border-bottom: none !important;
+    color: #fff !important;
+}
+
+#main-wrapper .content-body .modal-utilisateur-sifec .modal-title {
+    color: #fff !important;
+}
+
+#main-wrapper .content-body .modal-utilisateur-sifec .modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.88;
+}

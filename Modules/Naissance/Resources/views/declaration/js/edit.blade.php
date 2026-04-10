@@ -590,6 +590,7 @@ $(function(){
 
         $('#email_pere').val("");
         document.getElementById('email_pere').readOnly = false;
+        $('#email_professionnel_pere').val("");
 
         $('#lieu_naissance_pere').val("");
         document.getElementById('lieu_naissance_pere').readOnly = false;
@@ -645,6 +646,7 @@ $(function(){
 
         $('#email_mere').val("");
         document.getElementById('email_mere').readOnly = false;
+        $('#email_professionnel_mere').val("");
 
         $('#date_naissance_mere').val("");
         document.getElementById('date_naissance_mere').readOnly = false;
@@ -713,6 +715,8 @@ $(function(){
 
                 $('#email_declarant').val($('#email_pere').val());
                 document.getElementById('email_declarant').readOnly = true;
+                $('#email_professionnel_declarant').val($('#email_professionnel_pere').val());
+                document.getElementById('email_professionnel_declarant').readOnly = true;
 
                 $('#date_naissance_declarant').val($('#date_naissance_pere').val());
                 document.getElementById('date_naissance_declarant').readOnly = true;
@@ -831,6 +835,8 @@ $(function(){
 
                 $('#email_declarant').val($('#email_pere').val());
                 document.getElementById('email_declarant').readOnly = true;
+                $('#email_professionnel_declarant').val($('#email_professionnel_pere').val());
+                document.getElementById('email_professionnel_declarant').readOnly = true;
 
                 $('#date_naissance_declarant').val($('#date_naissance_pere').val());
                 document.getElementById('date_naissance_declarant').readOnly = true;
@@ -936,6 +942,8 @@ $(function(){
 
                 $('#email_declarant').val($('#email_mere').val());
                 document.getElementById('email_declarant').readOnly = true;
+                $('#email_professionnel_declarant').val($('#email_professionnel_mere').val());
+                document.getElementById('email_professionnel_declarant').readOnly = true;
 
                 $('#date_naissance_declarant').val($('#date_naissance_mere').val());
                 document.getElementById('date_naissance_declarant').readOnly = true;
@@ -1039,6 +1047,8 @@ $(function(){
                 document.getElementById('prenom_declarant').readOnly = false;
                 $('#email_declarant').val("");
                 document.getElementById('email_declarant').readOnly = false;
+                $('#email_professionnel_declarant').val("");
+                document.getElementById('email_professionnel_declarant').readOnly = false;
 
                 $('#date_naissance_declarant').val("");
                 document.getElementById('date_naissance_declarant').readOnly = false;
@@ -1371,6 +1381,9 @@ $(function(){
             email_pere:email_pere.val(),
             email_mere:email_mere.val(),
             email_declarant:email_declarant.val(),
+            email_professionnel_pere:$("#email_professionnel_pere").val() || '',
+            email_professionnel_mere:$("#email_professionnel_mere").val() || '',
+            email_professionnel_declarant:$("#email_professionnel_declarant").val() || '',
             domicile_pays_pere:domicile_pays_pere.val(),
             domicile_arrondissement_pere:domicile_arrondissement_pere.val(),
             domicile_quartier_pere:domicile_quartier_pere.val(),
@@ -1396,6 +1409,8 @@ $(function(){
             domicile_ville_mere: ville_mere,
             domicile_ville_enfant: ville_enfant,
             domicile_ville_declarant: ville_declarant,
+
+            _token: '{{ csrf_token() }}'
         };
 
         //traitement ajax
@@ -1438,10 +1453,11 @@ $(function(){
             if (result.value==true)
             {
                 Swal.close();
+                if (typeof sifecSwalLoading === 'function') {
+                    sifecSwalLoading('Enregistrement...');
+                }
                 var typeDeclaration = $("#type_declaration").val();
                 var url = "{{ route('declarationNaissance.index') }}";
-                var url2 = "{{ route('fiche_maternite.index') }}";
-
                 var codeDeclarationNaissance =  $("#code_declaration_naissance").val();
                 var routeupdate = "{{route('declarationNaissance.update', ':id')}}";
 
@@ -1452,12 +1468,12 @@ $(function(){
                     type: "PUT",
                     data: data,
                     success: function(response){
-                        Swal.close();
+                        if (typeof Swal !== 'undefined') { Swal.close(); }
                         if(response.code == "200")
                         {
                             var type_declaration = $("#type_declaration").val();
                             var url = "";
-                            if(type_declaration == "DECLARATION DE NAISSANCE" || type_declaration == "FICHE DE MATERNITE"){
+                            if(type_declaration == "DECLARATION DE NAISSANCE"){
                                 url = "{{ route('declarationNaissance.index') }}";
                             }else if(type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
                                 url = "{{ route('certificatDestruction.index') }}";
@@ -1475,7 +1491,13 @@ $(function(){
                             flashAlert("Opération échouée","error",response.message);
                         }
                     },
-                    error: function() { }
+                    error: function(xhr) {
+                        if (typeof Swal !== 'undefined') { Swal.close(); }
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Erreur lors de l\'enregistrement.';
+                        if (typeof flashAlert === 'function') {
+                            flashAlert('Erreur', 'error', msg);
+                        }
+                    }
                 });
             }
 
@@ -1804,6 +1826,7 @@ $(function(){
 
         $('#email_pere').val("");
         document.getElementById('email_pere').readOnly = false;
+        $('#email_professionnel_pere').val("");
 
         $('#lieu_naissance_pere').val("");
         document.getElementById('lieu_naissance_pere').readOnly = false;
@@ -1859,6 +1882,7 @@ $(function(){
 
         $('#email_mere').val("");
         document.getElementById('email_mere').readOnly = false;
+        $('#email_professionnel_mere').val("");
 
         $('#date_naissance_mere').val("");
         document.getElementById('date_naissance_mere').readOnly = false;
@@ -1919,7 +1943,8 @@ $(function(){
             nom: nom.val(),
             prenom: prenom.val(),
             sexe: sexe.val(),
-            telephone: telephone.val()
+            telephone: telephone.val(),
+            _token: '{{ csrf_token() }}'
         };
 
         var int = 0;
@@ -1937,6 +1962,10 @@ $(function(){
                             '</thead>'+
                             '<tbody>';
 
+        var btnRechPere = this;
+        if (typeof sifecBtnLoading === 'function') {
+            sifecBtnLoading(btnRechPere, 'Recherche...');
+        }
         //traitement ajax
         $.ajax({
                 url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -1956,7 +1985,7 @@ $(function(){
                                     '" data-nom="'+response.personnes[i].nom+
                                     '" data-prenom="'+response.personnes[i].prenom+
                                     '" data-date_naissance="'+response.personnes[i].date_naissance+
-                                    '" data-email="'+response.personnes[i].email_personnelle+
+                                    '" data-email="'+response.personnes[i].email_personnelle+'" data-email-professionnel="'+(response.personnes[i].email_professionnelle || '')+
                                     '" data-sexe="'+response.personnes[i].sexe+
                                     '" data-numero="'+response.personnes[i].numero_rue+
                                     '" data-rue="'+response.personnes[i].avenue+
@@ -1999,6 +2028,7 @@ $(function(){
                         var telephone = $(this).data('telephone');
                         var indicatif = $(this).data('indicatif');
                         var email = $(this).data('email');
+                        var emailProfessionnel = $(this).data('emailProfessionnel') || '';
 
                         var code_nationalite = $(this).data('code_nationalite');
                         var code_profession = $(this).data('code_profession');
@@ -2013,6 +2043,7 @@ $(function(){
                         $("#prenom_pere").val(prenom);
                         $("#date_naissance_pere").val(date_naissance);
                         $("#email_pere").val(email);
+                        $("#email_professionnel_pere").val(emailProfessionnel);
                         $("#sexe_pere").val(sexe);
                         $("#domicile_numero_pere").val(numero);
                         $("#domicile_nomvoie_pere").val(rue);
@@ -2059,8 +2090,18 @@ $(function(){
 
                     });
 
+                },
+                error: function() {
+                    if (typeof flashAlert === 'function') {
+                        flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                    }
+                },
+                complete: function() {
+                    if (typeof sifecBtnReset === 'function') {
+                        sifecBtnReset(btnRechPere);
+                    }
                 }
-            });
+        });
     });
 
      // Rechercher une mère
@@ -2075,7 +2116,8 @@ $(function(){
              nom: nom.val(),
              prenom: prenom.val(),
              sexe: sexe.val(),
-             telephone: telephone.val()
+             telephone: telephone.val(),
+             _token: '{{ csrf_token() }}'
          };
 
          var int = 0;
@@ -2092,6 +2134,10 @@ $(function(){
                              ' </tr>'+
                              '</thead>'+
                              '<tbody>';
+         var btnRechMere = this;
+         if (typeof sifecBtnLoading === 'function') {
+             sifecBtnLoading(btnRechMere, 'Recherche...');
+         }
          //traitement ajax
          $.ajax({
                  url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -2109,7 +2155,7 @@ $(function(){
                              '" data-nom="'+response.personnes[i].nom+
                              '" data-prenom="'+response.personnes[i].prenom+
                              '" data-date_naissance="'+response.personnes[i].date_naissance+
-                             '" data-email="'+response.personnes[i].email_personnelle+
+                             '" data-email="'+response.personnes[i].email_personnelle+'" data-email-professionnel="'+(response.personnes[i].email_professionnelle || '')+
                              '" data-sexe="'+response.personnes[i].sexe+
                              '" data-numero="'+response.personnes[i].numero_rue+
                              '" data-rue="'+response.personnes[i].avenue+
@@ -2149,6 +2195,7 @@ $(function(){
                          var telephone = $(this).data('telephone');
                          var indicatif = $(this).data('indicatif');
                          var email = $(this).data('email');
+                         var emailProfessionnel = $(this).data('emailProfessionnel') || '';
 
                          var code_nationalite = $(this).data('code_nationalite');
                          var code_profession = $(this).data('code_profession');
@@ -2164,6 +2211,7 @@ $(function(){
                          $("#date_naissance_mere").val(date_naissance);
                          $("#sexe_mere").val(sexe);
                          $("#email_mere").val(email);
+                         $("#email_professionnel_mere").val(emailProfessionnel);
                          $("#domicile_numero_mere").val(numero);
                          $("#domicile_nomvoie_mere").val(rue);
                          $("#domicile_quartier_mere").val(quartier);
@@ -2209,8 +2257,18 @@ $(function(){
 
                      });
 
+                 },
+                 error: function() {
+                     if (typeof flashAlert === 'function') {
+                         flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                     }
+                 },
+                 complete: function() {
+                     if (typeof sifecBtnReset === 'function') {
+                         sifecBtnReset(btnRechMere);
+                     }
                  }
-             });
+         });
      });
 
      // Rechercher un déclarant
@@ -2228,7 +2286,8 @@ $(function(){
              prenom: prenom.val(),
              sexe: sexe.val(),
              telephone: telephone.val(),
-             statut:statut.val()
+             statut:statut.val(),
+             _token: '{{ csrf_token() }}'
          };
 
          var int = 0;
@@ -2247,6 +2306,10 @@ $(function(){
                              '</thead>'+
                              '<tbody>';
 
+         var btnRechDecl = this;
+         if (typeof sifecBtnLoading === 'function') {
+             sifecBtnLoading(btnRechDecl, 'Recherche...');
+         }
          //traitement ajax
          $.ajax({
                  url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -2266,7 +2329,7 @@ $(function(){
                              '" data-nom="'+response.personnes[i].nom+
                              '" data-prenom="'+response.personnes[i].prenom+
                              '" data-date_naissance="'+response.personnes[i].date_naissance+
-                             '" data-email="'+response.personnes[i].email_personnelle+
+                             '" data-email="'+response.personnes[i].email_personnelle+'" data-email-professionnel="'+(response.personnes[i].email_professionnelle || '')+
                              '" data-sexe="'+response.personnes[i].sexe+
                              '" data-numero="'+response.personnes[i].numero_rue+
                              '" data-rue="'+response.personnes[i].avenue+
@@ -2306,7 +2369,8 @@ $(function(){
                          var arrondissement = $(this).data('arrondissement');
                          var telephone = $(this).data('telephone');
                          var indicatif = $(this).data('indicatif');
-                         var email = $(this).data('emal');
+                         var email = $(this).data('email');
+                         var emailProfessionnel = $(this).data('emailProfessionnel') || '';
 
                          var code_nationalite = $(this).data('code_nationalite');
                          var code_profession = $(this).data('code_profession');
@@ -2322,7 +2386,8 @@ $(function(){
                          $("#prenom_declarant").val(prenom);
                          $("#date_naissance_declarant").val(date_naissance);
                          $("#sexe_declarant").val(sexe);
-                         $("#email_declarant").val(sexe);
+                         $("#email_declarant").val(email);
+                         $("#email_professionnel_declarant").val(emailProfessionnel);
                          $("#domicile_quartier_declarant").val(quartier);
                          if($(this).data('arrondissement')===null)
                          {
@@ -2364,8 +2429,18 @@ $(function(){
 
                      });
 
+                 },
+                 error: function() {
+                     if (typeof flashAlert === 'function') {
+                         flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                     }
+                 },
+                 complete: function() {
+                     if (typeof sifecBtnReset === 'function') {
+                         sifecBtnReset(btnRechDecl);
+                     }
                  }
-             });
+         });
      });
 
     function getArrComUrbaine(codeparent,cle){

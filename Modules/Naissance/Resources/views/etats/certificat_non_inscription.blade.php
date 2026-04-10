@@ -67,7 +67,7 @@
         <tr style="">
             <td style="width:100%; text-align: center;border:black;">
                 {{-- <p><strong style="font-size: 18px;"> CERTIFICAT DE NON INSCRIPTION DE NAISSANCE</strong><br> Année: <strong>{{date("Y", strtotime( $certificat->date_heure_declaration))}}</strong>  N°: <strong>{{$certificat->numero_certificat}}</strong></p> --}}
-                <p><strong style="font-size: 18px;">  {{ $certificat->type_declaration }}</strong><br> Année: <strong>{{date("Y", strtotime( $certificat->date_heure_declaration))}}</strong>  N°: <strong>{{$certificat->numero_certificat}}</strong></p>
+                <p><strong style="font-size: 18px;">  {{ $certificat->libelleAffichageType() }}</strong><br> Année: <strong>{{date("Y", strtotime( $certificat->date_heure_declaration))}}</strong>  N°: <strong>{{$certificat->numero_certificat}}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -76,7 +76,7 @@
     </table>
     <div style="margin-top: 3%;margin-left: 2%;margin-right: 6%;border-radius: 2mm;">
         <div style="position: absolute; left: 20px; top: 220px; width: 700px; height: 700px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:14px;">
-            <P style="text-align: justify;">Je soussigné, Officier d'état civil de la {{ $inst }} , informons que le  {{ strtolower($certificat->type_declaration) }} de naissance :
+            <P style="text-align: justify;">Je soussigné, Officier d'état civil de la {{ $inst }} , informons que le  {{ strtolower($certificat->libelleAffichageType()) }} de naissance :
             </P>
             <table align="left" style="border-radius: 1mm; border: none;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">

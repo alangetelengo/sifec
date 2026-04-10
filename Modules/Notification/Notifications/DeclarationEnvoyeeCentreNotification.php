@@ -101,6 +101,14 @@ class DeclarationEnvoyeeCentreNotification extends Notification
             $message = "Déclaration de mariage {$this->action} au {$categorie} pour {$personne}.";
         } elseif ($typeDeclaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
             $message = "Réquisition aux fins de reconstitution de l'acte envoyée au {$categorie} pour {$personne}.";
+        } elseif ($typeDeclaration === 'CERTIFICAT DE NAISSANCE') {
+            if ($this->action === 'renvoyée') {
+                $message = "Certificat de naissance renvoyé au {$categorie} pour {$personne}.";
+            } elseif ($this->action === 'envoyée') {
+                $message = "Certificat de naissance envoyé au {$categorie} pour {$personne}.";
+            } else {
+                $message = "Certificat de naissance ({$this->action}) au {$categorie} pour {$personne}.";
+            }
         } elseif ($documentType && $this->action === 'envoyée') {
             $message = "Tribunal : {$documentType} reçue pour {$personne}. Prêt pour la transcription de l'acte.";
         } elseif ($documentType && $this->action === 'renvoyée') {

@@ -10,6 +10,9 @@ Dossiers reçus du centre d'état civil
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -270,7 +273,9 @@ Dossiers reçus du centre d'état civil
     </div>
 </div>
 {{-- FIN MODAL CONFIRMATION DOSSIER --}}
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -360,10 +365,8 @@ Dossiers reçus du centre d'état civil
                 };
                 if(observation) data.observation = observation;
 
-                var $btn = $(this);
-                var originalText = $btn.html();
-                $btn.attr("disabled", true);
-                $btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Traitement en cours...');
+                var btn = this;
+                sifecBtnLoading(btn, "Traitement...");
 
                 $.post(route, data, function(response){
                     if(response.code == "200"){
@@ -378,8 +381,7 @@ Dossiers reçus du centre d'état civil
                 }).fail(function(xhr, status, error) {
                     flashAlert("Erreur", "error", "Une erreur est survenue lors du traitement. Veuillez réessayer.");
                 }).always(function() {
-                    $btn.attr("disabled", false);
-                    $btn.html(originalText);
+                    sifecBtnReset(btn);
                 });
 
                 return false;
@@ -417,6 +419,10 @@ Dossiers reçus du centre d'état civil
             var module = $('#module-document-confirmation-modal').val();
             var observation = $('#observation-confirmation').val();
             var url = "{{ route('tribunal.confirmation.document') }}";
+            var btn = document.getElementById('btn-confirmer-final');
+            if (btn) {
+                sifecBtnLoading(btn, 'Enregistrement...');
+            }
             $.ajax({
                 url: url,
                 type: 'POST',
@@ -427,6 +433,9 @@ Dossiers reçus du centre d'état civil
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(resp) {
+                    if (btn) {
+                        sifecBtnReset(btn, 'Confirmer');
+                    }
                     if(resp.code == '200') {
                         flashAlert('Réponse','success',resp.message[0]);
                         $('#modal-confirmation-document').modal('hide');
@@ -436,6 +445,9 @@ Dossiers reçus du centre d'état civil
                     }
                 },
                 error: function(xhr) {
+                    if (btn) {
+                        sifecBtnReset(btn, 'Confirmer');
+                    }
                     flashAlert('Erreur','error',xhr.responseJSON?.message || 'Erreur lors de la confirmation');
                 }
             });

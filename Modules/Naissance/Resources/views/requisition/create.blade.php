@@ -5,12 +5,13 @@
 @endsection
 
 @section("corps")
+<div class="page-sifec-form">
     <!-- row -->
     <div class="row" id="validation">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h4> REQUISITION POUR {{ $req->declarationNaissance->type_declaration ?? "LA RECTIFICATION DE L'ACTE" }}  N° <strong style="color: red">{{ $req->declarationNaissance->numero_certificat ?? $req->rectification->numero_rectification}}</strong></h4>
+                    <h4> REQUISITION POUR {{ $req->declarationNaissance ? $req->declarationNaissance->libelleAffichageType() : "LA RECTIFICATION DE L'ACTE" }}  N° <strong style="color: red">{{ $req->declarationNaissance->numero_certificat ?? $req->rectification->numero_rectification}}</strong></h4>
                 </div>
                 <div class="card wizard-content">
                     <div class="card-body">
@@ -56,5 +57,6 @@
             </div>
         </div>
     </div>
+</div>
 @endsection
 

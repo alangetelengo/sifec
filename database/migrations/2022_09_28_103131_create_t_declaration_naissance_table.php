@@ -41,22 +41,16 @@ class CreateTDeclarationNaissanceTable extends Migration
             // $table->boolean("top_requisition")->default(false);
             $table->string("numero_req",16)->nullable();
             $table->string("numero_certificat",16)->nullable();
-            $table->enum('type_declaration',[
+            $table->enum('type_declaration', [
                 'CERTIFICAT DE NAISSANCE',
                 'DECLARATION DE NAISSANCE',
                 'CERTIFICAT DE NON INSCRIPTION',
                 "CERTIFICAT DE DESTRUCTION DE L''ACTE",
                 'FICHE DE TRANSCRIPTION',
-                "FICHE DE TRANSCRIPTION DE L''ACTE",
-                'DECLARATION DE PATERNITE',
-                'JUGEMENT SUPPLETIF',
-                "JUGEMENT D''HOMOLOGATION",
-                "JUGEMENT D''ADOPTION",
-                "JUGEMENT D''ANNULATION D''ACTE",
-                'DECLARATION TARDIVE',
-                'DECLARATION TARDIVE DE NAISSANCE',
                 'CERTIFICAT DE TRANSCRIPTION',
             ])->nullable();
+            $table->string('type_declaration_origine', 120)->nullable()
+                ->comment('Sous-type ou libellé source (ex. jugement, certificat transformé) ; null si non applicable');
             $table->string('contexte_affichage', 30)->nullable()
                 ->comment("Contexte pour l'en-tête/titre: formation_sanitaire | centre_etat_civil (certificat et déclaration de naissance uniquement)");
             $table->string("formation_sanitaire_naissance")->nullable();

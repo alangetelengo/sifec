@@ -33,6 +33,9 @@ Actes de décès
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -757,7 +760,9 @@ Actes de décès
         </form>
     </div>
 </div>
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -972,6 +977,8 @@ Actes de décès
             flashAlert("ALERTE","error",'Veuillez sélectionner un motif d\'annulation');
             return;
         }
+        var btnAnnul = this;
+        sifecBtnLoading(btnAnnul, 'Annulation...');
         $.ajax({
             url: "{{ route('acteDeces.annuler') }}",
             type: 'POST',
@@ -995,6 +1002,9 @@ Actes de décès
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation de l\'acte';
                 flashAlert("Erreur","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnAnnul);
             }
         });
     });
@@ -1005,7 +1015,9 @@ Actes de décès
     $("button.validate-actes").on("click", function(){
         if(actesGeneres.length > 0){
             var url = "{{ route('acteDeces.send.otp.bulk') }}";
-            var data = {codes:actesGeneres};
+            var data = { codes: actesGeneres, _token: '{{ csrf_token() }}' };
+            var btnBulkOtpD = this;
+            sifecBtnLoading(btnBulkOtpD, 'Envoi OTP...');
             $.post(url,data,function(response){
             console.log(response);
             if(response.code == "200"){
@@ -1028,7 +1040,9 @@ Actes de décès
                 //flashAlert("Une erreur est suvernue","error",outString);
 
             }
-        });
+        }).always(function() {
+                sifecBtnReset(btnBulkOtpD);
+            });
         }
         return false;
     });
@@ -1137,8 +1151,11 @@ Actes de décès
         var data = {
             code_declaration_deces: cdn,
             motif_renvoi: motif,
-            observation: observation
+            observation: observation,
+            _token: '{{ csrf_token() }}'
         };
+        var btnSendBackD = this;
+        sifecBtnLoading(btnSendBackD, 'Envoi...');
         $.post(route, data, function(response){
             let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
             flashAlert("Réponse","success",msg);
@@ -1147,6 +1164,8 @@ Actes de décès
         }).fail(function(xhr){
             let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du renvoi du dossier';
             flashAlert("Réponse","error",msg);
+        }).always(function() {
+            sifecBtnReset(btnSendBackD);
         });
         return false;
     });
@@ -1169,6 +1188,8 @@ Actes de décès
     // Remplacement du JS de confirmation groupée
     $("#btn-confirmer-bulk-final").on("click", function(){
         var observation = $("#observation-confirmation-bulk").val();
+        var btnConfBulkD = this;
+        sifecBtnLoading(btnConfBulkD, 'Confirmation...');
         $.ajax({
             url: "{{ route('acteDeces.confirmer.bulk') }}",
             type: 'POST',
@@ -1186,6 +1207,9 @@ Actes de décès
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation des documents';
                 flashAlert("Réponse","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnConfBulkD);
             }
         });
     });
@@ -1199,6 +1223,8 @@ Actes de décès
             flashAlert("ALERTE","error",msg);
             return;
         }
+        var btnRenvBulkD = this;
+        sifecBtnLoading(btnRenvBulkD, 'Envoi...');
     $.ajax({
             url: "{{ route('acteDeces.renvoyer.bulk') }}",
             type: 'POST',
@@ -1217,6 +1243,9 @@ Actes de décès
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du renvoi des documents';
                 flashAlert("Réponse","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnRenvBulkD);
             }
         });
     });
@@ -1237,6 +1266,8 @@ Actes de décès
             flashAlert("ALERTE","error",msg);
             return;
         }
+        var btnAnnulBulkD = this;
+        sifecBtnLoading(btnAnnulBulkD, 'Annulation...');
         $.ajax({
             url: "{{ route('acteDeces.annuler.bulk') }}",
             type: 'POST',
@@ -1255,6 +1286,9 @@ Actes de décès
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation des actes';
                 flashAlert("Réponse","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnAnnulBulkD);
             }
         });
     });
@@ -1263,6 +1297,8 @@ Actes de décès
     $("#btn-confirmer-final").on("click", function(){
         var codeDeclaration = $("#code-declaration-confirmation").val();
         var observation = $("#observation-confirmation").val();
+        var btnConfOneD = this;
+        sifecBtnLoading(btnConfOneD, 'Confirmation...');
         $.ajax({
             url: "{{ route('acteDeces.confirmer') }}",
             type: 'POST',
@@ -1285,6 +1321,9 @@ Actes de décès
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation du dossier';
                 flashAlert("Erreur","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnConfOneD);
             }
         });
     });
@@ -1295,7 +1334,9 @@ Actes de décès
         if(actesNonGeneres.length > 0){
 
             var url = "{{ route('acteDeces.generate.bulk') }}";
-            var data = {codes:actesNonGeneres};
+            var data = { codes: actesNonGeneres, _token: '{{ csrf_token() }}' };
+            var btnGenBulkD = this;
+            sifecBtnLoading(btnGenBulkD, 'Génération...');
             $.post(url,data,function(response){
                 console.log(response);
                 if(response.code == "200"){
@@ -1318,6 +1359,8 @@ Actes de décès
                     flashAlert("Une erreur est survenue","error",outString);
 
                 }
+            }).always(function() {
+                sifecBtnReset(btnGenBulkD);
             });
         }
     return false;
@@ -1335,7 +1378,8 @@ Actes de décès
     $('#btn-generer-single-confirm').on('click', function(){
         var code = $('#generer-single-code').val();
         var url = "{{ route('acteDeces.generate.single') }}";
-        $(this).prop('disabled', true);
+        var btnGenOneD = this;
+        sifecBtnLoading(btnGenOneD, 'Génération...');
         $('#generer-single-message').html('<i class="fa fa-spinner fa-spin"></i> Génération en cours...');
 
         $.post(url, {code_declaration_deces: code, _token: '{{ csrf_token() }}'})
@@ -1368,9 +1412,6 @@ Actes de décès
 
                 // Utiliser flashAlert pour le message d'erreur
                 flashAlert("Erreur", "error", errorMessage);
-
-                // Réactiver le bouton
-                $('#btn-generer-single-confirm').prop('disabled', false);
             }
         })
         .fail(function(xhr){
@@ -1381,9 +1422,10 @@ Actes de décès
 
             // Utiliser flashAlert pour le message d'erreur
             flashAlert("Erreur", "error", errorMessage);
-
-            // Réactiver le bouton
-            $('#btn-generer-single-confirm').prop('disabled', false);
+        })
+        .always(function() {
+            sifecBtnReset(btnGenOneD);
+            $('#generer-single-message').empty();
         });
     });
 
@@ -1408,6 +1450,8 @@ Actes de décès
             flashAlert("Erreur", "error", "Veuillez renseigner le nom et le téléphone de l'intéressé.");
             return;
         }
+        var btnRetraitD = this;
+        sifecBtnLoading(btnRetraitD, 'Enregistrement...');
         $.ajax({
             url: "{{ route('acteDeces.retrait') }}",
             type: 'POST',
@@ -1441,13 +1485,18 @@ Actes de décès
             error: function(xhr) {
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du retrait de l\'acte';
                 flashAlert("Erreur", "error", msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnRetraitD);
             }
         });
     });
 
-    // Ouvre la modale de validation OTP
-    $('.btn-validate-single').on('click', function() {
+    // Ouvre la modale de validation OTP — délégation pour lignes dynamiques
+    $(document).on('click', '.btn-validate-single', function() {
         var code = $(this).data('id');
+        var btnValSingleD = this;
+        sifecBtnLoading(btnValSingleD, 'Envoi OTP...');
         $.post("{{ route('acteDeces.send.otp') }}", {code_declaration_deces: code, _token: '{{ csrf_token() }}'}, function(response){
             if(response.code == "200"){
                 // flashAlert("Succès", "success", "Un code de validation a été envoyé par SMS.");
@@ -1462,6 +1511,8 @@ Actes de décès
         }).fail(function(xhr){
             let msg = xhr.responseJSON?.message || 'Erreur lors de l\'envoi du code OTP';
             flashAlert("Erreur", "error", msg);
+        }).always(function() {
+            sifecBtnReset(btnValSingleD);
         });
     });
 });

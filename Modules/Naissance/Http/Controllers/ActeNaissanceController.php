@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
-use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Naissance\Services\OtpService;
+use Modules\Naissance\Exceptions\ActeNaissanceOtpLockedException;
 use Modules\Referentiel\Entities\Registre;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Naissance\Entities\ActeNaissance;
@@ -26,8 +26,9 @@ use Modules\Naissance\Services\MouvementService;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Modules\Naissance\Services\ActeNaissanceService;
+use Modules\Naissance\Services\CecNaissanceActeDashboardService;
 use Modules\Naissance\Http\Requests\GenerateActeRequest;
-use Modules\Notification\Jobs\ValidationacteNaissanceJob;
+use Modules\Notification\Jobs\DeclarantActeDisponibleInformationJob;
 use Illuminate\Support\Facades\URL;
 
 use Modules\Notification\Services\NotificationService;
@@ -42,24 +43,16 @@ class ActeNaissanceController extends Controller
         $affectation = $user->affectationActive();
         $institution = $affectation->institution;
 
-        // Documents à contrôler (cec_approuver = 'NON') - Afficher les 20 derniers par défaut
-        $documentsAControler = $institution->getDocumentsAControler("naissance")
-            ->take(20)
-            ->values();
+        $dashboard = app(CecNaissanceActeDashboardService::class);
 
-        // Gestion des actes (cec_approuver = 'OUI') - Afficher les 20 derniers par défaut
-        $actesGestion = $institution->getActesGestion("naissance")
-            ->take(20)
-            ->values();
+        // Aperçu : requêtes limitées côté SQL (évite get() complet + take(20) en mémoire)
+        $documentsAControler = $dashboard->documentsAControlerPreview($institution, 35);
+        $actesGestion = $dashboard->actesGestionPreview($institution, 20);
 
         $registre = Registre::where("cui",$affectation->cui)->where("statut",1)->where("code_type_registre","TPRG_0001")->first();
 
-        // Récupérer les types de déclaration uniques pour les filtres
-        $typesDeclaration = \Modules\Naissance\Entities\Declarationnaissance::distinct()
-            ->pluck('type_declaration')
-            ->filter()
-            ->sort()
-            ->values();
+        // Liste fixe des types autorisés (filtres) — pas de distinct() sur toute la table
+        $typesDeclaration = collect(Declarationnaissance::TYPES_AUTORISES)->sort()->values();
 
         return view(
             'naissance::acte.index', compact(
@@ -94,99 +87,73 @@ class ActeNaissanceController extends Controller
                 ]
             ]);
 
-            // Recherche : tous les dossiers du CEC (créés par ou reçus par l'institution), validés ou non
-            $documentsAControler = Declarationnaissance::with([
-                'enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement'
+            // Recherche : dossiers du CEC (créés par ou reçus par l'institution) — filtres en SQL
+            $query = Declarationnaissance::with([
+                'enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement',
             ])
                 ->where(function ($q) use ($institution) {
                     $q->where('code_institution_destinataire', $institution->code_institution)
                         ->orWhere('code_institution', $institution->code_institution);
-                })
-                ->orderByDesc('date_heure_declaration')
-                ->get();
-            $countInitial = $documentsAControler->count();
+                });
 
-            // Filtre par numéro de déclaration
-            if ($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) {
-                $search = trim($request->numero_declaration);
-                $documentsAControler = $documentsAControler->filter(
-                    fn($doc) => stripos($doc->code_declaration_naissance ?? '', $search) !== false
+            $countInitial = (clone $query)->count();
+
+            if ($request->filled('numero_declaration') && strlen(trim((string) $request->numero_declaration)) > 0) {
+                $search = trim((string) $request->numero_declaration);
+                $like = '%'.addcslashes($search, '%_\\').'%';
+                $query->where('code_declaration_naissance', 'like', $like);
+            }
+
+            if ($request->filled('type_declaration') && strlen(trim((string) $request->type_declaration)) > 0) {
+                $query->where('type_declaration', $request->type_declaration);
+            }
+
+            if ($request->filled('date_debut')) {
+                $query->whereRaw(
+                    'COALESCE(DATE(date_heure_declaration), DATE(created_at)) >= ?',
+                    [$request->date_debut]
+                );
+            }
+            if ($request->filled('date_fin')) {
+                $query->whereRaw(
+                    'COALESCE(DATE(date_heure_declaration), DATE(created_at)) <= ?',
+                    [$request->date_fin]
                 );
             }
 
-            // Filtre par type de déclaration
-            if ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0) {
-                $documentsAControler = $documentsAControler->filter(
-                    fn($doc) => $doc->type_declaration === $request->type_declaration
-                );
+            if ($request->filled('sexe')) {
+                $query->whereHas('enfant', fn ($q) => $q->where('sexe', $request->sexe));
             }
 
-            // Filtre par période (date de déclaration)
-        if ($request->filled('date_debut')) {
-            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
-                // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
-                $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
-                if ($dateDeclaration) {
-                    return date('Y-m-d', strtotime($dateDeclaration)) >= $request->date_debut;
-                }
-                return false;
-            });
-        }
-        if ($request->filled('date_fin')) {
-            $documentsAControler = $documentsAControler->filter(function($doc) use ($request) {
-                // Utiliser date_heure_declaration (date de déclaration) pour filtrer par date de création du document
-                $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
-                if ($dateDeclaration) {
-                    return date('Y-m-d', strtotime($dateDeclaration)) <= $request->date_fin;
-                }
-                return false;
-            });
-        }
-
-        // Filtre par sexe
-        if ($request->filled('sexe')) {
-            $documentsAControler = $documentsAControler->filter(
-                fn($doc) => $doc->enfant && $doc->enfant->sexe === $request->sexe
-            );
-        }
-
-        // Filtre par statut (basé sur les mouvements)
-        if ($request->filled('statut')) {
-            $statut = $request->statut;
-            $documentsAControler = $documentsAControler->filter(function($doc) use ($statut) {
-                $codesMouvements = $doc->mouvements ? $doc->mouvements->pluck('code_mouvement')->toArray() : [];
+            if ($request->filled('statut')) {
+                $statut = $request->statut;
                 if ($statut === 'dossier_recu') {
-                    return in_array('MOUV_0001', $codesMouvements) ||
-                           in_array('MOUV_0011', $codesMouvements) ||
-                           in_array('MOUV_0024', $codesMouvements);
+                    $query->whereHas('mouvements', fn ($q) => $q->whereIn('code_mouvement', [
+                        'MOUV_0001', 'MOUV_0035', 'MOUV_0011', 'MOUV_0024', 'MOUV_0033',
+                    ]));
                 } elseif ($statut === 'confirme') {
-                    return in_array('MOUV_0019', $codesMouvements);
+                    $query->whereHas('mouvements', fn ($q) => $q->where('code_mouvement', 'MOUV_0019'));
                 } elseif ($statut === 'en_attente') {
-                    return in_array('MOUV_0004', $codesMouvements);
+                    $query->whereHas('mouvements', fn ($q) => $q->where('code_mouvement', 'MOUV_0004'));
                 }
-                return true;
-            });
-        }
+            }
 
-        $documents = $documentsAControler->values();
+            $maxResults = 500;
+            $countResultat = (clone $query)->count();
+            $documents = (clone $query)
+                ->orderByDesc('date_heure_declaration')
+                ->limit($maxResults)
+                ->get()
+                ->values();
 
-        // Les relations sont déjà chargées via getDocumentsAControler (avec 'with')
-        // Il n'est pas nécessaire de les recharger
-
-        $countResultat = $documents->count();
-
-        // Limiter les résultats à 500 maximum pour éviter les problèmes de performance
-        // Si l'utilisateur a besoin de voir plus, il peut affiner ses critères de recherche
-        $maxResults = 500;
-        if ($countResultat > $maxResults) {
-            $documents = $documents->take($maxResults);
-            Log::channel('sifec')->warning('=== RECHERCHE DOCUMENTS - LIMITE ATTEINTE ===', [
-                'user_id' => $user->code_user ?? null,
-                'count_total' => $countResultat,
-                'count_affiché' => $maxResults,
-                'message' => "Plus de {$maxResults} résultats trouvés. Affinez vos critères de recherche pour voir tous les résultats."
-            ]);
-        }
+            if ($countResultat > $maxResults) {
+                Log::channel('sifec')->warning('=== RECHERCHE DOCUMENTS - LIMITE ATTEINTE ===', [
+                    'user_id' => $user->code_user ?? null,
+                    'count_total' => $countResultat,
+                    'count_affiché' => $maxResults,
+                    'message' => "Plus de {$maxResults} résultats trouvés. Affinez vos critères de recherche pour voir tous les résultats.",
+                ]);
+            }
 
             // Logger les résultats de la recherche
             Log::channel('sifec')->info('=== RÉSULTATS RECHERCHE DOCUMENTS À CONTRÔLER ===', [
@@ -383,24 +350,41 @@ class ActeNaissanceController extends Controller
                 'declaration.requisition.typeRequisition',
                 'declaration.institution.institutionParent',
                 'institutionUser.institution',
-                'institutionUser.institution.institutionParent.lieu.localiteParent'
-            ])->where("code_declaration_naissance", $id)->first();
+                'institutionUser.institution.institutionParent.lieu.localiteParent',
+                'registre',
+            ])->where(function ($q) use ($id) {
+                $q->where('code_declaration_naissance', $id)
+                    ->orWhere('niupp', $id)
+                    ->orWhere('code_acte_naissance', $id);
+            })->first();
 
-            if($acte == null){
-                Log::channel('sifec')->error("Acte de naissance introuvable pour code_declaration_naissance: {$id}");
-                toastr()->error("Vous ne pouvez pas générer un acte de naissance. Acte introuvable.");
-                return back();
-            }
+            if ($acte == null) {
+                Log::channel('sifec')->warning('[ActeNaissance][PDF] Acte introuvable', [
+                    'identifiant_url' => $id,
+                ]);
 
-            if (! $acte->niupp) {
-                toastr()->error("L’acte officiel (NIUPP, QR code) n’est disponible qu’après signature par l’officier d’état civil.");
-                return back();
+                return $this->actePdfStreamErrorResponse(
+                    'Acte introuvable.',
+                    404
+                );
             }
 
             // Vérifier que la déclaration existe
-            if(!$acte->declaration) {
-                Log::channel('sifec')->error("Déclaration manquante pour acte: {$acte->code_acte_naissance}");
+            if (! $acte->declaration) {
+                Log::channel('sifec')->error('[ActeNaissance][PDF] Déclaration manquante', [
+                    'code_acte_naissance' => $acte->code_acte_naissance,
+                    'identifiant_url' => $id,
+                ]);
                 throw new Exception("Données incomplètes pour générer l'acte. Déclaration manquante.");
+            }
+
+            // Aperçu avant signature : niupp NULL autorisé (cf. migration t_acte_naissance, niupp nullable + unique).
+            if (! $acte->niupp) {
+                Log::channel('sifec')->info('[ActeNaissance][PDF] Aperçu acte sans NIUPP (en attente signature officier)', [
+                    'code_declaration_naissance' => $acte->code_declaration_naissance,
+                    'code_acte_naissance' => $acte->code_acte_naissance,
+                    'cui' => $acte->cui,
+                ]);
             }
 
             $dummy = "XXXXXXXXXXXXXXXX";
@@ -445,31 +429,40 @@ class ActeNaissanceController extends Controller
                 $nombreMentions += $acte->rectifications->count();
             }
 
-            DB::beginTransaction();
-
             view()->share("tester", "Alange");
             $html2pdf = new Html2Pdf('P', 'A4', 'fr');
             $html2pdf->setDefaultFont('Arial');
 
-            $verificationUrl = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
+            $verificationUrl = $acte->niupp
+                ? URL::signedRoute('verification.acte', ['niupp' => $acte->niupp])
+                : '';
             $qrCode = $verificationUrl;
 
             // Rendre la vue avec gestion d'erreur
             $htmlContent = view('naissance::etats.acte', compact("acte","dummy","acteannuler","declarationDeces","mariage","qrCode","nombreMentions"))->render();
 
-            if(empty($htmlContent)) {
+            if (empty($htmlContent)) {
                 throw new Exception("Le contenu HTML de l'acte est vide.");
             }
 
             $html2pdf->writeHTML($htmlContent);
-            DB::commit();
 
-            return $html2pdf->output($acte->code_acte_naissance.".pdf");
+            $pdfBinary = $html2pdf->output($acte->code_acte_naissance.'.pdf');
+
+            return $this->pdfInlineResponse($pdfBinary, $acte->code_acte_naissance.'.pdf');
 
         } catch (Exception $e) {
-            DB::rollBack();
-            Log::channel('sifec')->error("Erreur génération PDF acte de naissance ID: {$id} - Message: " . $e->getMessage());
-            Log::channel('sifec')->error("Stack trace: " . $e->getTraceAsString());
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            Log::channel('sifec')->error('[ActeNaissance][PDF] Échec génération', [
+                'identifiant_url' => $id,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             // Si c'est une requête AJAX ou PDF, renvoyer une réponse JSON ou une erreur HTTP
             if (request()->expectsJson() || request()->wantsJson()) {
@@ -479,10 +472,34 @@ class ActeNaissanceController extends Controller
                 ], 500);
             }
 
-            // Sinon, renvoyer une réponse HTML d'erreur pour le PDF Viewer
-            return response("Erreur lors de la génération du PDF: " . $e->getMessage(), 500)
-                ->header('Content-Type', 'text/plain');
+            return $this->actePdfStreamErrorResponse(
+                'Erreur lors de la génération du PDF : '.$e->getMessage(),
+                500
+            );
         }
+    }
+
+    /**
+     * Réponse binaire PDF avec en-têtes corrects (évite « Invalid PDF structure » côté PDF.js).
+     */
+    private function pdfInlineResponse(string $pdfBinary, string $filename): \Symfony\Component\HttpFoundation\Response
+    {
+        $safeName = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $filename) ?: 'acte.pdf';
+        $safeName = trim($safeName) !== '' ? trim($safeName) : 'acte.pdf';
+
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$safeName.'"',
+            'Cache-Control' => 'private, must-revalidate',
+        ]);
+    }
+
+    /**
+     * Erreur pour la route /generate consommée par PDF.js (pas de redirect HTML).
+     */
+    private function actePdfStreamErrorResponse(string $message, int $status): \Symfony\Component\HttpFoundation\Response
+    {
+        return response($message, $status)->header('Content-Type', 'text/plain; charset=UTF-8');
     }
 
     public function displayCopie($id)
@@ -681,14 +698,25 @@ class ActeNaissanceController extends Controller
                 $acte->save();
                 DB::commit();
 
-                $otp = substr(time(),2);
-
                 $temp = config("sifec.sms.templates.actions.acte_naissance");
-                $temp = str_replace(":declarant",$acte->declaration->declarant->nomcomplet(),$temp);
-                $temp = str_replace(":code_acte_naissance",$acte->niupp,$temp);
+                $temp = str_replace(":declarant", $acte->declaration->declarant->nomcomplet(), $temp);
+                $temp = str_replace(":code_acte_naissance", $acte->niupp, $temp);
+                $temp = str_replace(":libCec", $acte->institutionUser->institution->lib_institution, $temp);
                 toastr()->success("Acte approuvé avec succès");
 
-                dispatch(new SendSmsJob($acte->declaration->declarant->telephone,$temp));
+                $contactDeclarant = $acte->declaration->declarant->contacts->first();
+                if ($contactDeclarant !== null) {
+                    $to = $contactDeclarant->indicatif.$contactDeclarant->telephone;
+                    SifecFacade::sendSms($to, $temp);
+                    $emailsDecl = $contactDeclarant->adressesEmailPourNotification();
+                    if ($emailsDecl !== []) {
+                        dispatch(new DeclarantActeDisponibleInformationJob(
+                            $emailsDecl,
+                            $temp,
+                            'SIFEC — Acte de naissance disponible'
+                        ));
+                    }
+                }
 
                 return back();
 
@@ -768,15 +796,32 @@ class ActeNaissanceController extends Controller
         }
 
         try {
-            $otpService->envoyerOtpValidationActes($user, [$an]);
+            $demandeRenvoi = $request->boolean('resend', false);
+            $result = $otpService->envoyerOtpValidationActes($user, [$an], $demandeRenvoi);
+
             return response()->json([
-                "code"=>"200",
-                "message"=>"SMS envoyé avec succès"
+                'code' => '200',
+                'message' => $result['kind'] === 'reused'
+                    ? 'Le code déjà envoyé est toujours valide ; aucun nouvel SMS ou e-mail.'
+                    : 'Code OTP envoyé par SMS et par e-mail à l’officier.',
+                'otp_session' => $result['kind'],
+                'valid_for_seconds' => $result['valid_for_seconds'],
+                'otp_max_resend' => 3,
+                'otp_max_validate' => 3,
+                'otp_lockout_minutes' => 3,
+            ]);
+        } catch (ActeNaissanceOtpLockedException $e) {
+            return response()->json([
+                'code' => '184',
+                'message' => $e->getMessage(),
+                'retry_after_seconds' => $e->retryAfterSeconds,
+                'otp_max_resend' => 3,
+                'otp_max_validate' => 3,
             ]);
         } catch (Exception $e) {
             return response()->json([
-                "code"=>"181",
-                "message"=>["error" =>$e->getMessage()]
+                'code' => '181',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
     }
@@ -805,25 +850,37 @@ class ActeNaissanceController extends Controller
         }
 
         $code = $request->code_declaration_naissance;
-        $otp  = $request->otp_approbation_mairie;
+        $otp = $request->otp_approbation_mairie;
 
-        [$ok, $result] = $otpService->validerOtpActes(
-            [$code], $otp,
-            $request->ip(),
-            $request->userAgent()
-        );
-
-        if (!$ok) {
-            Log::channel("sifec")->info($result);
+        try {
+            [$ok, $result] = $otpService->validerOtpActes(
+                [$code],
+                $otp,
+                $request->ip(),
+                $request->userAgent()
+            );
+        } catch (ActeNaissanceOtpLockedException $e) {
             return response()->json([
-                "code" => "183",
-                "message" => ["error" => $result]
+                'code' => '184',
+                'message' => $e->getMessage(),
+                'retry_after_seconds' => $e->retryAfterSeconds,
+                'otp_max_resend' => 3,
+                'otp_max_validate' => 3,
+            ]);
+        }
+
+        if (! $ok) {
+            Log::channel('sifec')->info(is_array($result) ? json_encode($result) : $result);
+
+            return response()->json([
+                'code' => '183',
+                'message' => is_array($result) ? $result : ['error' => $result],
             ]);
         }
 
         return response()->json([
-            "code" => "200",
-            "message" => "Acte de naissance validé avec succès"
+            'code' => '200',
+            'message' => 'Acte de naissance validé avec succès',
         ]);
     }
 
@@ -839,15 +896,32 @@ class ActeNaissanceController extends Controller
             ]);
         }
         try {
-            $otpService->envoyerOtpValidationActes($user, $an);
+            $demandeRenvoi = $request->boolean('resend', false);
+            $result = $otpService->envoyerOtpValidationActes($user, $an, $demandeRenvoi);
+
             return response()->json([
-                "code"=>"200",
-                "message"=>"SMS envoyé avec succès"
+                'code' => '200',
+                'message' => $result['kind'] === 'reused'
+                    ? 'Le code déjà envoyé est toujours valide ; aucun nouvel SMS ou e-mail.'
+                    : 'Code OTP envoyé par SMS et par e-mail à l’officier.',
+                'otp_session' => $result['kind'],
+                'valid_for_seconds' => $result['valid_for_seconds'],
+                'otp_max_resend' => 3,
+                'otp_max_validate' => 3,
+                'otp_lockout_minutes' => 3,
+            ]);
+        } catch (ActeNaissanceOtpLockedException $e) {
+            return response()->json([
+                'code' => '184',
+                'message' => $e->getMessage(),
+                'retry_after_seconds' => $e->retryAfterSeconds,
+                'otp_max_resend' => 3,
+                'otp_max_validate' => 3,
             ]);
         } catch (Exception $e) {
             return response()->json([
-                "code"=>"181",
-                "message"=>["error" =>$e->getMessage()]
+                'code' => '181',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
     }
@@ -867,42 +941,50 @@ class ActeNaissanceController extends Controller
         $actes = ActeNaissance::whereIn("code_declaration_naissance", $codes)->get();
         foreach($actes as $an) {
             $contactDeclarant = $an->declaration->declarant->contacts->first();
-            if($contactDeclarant == null){
+            if ($contactDeclarant == null) {
                 return response()->json([
-                    "code"=>"184",
-                    "message"=>["Aucun contact trouvé pour le déclarant de l'acte ".$an->niupp]
+                    'code' => '186',
+                    'message' => ["Aucun contact trouvé pour le déclarant de l'acte ".$an->niupp],
                 ]);
             }
         }
-        DB::beginTransaction();
+
         try {
             [$ok, $result] = $otpService->validerOtpActes(
-                $codes, $otp,
+                $codes,
+                $otp,
                 $request->ip(),
                 $request->userAgent()
             );
-            if (!$ok) {
-                DB::rollBack();
-                Log::channel("sifec")->info($result);
-                return response()->json([
-                    "code"=>"183",
-                    "message"=>[ $result]
-                ]);
-            }
-
-            DB::commit();
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::channel("sifec")->info($e->getMessage());
+        } catch (ActeNaissanceOtpLockedException $e) {
             return response()->json([
-                "code"=>"500",
-                "message"=>["Erreur lors de la validation ou de l'enregistrement du mouvement : ".$e->getMessage()]
+                'code' => '184',
+                'message' => $e->getMessage(),
+                'retry_after_seconds' => $e->retryAfterSeconds,
+                'otp_max_resend' => 3,
+                'otp_max_validate' => 3,
+            ]);
+        } catch (Exception $e) {
+            Log::channel('sifec')->info($e->getMessage());
+
+            return response()->json([
+                'code' => '500',
+                'message' => ["Erreur lors de la validation ou de l'enregistrement du mouvement : ".$e->getMessage()],
+            ]);
+        }
+
+        if (! $ok) {
+            Log::channel('sifec')->info(is_array($result) ? json_encode($result) : $result);
+
+            return response()->json([
+                'code' => '183',
+                'message' => is_array($result) ? $result : [$result],
             ]);
         }
 
         return response()->json([
-            "code"=>"200",
-            "message"=>["Actes des naissances validés avec succès"]
+            'code' => '200',
+            'message' => ['Actes des naissances validés avec succès'],
         ]);
     }
 

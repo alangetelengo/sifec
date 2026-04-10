@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Support\Facades\Validator;
+use Modules\Notification\Jobs\DeclarantActeDisponibleInformationJob;
 use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Deces\Entities\MouvementDeces;
 use Modules\Referentiel\Entities\Registre;
@@ -589,11 +590,25 @@ class ActeDecesController extends Controller
                 $otp = substr(time(),2);
 
                 $temp = config("sifec.sms.templates.actions.acte_deces");
-                $temp = str_replace(":declarant",$acte->declaration->declarant->nomcomplet(),$temp);
-                $temp = str_replace(":code_acte_deces",$acte->code_acte_deces,$temp);
+                $temp = str_replace(":declarant", $acte->declaration->declarant->nomcomplet(), $temp);
+                $temp = str_replace(":code_acte_deces", $acte->code_acte_deces, $temp);
+                $temp = str_replace(":defunt", $acte->declaration->defunt->nomcomplet(), $temp);
+                $temp = str_replace(":libCec", $acte->institution->lib_institution, $temp);
                 toastr()->success("Acte signé avec succès");
 
                 dispatch(new SendSmsJob($acte->declaration->declarant->telephone,$temp));
+
+                $contactDeclarant = $acte->declaration->declarant->contacts->first();
+                if ($contactDeclarant !== null) {
+                    $emailsDecl = $contactDeclarant->adressesEmailPourNotification();
+                    if ($emailsDecl !== []) {
+                        dispatch(new DeclarantActeDisponibleInformationJob(
+                            $emailsDecl,
+                            $temp,
+                            'SIFEC — Acte de décès disponible'
+                        ));
+                    }
+                }
 
                 return back();
 

@@ -5,7 +5,6 @@ namespace Modules\Naissance\Services;
 use Exception;
 use Carbon\Carbon;
 use App\Sifec\Sifec;
-use Illuminate\Support\FacadesDB;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Referentiel\Entities\Personne;
@@ -140,9 +139,10 @@ class DeclarationNaissanceService
     private function verifierDoublonDeclaration($request)
     {
         // Vérifier s'il existe déjà une déclaration avec les mêmes informations clés
+        $norm = Declarationnaissance::normaliserTypeEtOrigine($request->type_declaration ?? null);
         $critereDoublon = [
             'date_heure_naissance' => $request->date_naissance_enfant . " " . $request->heure_naissance_enfant . ":00",
-            'type_declaration' => $request->type_declaration ?? 'DECLARATION DE NAISSANCE'
+            'type_declaration' => $norm['type'],
         ];
 
         // Ajouter le lieu de survenance si spécifié
@@ -306,7 +306,12 @@ class DeclarationNaissanceService
         } else {
             $dn->code_situation_mat = $codeSituationMat;
         }
-        $dn->type_declaration = $request->input('type_declaration') ?? 'DECLARATION DE NAISSANCE';
+        $norm = Declarationnaissance::normaliserTypeEtOrigine(
+            $request->input('type_declaration'),
+            $request->input('type_declaration_origine')
+        );
+        $dn->type_declaration = $norm['type'];
+        $dn->type_declaration_origine = $norm['origine'];
         $dn->formation_sanitaire_naissance = $request->input('formation_sanitaire_naissance');
         $dn->code_institution = $user->affectationActive()->code_institution;
         $dn->type_declarant = $request->type_declarant;
@@ -323,8 +328,10 @@ class DeclarationNaissanceService
         $dn->num_fiche_placement = $request->num_fiche_placement;
         $dn->num_jugement_placement_provisoir = $request->num_jugement_placement_provisoir;
 
-        // Génération du numéro de certificat si nécessaire
-        if ($request->input('type_declaration') != "DECLARATION DE NAISSANCE") {
+        // Génération du numéro de certificat si nécessaire (déclaration « simple » sans sous-type)
+        $sansNumeroCertificat = $dn->type_declaration === 'DECLARATION DE NAISSANCE'
+            && $dn->type_declaration_origine === null;
+        if (!$sansNumeroCertificat) {
             $dn->numero_certificat = Sifec::genererCodeUniqueReferentiel($dn, "numero_certificat", 4, "");
         }
     }
@@ -396,7 +403,15 @@ class DeclarationNaissanceService
             $dn->code_lieu_survenance = $request->input('lieu_survenance') ?? "LSURV_0001";
             $dn->code_filiation = $request->input('filiation');
             $dn->code_situation_mat = $request->input('code_situation_matrimoniale');
-            $dn->type_declaration = $request->input('type_declaration') ?? $dn->type_declaration;
+            $origineEntree = $request->has('type_declaration_origine')
+                ? $request->input('type_declaration_origine')
+                : $dn->type_declaration_origine;
+            $norm = Declarationnaissance::normaliserTypeEtOrigine(
+                $request->input('type_declaration') ?? $dn->type_declaration,
+                $origineEntree
+            );
+            $dn->type_declaration = $norm['type'];
+            $dn->type_declaration_origine = $norm['origine'];
             $dn->formation_sanitaire_naissance = $request->input('formation_sanitaire_naissance');
             if ($typeAdoption != '') {
                 $dn->code_jugement = $request->input('code_jugement');
@@ -467,7 +482,12 @@ class DeclarationNaissanceService
             $dn->code_user_institution = $user->affectationActive()->cui;
             $dn->code_filiation = $request->input('filiation');
             $dn->code_situation_mat = $request->input('code_situation_matrimoniale');
-            $dn->type_declaration = $request->input('type_declaration') ?? 'DECLARATION DE NAISSANCE';
+            $norm = Declarationnaissance::normaliserTypeEtOrigine(
+                $request->input('type_declaration'),
+                $request->input('type_declaration_origine')
+            );
+            $dn->type_declaration = $norm['type'];
+            $dn->type_declaration_origine = $norm['origine'];
             $dn->formation_sanitaire_naissance = $request->input('formation_sanitaire_naissance');
             $dn->numero_ancien_acte = $request->input('niupp');
             $dn->code_jugement = $request->input('code_jugement');
@@ -556,7 +576,12 @@ class DeclarationNaissanceService
             $dn->code_user_institution = $user->affectationActive()->cui;
             $dn->code_filiation = $request->input('filiation');
             $dn->code_situation_mat = $request->input('code_situation_matrimoniale');
-            $dn->type_declaration = $request->input('type_declaration') ?? 'JUGEMENT';
+            $norm = Declarationnaissance::normaliserTypeEtOrigine(
+                $request->input('type_declaration') ?? 'DECLARATION DE NAISSANCE',
+                $request->input('type_declaration_origine')
+            );
+            $dn->type_declaration = $norm['type'];
+            $dn->type_declaration_origine = $norm['origine'];
             $dn->formation_sanitaire_naissance = $request->input('formation_sanitaire_naissance');
             $dn->code_institution = $user->affectationActive()->code_institution;
             $dn->code_jugement = $request->input('code_jugement');

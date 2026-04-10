@@ -7,18 +7,14 @@ use Modules\Referentiel\Http\Controllers\RegistreController;
 use Modules\Referentiel\Http\Controllers\ReligionController;
 use Modules\Referentiel\Http\Controllers\CausedecesController;
 use Modules\Referentiel\Http\Controllers\ProfessionController;
-use Modules\Referentiel\Http\Controllers\DepartementController;
 use Modules\Referentiel\Http\Controllers\InstitutionController;
 use Modules\Referentiel\Http\Controllers\NationaliteController;
-use Modules\Referentiel\Http\Controllers\SubDepartementController;
 use Modules\Referentiel\Http\Controllers\FeuilleRegistreController;
 use Modules\Referentiel\Http\Controllers\TypeInstitutionController;
 use Modules\Referentiel\Http\Controllers\TypeCategorieInstitutionController;
-use Modules\Referentiel\Http\Controllers\SubCommuneDistrictController;
 use Modules\Referentiel\Http\Controllers\InstitutionSecondaireController;
 use Modules\Referentiel\Http\Controllers\AppareilController;
 use Modules\Referentiel\Http\Controllers\RetraitActeController;
-use Modules\Referentiel\Http\Controllers\SubArrondissementComUrbaineController;
 
 Route::middleware('auth')->prefix('causedeces')->group(function() {
     Route::get('/', [CausedecesController::class,'index'])->name('causedeces.index');
@@ -98,8 +94,12 @@ Route::middleware("auth")->prefix("registre")->group(function() {
     Route::get("registre-tribunal", [RegistreController::class, 'registresTribunal'])->name("registre.tribunal");
     Route::post("store", [RegistreController::class, 'store'])->name("registre.store");
     Route::put("{id}/update", [RegistreController::class, 'update'])->name("registre.update");
-    Route::get("{id}/send-otp", [RegistreController::class,'sendOtp'])->name("registre.send.otp");
-    Route::post("validate-otp", [RegistreController::class,'validateOtp'])->name("registre.validate.otp");
+    Route::get("{id}/send-otp", [RegistreController::class,'sendOtp'])
+        ->middleware('throttle:registre-send-otp')
+        ->name("registre.send.otp");
+    Route::post("validate-otp", [RegistreController::class,'validateOtp'])
+        ->middleware('throttle:registre-validate-otp')
+        ->name("registre.validate.otp");
     Route::post("close-registre", [RegistreController::class,'cloturerRegistre'])->name("registre.cloture");
     Route::delete("{id}/destroy", [RegistreController::class, 'destroy'])->name("registre.destroy");
 
@@ -112,37 +112,6 @@ Route::middleware("auth")->prefix("registre")->group(function() {
 
     Route::post("registre-add-feuillets", [RegistreController::class,'AddFeuilletRegistre'])->name("registre.add.feuillets");
 });
-
-///MODIFICATION REFERENTIEL ECLATEMENT DES LOCALITES Alange par rapport model localite-typelocalite
-Route::middleware("auth")->prefix("departement")->group(function() {
-    Route::get("/", [DepartementController::class, 'index'])->name("departement.index");
-    Route::post("store", [DepartementController::class, 'store'])->name("departement.store");
-    Route::put("{id}/update", [DepartementController::class, 'update'])->name("departement.update");
-    Route::delete("{id}/destroy", [DepartementController::class, 'destroy'])->name("departement.destroy");
-});
-Route::middleware("auth")->prefix("communedistrict")->group(function() {
-    Route::get("/", [SubDepartementController::class, 'index'])->name("communedistrict.index");
-    Route::post("store", [SubDepartementController::class, 'store'])->name("communedistrict.store");
-    Route::put("{id}/update", [SubDepartementController::class, 'update'])->name("communedistrict.update");
-    Route::delete("{id}/destroy", [SubDepartementController::class, 'destroy'])->name("communedistrict.destroy");
-});
-Route::middleware("auth")->prefix("arrondissementCommunauteUrbaine")->group(function() {
-    Route::get("/", [SubCommuneDistrictController::class, 'index'])->name("arrondissementCommunauteUrbaine.index");
-    Route::post("store", [SubCommuneDistrictController::class, 'store'])->name("arrondissementCommunauteUrbaine.store");
-    Route::put("{id}/update", [SubCommuneDistrictController::class, 'update'])->name("arrondissementCommunauteUrbaine.update");
-    Route::delete("{id}/destroy", [SubCommuneDistrictController::class, 'destroy'])->name("arrondissementCommunauteUrbaine.destroy");
-});
-
-
-Route::middleware('auth')->prefix('quartierVillage')->group(function() {
-    Route::get('/', [SubArrondissementComUrbaineController::class,'index'])->name('quartierVillage.index');
-    Route::get('create', [SubArrondissementComUrbaineController::class,'create'])->name('quartierVillage.create');
-    Route::post('store', [SubArrondissementComUrbaineController::class,'store'])->name('quartierVillage.store');
-    Route::get('{id}/edit', [SubArrondissementComUrbaineController::class,'edit'])->name('quartierVillage.edit');
-    Route::put('{id}/update', [SubArrondissementComUrbaineController::class,'update'])->name('quartierVillage.update');
-    Route::delete('{id}/destroy', [SubArrondissementComUrbaineController::class,'destroy'])->name('quartierVillage.destroy');
-});
-
 
 Route::middleware('auth')->prefix('retrait')->group(function() {
     Route::get('/', [RetraitActeController::class,'index'])->name('retrait.index');
@@ -168,22 +137,16 @@ Route::middleware('auth')->prefix('appareil')->group(function () {
     Route::delete('{id}/destroy', [AppareilController::class, 'destroy'])->name('appareil.destroy');
 });
 
-// Localités
+// Localités (référentiel unique avec TypeLocalite)
 Route::middleware('auth')->prefix('localite')->group(function() {
     Route::get('/', [LocaliteController::class, 'index'])->name('localite.index');
+    Route::get('enfants/{code}', [LocaliteController::class, 'children'])->name('localite.children');
     Route::post('store', [LocaliteController::class, 'store'])->name('localite.store');
     Route::put('{id}/update', [LocaliteController::class, 'update'])->name('localite.update');
     Route::delete('{id}/destroy', [LocaliteController::class, 'destroy'])->name('localite.destroy');
     Route::post('filter', [LocaliteController::class, 'filterLocalites'])->name('localite.filter');
-        Route::get('available-parents/{id?}', [LocaliteController::class, 'getAvailableParents'])->name('localite.available.parents');
-        Route::get('available-parents-by-type/{codeTypeLocalite}', [LocaliteController::class, 'getAvailableParentsByType'])->name('localite.available.parents.by.type');
-
-    //localite.get.sub-departement
-    Route::get('{id}/commune-district', [LocaliteController::class, 'getSubDepartement'])->name('localite.commune.district');
-    //localite.get.sub-commune-district
-    Route::get('{id}/arrondissement-communaute', [LocaliteController::class, 'getSubCommuneDistrict'])->name('localite.arrondissement.communaute');
-    //localite.get.sub-arrondissement-communaute-urbaine
-    Route::get('{id}/quartier-village', [LocaliteController::class, 'getSubArrondissementComUrbaine'])->name('localite.quartier.village');
+    Route::get('available-parents/{id?}', [LocaliteController::class, 'getAvailableParents'])->name('localite.available.parents');
+    Route::get('available-parents-by-type/{codeTypeLocalite}', [LocaliteController::class, 'getAvailableParentsByType'])->name('localite.available.parents.by.type');
 });
 
 

@@ -633,6 +633,8 @@ $(function(){
     // Soumission AJAX pièce
     $('#form-piece').on('submit', function(e){
         e.preventDefault();
+        var $btn = $(this).find('button[type="submit"]');
+        sifecBtnLoading($btn[0], "Enregistrement...");
         let formData = new FormData(this);
         $.ajax({
             url: urlPiece,
@@ -641,6 +643,7 @@ $(function(){
             processData: false,
             contentType: false,
             success: function(resp){
+                sifecBtnReset($btn[0], "Enregistrer");
                 if(resp.code == "200"){
                     flashAlert("Réponse","success",resp.message);
                     $('#modal-piece').modal('hide');
@@ -650,6 +653,7 @@ $(function(){
                 }
             },
             error: function(xhr){
+                sifecBtnReset($btn[0], "Enregistrer");
                 flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'upload');
             }
         });
@@ -676,13 +680,11 @@ $(function(){
             _token: '{{ csrf_token() }}'
         };
 
-        $(this).attr("disabled",true);
-        $(this).html("Traitement en cours ...");
+        var btn = this;
+        sifecBtnLoading(btn, "Envoi...");
 
         $.post(route, data, function(response){
-            // Réinitialiser le bouton d'abord
-            $("#btn-envoyer-tribunal-final").attr("disabled",false);
-            $("#btn-envoyer-tribunal-final").html("Envoyer au tribunal");
+            sifecBtnReset(btn, "Envoyer au tribunal");
 
             if(response.code == "200"){
                flashAlert("Réponse", "success", response.message);
@@ -694,9 +696,7 @@ $(function(){
                 flashAlert("Erreur", "error", response.message);
             }
         }).fail(function(xhr){
-            // Réinitialiser le bouton en cas d'erreur
-            $("#btn-envoyer-tribunal-final").attr("disabled",false);
-            $("#btn-envoyer-tribunal-final").html("Envoyer au tribunal");
+            sifecBtnReset(btn, "Envoyer au tribunal");
             flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de l\'envoi au tribunal');
         });
 
@@ -725,13 +725,11 @@ $(function(){
             _token: '{{ csrf_token() }}'
         };
 
-        $(this).attr("disabled",true);
-        $(this).html("Traitement en cours ...");
+        var btn = this;
+        sifecBtnLoading(btn, "Enregistrement...");
 
         $.post(route, data, function(response){
-            // Réinitialiser le bouton d'abord
-            $("#btn-confirmer-final").attr("disabled",false);
-            $("#btn-confirmer-final").html("Confirmer");
+            sifecBtnReset(btn, "Confirmer");
 
             if(response.code == "200"){
                 flashAlert("Réponse","success",response.message);
@@ -741,9 +739,7 @@ $(function(){
                 flashAlert("Réponse","error",response.message);
             }
         }).fail(function(xhr){
-            // Réinitialiser le bouton en cas d'erreur
-            $("#btn-confirmer-final").attr("disabled",false);
-            $("#btn-confirmer-final").html("Confirmer");
+            sifecBtnReset(btn, "Confirmer");
             flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de la confirmation');
 
         });
@@ -772,13 +768,11 @@ $(function(){
             _token: '{{ csrf_token() }}'
         };
 
-        $(this).attr("disabled",true);
-        $(this).html("Traitement en cours ...");
+        var btn = this;
+        sifecBtnLoading(btn, "Envoi...");
 
         $.post(route, data, function(response){
-            // Réinitialiser le bouton d'abord
-            $("#btn-renvoyer-final").attr("disabled",false);
-            $("#btn-renvoyer-final").html("Renvoyer au tribunal");
+            sifecBtnReset(btn, "Renvoyer au tribunal");
 
             if(response.code == "200"){
                flashAlert("Réponse", "success", response.message);
@@ -790,9 +784,7 @@ $(function(){
                 flashAlert("Erreur", "error", response.message);
             }
         }).fail(function(xhr){
-            // Réinitialiser le bouton en cas d'erreur
-            $("#btn-renvoyer-final").attr("disabled",false);
-            $("#btn-renvoyer-final").html("Renvoyer au tribunal");
+            sifecBtnReset(btn, "Renvoyer au tribunal");
             flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors du renvoi au tribunal');
         });
 

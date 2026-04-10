@@ -53,7 +53,8 @@
                 prenom: prenom.val(),
                 sexe: sexe.val(),
                 telephone: telephone.val(),
-                statut: statut.val()
+                statut: statut.val(),
+                _token: '{{ csrf_token() }}'
             };
 
             var int = 0;
@@ -72,6 +73,10 @@
                                 '</thead>'+
                                 '<tbody>';
 
+            var btnRechDef = this;
+            if (typeof sifecBtnLoading === 'function') {
+                sifecBtnLoading(btnRechDef, 'Recherche...');
+            }
             //traitement ajax
             $.ajax({
                     url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -198,15 +203,31 @@
                         });
 
                     }
-                });
+                },
+                error: function() {
+                    if (typeof flashAlert === 'function') {
+                        flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                    }
+                },
+                complete: function() {
+                    if (typeof sifecBtnReset === 'function') {
+                        sifecBtnReset(btnRechDef);
+                    }
+                }
+            });
         });
 
         $("#rechercherDefunt").on("click", function(event){
             event.preventDefault();
             numero_acte_naissance = $("#numero_acte_naissance_defunt").val();
             var data = {
-                numero_acte_naissance:numero_acte_naissance
+                numero_acte_naissance:numero_acte_naissance,
+                _token: '{{ csrf_token() }}'
             };
+            var btnRechActe = this;
+            if (typeof sifecBtnLoading === 'function') {
+                sifecBtnLoading(btnRechActe, 'Recherche...');
+            }
             $.post("{{ route('declarationDeces.rechercheDefunt') }}", data,function (response) {
 
             if(response.code == "200"){
@@ -231,6 +252,14 @@
             }else{
                 flashAlert("Opération échouée","error",response.message);
             }
+            }).fail(function() {
+                if (typeof flashAlert === 'function') {
+                    flashAlert('Erreur', 'error', 'Impossible de contacter le serveur.');
+                }
+            }).always(function() {
+                if (typeof sifecBtnReset === 'function') {
+                    sifecBtnReset(btnRechActe);
+                }
             });
             return false;
         });
@@ -248,7 +277,8 @@
                 nom: nom.val(),
                 prenom: prenom.val(),
                 sexe: sexe.val(),
-                telephone: telephone.val()
+                telephone: telephone.val(),
+                _token: '{{ csrf_token() }}'
             };
 
             var int = 0;
@@ -267,6 +297,10 @@
                                 '</thead>'+
                                 '<tbody>';
 
+            var btnRechConj = this;
+            if (typeof sifecBtnLoading === 'function') {
+                sifecBtnLoading(btnRechConj, 'Recherche...');
+            }
             //traitement ajax
             $.ajax({
                     url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -403,7 +437,18 @@
                         });
 
                     }
-                });
+                },
+                error: function() {
+                    if (typeof flashAlert === 'function') {
+                        flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                    }
+                },
+                complete: function() {
+                    if (typeof sifecBtnReset === 'function') {
+                        sifecBtnReset(btnRechConj);
+                    }
+                }
+            });
         });
 
          // Rechercher un père
@@ -419,7 +464,8 @@
                 nom: nom.val(),
                 prenom: prenom.val(),
                 sexe: sexe.val(),
-                telephone: telephone.val()
+                telephone: telephone.val(),
+                _token: '{{ csrf_token() }}'
             };
 
             var int = 0;
@@ -438,6 +484,10 @@
                                 '</thead>'+
                                 '<tbody>';
 
+            var btnRechPere = this;
+            if (typeof sifecBtnLoading === 'function') {
+                sifecBtnLoading(btnRechPere, 'Recherche...');
+            }
             //traitement ajax
             $.ajax({
                     url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -567,7 +617,18 @@
                         });
 
                     }
-                });
+                },
+                error: function() {
+                    if (typeof flashAlert === 'function') {
+                        flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                    }
+                },
+                complete: function() {
+                    if (typeof sifecBtnReset === 'function') {
+                        sifecBtnReset(btnRechPere);
+                    }
+                }
+            });
         });
 
         // Rechercher une mère
@@ -583,7 +644,8 @@
                 nom: nom.val(),
                 prenom: prenom.val(),
                 sexe: sexe.val(),
-                telephone: telephone.val()
+                telephone: telephone.val(),
+                _token: '{{ csrf_token() }}'
             };
 
             var int = 0;
@@ -602,6 +664,10 @@
                                 '</thead>'+
                                 '<tbody>';
 
+            var btnRechMere = this;
+            if (typeof sifecBtnLoading === 'function') {
+                sifecBtnLoading(btnRechMere, 'Recherche...');
+            }
             //traitement ajax
             $.ajax({
                     url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -728,7 +794,18 @@
                         });
 
                     }
-                });
+                },
+                error: function() {
+                    if (typeof flashAlert === 'function') {
+                        flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                    }
+                },
+                complete: function() {
+                    if (typeof sifecBtnReset === 'function') {
+                        sifecBtnReset(btnRechMere);
+                    }
+                }
+            });
         });
         // Rechercher un déclarant
         $('#rechercherdeclarant').on("click", function (event) {
@@ -745,7 +822,8 @@
                 prenom: prenom.val(),
                 sexe: sexe.val(),
                 telephone: telephone.val(),
-                statut:statut.val()
+                statut:statut.val(),
+                _token: '{{ csrf_token() }}'
             };
 
             var int = 0;
@@ -764,6 +842,10 @@
                                 '</thead>'+
                                 '<tbody>';
 
+            var btnRechDecl = this;
+            if (typeof sifecBtnLoading === 'function') {
+                sifecBtnLoading(btnRechDecl, 'Recherche...');
+            }
             //traitement ajax
             $.ajax({
                     url: "{{ route('declarationNaissance.recherchePersonne') }}",
@@ -888,7 +970,18 @@
                         });
 
                     }
-                });
+                },
+                error: function() {
+                    if (typeof flashAlert === 'function') {
+                        flashAlert('Erreur', 'error', 'Impossible de lancer la recherche.');
+                    }
+                },
+                complete: function() {
+                    if (typeof sifecBtnReset === 'function') {
+                        sifecBtnReset(btnRechDecl);
+                    }
+                }
+            });
         });
 
         var form = $(".validation-wizard").show();
@@ -959,6 +1052,9 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
 
 
                         let token = $('meta[name="csrf-token"]').attr('content');
+                        if (typeof sifecSwalLoading === 'function') {
+                            sifecSwalLoading('Enregistrement...');
+                        }
 
                         //récupération du code déclaration décès
                         var code_declaration = $("#code_declaration_deces").val();
@@ -1206,6 +1302,15 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                                 code_type_document_mere:code_type_document_mere.val(),
                                 numero_document_mere:numero_document_mere.val(),
 
+                                email_pere: $("#email_pere").val() || '',
+                                email_mere: $("#email_mere").val() || '',
+                                email_conjoint: $("#email_conjoint").length ? $("#email_conjoint").val() : '',
+                                email_declarant: $("#email_declarant").val() || '',
+                                email_professionnel_pere: $("#email_professionnel_pere").length ? $("#email_professionnel_pere").val() : '',
+                                email_professionnel_mere: $("#email_professionnel_mere").length ? $("#email_professionnel_mere").val() : '',
+                                email_professionnel_conjoint: $("#email_professionnel_conjoint").length ? $("#email_professionnel_conjoint").val() : '',
+                                email_professionnel_declarant: $("#email_professionnel_declarant").length ? $("#email_professionnel_declarant").val() : '',
+
                                 nom_declarant: nom_declarant.val(),
                                 prenom_declarant: prenom_declarant.val(),
                                 sexe_declarant: sexe_declarant.val(),
@@ -1229,13 +1334,12 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                                 code_nationalite_declarant: code_nationalite_declarant.val(),
                                 code_cause_deces: code_cause_deces.val(),
                                 num_acte_naissance: num_acte_naissance.val(),
-                                cec_naissance: cec_naissance_defunt.val()
+                                cec_naissance: cec_naissance_defunt.val(),
+                                _token: token
                             },
-                        // data: {_token: token},
                             success: function(response )
                             {
-
-
+                                if (typeof Swal !== 'undefined') { Swal.close(); }
 
                                 if (response.success==true)
                                 {
@@ -1249,6 +1353,7 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                                 }
                             },
                             error: function (resp) {
+                                if (typeof Swal !== 'undefined') { Swal.close(); }
                                 swal.fire("Erreur!", "Sumething went wrong.", "error");
                             }
                         });
@@ -1317,6 +1422,9 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                     if (e.value === true)
                     {
                         let token = $('meta[name="csrf-token"]').attr('content');
+                        if (typeof sifecSwalLoading === 'function') {
+                            sifecSwalLoading('Enregistrement...');
+                        }
 
                         //information du défunt
                         var type_declaration = $("#type_declaration");
@@ -1560,6 +1668,15 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                                 code_type_document_mere:code_type_document_mere.val(),
                                 numero_document_mere:numero_document_mere.val(),
 
+                                email_pere: $("#email_pere").val() || '',
+                                email_mere: $("#email_mere").val() || '',
+                                email_conjoint: $("#email_conjoint").length ? $("#email_conjoint").val() : '',
+                                email_declarant: $("#email_declarant").val() || '',
+                                email_professionnel_pere: $("#email_professionnel_pere").length ? $("#email_professionnel_pere").val() : '',
+                                email_professionnel_mere: $("#email_professionnel_mere").length ? $("#email_professionnel_mere").val() : '',
+                                email_professionnel_conjoint: $("#email_professionnel_conjoint").length ? $("#email_professionnel_conjoint").val() : '',
+                                email_professionnel_declarant: $("#email_professionnel_declarant").length ? $("#email_professionnel_declarant").val() : '',
+
                                 nom_declarant: nom_declarant.val(),
                                 prenom_declarant: prenom_declarant.val(),
                                 sexe_declarant: sexe_declarant.val(),
@@ -1583,11 +1700,12 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                                 code_nationalite_declarant: code_nationalite_declarant.val(),
                                 code_cause_deces: code_cause_deces.val(),
                                 num_acte_naissance: num_acte_naissance.val(),
-                                cec_naissance: cec_naissance_defunt.val()
+                                cec_naissance: cec_naissance_defunt.val(),
+                                _token: token
                             },
-                        // data: {_token: token},
                             success: function(response )
                             {
+                                if (typeof Swal !== 'undefined') { Swal.close(); }
 
                                 if (response.success==true)
                                 {
@@ -1601,6 +1719,7 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                                 }
                             },
                             error: function (resp) {
+                                if (typeof Swal !== 'undefined') { Swal.close(); }
                                 swal.fire("Erreur!", "Sumething went wrong.", "error");
                             }
                         });
@@ -3113,13 +3232,15 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
             var domicile_arrondissement_mere = $("#domicile_arrondissement_mere");
             var domicile_pays_mere = $("#domicile_pays_mere");
             var telephone_mere = $("#telephone_mere");
-            var code_profession_mer
+            var code_profession_mere = $("#profession_mere");
             var code_nationalite_mere = $("#code_nationalite_mere");
             var niveau_instruction_mere = $("#niveau_instruction_mere");
             var code_type_document_mere = $("#code_type_document_mere");
             var numero_document_mere = $("#numero_document_mere");
             var domicile_ville_mere = $("#domicile_ville_mere");
             var code_pays_mere = $("#code_pays_mere");
+            var email_pere = $("#email_pere");
+            var email_mere = $("#email_mere");
 
             //information conjoint
             var nom_conjoint = $("#nom_conjoint");
@@ -3149,6 +3270,7 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
             var domicile_pays_conjoint = $("#domicile_pays_conjoint");
             var niveau_instruction_conjoint= $("#niveau_instruction_conjoint");
             var code_pays_conjoint = $("#code_pays_conjoint");
+            var email_conjoint = $("#email_conjoint");
             //information déclarant
             var nom_declarant = $("#nom_declarant");
             var prenom_declarant = $("#prenom_declarant");
@@ -3172,6 +3294,7 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
             var numero_document_declarant = $("#numero_document_declarant");
             var niveau_instruction_declarant = $("#niveau_instruction_declarant");
             var code_pays_declarant = $("#code_pays_declarant");
+            var email_declarant = $("#email_declarant");
 
             $('input:radio[name="autredeclarant"]').change(function(){
 
@@ -3226,6 +3349,8 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                        $("#telephone_declarant").attr("disabled", true);
                        email_declarant.val(email_pere.val());
                        $("#email_declarant").attr("disabled", true);
+                       $("#email_professionnel_declarant").val($("#email_professionnel_pere").val());
+                       $("#email_professionnel_declarant").attr("disabled", true);
 
                     }
 
@@ -3279,6 +3404,8 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                        $("#telephone_declarant").attr("disabled", true);
                        email_declarant.val(email_mere.val());
                        $("#email_declarant").attr("disabled", true);
+                       $("#email_professionnel_declarant").val($("#email_professionnel_mere").val());
+                       $("#email_professionnel_declarant").attr("disabled", true);
 
                     }
 
@@ -3330,6 +3457,8 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                        $("#telephone_declarant").attr("disabled", true);
                        email_declarant.val(email_conjoint.val());
                        $("#email_declarant").attr("disabled", true);
+                       $("#email_professionnel_declarant").val($("#email_professionnel_conjoint").val());
+                       $("#email_professionnel_declarant").attr("disabled", true);
 
                        document.getElementById('declarant_click').style.visibility = 'hidden';
                     }
@@ -3368,6 +3497,11 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
 
                         telephone_declarant.val("");
                         document.getElementById('telephone_declarant').readOnly = false;
+
+                        email_declarant.val("");
+                        $("#email_declarant").attr("disabled", false);
+                        $("#email_professionnel_declarant").val("");
+                        $("#email_professionnel_declarant").attr("disabled", false);
 
                         code_profession_declarant.val("");
 

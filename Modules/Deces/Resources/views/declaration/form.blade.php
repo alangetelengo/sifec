@@ -209,6 +209,7 @@
                     <option value="{{ $lieuD->code_localite }}">{{ $lieuD->lib_localite }}</option>
                 @endforeach
             </select>
+            <input type="hidden" id="lieu_deces" name="lieu_deces" value="">
             @else
             <input type="text" class="form-control  @error('lieu_deces') is-invalid @enderror" value="{{ old("lieu_deces") }}" id="lieu_deces" name="lieu_deces" onkeyup="verif_lettre(this);this.value=this.value.toUpperCase()">
             @endif

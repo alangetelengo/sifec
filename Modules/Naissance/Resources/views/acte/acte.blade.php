@@ -372,10 +372,22 @@ Acte de naissance
         var errorEl = document.getElementById("pdf-error");
         var containerEl = document.getElementById("pdf-canvas-container");
 
-        pdfjsLib.getDocument({
-            url: url,
-            withCredentials: true
-        }).promise.then(function(pdf) {
+        // GET explicite : détecter texte d’erreur (403/404/500) au lieu de laisser PDF.js parser du HTML
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/pdf,*/*' } })
+            .then(function(res) {
+                var ct = (res.headers.get('Content-Type') || '').toLowerCase();
+                if (!res.ok || ct.indexOf('application/pdf') === -1) {
+                    return res.text().then(function(body) {
+                        var msg = (body || '').trim() || ('Erreur HTTP ' + res.status);
+                        throw new Error(msg);
+                    });
+                }
+                return res.arrayBuffer();
+            })
+            .then(function(arrayBuffer) {
+                return pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            })
+            .then(function(pdf) {
             loadingEl.style.display = "none";
             var numPages = pdf.numPages;
 
@@ -401,10 +413,11 @@ Acte de naissance
                 renderPromises.push(renderPage(i));
             }
             return Promise.all(renderPromises);
-        }).catch(function(err) {
+            })
+            .catch(function(err) {
             loadingEl.style.display = "none";
             errorEl.classList.remove("d-none");
-            errorEl.innerHTML = '<strong>Erreur lors du chargement du PDF :</strong> ' + (err.message || err) + '<br><small>URL : ' + url + '</small>';
+            errorEl.innerHTML = '<strong>Impossible d’afficher l’acte :</strong> ' + (err.message || err) + '<br><small>URL : ' + url + '</small>';
         });
     }
 

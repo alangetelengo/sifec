@@ -16,7 +16,7 @@ use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Deces\Entities\UserPompeFunebre;
 use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\Institution;
-use Modules\Mariage\Entities\Declarationmariage;
+use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Referentiel\Entities\Arrondissement;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,6 +33,10 @@ class InstitutionUser extends Model
     protected $table="tr_ins_user";
     protected $primaryKey="cui";
     public $incrementing = false;
+
+    protected $casts = [
+        'active' => 'boolean',
+    ];
 
 
 
@@ -98,7 +102,7 @@ class InstitutionUser extends Model
 
     public function declarationMariages(): HasMany
     {
-        return $this->hasMany(Declarationmariage::class, 'cui', 'cui');
+        return $this->hasMany(DeclarationMariage::class, 'cui', 'cui');
     }
 
     public function userPompeFunebres(): HasMany

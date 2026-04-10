@@ -52,6 +52,9 @@
 <script src="{{ asset('tpl/js/countrymap-bz.js') }}"></script>
 @endsection
 @section("corps")
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row" style='opacity:1'>
 
     <div class="col-12">
@@ -254,6 +257,9 @@
 
         </div>
     </div>
+</div>
+</div>
+</div>
 </div>
 @endsection
 @section("scripts")

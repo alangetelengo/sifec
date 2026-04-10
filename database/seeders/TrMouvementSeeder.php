@@ -129,9 +129,24 @@ class TrMouvementSeeder extends Seeder
                 'description' => 'La formation sanitaire enregistre une déclaration de naissance'
             ],
             [
+                'code_mouvement' => 'MOUV_0033',
+                'lib_mouvement' => 'Certificat de naissance enregistré',
+                'description' => 'La formation sanitaire ou l\'établissement enregistre un certificat de naissance'
+            ],
+            [
+                'code_mouvement' => 'MOUV_0034',
+                'lib_mouvement' => 'Certificat transformé en déclaration de naissance',
+                'description' => 'Le centre d\'état civil valide le certificat et enregistre le dossier comme déclaration de naissance.'
+            ],
+            [
+                'code_mouvement' => 'MOUV_0035',
+                'lib_mouvement' => 'Certificat de naissance envoyé',
+                'description' => 'La formation sanitaire envoie un certificat de naissance au centre d\'état civil'
+            ],
+            [
                 'code_mouvement' => 'MOUV_0025',
-                'lib_mouvement' => 'Fiche de maternité enregistrée',
-                'description' => 'La fiche de maternité est enregistrée dans le système.'
+                'lib_mouvement' => 'Événement naissance (code historique MOUV_0025)',
+                'description' => 'Code mouvement conservé pour l’historique des dossiers ; non utilisé par les flux métier actuels.'
             ],
             [
                 'code_mouvement' => 'MOUV_0026',

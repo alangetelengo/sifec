@@ -3,7 +3,6 @@
 namespace Modules\Mariage\Services;
 
 use App\Sifec\SifecFacade;
-use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Mariage\Entities\ActeMariage;
 use Modules\Notification\Jobs\ValidationActeMariageJob;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +34,6 @@ class OtpService
         $contact = $user->personne->contacts->first();
         if ($contact) {
             SifecFacade::sendSms($contact->indicatif . $contact->telephone, $temp);
-            dispatch(new SendSmsJob($contact->indicatif . $contact->telephone, $temp));
             dispatch(new ValidationActeMariageJob(
                 $user->personne->nomComplet(),
                 count($actes),

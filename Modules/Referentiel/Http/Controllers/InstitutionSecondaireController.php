@@ -10,6 +10,7 @@ use Modules\Referentiel\Entities\Localite;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Services\InstitutionLienSyncService;
 use Modules\Referentiel\Entities\Departement;
 use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\TypeInstitution;
@@ -104,12 +105,16 @@ class InstitutionSecondaireController extends Controller
             $institution->lib_institution = strtoupper($request->lib_institution) ;
             $institution->code_type_institution = "TPINS_0009";
             $institution->code_institution_parent = $request->code_institution_parent;
-            $institution->code_pompe_funebre = $request->code_pompe_funebre;
             $institution->statut = 1;
             $institution->code_localite = "LOC_0026";
 
             $institution->save();
 
+            app(InstitutionLienSyncService::class)->syncFromRequest($institution, [
+                'liens_cec_naissance' => array_values(array_filter([(string) ($request->code_pompe_funebre ?? '')])),
+                'liens_cec_deces' => [],
+                'liens_tribunal_ressort' => [],
+            ], true);
 
             return response()->json([
                 "code"=>"200",

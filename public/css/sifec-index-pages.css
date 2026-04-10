@@ -1,0 +1,536 @@
+/**
+ * Charte liste / index SIFEC — s’applique uniquement sous .page-sifec-index
+ */
+.page-sifec-index {
+    --si-ink: #1a2e26;
+    --si-muted: #5c6d66;
+    --si-green: #0f5132;
+    --si-green-mid: #1b6f4a;
+    --si-green-soft: #e8f0eb;
+    --si-header-gradient: linear-gradient(90deg, #e4efe0 0%, #eef5e8 50%, #f4f9f0 100%);
+    --si-line: #e2e8e4;
+    --si-paper: #ffffff;
+    --si-shadow: 0 12px 40px rgba(26, 46, 38, 0.08);
+    --si-radius: 14px;
+    --si-radius-sm: 10px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    margin: -0.35rem -0.5rem 0;
+    padding: 0.5rem 0.5rem 2.5rem;
+    min-height: calc(100vh - 100px);
+    background: linear-gradient(180deg, #fafaf8 0%, #eef1ee 100%);
+}
+
+.page-sifec-index .an-shell {
+    border: 1px solid var(--si-line);
+    border-radius: var(--si-radius);
+    box-shadow: var(--si-shadow);
+    background: var(--si-paper);
+    overflow: hidden;
+}
+
+.page-sifec-index .an-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.35rem 1.1rem;
+    background: var(--si-header-gradient);
+    border-bottom: 1px solid var(--si-line);
+}
+
+.page-sifec-index .an-hero-text h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--si-ink);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+.page-sifec-index .an-hero-text p {
+    margin: 0.45rem 0 0;
+    font-size: 0.9rem;
+    color: var(--si-muted);
+    max-width: 42rem;
+    line-height: 1.5;
+}
+
+.page-sifec-index .an-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-sifec-index .an-toolbar .btn {
+    border-radius: var(--si-radius-sm);
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(26, 46, 38, 0.08);
+}
+
+.page-sifec-index .an-body {
+    padding: 1.15rem 1.25rem 1.5rem;
+}
+
+.page-sifec-index .an-tabs .nav {
+    gap: 0.35rem;
+    border-bottom: none;
+    flex-wrap: wrap;
+}
+
+.page-sifec-index .an-tabs .nav-link {
+    border-radius: var(--si-radius-sm);
+    padding: 0.55rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--si-muted);
+    border: 1px solid transparent;
+    background: #f4f6f5;
+    transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.page-sifec-index .an-tabs .nav-link:hover {
+    color: var(--si-ink);
+    background: #e8ece9;
+}
+
+.page-sifec-index .an-tabs .nav-link.active {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--si-green-mid) 0%, var(--si-green) 100%);
+    border-color: var(--si-green-mid);
+    box-shadow: 0 4px 14px rgba(27, 111, 74, 0.28);
+}
+
+.page-sifec-index .an-hint {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    padding: 0.95rem 1.1rem;
+    border-radius: var(--si-radius-sm);
+    border: 1px solid var(--si-line);
+    margin-bottom: 1.1rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #2d3d35;
+}
+
+.page-sifec-index .an-hint__icon {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.page-sifec-index .an-hint--step1 {
+    background: linear-gradient(90deg, rgba(13, 110, 253, 0.08) 0%, #fafcfb 40%);
+    border-left: 4px solid #0d6efd;
+}
+
+.page-sifec-index .an-hint--step1 .an-hint__icon {
+    background: rgba(13, 110, 253, 0.12);
+    color: #0d6efd;
+}
+
+.page-sifec-index .an-hint--step2 {
+    background: var(--si-header-gradient);
+    border: 1px solid var(--si-line);
+    border-left: 4px solid rgba(146, 184, 133, 0.55);
+    color: #2d3d35;
+}
+
+.page-sifec-index .an-hint--step2 .an-hint__icon {
+    background: rgba(146, 184, 133, 0.22);
+    color: #3d5c38;
+    border: 1px solid rgba(146, 184, 133, 0.35);
+}
+
+.page-sifec-index .an-hint strong {
+    color: var(--si-ink);
+}
+
+.page-sifec-index .an-filter-card {
+    border: 1px solid var(--si-line);
+    border-radius: var(--si-radius-sm);
+    overflow: hidden;
+    margin-bottom: 1.1rem;
+    background: #fafcfb;
+}
+
+.page-sifec-index .an-filter-card .card-header {
+    background: var(--si-header-gradient);
+    border-bottom: 1px solid var(--si-line);
+    padding: 0.75rem 1rem;
+}
+
+.page-sifec-index .an-filter-card .card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--si-ink);
+}
+
+.page-sifec-index .an-filter-card .card-header .text-secondary {
+    color: var(--si-green-mid) !important;
+    opacity: 0.85;
+}
+
+.page-sifec-index .an-filter-card .card-body {
+    padding: 1rem 1rem 1.05rem;
+    background: #fff;
+}
+
+.page-sifec-index .an-filter-card .form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--si-muted);
+    margin-bottom: 0.3rem;
+}
+
+.page-sifec-index .an-filter-card .form-control,
+.page-sifec-index .an-filter-card select.form-control {
+    border-radius: 8px;
+    border-color: #d5ded8;
+    font-size: 0.875rem;
+}
+
+.page-sifec-index .an-filter-card .form-control:focus,
+.page-sifec-index .an-filter-card select:focus {
+    border-color: var(--si-green-mid);
+    box-shadow: 0 0 0 0.2rem rgba(27, 111, 74, 0.15);
+}
+
+.page-sifec-index .an-btn-search {
+    border-radius: var(--si-radius-sm);
+    font-weight: 600;
+    padding: 0.45rem 1.1rem;
+    background: var(--si-green-mid);
+    border-color: var(--si-green-mid);
+}
+
+.page-sifec-index .an-btn-search:hover {
+    background: var(--si-green);
+    border-color: var(--si-green);
+}
+
+.page-sifec-index .an-btn-reset {
+    border-radius: var(--si-radius-sm);
+    font-weight: 600;
+    padding: 0.45rem 1.1rem;
+}
+
+/**
+ * Certificat de non-inscription — panneau « vérifier le délai » (liste index)
+ */
+.page-sifec-index .cni-verify-card {
+    border: 1px solid var(--si-line);
+    border-radius: var(--si-radius-sm);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    background: #fff;
+    box-shadow: 0 4px 18px rgba(26, 46, 38, 0.06);
+}
+
+.page-sifec-index .cni-verify-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.15rem;
+    background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%);
+    color: #fff;
+}
+
+.page-sifec-index .cni-verify-card__head > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.page-sifec-index .cni-verify-card__head h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+.page-sifec-index .cni-verify-card__head p {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    opacity: 0.95;
+    line-height: 1.45;
+}
+
+.page-sifec-index .cni-verify-card__body {
+    padding: 1.15rem 1.2rem 1.25rem;
+    background: linear-gradient(180deg, #fafcfb 0%, #fff 45%);
+}
+
+.page-sifec-index .cni-verify-field .form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--si-muted);
+    margin-bottom: 0.35rem;
+}
+
+.page-sifec-index .cni-verify-field .form-control {
+    border-radius: 10px;
+    border-color: #d5ded8;
+    max-width: 280px;
+    font-size: 0.9rem;
+}
+
+.page-sifec-index .cni-verify-field .form-control:focus {
+    border-color: #92b885;
+    box-shadow: 0 0 0 0.2rem rgba(146, 184, 133, 0.22);
+}
+
+.page-sifec-index .cni-verify-field .form-text {
+    font-size: 0.8rem;
+    color: var(--si-muted);
+    margin-top: 0.35rem;
+}
+
+.page-sifec-index .cni-alerts-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    min-height: 0;
+}
+
+.page-sifec-index .cni-callout {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+    padding: 0.95rem 1.05rem;
+    border-radius: var(--si-radius-sm);
+    border: 1px solid var(--si-line);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    text-align: left;
+}
+
+.page-sifec-index .cni-callout__icon {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.page-sifec-index .cni-callout__body strong {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--si-ink);
+}
+
+.page-sifec-index .cni-callout__body .cni-callout__sub {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.88rem;
+    color: var(--si-muted);
+}
+
+.page-sifec-index .cni-callout--deadline {
+    background: linear-gradient(135deg, #fff5f5 0%, #fff 50%);
+    border-color: rgba(185, 74, 72, 0.28);
+    border-left: 4px solid #c75c5a;
+}
+
+.page-sifec-index .cni-callout--deadline .cni-callout__icon {
+    background: rgba(199, 92, 90, 0.12);
+    color: #a94442;
+}
+
+.page-sifec-index .cni-callout--deadline .cni-callout__body strong {
+    color: #7a2e2c;
+}
+
+.page-sifec-index .cni-callout--action {
+    background: linear-gradient(135deg, #fffbf0 0%, #fff 55%);
+    border-color: rgba(200, 150, 50, 0.28);
+    border-left: 4px solid #c9a227;
+}
+
+.page-sifec-index .cni-callout--action .cni-callout__icon {
+    background: rgba(201, 162, 39, 0.15);
+    color: #8a6d1a;
+}
+
+.page-sifec-index .cni-callout--action .cni-callout__body strong {
+    color: #5c4a12;
+}
+
+.page-sifec-index .cni-callout--info {
+    background: linear-gradient(135deg, #f0f7f4 0%, #fff 50%);
+    border-color: rgba(146, 184, 133, 0.35);
+    border-left: 4px solid #92b885;
+}
+
+.page-sifec-index .cni-callout--info .cni-callout__icon {
+    background: rgba(146, 184, 133, 0.2);
+    color: #3d5c38;
+}
+
+.page-sifec-index .cni-callout--success {
+    background: linear-gradient(135deg, #ecf6ee 0%, #fff 50%);
+    border-color: rgba(27, 111, 74, 0.25);
+    border-left: 4px solid var(--si-green-mid);
+}
+
+.page-sifec-index .cni-callout--success .cni-callout__icon {
+    background: rgba(27, 111, 74, 0.1);
+    color: var(--si-green);
+}
+
+.page-sifec-index .cni-callout--neutral {
+    background: #f8faf9;
+    border-color: var(--si-line);
+}
+
+.page-sifec-index .cni-callout--neutral .cni-callout__icon {
+    background: var(--si-green-soft);
+    color: var(--si-green-mid);
+}
+
+.page-sifec-index .cni-verify-actions {
+    margin-top: 1.15rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--si-line);
+}
+
+.page-sifec-index .cni-btn-verify {
+    border-radius: var(--si-radius-sm);
+    font-weight: 600;
+    padding: 0.5rem 1.35rem;
+    border: none;
+    color: #fff !important;
+    background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%);
+    box-shadow: 0 4px 14px rgba(146, 184, 133, 0.35);
+    transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.page-sifec-index .cni-btn-verify:hover:not(:disabled) {
+    filter: brightness(1.04);
+    box-shadow: 0 6px 18px rgba(146, 184, 133, 0.4);
+    color: #fff !important;
+}
+
+.page-sifec-index .cni-btn-verify:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.page-sifec-index .an-table-wrap {
+    border-radius: var(--si-radius-sm);
+    border: 1px solid var(--si-line);
+    overflow: auto;
+    background: #fafcfb;
+}
+
+.page-sifec-index .an-data-table {
+    margin-bottom: 0 !important;
+}
+
+.page-sifec-index .an-data-table thead th {
+    background: #f0f4f1 !important;
+    color: var(--si-ink);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid #d5ded8 !important;
+    padding: 0.7rem 0.75rem !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.page-sifec-index .an-data-table tbody td {
+    padding: 0.65rem 0.75rem !important;
+    vertical-align: middle !important;
+    border-color: #eef1ee !important;
+    font-size: 0.875rem;
+    color: #2d3d35;
+}
+
+.page-sifec-index .an-data-table tbody tr:hover td {
+    background: rgba(232, 240, 235, 0.45) !important;
+}
+
+.page-sifec-index .dataTables_wrapper .dataTables_filter {
+    padding: 0.65rem 0.85rem;
+    margin: 0;
+    background: var(--si-header-gradient);
+    border-bottom: 1px solid var(--si-line);
+}
+
+.page-sifec-index .dataTables_wrapper .dataTables_filter label {
+    font-size: 0.85rem;
+    color: var(--si-muted);
+    font-weight: 600;
+}
+
+.page-sifec-index .dataTables_wrapper .dataTables_filter input {
+    border-radius: 8px;
+    border: 1px solid #d5ded8;
+    padding: 0.35rem 0.65rem;
+    margin-left: 0.35rem;
+    background: #fff;
+    color: var(--si-ink);
+}
+
+.page-sifec-index .dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--si-green-mid);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(27, 111, 74, 0.12);
+}
+
+/* Cartes héritées dans le corps (listes classiques) */
+.page-sifec-index .an-body > .row > [class*='col-'] > .card {
+    border: 1px solid var(--si-line);
+    border-radius: var(--si-radius-sm);
+    overflow: hidden;
+    box-shadow: none;
+}
+
+.page-sifec-index .an-body > .row > [class*='col-'] > .card > .card-header {
+    background: var(--si-header-gradient);
+    border-bottom: 1px solid var(--si-line);
+}
+
+.page-sifec-index .an-body > .row > [class*='col-'] > .card > .card-header h4,
+.page-sifec-index .an-body > .row > [class*='col-'] > .card > .card-header h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--si-ink);
+}
+
+.page-sifec-index .an-body .card .card {
+    border: 1px solid var(--si-line);
+    border-radius: var(--si-radius-sm);
+}
+
+.page-sifec-index .an-body .card .card .card-body {
+    background: #fff;
+}
+
+/**
+ * Badges .badge.bg-secondary : le thème wizard redéfinit --bs-secondary en #f8f9fa (presque blanc).
+ * La règle Bootstrap .badge impose color:#fff → libellé invisible (ex. « Optionnelle », colonne Étape).
+ * On force un fond gris contrasté pour toute l’appli chargeant cette feuille (layout app).
+ */
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}

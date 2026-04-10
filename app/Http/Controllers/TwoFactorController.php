@@ -6,6 +6,7 @@ use BaconQrCode\Writer;
 use Illuminate\Http\Request;
 use App\Models\UserAuditTrail;
 use PragmaRX\Google2FA\Google2FA;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
 use BaconQrCode\Renderer\ImageRenderer;
@@ -19,6 +20,23 @@ class TwoFactorController extends Controller
     public function __construct()
     {
         $this->middleware('auth')->except(['showVerify', 'verify', 'verifyRecoveryCode']);
+        $this->middleware(function ($request, $next) {
+            if (! Gate::allows('module.menus.administration')) {
+                abort(403, 'La configuration de la double authentification est réservée aux administrateurs.');
+            }
+
+            return $next($request);
+        })->only([
+            'index',
+            'enable',
+            'getCsrfToken',
+            'confirm',
+            'showRecoveryCodes',
+            'downloadRecoveryCodesPdf',
+            'printRecoveryCodesPdf',
+            'regenerateRecoveryCodes',
+            'disable',
+        ]);
         $this->google2fa = new Google2FA();
     }
 
@@ -610,6 +628,11 @@ class TwoFactorController extends Controller
             // Nettoyer la session
             session()->forget(['2fa:user:id', '2fa:remember']);
 
+            if ($user->must_change_password) {
+                return redirect()->route('first-login-password.show')
+                    ->with('first_login_notice', true);
+            }
+
             toastr()->success("Connexion réussie!");
             return redirect()->intended('/');
         }
@@ -643,6 +666,11 @@ class TwoFactorController extends Controller
             $user->save();
 
             session()->forget(['2fa:user:id', '2fa:remember']);
+
+            if ($user->must_change_password) {
+                return redirect()->route('first-login-password.show')
+                    ->with('first_login_notice', true);
+            }
 
             toastr()->warning("Vous vous êtes connecté avec un code de récupération. Il vous reste " . $user->getRemainingRecoveryCodesCount() . " code(s) de récupération.");
 

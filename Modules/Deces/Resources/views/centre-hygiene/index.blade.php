@@ -10,6 +10,9 @@ Constatation de décès
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -72,6 +75,7 @@ Constatation de décès
                                                         $peutSupprimer = false;
                                                         break;
                                                     case 'MOUV_0032':
+                                                    case 'MOUV_2005':
                                                         $statutBadge = ['class' => 'badge-primary', 'label' => $dernierMouvement->lib_mouvement];
                                                         $peutEnvoyer = true;
                                                         $peutModifier = true;
@@ -250,8 +254,9 @@ Constatation de décès
     </div>
 </div>
 {{-- FIN DETAILS RENVOIE DECLARATION --}}
-
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 

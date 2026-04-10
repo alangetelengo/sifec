@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Mobile\Database\Seeders\TypeActeTableSeeder;
+use Modules\Rectification\Database\Seeders\RubriqueSeederTableSeeder;
 
 /**
  * Ordre d'exécution respectant les dépendances de clés étrangères :
@@ -30,11 +32,11 @@ class DatabaseSeeder extends Seeder
             TypeExtraitSeeder::class,
             ReligionSeeder::class,
             OptionMariageSeeder::class,
-            TypeLocaliteSeeder::class,
             TypeJugementSeeder::class,
             TypeRequisitionSeeder::class,
 
-            // ── Géographie ────────────────────────────────────────────────────
+            // ── Géographie (tr_type_localite → tr_localite ; voir data/tr_localite_seed.sql) ──
+            TypeLocaliteSeeder::class,
             DepartementSeeder::class,
             LocaliteSeeder::class,
 
@@ -43,21 +45,34 @@ class DatabaseSeeder extends Seeder
             TypeInstitutionSeeder::class,
             InstitutionSeeder::class,
 
+            // ── Types d'actes ─────────────────────────────────────────────────
+            TypeActeTableSeeder::class,
+            RubriqueSeederTableSeeder::class,
+
             // ── Modules & habilitations ──────────────────────────────────────
             ModuleSeeder::class,
             FonctionnaliteSeeder::class,
             FonctionSeeder::class,
+            FonctionFonctionnaliteSeeder::class,
 
             // ── Mouvements ───────────────────────────────────────────────────
             TrMouvementSeeder::class,
+            TrMouvementCertificatsNaissanceDecesSeeder::class,
 
-            // ── Comptes utilisateurs (optionnel — décommenter si nécessaire) ─
+            // ── Comptes : personnes + users + affectations (voir Data/sifec_comptes_institutions.php) ─
+            // PersonneSeeder vide tr_ins_user, tr_user, tr_identification_personne puis réinsère les personnes.
             PersonneSeeder::class,
             UserSeederTableSeeder::class,
             InstitutionUserSeeder::class,
 
+            // Centre d’hygiène Brazzaville : lien PF (constatation décès → institution de ressort)
+            CentreHygieneBrazzavilleDecesSeeder::class,
+
             // ── Appareils autorisés ───────────────────────────────────────────
             AppareilSeeder::class,
+
+            // Démo organisation (Makelekele, TGI, PF) — mdp 123456 ; décommenter si besoin
+            // DemoSifecOrganisationSeeder::class,
         ]);
     }
 }

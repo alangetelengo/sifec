@@ -31,7 +31,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h4>Créer une déclaration de décès</h4>
+                        <h4>Enregistrer un certificat de décès (déclaration générée)</h4>
                     </div>
                     <div class="card wizard-content">
                         <div class="card-body">

@@ -97,7 +97,7 @@ class Registre extends Model
         return $numero;
     }
 
-    
+
 
     public function validateur()
     {
@@ -131,12 +131,9 @@ class Registre extends Model
         $libType = $typeReg->lib_type_registre ?? '';
 
         if ($contexte === 'naissance') {
-            $libTypeRegistre = 'registre d\'acte de ' . strtolower($libType);
-            $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
             $dateAnnee = $registre->updated_at ? date('Y', strtotime($registre->updated_at)) : '';
             $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
         } elseif ($contexte === 'deces') {
-            $libTypeRegistre = 'registre d\'acte de ' . strtolower($libType);
             if ($inst->typeInstitution && $inst->typeInstitution->code_type_institution === 'TPINS_0003') {
                 $pourLeCompte = 'des <strong>' . e($libInstitution) . '</strong>';
             } else {
@@ -145,7 +142,6 @@ class Registre extends Model
             $dateAnnee = $registre->created_at ? date('Y', strtotime($registre->created_at)) : '';
             $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
         } else {
-            $libTypeRegistre = 'registre d\'acte de ' . strtolower($libType);
             $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
             $dateAnnee = $registre->created_at ? date('Y', strtotime($registre->created_at)) : '';
             $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
@@ -160,10 +156,14 @@ class Registre extends Model
             $titre = ($sexep === 'F') ? 'Présidente' : 'Président';
         }
 
-        $s = 'Ce présent registre contenant <strong>' . $n . '</strong> feuillets devant servir de <strong> ' . $libTypeRegistre . '</strong>';
-        $s .= ' en <strong>' . $dateAnnee . '</strong> pour le compte ' . $pourLeCompte;
-        $s .= ', a été coté et paraphé par nous, <strong>' . $pdt . '</strong>, ' . $titre . '  du <strong> ' . e($parentLib) . ' </strong>';
-        $s .= ', ce <strong>' . $dateCe . '</strong>. <br> <br>';
+        if ($contexte === 'naissance') {
+            // Formulation validée (ponctuation, « registre d'actes de naissance », Centre d'état civil, etc.).
+            $s = 'Le présent registre, contenant <strong>' . $n . '</strong> feuillets, devant servir de registre d\'actes de naissance pour l\'année <strong>' . $dateAnnee . '</strong>, pour le compte du Centre d\'état civil de la <strong>' . e($libInstitution) . '</strong>, a été coté et paraphé par nous, <strong>' . $pdt . '</strong>, ' . $titre . ' du <strong>' . e($parentLib) . '</strong>, ce <strong>' . $dateCe . '</strong>.<br><br>';
+        } else {
+            $phraseType = 'registre d\'actes de ' . mb_strtolower($libType, 'UTF-8');
+            $s = 'Le présent registre, contenant <strong>' . $n . '</strong> feuillets, devant servir de ' . $phraseType . ' pour l\'année <strong>' . $dateAnnee . '</strong>, pour le compte ' . $pourLeCompte . ', a été coté et paraphé par nous, <strong>' . $pdt . '</strong>, ' . $titre . ' du <strong>' . e($parentLib) . '</strong>, ce <strong>' . $dateCe . '</strong>.<br><br>';
+        }
+
         $s .= "Le registre sera clôturé et arrêté le 31 Décembre par l'officier de l'état-civil.";
 
         return $s;

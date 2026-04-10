@@ -44,8 +44,10 @@ class DecesController extends Controller
 
          $instructions = Sifec::niveauInstructions();
          $declarations = Auth::user()->institution()->declarationsDeces();
+        $title = 'Liste des déclarations de décès (issues des certificats)';
+        $button = 'Enregistrer un certificat de décès';
 
-        return view('deces::declaration.index',compact('declarations','instructions'));
+        return view('deces::declaration.index',compact('declarations','instructions','title','button'));
     }
 
 
@@ -102,7 +104,7 @@ class DecesController extends Controller
 
     public function create()
     {
-        $title = "Créer une déclaration de decès";
+        $title = "Enregistrer un certificat de décès (déclaration générée)";
 
         $type_declaration = "DECLARATION DE DECES";
         $cecMariage = Institution::where("code_type_institution","TPINS_0002")->get();

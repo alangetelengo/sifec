@@ -12,6 +12,9 @@ Déclarations de mariage
     Liste des déclarations de mariage
 @endsection
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -421,7 +424,9 @@ Déclarations de mariage
     </div>
 </div>
 {{-- FIN MODAL RENVOI AU TRIBUNAL --}}
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 
@@ -450,9 +455,10 @@ Déclarations de mariage
                     _token: '{{ csrf_token() }}'
                 };
 
-                $(this).attr("disabled",true);
-                $(this).html("Traitement en cours ...");
+                var btn = this;
+                sifecBtnLoading(btn, "Enregistrement...");
                 $.post(route, data, function(response){
+                    sifecBtnReset(btn, "Envoyer");
                     if(response.code == "200"){
                        flashAlert("Réponse", "success", response.message);
                         $("#modal-declaration-send").modal('hide');
@@ -462,6 +468,9 @@ Déclarations de mariage
                     }else{
                         flashAlert("Erreur", "error", response.message);
                     }
+                }).fail(function(xhr){
+                    sifecBtnReset(btn, "Envoyer");
+                    flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de la confirmation');
                 });
 
                 return false;
@@ -502,13 +511,11 @@ Déclarations de mariage
                     _token: '{{ csrf_token() }}'
                 };
 
-                $(this).attr("disabled",true);
-                $(this).html("Traitement en cours ...");
+                var btn = this;
+                sifecBtnLoading(btn, "Enregistrement...");
 
                 $.post(route, data, function(response){
-                    // Réinitialiser le bouton d'abord
-                    $("#btn-confirmer-final").attr("disabled",false);
-                    $("#btn-confirmer-final").html("Confirmer");
+                    sifecBtnReset(btn, "Confirmer");
 
                     if(response.code == "200"){
                         flashAlert("Réponse","success",response.message);
@@ -518,9 +525,7 @@ Déclarations de mariage
                         flashAlert("Réponse","error",response.message);
                     }
                 }).fail(function(xhr){
-                    // Réinitialiser le bouton en cas d'erreur
-                    $("#btn-confirmer-final").attr("disabled",false);
-                    $("#btn-confirmer-final").html("Confirmer");
+                    sifecBtnReset(btn, "Confirmer");
                     flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de la confirmation');
 
                 });
@@ -548,13 +553,11 @@ Déclarations de mariage
                     _token: '{{ csrf_token() }}'
                 };
 
-                $(this).attr("disabled",true);
-                $(this).html("Traitement en cours ...");
+                var btn = this;
+                sifecBtnLoading(btn, "Envoi...");
 
                 $.post(route, data, function(response){
-                    // Réinitialiser le bouton d'abord
-                    $("#btn-envoyer-tribunal-final").attr("disabled",false);
-                    $("#btn-envoyer-tribunal-final").html("Envoyer au tribunal");
+                    sifecBtnReset(btn, "Envoyer au tribunal");
 
                     if(response.code == "200"){
                        flashAlert("Réponse", "success", response.message);
@@ -566,9 +569,7 @@ Déclarations de mariage
                         flashAlert("Erreur", "error", response.message);
                     }
                 }).fail(function(xhr){
-                    // Réinitialiser le bouton en cas d'erreur
-                    $("#btn-envoyer-tribunal-final").attr("disabled",false);
-                    $("#btn-envoyer-tribunal-final").html("Envoyer au tribunal");
+                    sifecBtnReset(btn, "Envoyer au tribunal");
                     flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de l\'envoi au tribunal');
                 });
 
@@ -595,13 +596,11 @@ Déclarations de mariage
                     _token: '{{ csrf_token() }}'
                 };
 
-                $(this).attr("disabled",true);
-                $(this).html("Traitement en cours ...");
+                var btn = this;
+                sifecBtnLoading(btn, "Envoi...");
 
                 $.post(route, data, function(response){
-                    // Réinitialiser le bouton d'abord
-                    $("#btn-renvoyer-tribunal-final").attr("disabled",false);
-                    $("#btn-renvoyer-tribunal-final").html("Renvoyer au tribunal");
+                    sifecBtnReset(btn, "Renvoyer au tribunal");
 
                     if(response.code == "200"){
                        flashAlert("Réponse", "success", response.message);
@@ -613,9 +612,7 @@ Déclarations de mariage
                         flashAlert("Erreur", "error", response.message);
                     }
                 }).fail(function(xhr){
-                    // Réinitialiser le bouton en cas d'erreur
-                    $("#btn-renvoyer-tribunal-final").attr("disabled",false);
-                    $("#btn-renvoyer-tribunal-final").html("Renvoyer au tribunal");
+                    sifecBtnReset(btn, "Renvoyer au tribunal");
                     flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors du renvoi au tribunal');
                 });
 

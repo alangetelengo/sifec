@@ -3,6 +3,8 @@
 namespace Modules\Referentiel\Http\Controllers;
 
 use Exception;
+use Carbon\Carbon;
+use App\Models\User;
 use App\Sifec\Sifec;
 use App\Sifec\SifecFacade;
 use Illuminate\Http\Request;
@@ -14,17 +16,25 @@ use Illuminate\Support\Facades\Gate;
 use Modules\Deces\Entities\ActeDeces;
 use Illuminate\Support\Facades\Validator;
 use Modules\Mariage\Entities\ActeMariage;
-use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Referentiel\Entities\Registre;
 use Illuminate\Contracts\Support\Renderable;
 use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Referentiel\Entities\TypeRegistre;
 use Modules\Notification\Jobs\CreationRegistreJob;
+use Modules\Notification\Jobs\RegistreValideParTribunalJob;
 use Modules\Notification\Jobs\ValidationRegistreJob;
+use Modules\Notification\Notifications\CreationRegistreParCecNotification;
+use Modules\Notification\Notifications\RegistreValideParTribunalNotification;
 use Modules\Notification\Services\NotificationService;
 
 class RegistreController extends Controller
 {
+    private const OTP_VALID_MINUTES = 1;
+
+    private const OTP_MAX_ATTEMPTS = 3;
+
+    private const OTP_LOCKOUT_MINUTES = 3;
+
     /**
      * Display a listing of the resource.
      * @return Renderable
@@ -108,7 +118,7 @@ class RegistreController extends Controller
     }
 
 
-    public function store(Request $request)
+    public function store(Request $request, NotificationService $notificationService)
     {
         $annee = date("Y");
         $code_cec = Auth::user()->affectationActive()->cui;
@@ -166,7 +176,6 @@ class RegistreController extends Controller
 
                 if ($telephone) {
                     SifecFacade::sendSms($telephone, $temp);
-                    dispatch(new SendSmsJob($telephone, $temp));
                 }
 
                 $emailTribunal = $contactValidateur ? ($contactValidateur->email_professionnelle ?? null) : null;
@@ -181,15 +190,85 @@ class RegistreController extends Controller
                 }
             }
 
+            // Notification in-app (même principe que Naissance : notifierAgentsInstitution sur le tribunal).
+            // Si aucun tr_ins_user actif ne matche, repli : compte User lié à la personne du validateur (celle du SMS).
+            if ($tribunal) {
+                try {
+                    $cecLib = Auth::user()->affectationActive()->institution->lib_institution;
+                    $notif = new CreationRegistreParCecNotification($registre, $cecLib);
+                    $nb = $notificationService->notifierAgentsInstitution($tribunal->code_institution, $notif);
+                    $fallbackPresident = false;
+                    if ($nb === 0 && $validateur && ! empty($validateur->code_personne)) {
+                        $presidentUser = User::query()->where('code_personne', $validateur->code_personne)->first();
+                        if ($presidentUser) {
+                            try {
+                                $presidentUser->notify($notif);
+                                $fallbackPresident = true;
+                            } catch (\Throwable $e) {
+                                Log::channel('sifec')->error('[Registre][store] Échec notify() repli président (code_personne)', [
+                                    'code_registre' => $registre->code_registre,
+                                    'code_personne' => $validateur->code_personne,
+                                    'code_user' => $presidentUser->code_user,
+                                    'message' => $e->getMessage(),
+                                    'exception' => $e::class,
+                                    'trace' => $e->getTraceAsString(),
+                                ]);
+                                throw $e;
+                            }
+                        } else {
+                            Log::channel('sifec')->warning('[Registre][store] Aucun User pour code_personne du validateur (repli SMS)', [
+                                'code_registre' => $registre->code_registre,
+                                'code_personne' => $validateur->code_personne,
+                                'code_institution_tribunal' => $tribunal->code_institution,
+                            ]);
+                        }
+                    }
+                    if ($nb === 0 && ! $fallbackPresident) {
+                        Log::channel('sifec')->warning('[Registre][store] Aucune notification in-app enregistrée', [
+                            'code_registre' => $registre->code_registre,
+                            'code_institution_tribunal' => $tribunal->code_institution,
+                            'agents_tribunal_notifies' => $nb,
+                            'validateur_code_personne' => $validateur->code_personne ?? null,
+                        ]);
+                    } else {
+                        Log::channel('sifec')->info('[Registre][store] Notification création registre', [
+                            'code_registre' => $registre->code_registre,
+                            'code_institution_tribunal' => $tribunal->code_institution,
+                            'agents_tribunal_notifies' => $nb,
+                            'repli_president' => $fallbackPresident,
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    Log::channel('sifec')->error('[Registre][store] Échec notification création registre', [
+                        'message' => $e->getMessage(),
+                        'code_registre' => $registre->code_registre ?? null,
+                        'code_institution_tribunal' => $tribunal->code_institution ?? null,
+                        'exception' => $e::class,
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    toastr()->error('Erreur lors de la notification aux agents du tribunal : '.$e->getMessage());
+
+                    return redirect()->back()->withInput();
+                }
+            }
 
             DB::commit();
 
             toastr()->success("Registre enregistré avec succès");
             return redirect()->route("registre.index");
 
-        }catch(Exception $e){
+        } catch (Exception $e) {
             DB::rollBack();
-            Log::channel("sifec")->error($e->getMessage());
+            Log::channel('sifec')->error('[Registre][store] Erreur transaction enregistrement registre', [
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             toastr()->error($e->getMessage());
             return redirect()->back()->withInput();
 
@@ -215,129 +294,391 @@ class RegistreController extends Controller
     }
 
 
-    public function sendOtp($id){
-        $reg = Registre::where("code_registre",$id)->first();
-        if($reg == null){
+    public function sendOtp(Request $request, $id)
+    {
+        $reg = Registre::where('code_registre', $id)->first();
+        if ($reg === null) {
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun registre trouvé pour ce code $reg->numeroOrdreRegistre()"
+                'code' => '182',
+                'message' => 'Aucun registre trouvé pour ce code.',
             ]);
         }
 
+        if ($auth = $this->ensureParapherAuthorizedForRegistre($reg)) {
+            return $auth;
+        }
+
+        if ((int) $reg->statut === 1) {
+            return response()->json([
+                'code' => '186',
+                'message' => 'Ce registre est déjà validé (paraphé).',
+            ]);
+        }
+
+        if ($locked = $this->jsonIfOtpLocked($reg)) {
+            return $locked;
+        }
+
         try {
+            $hasActiveOtp = $reg->otp_paraphage
+                && $reg->otp_expire_at
+                && now()->lessThan($reg->otp_expire_at);
 
-            $otp = substr(time(),2);
+            // Tout nouvel envoi alors qu'un code est encore valide = renvoi (même sans ?resend=1) : incrémente le même quota que les codes incorrects.
+            if ($hasActiveOtp) {
+                $attempts = (int) $reg->otp_paraphage_attempts + 1;
+                $reg->otp_paraphage_attempts = $attempts;
 
-            $temp = config("sifec.sms.templates.actions.paraphage_registre");
-            $temp = str_replace(":tribunal",Auth::user()->personne->nomcomplet(),$temp);
-            $temp = str_replace(":code_registre",$reg->numeroOrdreRegistre(),$temp);
-            $temp = str_replace(":code_otp",$otp,$temp);
+                if ($attempts >= self::OTP_MAX_ATTEMPTS) {
+                    return $this->applyParapheOtpLockout($reg);
+                }
+            } else {
+                $reg->otp_paraphage_attempts = 0;
+                $reg->otp_locked_until = null;
+            }
+
+            $otp = $this->generateNumericOtp();
+
+            $temp = config('sifec.sms.templates.actions.paraphage_registre');
+            $temp = str_replace(':tribunal', Auth::user()->personne->nomcomplet(), $temp);
+            $temp = str_replace(':code_registre', $reg->numeroOrdreRegistre(), $temp);
+            $temp = str_replace(':code_otp', $otp, $temp);
 
             $reg->otp_paraphage = $otp;
+            $reg->otp_expire_at = now()->addMinutes(self::OTP_VALID_MINUTES);
             $reg->save();
 
             $contact = Auth::user()->personne->contacts->first();
 
-
-            // Log::channel("sifec")->info($contact->email_professionnelle);
-            // dd("ok");
-
-            if($contact != null){
-                $indicatif = $contact->indicatif;
-
-                // if($indicatif != "+242"){
-                //     SifecFacade::infobipSms($contact->indicatif.$contact->telephone, $temp);
-                // }else{
-                //     dispatch(new SendSmsJob($contact->indicatif.$contact->telephone,$temp));
-                //     // dispatch(new SendSmsJob("+242066835332",$temp));
-                // }
-                // SifecFacade::infobipSms($contact->indicatif.$contact->telephone, $temp);
+            if ($contact !== null) {
                 SifecFacade::sendSms($contact->indicatif.$contact->telephone, $temp);
-                dispatch(new SendSmsJob($contact->indicatif.$contact->telephone,$temp));
 
-                dispatch(new ValidationRegistreJob(Auth::user()->personne->nomcomplet(),$otp,$reg->getcode(),$contact->email_professionnelle));
-                // dispatch(new ValidationRegistreJob(Auth::user()->personne->nomcomplet(),$otp,$reg->getcode(),"alangetelengo87@gmail.com"));
-
+                if (! empty($contact->email_professionnelle)) {
+                    dispatch(new ValidationRegistreJob(
+                        Auth::user()->personne->nomcomplet(),
+                        $otp,
+                        $reg->getcode(),
+                        $contact->email_professionnelle
+                    ));
+                }
             }
 
-            return response()->json([
-                "code"=>"200",
-                "message"=>"SMS envoyé avec succès"
+            Log::channel('sifec')->info('OTP paraphe registre envoyé', [
+                'code_registre' => $reg->code_registre,
+                'cui' => Auth::user()->affectationActive()->cui,
+                'renvoi_client' => $request->boolean('resend'),
+                'otp_encore_valide_avant_envoi' => $hasActiveOtp,
             ]);
 
-
-        } catch (Exception $e) {
             return response()->json([
-                "code"=>"181",
-                "message"=>$e->getMessage()
+                'code' => '200',
+                'message' => 'Code envoyé par SMS (et e-mail si configuré). Il est valable '.self::OTP_VALID_MINUTES.' minute.',
+                'valid_for_seconds' => self::OTP_VALID_MINUTES * 60,
+                'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+                'attempts_used' => (int) $reg->otp_paraphage_attempts,
+                'otp_lockout_minutes' => self::OTP_LOCKOUT_MINUTES,
+            ]);
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('sendOtp registre: '.$e->getMessage(), [
+                'code_registre' => $reg->code_registre,
+            ]);
+
+            return response()->json([
+                'code' => '181',
+                'message' => $e->getMessage(),
             ]);
         }
-
     }
-    public function validateOtp(Request $request){
+
+    public function validateOtp(Request $request)
+    {
         $rules = [
-            "otp_paraphage"=>["required","numeric"],
-            "code_registre"=>["required","string"]
+            'otp_paraphage' => ['required', 'digits:6'],
+            'code_registre' => ['required', 'string'],
         ];
 
-        $validator = Validator::make($request->all(),$rules);
+        $validator = Validator::make($request->all(), $rules, [
+            'otp_paraphage.required' => 'Le code OTP est obligatoire.',
+            'otp_paraphage.digits' => 'Le code OTP doit contenir exactement 6 chiffres (0 à 9), sans lettre.',
+            'code_registre.required' => 'L’identifiant du registre est manquant.',
+        ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
+            $msg = $validator->errors()->first('otp_paraphage')
+                ?: $validator->errors()->first('code_registre')
+                ?: 'Vérifiez le code OTP (6 chiffres) et l’identifiant du registre.';
+
             return response()->json([
-                "code"=>"180",
-                "message"=>"Aucun registre trouvé pour ce code"
+                'code' => '180',
+                'message' => $msg,
             ]);
         }
 
-        if(!Gate::allows("module.fonctionnalites.parapher")){
+        $codeReg = $request->code_registre;
+        $otpSaisi = (string) $request->otp_paraphage;
+
+        $reg = Registre::where('code_registre', $codeReg)->first();
+        if ($reg === null) {
             return response()->json([
-                "code"=>"181",
-                "message"=>"Vous n'êtes pas autorisé à parapher un registre"
+                'code' => '182',
+                'message' => "Aucun registre trouvé pour le code {$codeReg}.",
             ]);
         }
 
-        $code_reg = $request->code_registre;
-        $otp = $request->otp_paraphage;
+        if ($auth = $this->ensureParapherAuthorizedForRegistre($reg)) {
+            return $auth;
+        }
 
-        $reg = Registre::where("code_registre",$code_reg)->first();
-        if($reg == null){
+        if ((int) $reg->statut === 1) {
             return response()->json([
-                "code"=>"182",
-                "message"=>"Aucun registre trouvé pour ce code $code_reg"
+                'code' => '186',
+                'message' => 'Ce registre est déjà validé (paraphé).',
             ]);
         }
 
-        if($otp != $reg->otp_paraphage){
+        if ($locked = $this->jsonIfOtpLocked($reg)) {
+            return $locked;
+        }
+
+        if ($reg->otp_paraphage === null || $reg->otp_paraphage === '') {
             return response()->json([
-                "code"=>"183",
-                "message"=>"Code otp incorrect ou Expiré"
+                'code' => '185',
+                'message' => 'Aucun code actif. Demandez un nouveau code OTP.',
             ]);
+        }
+
+        if (! $reg->otp_expire_at || now()->greaterThan($reg->otp_expire_at)) {
+            return response()->json([
+                'code' => '185',
+                'message' => 'Le code OTP a expiré. Demandez un nouveau code.',
+            ]);
+        }
+
+        if ($otpSaisi !== (string) $reg->otp_paraphage) {
+            return $this->registerFailedParapheOtpAttempt($reg);
         }
 
         try {
-
-            $otp = substr(time(),2);
+            $reg->loadMissing('institutionUser.institution.institutionParent');
             $reg->sceau = $reg->institutionUser->institution->institutionParent->sceau;
-            $reg->otp_paraphage = $otp;
+            // Conserver le OTP validé sur tr_registre.otp_paraphage (traçabilité, comme pour les actes).
+            $reg->otp_paraphage = $otpSaisi;
+            $reg->otp_expire_at = null;
+            $reg->otp_paraphage_attempts = 0;
+            $reg->otp_locked_until = null;
             $reg->signature_tribunal = Auth::user()->personne->signature;
             $reg->approbation_tribunal = Auth::user()->affectationActive()->cui;
             $reg->statut = 1;
-
             $reg->save();
 
-            return response()->json([
-                "code"=>"200",
-                "message"=>"Registre de ".$reg->typeRegistre->lib_type_registre." est validé avec succès"
+            Log::channel('sifec')->info('Registre paraphe validé', [
+                'code_registre' => $reg->code_registre,
+                'cui' => Auth::user()->affectationActive()->cui,
+                'otp_paraphage_conserve' => true,
             ]);
 
+            $this->notifyCecApresValidationTribunal($reg);
 
-        } catch (Exception $e) {
             return response()->json([
-                "code"=>"183",
-                "message"=>$e->getMessage()
+                'code' => '200',
+                'message' => 'Registre de '.$reg->typeRegistre->lib_type_registre.' est validé avec succès',
+            ]);
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('validateOtp registre: '.$e->getMessage(), [
+                'code_registre' => $reg->code_registre,
+            ]);
+
+            return response()->json([
+                'code' => '183',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Après paraphe tribunal : notification in-app + e-mails aux agents actifs du CEC (ne bloque pas la validation).
+     */
+    private function notifyCecApresValidationTribunal(Registre $reg): void
+    {
+        try {
+            $reg->loadMissing(['typeRegistre', 'institutionUser.institution.institutionParent']);
+
+            $cecInst = $reg->institutionUser->institution ?? null;
+            if (! $cecInst) {
+                Log::channel('sifec')->warning('[Registre][validateOtp] Notification CEC: institution absente', [
+                    'code_registre' => $reg->code_registre,
+                ]);
+
+                return;
+            }
+
+            $tribunalInst = $cecInst->institutionParent;
+            $tribunalLib = $tribunalInst->lib_institution ?? 'Tribunal';
+            $cecLib = $cecInst->lib_institution ?? '';
+
+            $notification = new RegistreValideParTribunalNotification($reg, $tribunalLib);
+            $count = NotificationService::notifierAgentsInstitution($cecInst->code_institution, $notification);
+
+            Log::channel('sifec')->info('[Registre][validateOtp] Notifications CEC (registre validé par tribunal)', [
+                'code_registre' => $reg->code_registre,
+                'code_institution_cec' => $cecInst->code_institution,
+                'agents_notifies' => $count,
+            ]);
+
+            $typeLib = $reg->typeRegistre->lib_type_registre ?? 'Registre';
+            $numero = $reg->numeroOrdreRegistre();
+
+            $emails = User::whereHas('affectations', function ($q) use ($cecInst) {
+                $q->where('code_institution', $cecInst->code_institution)
+                    ->where(function ($q2) {
+                        $q2->where('active', 1)->orWhere('active', true);
+                    });
+            })->whereNotNull('email')->where('email', '!=', '')
+                ->pluck('email')
+                ->unique()
+                ->filter()
+                ->values();
+
+            foreach ($emails as $email) {
+                RegistreValideParTribunalJob::dispatch($tribunalLib, $typeLib, $numero, $cecLib, $email);
+            }
+
+            if ($emails->isEmpty()) {
+                Log::channel('sifec')->warning('[Registre][validateOtp] Aucun e-mail agent CEC pour envoi (registre validé)', [
+                    'code_registre' => $reg->code_registre,
+                    'code_institution_cec' => $cecInst->code_institution,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::channel('sifec')->error('[Registre][validateOtp] Échec notification CEC après validation tribunal', [
+                'code_registre' => $reg->code_registre,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    private function generateNumericOtp(): string
+    {
+        return (string) random_int(100000, 999999);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    private function ensureParapherAuthorizedForRegistre(Registre $reg)
+    {
+        if (! Gate::allows('module.fonctionnalites.parapher')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à parapher un registre",
             ]);
         }
 
+        $reg->loadMissing('institutionUser.institution');
+        $cec = $reg->institutionUser->institution ?? null;
+        if ($cec === null) {
+            Log::channel('sifec')->warning('Paraphe registre: institution CEC introuvable', [
+                'code_registre' => $reg->code_registre,
+            ]);
+
+            return response()->json([
+                'code' => '181',
+                'message' => 'Impossible de vérifier le centre d\'état civil pour ce registre.',
+            ]);
+        }
+
+        $parentCode = $cec->code_institution_parent;
+        $userInst = Auth::user()->affectationActive()->institution ?? null;
+        if (! $parentCode || ! $userInst || $userInst->code_institution !== $parentCode) {
+            Log::channel('sifec')->info('Paraphe registre: refus (tribunal de ressort)', [
+                'code_registre' => $reg->code_registre,
+                'user_institution' => $userInst->code_institution ?? null,
+                'attendu_parent_cec' => $parentCode,
+            ]);
+
+            return response()->json([
+                'code' => '181',
+                'message' => 'Vous ne pouvez parapher que les registres des centres relevant de votre tribunal de ressort.',
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    private function jsonIfOtpLocked(Registre $reg)
+    {
+        if (! $reg->otp_locked_until) {
+            return null;
+        }
+
+        $lockedUntil = $reg->otp_locked_until instanceof Carbon
+            ? $reg->otp_locked_until
+            : Carbon::parse($reg->otp_locked_until);
+
+        if (now()->lessThan($lockedUntil)) {
+            $retryAfter = max(1, $lockedUntil->getTimestamp() - now()->getTimestamp());
+
+            return response()->json([
+                'code' => '184',
+                'message' => 'Suite à des tentatives infructueuses, veuillez attendre avant de demander un nouveau code ou de réessayer.',
+                'retry_after_seconds' => $retryAfter,
+                'remaining_attempts' => 0,
+                'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+                'attempts_used' => self::OTP_MAX_ATTEMPTS,
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Verrouille le paraphe OTP après 3 actions (code incorrect et/ou renvoi avec code encore valide).
+     */
+    private function applyParapheOtpLockout(Registre $reg): \Illuminate\Http\JsonResponse
+    {
+        $reg->otp_paraphage = null;
+        $reg->otp_expire_at = null;
+        $reg->otp_paraphage_attempts = 0;
+        $reg->otp_locked_until = now()->addMinutes(self::OTP_LOCKOUT_MINUTES);
+        $reg->save();
+
+        Log::channel('sifec')->warning('Registre paraphe: verrouillage après quota OTP', [
+            'code_registre' => $reg->code_registre,
+        ]);
+
+        return response()->json([
+            'code' => '184',
+            'message' => 'Nombre maximal de tentatives atteint (code incorrect et/ou renvois). Vous pourrez demander un nouveau code dans '.self::OTP_LOCKOUT_MINUTES.' minute(s).',
+            'retry_after_seconds' => self::OTP_LOCKOUT_MINUTES * 60,
+            'remaining_attempts' => 0,
+            'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+            'attempts_used' => self::OTP_MAX_ATTEMPTS,
+        ]);
+    }
+
+    private function registerFailedParapheOtpAttempt(Registre $reg): \Illuminate\Http\JsonResponse
+    {
+        $attempts = (int) $reg->otp_paraphage_attempts + 1;
+        $reg->otp_paraphage_attempts = $attempts;
+
+        if ($attempts >= self::OTP_MAX_ATTEMPTS) {
+            return $this->applyParapheOtpLockout($reg);
+        }
+
+        $reg->save();
+
+        return response()->json([
+            'code' => '183',
+            'message' => 'Code OTP incorrect.',
+            'remaining_attempts' => (int) (self::OTP_MAX_ATTEMPTS - $attempts),
+            'otp_max_attempts' => (int) self::OTP_MAX_ATTEMPTS,
+            'attempts_used' => (int) $attempts,
+        ]);
     }
 
     public function cloturerRegistre(Request $request)
@@ -537,6 +878,15 @@ class RegistreController extends Controller
             ]);
 
         } catch (Exception $e) {
+            Log::channel('sifec')->error('[Registre][AddFeuilletRegistre] Erreur', [
+                'code_registre' => $code_reg ?? null,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 "code"=>"183",
                 "message"=>$e->getMessage()

@@ -35,7 +35,6 @@ class SendSmsJob implements ShouldQueue
      */
     public function handle()
     {
-        $objet = new Sifec;
-        $objet->infobipSms($this->to,$this->content);
+        app(Sifec::class)->sendSms($this->to, $this->content);
     }
 }

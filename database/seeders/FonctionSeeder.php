@@ -19,7 +19,7 @@ class FonctionSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS = 0');
         DB::statement('TRUNCATE tr_fonction');
 
-        $donnes = ["Sous préfet","Officier d'état civil","Officier d'état civil délégué","Agent mairie","Agent pompes funèbres","Agent formation sanitaire","Agent centre d'hygiène","Agent tribunal","Président du tribunal","Procureur général","Super administrateur","Directeur pompes funèbres","DGAT","Agent mairie centrale","DEC","Chef de service","Agent bureau d'enregistrement de décès","Procureur de la République","Agent ambassade","Agent service de maternité","Consule","Gouverneur","Ministre"];
+        $donnes = ["Sous préfet","Officier d'état civil","Officier d'état civil délégué","Agent mairie","Agent pompes funèbres","Agent formation sanitaire","Agent centre d'hygiène","Agent tribunal","Président du tribunal","Procureur général","Super administrateur","Directeur pompes funèbres","DGAT","Agent mairie centrale","DEC","Chef de service","Agent bureau d'enregistrement de décès","Procureur de la République","Agent ambassade","Agent sanitaire (naissance)","Consule","Gouverneur","Ministre"];
 
         $data = [];
         for($i = 0; $i < count($donnes); $i++){

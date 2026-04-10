@@ -20,6 +20,9 @@
 @endsection
 @section("corps")
 
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
         <!-- row -->
         <div class="row">
             <div class="col-xl-12 col-xxl-12">
@@ -586,7 +589,9 @@
                 </div>
             </div>
         </div>
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 <script src="{{ asset('tpl/vendor/jquery-smartwizard/dist/js/jquery.smartWizard.js') }}"></script>

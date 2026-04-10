@@ -59,8 +59,6 @@ Modules/Naissance/Resources/views/
 ├── adoption/
 │   ├── adopter.blade.php
 │   └── js/edit.blade.php
-└── fiche-maternite/
-    └── index.blade.php
 ```
 
 ---

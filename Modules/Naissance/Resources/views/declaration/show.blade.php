@@ -7,22 +7,6 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
 @endsection
 @section('corps')
 @php
-    use Illuminate\Support\Str;
-    $typeDeclaration = $declaration->type_declaration;
-    $article = 'la';
-    if(Str::startsWith(Str::lower($typeDeclaration), 'certificat')) {
-        $article = 'le';
-    }
-    // Mapping type_declaration => code mouvement d'envoi
-    $mappingMouvement = [
-        'DECLARATION DE NAISSANCE' => 'MOUV_0001',
-        'CERTIFICAT DE NAISSANCE' => 'MOUV_0001',
-        'DECLARATION TARDIVE' => 'MOUV_0001',
-        'CERTIFICAT DE NON INSCRIPTION' => 'MOUV_0026',
-        "CERTIFICAT DE DESTRUCTION DE L'ACTE" => 'MOUV_0027',
-        'CERTIFICAT DE TRANSCRIPTION' => 'MOUV_0031',
-    ];
-    $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
     $dummy = "XXXXXXXXXXXXXXXX";
 @endphp
 
@@ -45,7 +29,7 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                         $peutModifier = true;
                     }
                     // Sinon, on vérifie si la déclaration a déjà été envoyée
-                    else if (in_array('MOUV_0001', $codesMouvements)) {
+                    else if (in_array('MOUV_0001', $codesMouvements, true) || in_array('MOUV_0035', $codesMouvements, true)) {
                         $peutEnvoyer = false;
                         $peutModifier = false;
                     }
@@ -99,8 +83,8 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
         </div>
         <div class="card">
             <div class="card-header">
-                <h4>Détails de la
-                    <span class="badge bg-primary ms-2">{{ $declaration->type_declaration }}</span>
+                <h4>Détails
+                    <span class="badge bg-primary ms-2">{{ $declaration->libelleAffichageType() }}</span>
                 </h4>
             </div>
             <div class="card-body">
@@ -110,6 +94,16 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                             <th style="width:40%"><i class="fa fa-hashtag text-primary me-1"></i> Numéro déclaration</th>
                             <td>{{ $declaration->code_declaration_naissance }}</td>
                         </tr>
+                        <tr>
+                            <th><i class="fa fa-tag text-primary me-1"></i> Type enregistré</th>
+                            <td>{{ $declaration->type_declaration }}</td>
+                        </tr>
+                        @if(filled($declaration->type_declaration_origine))
+                        <tr>
+                            <th><i class="fa fa-code-branch text-primary me-1"></i> Origine métier</th>
+                            <td>{{ $declaration->type_declaration_origine }}</td>
+                        </tr>
+                        @endif
                         <tr>
                             <th><i class="fa fa-baby text-primary me-1"></i> Nouveau-né</th>
                             <td>{{ $declaration->enfant ? $declaration->enfant->nomcomplet() : '-' }}</td>
@@ -133,6 +127,23 @@ Détail de la déclaration N° {{ $declaration->code_declaration_naissance }}
                         <tr>
                             <th><i class="fa fa-user-tie text-primary me-1"></i> Déclarant</th>
                             <td>{{ $declaration->declarant ? $declaration->declarant->nomcomplet() : '-' }}</td>
+                        </tr>
+                        @php
+                            $emailsDeclarant = $declaration->declarant?->emailsDepuisPremierContact() ?? [];
+                        @endphp
+                        <tr>
+                            <th><i class="fa fa-envelope text-primary me-1"></i> E-mail(s) du déclarant</th>
+                            <td>
+                                @if($declaration->declarant)
+                                    @forelse($emailsDeclarant as $libelle => $adresse)
+                                        <div class="mb-1"><span class="text-muted">{{ $libelle }} :</span> <a href="mailto:{{ $adresse }}">{{ $adresse }}</a></div>
+                                    @empty
+                                        <span class="text-muted">Non renseigné (contact ou e-mails absents)</span>
+                                    @endforelse
+                                @else
+                                    -
+                                @endif
+                            </td>
                         </tr>
                         <tr>
                             <th><i class="fa fa-users text-primary me-1"></i> Filiation</th>

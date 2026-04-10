@@ -34,14 +34,6 @@ class LocaliteController extends Controller
 
         $typeLocalites = TypeLocalite::query()->orderBy('lib_type_localite')->get();
 
-        // Log pour déboguer
-        Log::channel('sifec')->info('=== CHARGEMENT PAGE LOCALITÉS ===', [
-            'count_localites' => $localites->count(),
-            'count_localites_racines' => $localitesRacines->count(),
-            'count_type_localites' => $typeLocalites->count(),
-            'premiere_localite' => $localites->first() ? $localites->first()->lib_localite : 'Aucune'
-        ]);
-
         return view('referentiel::localite.index', compact("localites", "localitesRacines", "typeLocalites"));
     }
 
@@ -51,58 +43,41 @@ class LocaliteController extends Controller
     public function filterLocalites(Request $request)
     {
         try {
-            // Logger les critères de recherche
-            Log::channel('sifec')->info('=== RECHERCHE LOCALITÉS ===', [
-                'criteres' => [
-                    'lib_localite' => $request->input('lib_localite'),
-                    'code_type_localite' => $request->input('code_type_localite'),
-                ]
-            ]);
-
             $query = Localite::with(['typelocalite', 'localiteParent']);
 
-            // Filtre par libellé de localité
             if ($request->filled('lib_localite') && strlen(trim($request->lib_localite)) > 0) {
                 $query->where('lib_localite', 'LIKE', '%' . strtoupper(trim($request->lib_localite)) . '%');
             }
 
-            // Filtre par type de localité
             if ($request->filled('code_type_localite') && strlen(trim($request->code_type_localite)) > 0) {
                 $query->where('code_type_localite', $request->code_type_localite);
             }
 
-            $countInitial = $query->count();
-
-            // Trier par date de création (plus récentes en premier)
-            $localites = $query->orderBy('created_at', 'desc')->get();
-
-            $countResultat = $localites->count();
-
-            // Limiter les résultats à 500 maximum pour éviter les problèmes de performance
             $maxResults = 500;
-            if ($countResultat > $maxResults) {
-                $localites = $localites->take($maxResults);
-                Log::channel('sifec')->warning('=== RECHERCHE LOCALITÉS - LIMITE ATTEINTE ===', [
-                    'count_total' => $countResultat,
-                    'count_affiché' => $maxResults,
-                    'message' => "Plus de {$maxResults} résultats trouvés. Affinez vos critères de recherche pour voir tous les résultats."
-                ]);
-            }
+            $localites = (clone $query)
+                ->orderBy('created_at', 'desc')
+                ->limit($maxResults + 1)
+                ->get();
 
-            // Logger les résultats de la recherche
-            Log::channel('sifec')->info('=== RÉSULTATS RECHERCHE LOCALITÉS ===', [
-                'count_initial' => $countInitial,
-                'count_resultat' => $countResultat,
-                'count_affiché' => $localites->count(),
-                'filtres_appliques' => $request->only(['lib_localite', 'code_type_localite'])
-            ]);
+            $limiteAtteinte = $localites->count() > $maxResults;
+            if ($limiteAtteinte) {
+                $localites = $localites->take($maxResults);
+                $countResultat = $query->count();
+                Log::channel('sifec')->warning('Recherche localités : limite affichage', [
+                    'total' => $countResultat,
+                    'max' => $maxResults,
+                    'filtres' => $request->only(['lib_localite', 'code_type_localite']),
+                ]);
+            } else {
+                $countResultat = $localites->count();
+            }
 
             return response()->json([
                 'code' => '200',
                 'data' => view('referentiel::localite.partials.table-localites', compact('localites'))->render(),
                 'count' => $countResultat,
                 'count_affiché' => $localites->count(),
-                'limite_atteinte' => $countResultat > $maxResults
+                'limite_atteinte' => $limiteAtteinte,
             ]);
         } catch (\Exception $e) {
             Log::channel('sifec')->error('=== ERREUR RECHERCHE LOCALITÉS ===', [
@@ -119,29 +94,25 @@ class LocaliteController extends Controller
         }
     }
 
-    public function departement(Request $request)
+    /**
+     * Enfants directs d'une localité, filtrés par types (?types=TPLOC_0003,TPLOC_0002).
+     */
+    public function children(Request $request, string $code)
     {
-        $request->validate([
-            'lib_departement'=> ['required','string'],
-        ]);
-
-        try {
-            $localite = new Localite();
-            $localite->code_localite = Sifec::genererCodeUniqueReferentiel($localite,"code_localite",4,"LOC_");
-            $localite->lib_localite = strtoupper($request->lib_departement);
-            $localite->code_type_localite = "TPLOC_0001";
-            $localite->save();
-            toastr()->success("$localite->lib_localite crée avec succès");
-            return redirect()->route('localite.index');
-
-        } catch (Exception $e) {
-
-            toastr()->error($e->getMessage());
-            return redirect()->back()->withInput();
+        $typesParam = (string) $request->query('types', '');
+        $types = array_values(array_filter(array_map('trim', explode(',', $typesParam))));
+        if ($types === []) {
+            return response()->json([]);
         }
+
+        $localites = Localite::query()
+            ->where('code_localite_parent', $code)
+            ->whereIn('code_type_localite', $types)
+            ->orderBy('lib_localite')
+            ->get();
+
+        return response()->json($localites);
     }
-
-
 
     public function store(Request $request)
     {
@@ -420,132 +391,6 @@ class LocaliteController extends Controller
             ->get();
 
         return response()->json($localites);
-    }
-
-    public function communedistricts(Request $request){
-        $request->validate([
-            'lib_localite'=> ['required','string'],
-            'code_type_localite'=> ['required','string'],
-            'code_localite_parent'=> ['required','string'],
-        ]);
-
-        try {
-            $localite = new Localite();
-            $localite->code_localite = Sifec::genererCodeUniqueReferentiel($localite,"code_localite",4,"LOC_");
-            $localite->lib_localite = strtoupper($request->lib_localite);
-            $localite->code_type_localite = $request->code_type_localite;
-            $localite->code_localite_parent = $request->code_localite_parent;
-            $localite->save();
-            toastr()->success("$localite->lib_localite crée avec succès");
-            return back();
-        } catch (Exception $e) {
-            toastr()->error($e->getMessage());
-            return back()->withInput();
-        }
-    }
-
-    public function arrcomurbain(Request $request){
-        $request->validate([
-            'lib_localite'=> ['required','string'],
-            'code_type_localite'=> ['required','string'],
-            'code_localite_parent'=> ['required','string'],
-        ]);
-
-        try {
-            $localite = new Localite();
-            $localite->code_localite = Sifec::genererCodeUniqueReferentiel($localite,"code_localite",4,"LOC_");
-            $localite->lib_localite = strtoupper($request->lib_localite);
-            $localite->code_type_localite = $request->code_type_localite;
-            $localite->code_localite_parent = $request->code_localite_parent;
-            $localite->save();
-            toastr()->success("$localite->lib_localite crée avec succès");
-            return redirect()->route('localite.index');
-        } catch (Exception $e) {
-            toastr()->error($e->getMessage());
-            return redirect()->back()->withInput();
-        }
-    }
-
-    //get districts
-    public function district($id)
-    {
-        if($id == null)
-        {
-            return [];
-        }
-        return  Localite::where(["code_localite_parent"=>$id, "code_type_localite"=>"TPLOC_0002"])->get();
-
-    }
-    //get Communes
-    public function commune($id)
-    {
-        if($id == null)
-        {
-            return [];
-        }
-        return  Localite::where(["code_localite_parent"=>$id, "code_type_localite"=>"TPLOC_0003"])->get();
-
-    }
-    //get arrondissements
-    public function arrondissement($id)
-    {
-        if($id == null)
-        {
-            return [];
-        }
-        return Localite::where(["code_localite_parent"=>$id,"code_type_localite"=>"TPLOC_0004"])->get();
-    }
-    //get communautés urbaines
-    public function communauteUrbaine($id)
-    {
-        if($id == null)
-        {
-            return [];
-        }
-        return  Localite::where(["code_localite_parent"=>$id,"code_type_localite"=>"TPLOC_0005"])->get();
-
-    }
-    //get commune de District
-    public function getSubDepartement($id)
-    {
-    //    return $id;
-        if($id == null)
-        {
-            return [];
-        }
-        //récuperer les communes et districts dont le type_localite=TPLOC_0003 et type_localite=TPLOC_0003
-        return Localite::where(function($query) use ($id) {
-            $query->where("code_localite_parent", $id)
-                  ->whereIn("code_type_localite", ["TPLOC_0003", "TPLOC_0002"]);
-        })->get();
-    }
-
-
-    public function getSubCommuneDistrict($id)
-    {
-        if($id == null)
-        {
-            return [];
-        }
-
-        //récuperer les arrondissements et les communautés urbaines dont le type_localite=TPLOC_0004 et type_localite=TPLOC_0005
-        return Localite::where(function($query) use ($id) {
-            $query->where("code_localite_parent", $id)
-                  ->whereIn("code_type_localite", ["TPLOC_0004", "TPLOC_0005"]);
-        })->get();
-    }
-
-    public function getSubArrondissementComUrbaine($id)
-    {
-        if($id == null)
-        {
-            return [];
-        }
-        //récuperer les quertiers et les villages dont le type_localite=TPLOC_0006 et type_localite=TPLOC_0007
-        return Localite::where(function($query) use ($id) {
-            $query->where("code_localite_parent", $id)
-                  ->whereIn("code_type_localite", ["TPLOC_0006", "TPLOC_0007"]);
-        })->get();
     }
 
 }

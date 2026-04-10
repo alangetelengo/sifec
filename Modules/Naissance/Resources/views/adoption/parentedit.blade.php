@@ -339,12 +339,6 @@
             <label class="form-label">Téléphone mère</label>
             <input type="number" min="0" minlength="9" maxlength="15" id="telephone_mere" name="telephone_mere" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="Téléphone mère" value="{{ $dn->mere->telephone }}">
         </div>
-        @if($typeDeclaration == "FICHE DE MATERNITE")
-        <div class="col-md-3">
-            <label class="form-label">Téléphone tuteur</label>
-            <input type="number" min="0" minlength="9" maxlength="15" id="telephone_parent" name="telephone_parent" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="Téléphone mère" value="{{ $dn->mere->telephone }}">
-        </div>
-        @endif
         <div class="mb-2 col-md-3">
             <label class="form-label">Email</label>
             <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="Email mère" value="{{ $dn->mere->user !='' ? $dn->mere->user->email : "" }}">

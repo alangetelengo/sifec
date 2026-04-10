@@ -23,6 +23,7 @@
    $titre = "";
    $top = "";
 
+   $prenomEnfantExtrait = \App\Sifec\Sifec::formatPrenomPourActe($acte->declaration->enfant->prenom ?? '');
 
    @endphp
 
@@ -90,16 +91,16 @@
                 <td>Est {{ $acte->declaration->enfant->sexe=="M" ? "né " : "née "  }} à: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>{{ $acte->declaration->enfant->sexe=="M" ? "Le nommé " : "La nommée "  }} : <strong>{{ $acte->declaration->enfant->nom }} </strong><strong style="text-transform: capitalize">{{ $acte->declaration->enfant->prenom }}</strong></td>
+                <td>{{ $acte->declaration->enfant->sexe=="M" ? "Le nommé " : "La nommée "  }} : <strong>{{ $acte->declaration->enfant->nom }} </strong><strong>{{ $prenomEnfantExtrait }}</strong></td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
                 <td>Du sexe : <strong>{{ $acte->declaration->enfant->sexe=="M" ? "Masculin " : "Féminin "  }}</strong></td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille " }} de : <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->nom : $dummy }} </strong><strong style="text-transform: capitalize">{{$acte->declaration->pere ? $acte->declaration->pere->prenom : $dummy}}</strong></td>
+                <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille " }} de : <strong>{{ $acte->declaration->pere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->pere->nom, $acte->declaration->pere->prenom) : $dummy }}</strong></td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>Et de : <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->nom : $dummy }} </strong><strong style="text-transform: capitalize">{{$acte->declaration->mere ? $acte->declaration->mere->prenom : $dummy}}</strong></td>
+                <td>Et de : <strong>{{ $acte->declaration->mere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->mere->nom, $acte->declaration->mere->prenom) : $dummy }}</strong></td>
             </tr>
             <tr style="width:100%; text-align: center; padding-bottom: 4px;">
                 <td><br> Pour extrait conforme, le <strong>{{ date('d-m-Y') }}</strong> </td>
@@ -114,7 +115,7 @@
                             @if ($acte->approbation_mairie != "")
 
                                <img src='{{ public_path('app/'.$acte->signature_mairie)}}' style="">
-                                <p style="font-weight:bold;"> {{ $acte->signataire->user->personne->nomcomplet() }}</p>
+                                <p style="font-weight:bold;"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</p>
                             @endif
 
                 </div>

@@ -12,6 +12,9 @@ certificat de non inscription
     Liste des certificat de non inscription
 @endsection
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -21,24 +24,38 @@ certificat de non inscription
             <div class="card-body">
                 <form id="formdata" class="validation-wizard wizard-circle">
                     @csrf
-                    <div class="mb-2 col-md-4">
-                        <label class="form-label">Date de naissance de l'enfant <span class="text-danger">*</span></label>
-                        <input type="date" 
-                               name="date_naissance_enfant" 
-                               max="<?php echo date('Y-m-d'); ?>" 
-                               min="1900-01-01"
-                               class="form-control" 
-                               id="date_naissance_enfant" 
-                               required
-                               onchange="validateDate(this)">
-                        <div class="invalid-feedback" id="date-error"></div>
-                        <div class="form-text">La date ne peut pas être supérieure à aujourd'hui</div>
+                    <div class="cni-verify-card">
+                        <div class="cni-verify-card__head">
+                            <div>
+                                <h5><i class="fas fa-calendar-check me-2"></i>Vérification du délai légal</h5>
+                                <p>Indiquez la date de naissance de l’enfant pour savoir si vous devez établir un certificat de non-inscription ou une déclaration classique.</p>
+                            </div>
+                        </div>
+                        <div class="cni-verify-card__body">
+                            <div class="cni-verify-field">
+                                <label class="form-label" for="date_naissance_enfant">Date de naissance de l'enfant <span class="text-danger">*</span></label>
+                                <input type="date"
+                                       name="date_naissance_enfant"
+                                       max="<?php echo date('Y-m-d'); ?>"
+                                       min="1900-01-01"
+                                       class="form-control"
+                                       id="date_naissance_enfant"
+                                       required
+                                       onchange="validateDate(this)">
+                                <div class="invalid-feedback d-block" id="date-error"></div>
+                                <div class="form-text"><i class="fas fa-info-circle me-1 opacity-75"></i>La date ne peut pas être postérieure à aujourd’hui.</div>
+                            </div>
+                            <div id="cni-alerts-stack" class="cni-alerts-stack">
+                                <div id="texte"></div>
+                                <div class="validate"></div>
+                            </div>
+                            <div class="cni-verify-actions">
+                                <button type="submit" class="btn cni-btn-verify" id="btn-submit" disabled>
+                                    <i class="fas fa-arrow-right me-2"></i>Vérifier la possibilité
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <div id="texte"></div>
-                        <div class="validate"></div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="btn-submit" disabled>Vérifier la possibilité</button>
                 </form>
             </div>
 
@@ -264,7 +281,9 @@ certificat de non inscription
         </form>
     </div>
 </div>
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 
@@ -281,23 +300,23 @@ certificat de non inscription
         const selectedDate = new Date(input.value);
         const today = new Date();
         today.setHours(23, 59, 59, 999); // Fin de journée pour permettre la date d'aujourd'hui
-        
+
         const errorDiv = document.getElementById('date-error');
-        
+
         // Réinitialiser les classes
         input.classList.remove('is-valid', 'is-invalid');
         errorDiv.textContent = '';
-        
+
         if (!input.value) {
             return false;
         }
-        
+
         if (selectedDate > today) {
             input.classList.add('is-invalid');
             errorDiv.textContent = 'La date de naissance ne peut pas être supérieure à aujourd\'hui';
             return false;
         }
-        
+
         // Vérifier que la date n'est pas trop ancienne (optionnel)
         const minDate = new Date('1900-01-01');
         if (selectedDate < minDate) {
@@ -305,7 +324,7 @@ certificat de non inscription
             errorDiv.textContent = 'La date de naissance ne peut pas être antérieure à 1900';
             return false;
         }
-        
+
         input.classList.add('is-valid');
         return true;
     }
@@ -367,14 +386,16 @@ certificat de non inscription
         $('#date_naissance_enfant').on('change', function() {
             const dateNaissance = $(this).val();
             if (!dateNaissance) {
-                $('#texte').html('<div class="alert alert-warning"><strong>⚠️ Attention :</strong> Veuillez choisir une date de naissance.</div>');
+                $('#texte').html('<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-hand-pointer"></i></div><div class="cni-callout__body"><strong>Date requise</strong>Veuillez sélectionner une date de naissance.</div></div>');
+                $('.validate').empty();
                 $('#btn-submit').prop('disabled', true);
                 return;
             }
-            
+
             // Validation de la date
             if (!validateDate(this)) {
-                $('#texte').html('<div class="alert alert-danger"><strong>❌ Erreur :</strong> Date invalide. Veuillez corriger la date de naissance.</div>');
+                $('#texte').html('<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-times-circle"></i></div><div class="cni-callout__body"><strong>Date invalide</strong>Corrigez la date de naissance (elle ne peut pas être dans le futur ni avant 1900).</div></div>');
+                $('.validate').empty();
                 $('#btn-submit').prop('disabled', true);
                 return;
             }
@@ -388,20 +409,18 @@ certificat de non inscription
             let lien = '';
             let type = '';
             if (age_jours > 30) {
-                message = '<div class="alert alert-danger"><strong>⏰ Délai dépassé !</strong> Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.<br>\
-                <span style="color:#b94a48;">Le délai légal de déclaration est dépassé.</span></div>';
-                lien = '<div class="alert alert-warning"><strong>⚠️ Action requise :</strong> Vous devez créer un <b>certificat de non inscription</b>.<br>Une réquisition est requise conformément à l\'article 80 du code de la famille.</div>';
+                message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai dépassé</strong>Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.<span class="cni-callout__sub">Le délai légal de déclaration est dépassé.</span></div></div>';
+                lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-exclamation-triangle"></i></div><div class="cni-callout__body"><strong>Action requise</strong>Vous devez créer un <b>certificat de non inscription</b>.<span class="cni-callout__sub">Une réquisition est requise, conformément à l\'article 80 du code de la famille.</span></div></div>';
                 type = 'certificat';
             }
             if (age_mois > 3) {
-                message = '<div class="alert alert-danger"><strong>⏰ Délai largement dépassé !</strong> Nombre de mois sans déclarer : <b>' + age_mois + ' mois</b>.<br>\
-                <span style="color:#b94a48;">Une réquisition ou un jugement est requis.</span></div>';
-                lien = '<div class="alert alert-warning"><strong>⚠️ Action requise :</strong> Vous devez créer un <b>certificat de non inscription</b>.<br>Conformément à l\'article 80 du code de la famille.</div>';
+                message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai largement dépassé</strong>Nombre de mois sans déclarer : <b>' + age_mois + ' mois</b>.<span class="cni-callout__sub">Une réquisition ou un jugement est requis (article 80 du code de la famille).</span></div></div>';
+                lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-file-signature"></i></div><div class="cni-callout__body"><strong>Étape suivante</strong>Créez un <b>certificat de non inscription</b> pour poursuivre la procédure.</div></div>';
                 type = 'certificat';
             }
             if (age_jours <= 30 && age_mois <= 3) {
-                message = '<div class="alert alert-info"><strong>ℹ️ Information :</strong> Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.</div>';
-                lien = '<div class="alert alert-success"><strong>✅ Bonne nouvelle :</strong> Vous pouvez créer une <b>déclaration de naissance classique</b>.</div>';
+                message = '<div class="cni-callout cni-callout--info"><div class="cni-callout__icon"><i class="fas fa-info-circle"></i></div><div class="cni-callout__body"><strong>Délai respecté</strong>Nombre de jours depuis la naissance : <b>' + age_jours + ' jours</b>.</div></div>';
+                lien = '<div class="cni-callout cni-callout--success"><div class="cni-callout__icon"><i class="fas fa-check-circle"></i></div><div class="cni-callout__body"><strong>Déclaration classique</strong>Vous pouvez créer une <b>déclaration de naissance</b> selon le circuit habituel.</div></div>';
                 type = 'declaration';
             }
             $('#texte').html(message);
@@ -415,18 +434,18 @@ certificat de non inscription
             const type = $(this).data('type');
             const dateNaissance = $('#date_naissance_enfant').val();
             const dateInput = document.getElementById('date_naissance_enfant');
-            
+
             if (!dateNaissance) {
-                $('#texte').html('<div class="alert alert-warning"><strong>⚠️ Attention :</strong> Veuillez choisir une date de naissance.</div>');
+                $('#texte').html('<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-hand-pointer"></i></div><div class="cni-callout__body"><strong>Date requise</strong>Veuillez sélectionner une date de naissance.</div></div>');
                 return;
             }
-            
+
             // Validation finale de la date
             if (!validateDate(dateInput)) {
-                $('#texte').html('<div class="alert alert-danger"><strong>❌ Erreur :</strong> Date invalide. Veuillez corriger la date de naissance.</div>');
+                $('#texte').html('<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-times-circle"></i></div><div class="cni-callout__body"><strong>Date invalide</strong>Corrigez la date avant de continuer.</div></div>');
                 return;
             }
-            $('#btn-submit').prop('disabled', true).text('Redirection...');
+            $('#btn-submit').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Redirection…');
             let url = '';
             if (type === 'certificat') {
                 url = "{{ route('certificatNonInscription.create') }}";
@@ -483,12 +502,15 @@ certificat de non inscription
         });
         $('#form-envoyer-tribunal').on('submit', function(e){
             e.preventDefault();
+            var $btn = $('#btn-envoyer-tribunal-final');
+            sifecBtnLoading($btn[0], "Envoi...");
             let url = "{{ route('certificatNonInscription.mouvement') }}";
             $.ajax({
                 url: url,
                 type: 'POST',
                 data: $(this).serialize(),
                 success: function(resp){
+                    sifecBtnReset($btn[0], "Envoyer");
                     if(resp.code == "200"){
                         flashAlert("Réponse","success",resp.message);
                         $('#modal-envoyer-tribunal').modal('hide');
@@ -498,6 +520,7 @@ certificat de non inscription
                     }
                 },
                 error: function(xhr){
+                    sifecBtnReset($btn[0], "Envoyer");
                     flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
                 }
             });

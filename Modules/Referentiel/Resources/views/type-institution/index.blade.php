@@ -6,6 +6,9 @@
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
 @endsection
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -232,6 +235,9 @@
         </div>
     </div>
     @endforeach
+</div>
+</div>
+</div>
 @endsection
 @section('scripts')
       <!-- Datatable -->

@@ -1,4 +1,12 @@
-<div class="deznav" style="background-color: #21B931!important;">
+<div class="deznav deznav-sifec-gradient">
+    <div class="deznav-sifec-mesh" aria-hidden="true">
+        {{-- Même recette que .db-header : halos blanc + jaune SIFEC, puis cercles verts --}}
+        <span class="deznav-sifec-orb deznav-sifec-orb--light"></span>
+        <span class="deznav-sifec-orb deznav-sifec-orb--jaune"></span>
+        <span class="deznav-sifec-blob deznav-sifec-blob--1"></span>
+        <span class="deznav-sifec-blob deznav-sifec-blob--2"></span>
+        <span class="deznav-sifec-blob deznav-sifec-blob--3"></span>
+    </div>
     <div class="deznav-scroll">
         <ul class="metismenu" id="menu">
             <li>
@@ -13,19 +21,19 @@
                 </a>
                 <ul aria-expanded="false">
                     <li>
-                        <a href="{{ route("typelocalite.index") }}">Type de localité</a>
+                        <a class="has-arrow" href="javascript:void(0)" aria-expanded="false">Territoire</a>
+                        <ul aria-expanded="false">
+                            <li><a href="{{ route('typelocalite.index') }}">Types de localité</a></li>
+                            <li><a href="{{ route('localite.index') }}">Localités</a></li>
+                        </ul>
                     </li>
                     <li>
-                        <a href="{{ route("localite.index") }}">Localité</a>
-                    </li>
-                    <li>
-                        <a href="{{ route("typeCategorieInstitution.index") }}">Type catégorie Institution</a>
-                    </li>
-                    <li>
-                        <a href="{{ route("typeInstitution.index") }}">Type institution</a>
-                    </li>
-                    <li>
-                        <a href="{{ route("institution.index") }}">Institution</a>
+                        <a class="has-arrow" href="javascript:void(0)" aria-expanded="false">Institutions</a>
+                        <ul aria-expanded="false">
+                            <li><a href="{{ route('typeCategorieInstitution.index') }}">Type catégorie</a></li>
+                            <li><a href="{{ route('typeInstitution.index') }}">Type institution</a></li>
+                            <li><a href="{{ route('institution.index') }}">Institutions</a></li>
+                        </ul>
                     </li>
                     <li>
                         <a href="{{ route("profession.index") }}">Profession</a>
@@ -48,25 +56,20 @@
                 <span class="nav-text"> SANTE </span>
                 </a>
                 <ul aria-expanded="false">
-                    @can('module.ActeNaissance.declarationNaissance.create.fiche.maternite')
-                    <li>
-                        <a href="{{ route('fiche_maternite.index') }}">Fiche de maternité</a>
-                    </li>
-                    @endcan
                     @can("module.ActeNaissance.declarationNaissance.create")
                     <li>
-                        <a href="{{ route('declarationNaissance.index') }}">Déclaration naissance</a>
+                        <a href="{{ route('declarationNaissance.index') }}">Certificat de naissance</a>
                     </li>
 
                     @endcan
                     @can("module.acteDeces.declarationacteDeces.create")
                     <li>
-                        <a href="{{ route('declarationDeces.index') }}">Déclaration décès</a>
+                        <a href="{{ route('declarationDeces.index') }}">Certificat de décès</a>
                     </li>
                     @endcan
                     {{-- @can("module.ActeNaissance.declarationNaissance.create.EnfantAbandonne") --}}
                     <li>
-                        <a href="{{ route('declarationNaissance.as') }}">Déclaration enfant abandonné</a>
+                        <a href="{{ route('declarationNaissance.as') }}">Enfant abandonné (certificat)</a>
                     </li>
                     {{-- @endcan --}}
                 </ul>
@@ -156,19 +159,6 @@
                             <li><a href="#">Production acte</a></li>
                         </ul>
                     </li>
-                    <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                        <i class="flaticon-381-controls-3"></i>
-                        <span class="nav-text">Acte administratif </span>
-                        </a>
-                        <ul aria-expanded="false">
-                            <li><a href="#">Attestation parentale</a></li>
-                            <li><a href="#">Attestation maritale</a></li>
-                            <li><a href="#">Certificat de vie</a></li>
-                            <li><a href="#">Certificat d'hébergement</a></li>
-                            <li><a href="#">Certificat de concubinage</a></li>
-                            <li><a href="#">Certificat de célibat</a></li>
-                        </ul>
-                    </li>
                     <li><a href="{{ route('retrait.index') }}">Consultation acte retiré</a></li>
                     <li><a href="{{ route('rectification.index') }}">Rectification d'acte </a></li>
                 </ul>
@@ -211,7 +201,6 @@
                                 <ul aria-expanded="false">
                                     <li><a href="{{route("certificatNonInscription.index")}}">Certificat de non inscription</a></li>
                                     <li><a href="{{ route('certificatDestruction.index') }}">Certificat de destruction</a></li>
-                                    {{-- <li><a href="#">Fiche de correction des erreurs matérielles</a></li> --}}
                                 </ul>
                             </li>
                         </ul>
@@ -242,53 +231,11 @@
                         </ul>
                     </li>
                     @endcan
-                    {{-- @if( Auth::user()->affectationActive()->institution->lieu->pompes_funebres == 0)
-                        @can("module.menus.deces")
-                        <li>
-                            <a href="#">Décès</a>
-                            <ul aria-expanded="false">
-                                <li><a href="{{route("certificatNonInscription.index")}}">Déclaration tardive</a></li>
-                                <li><a href="{{ route('acteDeces.index') }}">Production acte</a></li>
-                                <li><a href="{{ route('statistiquesDeces.listedece') }}">Repertoire alphabétique</a></li>
-
-                                <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                                    <span class="nav-text">Réquisition</span>
-                                    </a>
-                                    <ul aria-expanded="false">
-                                        <li><a href="{{route('RequisitionTardiveDeces.index')}}">Aux fins de déclaration tardive décès</a></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
-                        @endcan
-                    @endif --}}
-
                     @if(Auth::check() && Auth::user()->affectationActive() && Auth::user()->affectationActive()->fonction->code_fonction != "FONC_0017")
-                        {{-- <li>
-                            <a href="#">Divorce</a>
-                            <ul aria-expanded="false">
-                                <li><a href="#">Déclaration divorce</a></li>
-                                <li><a href="#">Production acte</a></li>
-                            </ul>
-                        </li> --}}
-                        <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
-                            <i class="flaticon-381-controls-3"></i>
-                            <span class="nav-text">Acte administratif </span>
-                            </a>
-                            <ul aria-expanded="false">
-                                <li><a href="#">Attestation parentale</a></li>
-                                <li><a href="#">Attestation maritale</a></li>
-                                <li><a href="#">Certificat de vie</a></li>
-                                <li><a href="#">Certificat d'hébergement</a></li>
-                                <li><a href="#">Certificat de concubinage</a></li>
-                                <li><a href="#">Certificat de célibat</a></li>
-                            </ul>
-                        </li>
-
-                        <li><a href="{{ route('documents.requisitions') }}">Liste des réquisitions importées</a></li>
-                        <li><a href="{{ route('documents.jugements') }}">Liste des jugements importés</a></li>
-                        <li><a href="{{ route('retrait.index') }}">Consultation acte retiré</a></li>
-                        <li><a href="{{ route('rectification.index') }}">Rectification d'acte </a></li>
+                        <li><a href="{{ route('documents.requisitions') }}">Réquisitions importées</a></li>
+                        <li><a href="{{ route('documents.jugements') }}">Jugements importés</a></li>
+                        <li><a href="{{ route('retrait.index') }}">Actes retirés</a></li>
+                        <li><a href="{{ route('rectification.index') }}">Rectifications d'actes</a></li>
 
                     @endif
                 </ul>
@@ -306,7 +253,7 @@
                             <span class="nav-text">Naissance </span>
                             </a>
                             <ul aria-expanded="false">
-                                <li><a href="{{ route('declarationNaissance.index') }}">Déclaration naissance</a></li>
+                                <li><a href="{{ route('declarationNaissance.index') }}">Certificat de naissance</a></li>
                                 <li><a href="{{ route('acteNaissance.index') }}">Production acte</a></li>
                             </ul>
                         </li>
@@ -362,7 +309,7 @@
                     </a></li>
                     @endcan
                     @if(Auth::check() && Auth::user()->affectationActive() && Auth::user()->affectationActive()->fonction->code_fonction == "FONC_0018")
-                        <li><a href="{{ route('declarationDeces.index') }}">Déclaration décès</a></li>
+                        <li><a href="{{ route('declarationDeces.index') }}">Certificat de décès</a></li>
                     @endif
                 </ul>
             </li>
@@ -373,18 +320,11 @@
                     <span class="nav-text">ADMINISTRATION</span>
                 </a>
                 <ul aria-expanded="false">
-                    {{-- @can("module.users.users") --}}
                     <li><a href="{{ route("utilisateur.index") }}">Utilisateur</a></li>
-                   {{--  @endcan --}}
-
-                   {{--  @can("module.users.fonctions.fonctions") --}}
+                    <li><a href="{{ route('utilisateur.audit-journal') }}">Journal d'audit utilisateurs</a></li>
                     <li><a href="{{ route('fonction.index') }}">Fonction</a></li>
-                    {{-- @endcan --}}
-
                     <li><a href="{{ route('module.index') }}">Module</a></li>
-                    @can("module.fonctionnalites.fonctionnalites")
                     <li><a href="{{ route('fonctionnalite.index') }}">Fonctionalité</a></li>
-                    @endcan
                     <li><a href="{{ route('appareil.index') }}">Appareils</a></li>
                     <li><a href="{{ route('two-factor.index') }}">Double Authentification</a></li>
                 </ul>
@@ -395,7 +335,6 @@
                 <span class="nav-text">STATISTIQUE</span>
                 </a>
                 <ul aria-expanded="false">
-                    {{-- <li><a href="{{ route('tableau.index') }}">Table de bord</a></li> --}}
                     <li><a href="{{ url('carteducongo') }}">Globale</a></li>
                     <li><a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                         <span class="nav-text">Naissance </span>
@@ -410,7 +349,6 @@
                         <span class="nav-text">Décès </span>
                         </a>
                         <ul aria-expanded="false">
-                            {{-- <li><a href="{{route("statistiquesDeces.causeDeclaration")}}">Déclaration de décès</a></li> --}}
                             <li><a href="{{route("statistiquesDeces.age")}}">Décès par tranches d'âges</a></li>
                         </ul>
                     </li>

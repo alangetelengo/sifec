@@ -21,6 +21,16 @@ class Declarationnaissance extends Model
 //	code_declaration_naissance 	nombre_enfant 	date_heure_declaration 	type_declarant 	personne_morale 	personne_declaree 	cec_naissance 	pays_naissance_enfant 	code_declarant 	code_adoptant 	code_enfant 	code_pere 	code_mere 	code_filiation 	code_user_institution 	code_institution 	code_lieu_survenance 	code_situation_mat 	date_heure_naissance 	top_requisition 	numero_req 	numero_certificat 	type_declaration 	formation_sanitaire_naissance 	code_jugement 	code_requisition 	num_jugement 	date_jugement 	code_tribunal_jugement 	numero_ancien_acte
     use HasFactory;
 
+    /** Types stockés en base (enum t_declaration_naissance.type_declaration) */
+    public const TYPES_AUTORISES = [
+        'CERTIFICAT DE NAISSANCE',
+        'DECLARATION DE NAISSANCE',
+        'CERTIFICAT DE NON INSCRIPTION',
+        "CERTIFICAT DE DESTRUCTION DE L'ACTE",
+        'FICHE DE TRANSCRIPTION',
+        'CERTIFICAT DE TRANSCRIPTION',
+    ];
+
     protected $guarded = [];
     protected $table = "t_declaration_naissance";
     public $incrementing = false;
@@ -117,6 +127,73 @@ class Declarationnaissance extends Model
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class, 'code_institution','code_institution');
+    }
+
+    /**
+     * @return array{type: string, origine: ?string}
+     */
+    public static function normaliserTypeEtOrigine(?string $soumis, ?string $origineExplicite = null): array
+    {
+        $soumis = ($soumis !== null && $soumis !== '') ? trim($soumis) : 'DECLARATION DE NAISSANCE';
+
+        $legacy = [
+            'DECLARATION TARDIVE DE NAISSANCE' => ['DECLARATION DE NAISSANCE', 'DECLARATION TARDIVE DE NAISSANCE'],
+            'DECLARATION DE PATERNITE' => ['CERTIFICAT DE TRANSCRIPTION', 'DECLARATION DE PATERNITE'],
+            "FICHE DE TRANSCRIPTION DE L'ACTE" => ['FICHE DE TRANSCRIPTION', "FICHE DE TRANSCRIPTION DE L'ACTE"],
+            'JUGEMENT SUPPLETIF' => ['DECLARATION DE NAISSANCE', 'JUGEMENT SUPPLETIF'],
+            "JUGEMENT D'HOMOLOGATION" => ['DECLARATION DE NAISSANCE', "JUGEMENT D'HOMOLOGATION"],
+            "JUGEMENT D'ADOPTION" => ['DECLARATION DE NAISSANCE', "JUGEMENT D'ADOPTION"],
+            "JUGEMENT D'ANNULATION D'ACTE" => ['DECLARATION DE NAISSANCE', "JUGEMENT D'ANNULATION D'ACTE"],
+        ];
+
+        if (isset($legacy[$soumis])) {
+            return ['type' => $legacy[$soumis][0], 'origine' => $legacy[$soumis][1]];
+        }
+
+        if (in_array($soumis, self::TYPES_AUTORISES, true)) {
+            return ['type' => $soumis, 'origine' => $origineExplicite];
+        }
+
+        return ['type' => 'DECLARATION DE NAISSANCE', 'origine' => null];
+    }
+
+    public function libelleAffichageType(): string
+    {
+        return $this->type_declaration_origine ?: (string) $this->type_declaration;
+    }
+
+    /**
+     * Déclaration « simple » au sens pièces / QR : type stocké DECLARATION sans origine métier.
+     */
+    public function estDeclarationSimpleSansOrigine(): bool
+    {
+        return ($this->type_declaration ?? '') === 'DECLARATION DE NAISSANCE'
+            && (($this->type_declaration_origine ?? '') === '' || $this->type_declaration_origine === null);
+    }
+
+    public function estJugementHomologation(): bool
+    {
+        return ($this->type_declaration_origine ?? '') === "JUGEMENT D'HOMOLOGATION";
+    }
+
+    /**
+     * Clé métier pour le mapping des mouvements (équivalent à l’ancien type_declaration formulaire).
+     */
+    public function typePourMappingMouvement(): string
+    {
+        $originesMouvement = [
+            'DECLARATION TARDIVE DE NAISSANCE',
+            'DECLARATION DE PATERNITE',
+            'JUGEMENT SUPPLETIF',
+            "JUGEMENT D'HOMOLOGATION",
+            "JUGEMENT D'ADOPTION",
+            "JUGEMENT D'ANNULATION D'ACTE",
+        ];
+        if (!empty($this->type_declaration_origine) && in_array($this->type_declaration_origine, $originesMouvement, true)) {
+            return $this->type_declaration_origine;
+        }
+
+        return $this->type_declaration ?: 'DECLARATION DE NAISSANCE';
     }
 
 }

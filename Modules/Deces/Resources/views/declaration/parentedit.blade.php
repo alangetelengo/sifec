@@ -37,7 +37,8 @@
                     $('#code_pays_pere').val('{{ $dd->pere->contacts->last()->indicatif }}');
 
                     $('#telephone_pere').val('{{ $dd->pere->telephone }}');
-                    $('#email_pere').val('{{ $dd->pere->contacts->last()->email_personnelle }}');
+                    $('#email_pere').val(@json(optional($dd->pere->contacts->last())->email_personnelle));
+                    $('#email_professionnel_pere').val(@json(optional($dd->pere->contacts->last())->email_professionnelle));
                     $('#statut_personne_pere').val('{{ $dd->pere->statut_personne }}');
                 });
             </script>
@@ -68,7 +69,8 @@
                         $('#code_pays_mere').val('{{ $dd->mere->contacts->last()->indicatif }}');
 
                     $('#telephone_mere').val('{{ $dd->mere->telephone }}');
-                    $('#email_mere').val('{{ $dd->mere->contacts->last()->email_personnelle}}');
+                    $('#email_mere').val(@json(optional($dd->mere->contacts->last())->email_personnelle));
+                    $('#email_professionnel_mere').val(@json(optional($dd->mere->contacts->last())->email_professionnelle));
                         $('#statut_personne_mere').val('{{ $dd->mere->statut_personne }}');
                     });
                 </script>
@@ -259,8 +261,12 @@
                 </div>
 
                 <div class="mb-2 col-md-4">
-                    <label class="form-label">Email</label>
-                    <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="Email père">
+                    <label class="form-label">E-mail personnel</label>
+                    <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail personnel du père" autocomplete="email">
+                </div>
+                <div class="mb-2 col-md-4">
+                    <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+                    <input type="email" id="email_professionnel_pere" class="form-control" name="email_professionnel_pere" placeholder="E-mail professionnel du père" autocomplete="email">
                 </div>
 
                 <div class="ligne">
@@ -481,8 +487,12 @@
         </div>
 
         <div class="mb-2 col-md-4">
-            <label class="form-label">Email</label>
-            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="Email père">
+            <label class="form-label">E-mail personnel</label>
+            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail personnel de la mère" autocomplete="email">
+        </div>
+        <div class="mb-2 col-md-4">
+            <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+            <input type="email" id="email_professionnel_mere" class="form-control" name="email_professionnel_mere" placeholder="E-mail professionnel de la mère" autocomplete="email">
         </div>
 
         <div class="ligne">

@@ -21,7 +21,7 @@ class MouvementService
      *
      * @param $user
      * @param $declaration
-     * @param string $typeMouvement Code du mouvement à utiliser (ex: MOUV_0001, MOUV_0006...)
+     * @param string $typeMouvement Code du mouvement référentiel (ex: MOUV_0001 déclaration envoyée, MOUV_0035 certificat de naissance envoyé, MOUV_0006…)
      * @param string $statut
      * @param string|null $observation
      * @return array [bool, string]
@@ -47,7 +47,10 @@ class MouvementService
         if($typeCategorieInstitution == "TCINS_0001" || $typeCategorieInstitution == "TCINS_0004")
         {
             //recherche du type de declaration du document si c'est un certificat ou une fiche de transcription,destinataire tribunal sinon destinataire centre d'état civil
-            if($typeDeclaration == "CERTIFICAT DE NON INSCRIPTION" || $typeDeclaration == "FICHE DE TRANSCRIPTION" || $typeDeclaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+            if ($typeDeclaration == "CERTIFICAT DE NON INSCRIPTION"
+                || $typeDeclaration == "FICHE DE TRANSCRIPTION"
+                || $typeDeclaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"
+                || $typeDeclaration == "CERTIFICAT DE TRANSCRIPTION") {
                 $destinataire = $declaration->institution->institutionParent->code_institution;
             }else{
                 $destinataire = $declaration->institution->code_institution;
@@ -86,7 +89,10 @@ class MouvementService
 
             $declaration->save();
             DB::commit();
-            return [true, "Déclaration envoyée à l'institution destinataire"];
+            $messageSucces = $typeDeclaration === 'CERTIFICAT DE NAISSANCE'
+                ? "Certificat de naissance envoyé au centre d'état civil."
+                : "Déclaration envoyée à l'institution destinataire";
+            return [true, $messageSucces];
         } catch (Exception $e) {
             DB::rollBack();
             Log::channel('sifec')->error($e->getMessage());
@@ -105,6 +111,8 @@ class MouvementService
     {
         DB::beginTransaction();
         try {
+            $etaitCertificatNaissance = false;
+
             //si user est tribunal, on ajoute un mouvement de confirmation
             if($user->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0002"){
                 $codeMouvement = 'MOUV_1019'; // Code du mouvement pour confirmation du dossier par le tribunal
@@ -117,12 +125,33 @@ class MouvementService
                 $declaration->cec_approuver = "OUI";
                 $declaration->cec_approuve_par = $user->cui;
                 // Certificat validé au centre : devient déclaration de naissance, affichage centre
-                if ($declaration->type_declaration === 'CERTIFICAT DE NAISSANCE') {
+                $etaitCertificatNaissance = ($declaration->type_declaration === 'CERTIFICAT DE NAISSANCE');
+                if ($etaitCertificatNaissance) {
+                    $declaration->type_declaration_origine = 'CERTIFICAT DE NAISSANCE';
                     $declaration->type_declaration = 'DECLARATION DE NAISSANCE';
                     $declaration->contexte_affichage = 'centre_etat_civil';
                 }
                 $declaration->save();
             }
+
+            // Mouvement d'historique : transformation certificat → déclaration de naissance (CEC uniquement)
+            if ($etaitCertificatNaissance) {
+                $refTransform = DB::table('tr_mouvement')->where('code_mouvement', 'MOUV_0034')->first();
+                if (!$refTransform) {
+                    throw new Exception('Mouvement référentiel MOUV_0034 introuvable (certificat transformé en déclaration).');
+                }
+                $mvtTransform = new MouvementNaissance();
+                $mvtTransform->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($mvtTransform, 'code_mouvement_naissance', 4, 'MDN_');
+                $mvtTransform->code_declaration_naissance = $declaration->code_declaration_naissance;
+                $mvtTransform->code_mouvement = $refTransform->code_mouvement;
+                $mvtTransform->lib_mouvement = $refTransform->lib_mouvement;
+                $mvtTransform->statut = $statut;
+                $mvtTransform->cui = $user->cui;
+                $mvtTransform->motif_renvoi = $motif;
+                $mvtTransform->observation = $observation ?? 'Certificat de naissance enregistré comme déclaration de naissance par le centre d\'état civil.';
+                $mvtTransform->save();
+            }
+
             $mouvementRef = DB::table('tr_mouvement')->where('code_mouvement', $codeMouvement)->first();
             if (!$mouvementRef) {
                 throw new Exception('Mouvement référentiel de confirmation introuvable.');
@@ -271,7 +300,7 @@ class MouvementService
         }
     }
 
-    //ajouter les événement d'enregistrement de declaration selon les type de declaration(declaration de naissance,fiche de maternité,certificat de non inscription,certificat de destruction,jugement d'homologation,jugement d'adoption,jugement supplétif,fiche de transcription)
+    //ajouter les événement d'enregistrement de declaration selon les type de declaration(declaration de naissance,certificat de non inscription,certificat de destruction,jugement d'homologation,jugement d'adoption,jugement supplétif,fiche de transcription)
     public function ajouterEvenementDeclaration($user, $declaration, string $evenement, $observation = null)
     {
         // Mapping des types de déclaration vers les codes mouvements
@@ -280,9 +309,9 @@ class MouvementService
                 'code' => 'MOUV_0024',
                 'libelle' => "Déclaration de naissance enregistrée"
             ],
-            'fiche_maternite' => [
-                'code' => 'MOUV_0025',
-                'libelle' => "Fiche de maternité enregistrée"
+            'certificat_naissance' => [
+                'code' => 'MOUV_0033',
+                'libelle' => "Certificat de naissance enregistré"
             ],
             'certificat_non_inscription' => [
                 'code' => 'MOUV_0026',

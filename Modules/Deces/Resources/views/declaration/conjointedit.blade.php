@@ -247,8 +247,12 @@
                 <input type="number" min="0" minlength="9" maxlength="10" id="telephone_conjoint" name="telephone_conjoint" class="form-control @error('telephone_conjoint') is-invalid @enderror " placeholder="Téléphone père">
             </div>
             <div class="mb-2 col-md-4">
-                <label class="form-label">Email</label>
-                <input type="email" id="email_conjoint" class="form-control" name="email_conjoint" placeholder="Email père">
+                <label class="form-label">E-mail personnel</label>
+                <input type="email" id="email_conjoint" class="form-control" name="email_conjoint" placeholder="E-mail personnel du conjoint" autocomplete="email">
+            </div>
+            <div class="mb-2 col-md-4">
+                <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+                <input type="email" id="email_professionnel_conjoint" class="form-control" name="email_professionnel_conjoint" placeholder="E-mail professionnel du conjoint" autocomplete="email">
             </div>
         </div>
     </div>

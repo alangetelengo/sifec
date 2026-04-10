@@ -116,6 +116,14 @@ Route::middleware(['web'])->group(function () {
     Route::post('/two-factor/verify-recovery', [TwoFactorController::class, 'verifyRecoveryCode'])->name('two-factor.verify-recovery');
 });
 
+// Première connexion : changement obligatoire du mot de passe provisoire (123456)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/premiere-connexion/mot-de-passe', [AuthentificationController::class, 'showFirstLoginPassword'])
+        ->name('first-login-password.show');
+    Route::post('/premiere-connexion/mot-de-passe', [AuthentificationController::class, 'updateFirstLoginPassword'])
+        ->name('first-login-password.update');
+});
+
 Route::middleware(['signed','throttle:10,1'])
     ->get('/verification/acte/{niupp}', [NaissanceController::class, 'verificationActe'])
     ->name('verification.acte');

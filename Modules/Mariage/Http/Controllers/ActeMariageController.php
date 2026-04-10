@@ -15,11 +15,10 @@ use Illuminate\Support\Facades\Gate;
 use Modules\Mariage\Services\OtpService;
 use Illuminate\Support\Facades\Validator;
 use Modules\Mariage\Entities\ActeMariage;
-use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Referentiel\Entities\Registre;
 use App\Mail\ValidationActeMariageMailable;
 use Illuminate\Contracts\Support\Renderable;
-use Modules\Mariage\Entities\Declarationmariage;
+use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Mariage\Services\ActeMariageService;
 use Modules\Referentiel\Entities\FeuilletRegistre;
 use Modules\Notification\Services\NotificationService;
@@ -94,7 +93,7 @@ class ActeMariageController extends Controller
     public function generateActe(Request $request, ActeMariageService $service)
     {
         $user = Auth::user();
-        $declaration = Declarationmariage::findOrFail($request->code_declaration_mariage);
+        $declaration = DeclarationMariage::findOrFail($request->code_declaration_mariage);
 
         // Vérifier si un acte existe déjà pour cette déclaration
         $acteExistant = $service->obtenirActeParDeclaration($declaration->code_declaration_mariage);

@@ -310,8 +310,12 @@
             <input type="number" min="0" minlength="9" maxlength="10" id="telephone_declarant" name="telephone_declarant" class="form-control @error('telephone_declarant') is-invalid @enderror " placeholder="Téléphone déclarant">
         </div>
         <div class="mb-2 col-md-4">
-            <label class="form-label">Email</label>
-            <input type="email" id="email_declarant" class="form-control" name="email_declarant" placeholder="Email déclarant">
+            <label class="form-label">E-mail personnel</label>
+            <input type="email" id="email_declarant" class="form-control" name="email_declarant" placeholder="E-mail personnel du déclarant" autocomplete="email">
+        </div>
+        <div class="mb-2 col-md-4">
+            <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+            <input type="email" id="email_professionnel_declarant" class="form-control" name="email_professionnel_declarant" placeholder="E-mail professionnel du déclarant" autocomplete="email">
         </div>
         <div class="ligne">
             <h4>INFORMATIONS SUR LES CAUSES DU DECES</h4>

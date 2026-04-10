@@ -25,6 +25,7 @@
 
 @section("corps")
 
+<div class="page-sifec-form">
         <!-- row -->
         <div class="row" id="validation">
             <div class="col-12">
@@ -61,13 +62,21 @@
                             @endif --}}
                         </h4>
 
-                        @if($dn->type_declaration == "DECLARATION DE NAISSANCE" || $dn->type_declaration == "FICHE DE MATERNITE")
+                        @if($dn->type_declaration === 'CERTIFICAT DE NON INSCRIPTION')
+                            <a href="{{ route('certificatNonInscription.index') }}" class="btn btn-primary float-end">
+                                <i class="fa fa-list"></i> Liste des certificats de non-inscription
+                            </a>
+                        @elseif($dn->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE")
+                            <a href="{{ route('certificatDestruction.index') }}" class="btn btn-primary float-end">
+                                <i class="fa fa-list"></i> Liste des certificats de destruction
+                            </a>
+                        @elseif(in_array($dn->type_declaration, ['CERTIFICAT DE TRANSCRIPTION', 'FICHE DE TRANSCRIPTION'], true))
+                            <a href="{{ route('certificatTranscription.index') }}" class="btn btn-primary float-end">
+                                <i class="fa fa-list"></i> Liste des fiches / certificats de transcription
+                            </a>
+                        @else
                             <a href="{{ route('declarationNaissance.index') }}" class="btn btn-primary float-end">
                                 <i class="fa fa-list"></i> Liste des déclarations
-                            </a>
-                            @else
-                            <a href="{{ route('certificatNonInscription.index') }}" class="btn btn-primary float-end">
-                                <i class="fa fa-list"></i> Liste des certificats
                             </a>
                         @endif
                     </div>
@@ -206,9 +215,7 @@
 
 
         @include("naissance::declaration.ajout_piece_parent")
-
-
-
+</div>
 @endsection
 @section("scripts")
 

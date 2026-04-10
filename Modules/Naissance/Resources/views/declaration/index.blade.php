@@ -12,6 +12,9 @@ Déclaration
     {{ $title }}
 @endsection
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -49,6 +52,7 @@ Déclaration
                                             $dernierMouvement = $dn->mouvements->sortByDesc('created_at')->first();
                                             switch ($dernierMouvement->code_mouvement) {
                                                 case 'MOUV_0001':
+                                                case 'MOUV_0035':
                                                     $statutBadge = ['class' => 'badge-warning', 'label' => $dernierMouvement->lib_mouvement];
                                                     $peutEnvoyer = false;
                                                     $peutModifier = false;
@@ -67,12 +71,14 @@ Déclaration
                                                     $peutSupprimer = false;
                                                     break;
                                                 case 'MOUV_0019':
+                                                case 'MOUV_0034':
                                                     $statutBadge = ['class' => 'badge-success', 'label' => $dernierMouvement->lib_mouvement];
                                                     $peutEnvoyer = false;
                                                     $peutModifier = false;
                                                     $peutSupprimer = false;
                                                     break;
                                                 case 'MOUV_0024':
+                                                case 'MOUV_0033':
                                                     $statutBadge = ['class' => 'badge-primary', 'label' => $dernierMouvement->lib_mouvement];
                                                     $peutEnvoyer = true;
                                                     $peutModifier = true;
@@ -107,7 +113,6 @@ Déclaration
                                         <td>{{ $dn->date_heure_declaration ? date('d-m-Y H:i', strtotime($dn->date_heure_declaration)) : '-' }}</td>
                                         <td>{{ $dn->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
                                         <td style="width: 18%">
-                                            @if($dn->type_declaration != "FICHE DE MATERNITE")
                                             <div class="btn-group btn-group-xs">
                                                 {{-- Voir le détail --}}
                                                 <a href="{{ route('declarationNaissance.show',$dn->code_declaration_naissance) }}" class="btn btn-primary shadow btn-xs sharp me-1" title="Voir détail">
@@ -160,7 +165,6 @@ Déclaration
                                                    </form>
                                                @endif
                                             </div>
-                                            @endif
                                         </td>
                                     </tr>
                                     @endforeach
@@ -254,33 +258,6 @@ Déclaration
 
 
 
-{{-- DEBUT ENVOIS NOTIFICATION AU PARENT --}}
-<div class="modal fade" id="modal-notification-send-parent" data-bs-backdrop="static">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><span class="module-title"> </span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="mb-2 col-md-12">
-                        <label class="form-label">Envoyer la notification au numéro</label>
-                        <input type="hidden" id="codedn">
-                        <input type="text" readonly class="form-control"  placeholder="" id="tepehoneparent">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-info btn-sm text-white" id="btn-send-notification">Envoyer</button>
-                <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
-            </div>
-        </div>
-    </div>
-</div>
-{{-- FIN ENVOIS NOTIFICATION AU PARENT --}}
-
 {{-- Modal Envoi au centre d'état civil (à placer une seule fois en dehors de la boucle) --}}
 <div class="modal fade" id="modal-envoyer-centre" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -352,7 +329,9 @@ Déclaration
         </form>
     </div>
 </div>
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 
@@ -424,40 +403,6 @@ Déclaration
                 return false;
             });
             // //Fin Add piece joint
-
-
-            //envoie de notification au parent de la mere de l'enfant
-            $("a.show-send-sms-to-parent").on("click", function(){
-                var codedn = $(this).attr('href');
-                var tepehoneParent = $(this).attr('telephone');
-
-                $("#tepehoneparent").val(tepehoneParent);
-                $("#codedn").val(codedn);
-                $("#modal-notification-send-parent").modal("show");
-                return false;
-            });
-
-            $("#btn-send-notification").on('click', function(){
-                var $btn = $(this);
-                var codedn = $("#codedn").val();
-                var url = "{{ route('fiche_maternite.send.notification', ':id') }}";
-                url = url.replace(":id", codedn);
-                sifecBtnLoading(this, "Envoi...");
-                $.get(url, function(response){
-                    sifecBtnReset($btn[0], "Envoyer");
-                    if(response.code == "200"){
-
-                        flashAlert("Réponse","success",response.message);
-                        $("#modal-notification-send-parent").modal('hide');
-                        // setTimeout(() => {
-                        //     location.reload();
-                        // }, 2000);
-                    }else{
-                        flashAlert("Réponse","error",response.message);
-                    }
-                }).fail(function(){ sifecBtnReset($btn[0], "Envoyer"); });
-                return false;
-            });
 
             // Gestion modale envoi au centre d'état civil depuis index
             let codeDeclaration = null;

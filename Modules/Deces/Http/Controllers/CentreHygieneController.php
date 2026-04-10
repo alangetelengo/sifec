@@ -37,7 +37,6 @@ class CentreHygieneController extends Controller
      */
     public function index()
     {
-
         $typeDeclaration = "CERTIFICAT DE CONSTATATION DE DECES";
         $declarations = Auth::user()->institution()->declarationsDeces()->where("type_declaration",$typeDeclaration);
         return view('deces::centre-hygiene.index',compact("declarations"));
@@ -49,6 +48,7 @@ class CentreHygieneController extends Controller
      */
     public function create()
     {
+       
          $title = "Créer un certificat de constatation de décès";
         $type_declaration = "CERTIFICAT DE CONSTATATION DE DECES";
         $cecMariage = Institution::where("code_type_institution","TPINS_0002")->get();
@@ -70,14 +70,40 @@ class CentreHygieneController extends Controller
 
         $lieuxDeces = Localite::where("code_localite_parent",$codeUserLocalite)->get();
 
-        return view('deces::declaration.create',compact("title","type_declaration","quartierVillages","cecMariage", "countries","arrondissement","instructions","typedocuments","causesDeces","regimes","localites","professions","nationalites","situationMatrimoniales","religions","lieusurvenances","filiations","lieuxDeces"));
+        $decesDeclarationStoreUrl = route('centreHygiene.store');
+        $decesDeclarationSuccessListUrl = route('centreHygiene.index');
+
+        return view('deces::declaration.create', compact(
+            'title',
+            'type_declaration',
+            'quartierVillages',
+            'cecMariage',
+            'countries',
+            'arrondissement',
+            'instructions',
+            'typedocuments',
+            'causesDeces',
+            'regimes',
+            'localites',
+            'professions',
+            'nationalites',
+            'situationMatrimoniales',
+            'religions',
+            'lieusurvenances',
+            'filiations',
+            'lieuxDeces',
+            'decesDeclarationStoreUrl',
+            'decesDeclarationSuccessListUrl'
+        ));
 
     }
 
     public function etat($id)
     {
         $typeDeclaration = "CERTIFICAT DE CONSTATATION DE DECES";
-        $ddc = DeclarationDeces::where(["code_declaration_deces"=>$id,"type_declaration"=>$typeDeclaration])->first();
+        $ddc = DeclarationDeces::with(['lieuDeces', 'lieuSurvenance', 'defunt', 'pere', 'mere', 'religion', 'situationMat', 'regime', 'conjoint', 'filiation'])
+            ->where(['code_declaration_deces' => $id, 'type_declaration' => $typeDeclaration])
+            ->first();
 
         if($ddc == null){
             toastr()->error("Aucun certificat de constatation de décès trouvé");
@@ -208,8 +234,27 @@ class CentreHygieneController extends Controller
                 $ddeces->domicile_defunt = $request->domicile_defunt;
                 $ddeces->cec_mariage= $request->cec_mariage;
                 $ddeces->cec_naissance= $request->cec_naissance;
-                // $ddeces->lieu_deces= Localite::find($request->lieu_deces);//A CORRIGER
-                $ddeces->lieu_deces= "BRAZZAVILLE";
+                if ($request->filled('code_lieu_deces')) {
+                    $lieuDecesLoc = Localite::query()->where('code_localite', $request->code_lieu_deces)->first();
+                    if ($lieuDecesLoc === null) {
+                        DB::rollBack();
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Lieu de décès invalide (localité inconnue).',
+                        ], 422);
+                    }
+                    $ddeces->lieu_deces = $lieuDecesLoc->code_localite;
+                } elseif ($request->filled('lieu_deces')) {
+                    $ddeces->lieu_deces = $request->lieu_deces;
+                } else {
+                    DB::rollBack();
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Le lieu de décès est obligatoire.',
+                    ], 422);
+                }
                 $ddeces->num_acte_mariage=$request->num_acte_mariage;
                 $ddeces->num_acte_naissance=$request->num_acte_naissance;
                 $ddeces->type_declarant = "Personne physique";
@@ -260,7 +305,9 @@ class CentreHygieneController extends Controller
             }
 
                 DB::commit();
+
                 return response()->json([
+                    'code' => '200',
                     'success' => true,
                     'message' => 'Certificat de constatation de décès créé avec succès',
                 ]);

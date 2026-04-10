@@ -3,8 +3,9 @@
 Modifier le document importé
 @endsection
 @section('corps')
+<div class="page-sifec-form">
 <div class="row">
-    <div class="col-xl-8 offset-xl-2">
+    <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
                 <h4>Modifier le document importé pour le certificat n° {{ $declaration->numero_certificat ?? $declaration->getKey() }}</h4>
@@ -45,5 +46,6 @@ Modifier le document importé
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection

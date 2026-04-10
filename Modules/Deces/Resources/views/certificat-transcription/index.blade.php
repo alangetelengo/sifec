@@ -18,6 +18,9 @@ Certificat de transcription
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -252,6 +255,9 @@ Certificat de transcription
     </form>
 </div>
 </div>
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -381,12 +387,15 @@ $(function() {
     });
     $('#form-envoyer-tribunal').on('submit', function(e){
         e.preventDefault();
+        var $btn = $('#btn-envoyer-tribunal-final');
+        sifecBtnLoading($btn[0], "Envoi...");
         let url = "{{ route('certificatNonInscriptionDeces.mouvement') }}";
         $.ajax({
             url: url,
             type: 'POST',
             data: $(this).serialize(),
             success: function(resp){
+                sifecBtnReset($btn[0], "Envoyer");
                 if(resp.code == "200"){
                     flashAlert("Réponse","success",resp.message);
                     $('#modal-envoyer-tribunal').modal('hide');
@@ -396,6 +405,7 @@ $(function() {
                 }
             },
             error: function(xhr){
+                sifecBtnReset($btn[0], "Envoyer");
                 flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
             }
         });

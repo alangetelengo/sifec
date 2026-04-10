@@ -532,7 +532,9 @@ class HomeController extends Controller
 
             // dd($array);
             return view("admin.dashboard.tableau_prefet", compact('mesinstitutions','acteproduits','acteannee','actemois','actesemaine','actesjour','acteproduitsv','acteanneev','actemoisv','actesemainev','actesjourv','acteproduitsn','acteanneen','actemoisn','actesemainen','actesjourn', 'dacteproduits','dacteannee','dactemois','dactesemaine','dactesjour','dacteproduitsv','dacteanneev','dactemoisv','dactesemainev','dactesjourv','dacteproduitsn','dacteanneen','dactemoisn','dactesemainen','dactesjourn'));
-        }else{
+        } elseif ($fonction === 'FONC_0006') {
+            return redirect()->route('dashboard.index');
+        } else {
             toastr('Tableau de bord non disponible', 'warning');
             return redirect()->back();
         }

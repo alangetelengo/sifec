@@ -27,6 +27,7 @@
     <link href="{{ asset('tpl/vendor/bootstrap-select/dist/css/bootstrap-select.min.css')}}" rel="stylesheet">
 	<link href="{{ asset('tpl/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')}}" rel="stylesheet">
     <link href="{{ asset('tpl/css/style.css')}}" rel="stylesheet">
+    @include('layout._deznav_sifec_theme')
     <link rel="stylesheet" href="{{asset('tpl/vendor/toastr/css/toastr.min.css')}}" type="text/css">
 
     <!-- Form step -->
@@ -37,6 +38,11 @@
     <link href="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.css') }}" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+    <!-- Formulaires SIFEC (champs, sections, cartes — même esprit que la page login) -->
+    <link href="{{ asset('css/sifec-forms.css') }}?v=2" rel="stylesheet">
+    <link href="{{ asset('css/sifec-index-pages.css') }}?v=4" rel="stylesheet">
+    <link href="{{ asset('css/sifec-modals.css') }}?v=1" rel="stylesheet">
+    <link href="{{ asset('css/sifec-crud-forms.css') }}?v=2" rel="stylesheet">
 
     @yield('styles')
     <style>
@@ -103,7 +109,8 @@
             background-color: #6c757d !important;
             color: #fff !important;
         }
-        .mm-active, .wizard-content .wizard.wizard-circle>.steps .step, .wizard-content .wizard>.actions>ul>li>a{
+        /* Ne pas cibler .mm-active seul : MetisMenu l’ajoute aux <li> du menu latéral et masque le dégradé + motif SIFEC */
+        .wizard-content .wizard.wizard-circle>.steps .step, .wizard-content .wizard>.actions>ul>li>a{
             background-color: #21B931!important;
         }
         .line{
@@ -157,6 +164,149 @@
         /* Notification dropdown loading */
         .notif-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px 16px; color: #6b7280; font-size: 0.875rem; }
         .notif-spinner { width: 18px; height: 18px; border: 2px solid #e5e7eb; border-top-color: #21B931; border-radius: 50%; animation: sifec-spin 0.7s linear infinite; }
+
+        /* Menu déroulant notifications (SIFEC) */
+        #notif-dropdown-content.sifec-notif-dropdown {
+            min-width: 360px;
+            max-width: min(420px, calc(100vw - 24px));
+            padding: 0;
+            border: 1px solid #e2e8e4;
+            border-radius: 12px;
+            box-shadow: 0 14px 40px rgba(26, 46, 38, 0.12);
+            overflow: hidden;
+        }
+        .sifec-notif-dropdown-header {
+            margin: 0;
+            padding: 0.65rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #1a2e26;
+            background: linear-gradient(135deg, #e8f0eb 0%, #f4f7f5 100%);
+            border-bottom: 1px solid #dde5df;
+        }
+        #notif-list {
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .sifec-notif-list-wrap {
+            display: flex;
+            flex-direction: column;
+        }
+        a.sifec-notif-item {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            padding: 0.85rem 1rem;
+            text-decoration: none !important;
+            color: #1e293b !important;
+            border-bottom: 1px solid #f1f5f3;
+            transition: background 0.15s ease;
+        }
+        a.sifec-notif-item:hover {
+            background: #f6faf7;
+        }
+        .sifec-notif-list-wrap a.sifec-notif-item:last-child {
+            border-bottom: none;
+        }
+        .sifec-notif-item-icon {
+            flex-shrink: 0;
+            width: 2.35rem;
+            height: 2.35rem;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            color: #fff;
+        }
+        .sifec-notif-item-icon--default { background: linear-gradient(135deg, #64748b, #475569); }
+        .sifec-notif-item-icon--success { background: linear-gradient(135deg, #1b6f4a, #0f5132); }
+        .sifec-notif-item-icon--registre { background: linear-gradient(135deg, #0d9488, #0f766e); }
+        .sifec-notif-item-icon--naissance { background: linear-gradient(135deg, #059669, #047857); }
+        .sifec-notif-item-icon--deces { background: linear-gradient(135deg, #6b7280, #4b5563); }
+        .sifec-notif-item-icon--mariage { background: linear-gradient(135deg, #d97706, #b45309); }
+        .sifec-notif-item-icon--declaration { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .sifec-notif-item-icon--tribunal { background: linear-gradient(135deg, #4338ca, #3730a3); }
+        .sifec-notif-item-icon--rectif { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+        .sifec-notif-item-icon--info { background: linear-gradient(135deg, #0891b2, #0e7490); }
+        .sifec-notif-item-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .sifec-notif-item-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem 0.5rem;
+        }
+        .sifec-notif-item-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #1b6f4a;
+            background: rgba(27, 111, 74, 0.1);
+            padding: 0.15rem 0.45rem;
+            border-radius: 6px;
+        }
+        .sifec-notif-item-time {
+            font-size: 0.72rem;
+            color: #94a3a8;
+            white-space: nowrap;
+        }
+        .sifec-notif-item-text {
+            display: block;
+            font-size: 0.84rem;
+            line-height: 1.45;
+            color: #334155;
+            margin: 0;
+            word-break: break-word;
+        }
+        .sifec-notif-empty {
+            text-align: center;
+            padding: 1.75rem 1.25rem;
+            color: #64748b;
+        }
+        .sifec-notif-empty-icon {
+            display: block;
+            font-size: 1.75rem;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+        .sifec-notif-empty-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #475569;
+            margin: 0 0 0.25rem;
+        }
+        .sifec-notif-empty-hint {
+            font-size: 0.8rem;
+            margin: 0;
+            color: #94a3a8;
+        }
+        .sifec-notif-dropdown-footer {
+            padding: 0.55rem 0.75rem;
+            text-align: center;
+            background: #fafcfb;
+            border-top: 1px solid #e2e8e4;
+        }
+        .sifec-notif-footer-link {
+            display: inline-block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #1b6f4a !important;
+            text-decoration: none !important;
+        }
+        .sifec-notif-footer-link:hover {
+            text-decoration: underline !important;
+            color: #0f5132 !important;
+        }
 
 
 
@@ -318,8 +468,8 @@
                                     </span>
                                     <div class="pulse-css"></div>
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-end" id="notif-dropdown-content">
-                                    <h6 class="dropdown-header">Notifications</h6>
+                                <div class="dropdown-menu dropdown-menu-end sifec-notif-dropdown" id="notif-dropdown-content">
+                                    <h6 class="dropdown-header sifec-notif-dropdown-header">Notifications</h6>
                                     <div id="notif-list">
                                         <span class="dropdown-item text-center">Chargement...</span>
                                     </div>
@@ -660,7 +810,7 @@
             $.get("{{ route('notifications.unreadList') }}", function(data) {
                 $list.html(data.html || '<span class="dropdown-item text-center">Aucune notification</span>');
             }).fail(function() {
-                $list.html('<span class="dropdown-item text-center text-danger">Impossible de charger</span>');
+                $list.html('<div class="sifec-notif-empty"><p class="sifec-notif-empty-title text-danger mb-0">Impossible de charger les notifications</p></div>');
             });
         }
 

@@ -140,7 +140,7 @@
                                                    $infos = 'ACTE ETABLIT SUIVANT LE JUGEMENT N° '.$acte->declaration->jugement->num_jugement.'  DU '.(date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)))." AU ".$acte->declaration->jugement->institutionUser->institution->lib_institution;
                                                }
 
-                                               if($acte->declaration->type_declaration == "DECLARATION DE NAISSANCE" && $acte->declaration->numero_req != 0){
+                                               if($acte->declaration->type_declaration == "DECLARATION DE NAISSANCE" && ($acte->declaration->numero_req != 0 || ($acte->declaration->type_declaration_origine ?? '') === 'DECLARATION TARDIVE DE NAISSANCE')){
                                                    $infos = 'ACTE ETABLIT SUIVANT '.$top.' DE DECLARATION TARDIVE N° '.$titre." ".$num;
                                                }
 

@@ -1,138 +1,285 @@
 @extends('layout.app')
 @section('titre')
-   Gestion des Localités
+   Référentiel — Localités
 @endsection
 @section('styles')
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
+<style>
+/* Page localités — charte SIFEC */
+.sifec-localite-page { --sl-green:#006B31; --sl-mid:#009E49; --sl-light:#21B931; --sl-gold:#FBDE4A; }
+.sl-hero {
+    background: linear-gradient(135deg, var(--sl-green) 0%, var(--sl-mid) 52%, var(--sl-light) 100%);
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    color: #fff;
+    box-shadow: 0 14px 40px rgba(0, 107, 49, 0.28);
+    position: relative;
+    overflow: hidden;
+}
+.sl-hero::after {
+    content: '';
+    position: absolute;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(251, 222, 74, 0.12);
+    top: -80px; right: -60px;
+    pointer-events: none;
+}
+.sl-hero h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.02em; margin: 0 0 .35rem; }
+.sl-hero p { margin: 0; opacity: .92; font-size: .9rem; max-width: 42rem; }
+.sl-hero .btn-light {
+    background: rgba(255,255,255,.95);
+    border: none;
+    color: var(--sl-green);
+    font-weight: 600;
+    border-radius: 10px;
+    padding: .5rem 1rem;
+}
+.sl-hero .btn-light:hover { background: #fff; color: var(--sl-mid); }
+.sl-hero .btn-outline-light {
+    border-radius: 10px;
+    font-weight: 600;
+    border-color: rgba(255,255,255,.55);
+    color: #fff;
+}
+.sl-hero .btn-outline-light:hover { background: rgba(255,255,255,.15); color: #fff; }
+.sl-stat {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 4px 22px rgba(0,0,0,.06);
+    transition: transform .2s ease, box-shadow .2s ease;
+    height: 100%;
+}
+.sl-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.08); }
+.sl-stat .card-body { padding: 1rem 1.15rem; }
+.sl-stat-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+}
+.sl-stat-val { font-size: 1.5rem; font-weight: 700; color: #1a1a1a; line-height: 1.1; }
+.sl-stat-lbl { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; font-weight: 600; }
+.sl-card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.055);
+    overflow: hidden;
+}
+.sl-card .card-header {
+    background: linear-gradient(90deg, rgba(0,107,49,.06) 0%, rgba(33,185,49,.04) 100%);
+    border-bottom: 1px solid rgba(0,107,49,.1);
+    padding: 1rem 1.25rem;
+}
+.sl-card .card-header h5 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--sl-green); }
+.sl-filter-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: #6c757d; margin-bottom: .35rem; }
+.sl-table-wrap { border-radius: 12px; border: 1px solid rgba(0,0,0,.06); overflow: hidden; }
+.sl-table thead th {
+    background: linear-gradient(180deg, #f8faf9 0%, #eef5f1 100%);
+    color: var(--sl-green);
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 700;
+    border-bottom: 2px solid rgba(0,158,73,.2);
+    padding: .85rem .75rem;
+    white-space: nowrap;
+}
+.sl-table tbody td { padding: .75rem .75rem; vertical-align: middle; border-color: rgba(0,0,0,.05); }
+.sl-table tbody tr:hover { background: rgba(0,158,73,.04); }
+.sl-code {
+    font-size: .75rem;
+    background: rgba(0,107,49,.08);
+    color: var(--sl-green);
+    padding: .2rem .45rem;
+    border-radius: 6px;
+    font-weight: 600;
+}
+.sl-badge-type {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 600;
+    padding: .28rem .55rem;
+    border-radius: 8px;
+    background: rgba(39,129,213,.1);
+    color: #1a5a8a;
+}
+.sl-parent { font-size: .875rem; color: #495057; }
+.sl-root { font-size: .8rem; color: #6c757d; font-style: italic; }
+.sl-btn-icon {
+    border-radius: 8px !important;
+    padding: .35rem .55rem !important;
+}
+.sl-empty-icon {
+    width: 72px; height: 72px; margin: 0 auto;
+    border-radius: 50%;
+    background: rgba(0,158,73,.1);
+    color: var(--sl-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem;
+}
+.sl-result-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: 999px;
+    background: rgba(0,158,73,.1);
+    color: var(--sl-green);
+    font-size: .8rem;
+    font-weight: 600;
+}
+.sl-modal-header {
+    background: linear-gradient(135deg, var(--sl-green) 0%, var(--sl-mid) 100%);
+    border: none;
+}
+.sl-modal-header .modal-title { font-weight: 700; font-size: 1.05rem; }
+.sl-info-bar {
+    border-radius: 12px;
+    border: 1px solid rgba(0,107,49,.15);
+    background: linear-gradient(90deg, rgba(0,158,73,.06) 0%, rgba(255,255,255,.9) 100%);
+}
+.sl-row-num { width: 3rem; text-align: center; }
+</style>
 @endsection
 @section('corps')
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Gestion des Localités</h4>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocaliteModal">
-                    <i class="fas fa-plus-circle me-2"></i>Ajouter une localité
-                </button>
+@php
+    $localitesCount = $localites ? $localites->count() : 0;
+    $typesCount = $typeLocalites->count();
+@endphp
+<div class="sifec-localite-page container-fluid px-0">
+    <div class="sl-hero mb-4">
+        <div class="row align-items-center g-3 position-relative" style="z-index:1">
+            <div class="col-lg">
+                <h1><i class="fas fa-map-location-dot me-2 opacity-90"></i>Référentiel des localités</h1>
+                <p>Structure hiérarchique du territoire : chaque enregistrement est rattaché à un <strong>type</strong> et éventuellement à une <strong>localité parente</strong>. Utilisez la recherche pour parcourir la base (jusqu’à 500 résultats par requête).</p>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des localités</h5>
-                </div>
-                        <div class="card-body">
-                    <!-- Formulaire de filtre -->
+            <div class="col-lg-auto d-flex flex-wrap gap-2 justify-content-lg-end">
+                <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addLocaliteModal">
+                    <i class="fas fa-plus-circle me-1"></i> Nouvelle localité
+                </button>
+                <a href="{{ route('typelocalite.index') }}" class="btn btn-outline-light">
+                    <i class="fas fa-layer-group me-1"></i> Types de localité
+                </a>
+            </div>
+        </div>
+    </div>
 
-
-
-                    <form id="form-search-localites">
-                                                                            <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Libellé de la localité</label>
-                                <input type="text" class="form-control" name="lib_localite" id="filter-lib-localite" placeholder="Rechercher...">
-                                                                                </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Type de localité</label>
-                                <select name="code_type_localite" id="filter-code-type-localite" class="form-control">
-                                    <option value="">Tous les types</option>
-                                    @foreach ($typeLocalites as $type)
-                                        <option value="{{ $type->code_type_localite }}">{{ $type->lib_type_localite }}</option>
-                                                                                        @endforeach
-                                                                                    </select>
-                                                                                </div>
-                                                                            </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i> Rechercher
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-localites">
-                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                </button>
-                                <span id="count-results" class="ms-3 text-muted"></span>
-                                                                        </div>
-                                                                        </div>
-                                                                    </form>
-
-                    <!-- Tableau des localités -->
-                    <div class="table-responsive">
-                        <table id="table-localites" class="display table table-hover" style="min-width: 845px">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Localité</th>
-                                    <th>Type</th>
-                                    <th>Parent</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-localites">
-                                @php
-                                    $localitesCount = $localites ? $localites->count() : 0;
-                                @endphp
-                                @if($localitesCount > 0)
-                                    @foreach ($localites as $item)
-                                    <tr>
-                                        <td><span class="badge badge-primary">{{ $loop->iteration }}</span></td>
-                                        <td><strong>{{ $item->lib_localite }}</strong></td>
-                                        <td>{{ $item->typelocalite ? $item->typelocalite->lib_type_localite : 'N/A' }}</td>
-                                        <td>
-                                            @if($item->localiteParent)
-                                                <span class="text-muted"><i class="fas fa-level-up-alt me-1"></i>{{ $item->localiteParent->lib_localite }}</span>
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editLocaliteModal{{ $item->code_localite }}" title="Modifier">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </button>
-                                                <form action="{{ route('localite.destroy', $item->code_localite) }}" method="post" class="d-inline" id="deleteForm{{ $item->code_localite }}">
-                                                            @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-danger shadow btn-xs sharp btn-delete" type="button" data-code="{{ $item->code_localite }}" data-libelle="{{ $item->lib_localite }}" title="Supprimer">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                        </form>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                    @endforeach
-                                @else
-                                    <tr>
-                                        <td colspan="5" class="text-center">
-                                            <div class="py-4">
-                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                                <p class="text-muted">Aucune localité trouvée (Total: {{ $localitesCount }})</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            @endif
-                                    </tbody>
-                            <tfoot class="table-light">
-                                        <tr>
-                                    <th>N°</th>
-                                            <th>Localité</th>
-                                    <th>Type</th>
-                                    <th>Parent</th>
-                                    <th class="text-center">Action</th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#006B31,#009E49);">
+                        <i class="fas fa-list-ol"></i>
                     </div>
+                    <div>
+                        <div class="sl-stat-lbl">Affichage initial</div>
+                        <div class="sl-stat-val">{{ $localitesCount }}</div>
+                        <div class="small text-muted">Dernières créations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#2781d5,#5a9fd4);">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <div class="sl-stat-lbl">Types référencés</div>
+                        <div class="sl-stat-val">{{ $typesCount }}</div>
+                        <div class="small text-muted">Niveaux hiérarchiques</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card sl-stat sl-info-bar h-100">
+                <div class="card-body d-flex align-items-start gap-2 py-3">
+                    <i class="fas fa-circle-info text-success mt-1"></i>
+                    <div class="small text-muted mb-0">Les écrans historiques (département, commune/district, etc.) ont été unifiés ici. Les codes <code class="small">LOC_*</code> et <code class="small">TPLOC_*</code> restent les clés métier.</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="card sl-card mb-4">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Recherche</h5>
+        </div>
+        <div class="card-body pt-3 pb-4">
+            <form id="form-search-localites" class="row g-3 align-items-end">
+                <div class="col-md-4 col-lg-4">
+                    <label class="sl-filter-label" for="filter-lib-localite">Libellé</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-magnifying-glass"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" name="lib_localite" id="filter-lib-localite" placeholder="Ex. Brazzaville, Makelekele…" autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <label class="sl-filter-label" for="filter-code-type-localite">Type</label>
+                    <select name="code_type_localite" id="filter-code-type-localite" class="form-select">
+                        <option value="">Tous les types</option>
+                        @foreach ($typeLocalites as $type)
+                            <option value="{{ $type->code_type_localite }}">{{ $type->lib_type_localite }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-5 d-flex flex-wrap gap-2 align-items-center">
+                    <button type="submit" class="btn btn-success px-4" style="border-radius:10px;font-weight:600;">
+                        <i class="fas fa-search me-1"></i> Rechercher
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="btn-reset-filters-localites" style="border-radius:10px;">
+                        <i class="fas fa-rotate-left me-1"></i> Réinitialiser
+                    </button>
+                    <span id="count-results" class="sl-result-pill ms-md-2 d-none d-md-inline-flex"></span>
+                </div>
+            </form>
+            <div class="mt-2 d-md-none">
+                <span id="count-results-mobile" class="sl-result-pill"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card sl-card">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Résultats</h5>
+            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addLocaliteModal" style="border-radius:10px;">
+                <i class="fas fa-plus me-1"></i> Ajouter
+            </button>
+        </div>
+        <div class="card-body p-0 p-md-3">
+            <div class="table-responsive sl-table-wrap">
+                <table id="table-localites" class="table table-hover sl-table mb-0 align-middle" style="min-width:920px">
+                    <thead>
+                        <tr>
+                            <th class="sl-row-num">#</th>
+                            <th>Code</th>
+                            <th>Localité</th>
+                            <th>Type</th>
+                            <th>Parent</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-localites">
+                        @include('referentiel::localite.partials.table-localites', ['localites' => $localites])
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Modal Ajout -->
     <div class="modal fade" id="addLocaliteModal" tabindex="-1" aria-labelledby="addLocaliteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
+                <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
+                    <div class="modal-header sl-modal-header text-white border-0 py-3">
                     <h5 class="modal-title" id="addLocaliteModalLabel">
-                        <i class="fas fa-plus-circle me-2"></i>Ajouter une localité
+                        <i class="fas fa-plus-circle me-2"></i>Nouvelle localité
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
                     </div>
                 <form method="POST" action="{{ route('localite.store') }}" id="addLocaliteForm">
                         @csrf
@@ -199,12 +346,12 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <div class="modal-footer bg-light border-0">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>Annuler
                         </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Enregistrer
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold">
+                            <i class="fas fa-check me-1"></i>Enregistrer
                         </button>
                     </div>
                 </form>
@@ -216,12 +363,12 @@
     @foreach ($localites as $item)
     <div class="modal fade" id="editLocaliteModal{{ $item->code_localite }}" tabindex="-1" aria-labelledby="editLocaliteModalLabel{{ $item->code_localite }}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
+                <div class="modal-header sl-modal-header text-white border-0 py-3">
                     <h5 class="modal-title" id="editLocaliteModalLabel{{ $item->code_localite }}">
-                        <i class="fas fa-edit me-2"></i>Modifier {{ $item->lib_localite }}
+                        <i class="fas fa-pen-to-square me-2"></i>Modifier — {{ $item->lib_localite }}
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <form action="{{ route('localite.update', $item->code_localite) }}" method="POST" id="editLocaliteForm{{ $item->code_localite }}">
                     @csrf
@@ -276,12 +423,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <div class="modal-footer bg-light border-0">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>Annuler
                         </button>
-                        <button type="submit" class="btn btn-warning">
-                            <i class="fas fa-save me-1"></i>Modifier
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold">
+                            <i class="fas fa-check me-1"></i>Mettre à jour
                         </button>
                         </div>
                     </form>
@@ -345,8 +492,9 @@
                   type: 'POST',
                   data: formData,
                   beforeSend: function() {
-                      $('#tbody-localites').html('<tr><td colspan="5" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
-                      $('#count-results').text('');
+                      $('#tbody-localites').html('<tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm text-success me-2" role="status"></span> Chargement…</td></tr>');
+                      $('#count-results').text('').addClass('d-none');
+                      $('#count-results-mobile').text('');
                   },
                   success: function(response) {
                       try {
@@ -364,20 +512,22 @@
                               $('#tbody-localites').empty().html(response.data);
 
                               // Afficher le nombre de résultats
-                              var countText = response.count + ' résultat(s) trouvé(s)';
+                              var countText = response.count + ' résultat(s)';
                               if (response.limite_atteinte) {
-                                  countText += ' (limite de 500 atteinte, affinez vos critères)';
+                                  countText += ' — limite 500 affichés, affinez la recherche';
                               }
-                              $('#count-results').text(countText);
+                              $('#count-results').text(countText).removeClass('d-none');
+                              $('#count-results-mobile').text(countText);
 
                               // Réinitialiser DataTables avec les nouvelles données (même si vide)
                               setTimeout(function() {
                                   try {
                                       // Vérifier si la table a des données (plus d'une ligne ou pas de classe text-center)
                                       var rows = $('#tbody-localites tr');
-                                      var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+                                      var firstTd = rows.first().find('td').first();
+                                      var isEmptyState = rows.length === 0 || firstTd.hasClass('sl-empty') || firstTd.attr('colspan') === '6';
 
-                                      if (hasData && rows.length > 0) {
+                                      if (!isEmptyState && rows.length > 0) {
                                           tableLocalites = $('#table-localites').DataTable({
                                               "language": {
                                                   "search": "Rechercher:",
@@ -402,8 +552,7 @@
                                               "destroy": true
                                           });
                                       } else {
-                                          // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
-                                          console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
+                                          tableLocalites = null;
                                       }
                                   } catch(e) {
                                       console.error('Erreur lors de l\'initialisation de DataTables:', e);
@@ -487,6 +636,32 @@
 
           // Event listener pour les boutons de suppression (délégation d'événements)
           $(document).ready(function() {
+              $('#count-results').text('{{ $localitesCount }} ligne(s) — aperçu').removeClass('d-none');
+              $('#count-results-mobile').text('{{ $localitesCount }} ligne(s)');
+
+              var initRows = $('#tbody-localites tr');
+              if (initRows.length && !initRows.first().find('td.sl-empty').length) {
+                  try {
+                      if (!$.fn.DataTable.isDataTable('#table-localites')) {
+                          tableLocalites = $('#table-localites').DataTable({
+                              language: {
+                                  search: 'Filtrer le tableau :',
+                                  lengthMenu: 'Afficher _MENU_',
+                                  zeroRecords: 'Aucune ligne',
+                                  emptyTable: '—',
+                                  info: '',
+                                  infoEmpty: '',
+                                  infoFiltered: ''
+                              },
+                              paging: false,
+                              searching: true,
+                              info: false,
+                              ordering: true
+                          });
+                      }
+                  } catch (e) { /* ignore */ }
+              }
+
               // Charger les parents disponibles lors du changement de type (modal ajout)
               $('#add_code_type_localite').on('change', function() {
                   var codeTypeLocalite = $(this).val();
@@ -543,63 +718,6 @@
                   $('#add_parent_required').hide();
                   $('#add_parent_help').text('Sélectionnez d\'abord le type de localité pour voir les parents disponibles');
               });
-              // TEMPORAIREMENT : Ne pas initialiser DataTables pour voir si le tableau s'affiche
-              console.log('=== DEBUG TABLEAU ===');
-              console.log('Table trouvée:', $('#table-localites').length > 0);
-              console.log('Nombre de lignes dans le tbody:', $('#tbody-localites tr').length);
-              console.log('Tableau visible:', $('#table-localites').is(':visible'));
-              console.log('Hauteur du tableau:', $('#table-localites').height());
-
-              // Initialisation des DataTables sans pagination (comme dans ActeNaissanceController)
-              // DÉSACTIVÉ TEMPORAIREMENT POUR TEST
-              /*
-              if ($('#table-localites').length) {
-                  var rowCount = $('#tbody-localites tr').length;
-
-                  if (rowCount > 0) {
-                      // Vérifier si ce n'est pas juste le message "Aucune localité trouvée"
-                      var firstRow = $('#tbody-localites tr').first();
-                      var isEmptyMessage = firstRow.find('td.text-center').length > 0 || firstRow.find('i.fa-inbox').length > 0;
-
-                      if (!isEmptyMessage) {
-                          try {
-                              if (!$.fn.DataTable.isDataTable('#table-localites')) {
-                                  tableLocalites = $('#table-localites').DataTable({
-                                      "language": {
-                                          "search": "Rechercher:",
-                                          "lengthMenu": "Afficher _MENU_ éléments",
-                                          "info": "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
-                                          "infoEmpty": "Affichage de 0 à 0 sur 0 éléments",
-                                          "infoFiltered": "(filtré sur _MAX_ éléments au total)",
-                                          "loadingRecords": "Chargement...",
-                                          "zeroRecords": "Aucun élément correspondant trouvé",
-                                          "emptyTable": "Aucune donnée disponible dans le tableau",
-                                          "paginate": {
-                                              "first": "Premier",
-                                              "last": "Dernier",
-                                              "next": "Suivant",
-                                              "previous": "Précédent"
-                                          },
-                                          "aria": {
-                                              "sortAscending": ": activer pour trier la colonne par ordre croissant",
-                                              "sortDescending": ": activer pour trier la colonne par ordre décroissant"
-                                          }
-                                      },
-                                      "paging": false,
-                                      "searching": true,
-                                      "info": false,
-                                      "ordering": true
-                                  });
-                                  console.log('DataTables initialisé avec succès');
-                              }
-                          } catch(e) {
-                              console.error('Erreur lors de l\'initialisation de DataTables:', e);
-                          }
-                      }
-                  }
-              }
-              */
-
               // Soumission du formulaire de recherche
               $('#form-search-localites').on('submit', function(e) {
                   e.preventDefault();

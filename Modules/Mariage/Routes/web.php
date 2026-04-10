@@ -19,7 +19,7 @@ use Modules\Mariage\Http\Controllers\RegistreMariageController;
 |
 */
 
-Route::middleware('auth')->prefix('declarationMariage')->group(function() {
+Route::middleware(['auth', 'mariage.cec'])->prefix('declarationMariage')->group(function() {
     Route::get('/', [MariageController::class,'index'])->name("declarationMariage.index");
     Route::get('create', [MariageController::class,'create'])->name("declarationMariage.create");
     Route::post('store', [MariageController::class,'store'])->name("declarationMariage.store");
@@ -57,7 +57,7 @@ Route::middleware('auth')->prefix('publicationMariage')->group(function() {
     Route::delete('{id}/destroy', [PublicationController::class,'destroy'])->name("publicationMariage.destroy");
 });
 
-Route::middleware('auth')->prefix('acteMariage')->group(function() {
+Route::middleware(['auth', 'mariage.cec'])->prefix('acteMariage')->group(function() {
     Route::get('/', [ActeMariageController::class,'index'])->name("acteMariage.index");
     Route::get("acte/search/{id}", [ActeMariageController::class,'searchActe'])->name('acteMariage.search');
     Route::put('{id}/acte/mariage/approuver', [ActeMariageController::class,'mariageApprouver'])->name('acteMariage.mariage.approuver');
@@ -100,7 +100,7 @@ Route::middleware('auth')->prefix('acteMariage')->group(function() {
     Route::get('{id}/print/acte',[ActeMariageController::class,"printActe"])->name('acteMariage.print.acte');
 });
 
-Route::middleware('auth')->prefix('etatMariage')->group(function() {
+Route::middleware(['auth', 'mariage.cec'])->prefix('etatMariage')->group(function() {
     Route::get('{id}/declaration', [EtatsMariageController ::class,'declaration'])->name("etatMariage.declaration");
     Route::get('{id}/etatMariage', [EtatsMariageController ::class,'ActeMariage'])->name("etatMariage.acte");
     Route::get('{id}/generate', [EtatsMariageController ::class,'displayActe'])->name("acteMariage.display");

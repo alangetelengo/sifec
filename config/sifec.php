@@ -20,8 +20,7 @@ return [
                         "validation_multiples_acte_naissances"=>"M (Mme) :maire, votre code pour valider :nombre actes de naissance  est :code_otp",
                         "validation_multiples_acte_deces"=>"M (Mme) :pompe_funebre, votre code pour valider :nombre actes de deces  est :code_otp",
                         "validation_multiples_acte_mariages"=>"M (Mme) :maire, votre code pour valider :nombre actes de mariage  est :code_otp",
-                        "demande_document"=>"M (Mme) :nom_demandeur, votre demande de :type_document d'acte de :type_acte a ete prise en compte. le code pour valider le telechargement est :code_otp.",
-                        "notification_fiche_maternite"=>"Mme :mere Veuillez vous rendre a :formation_sanitaire pour declarer la naissance de votre enfant ne(e) le :date_naissance."
+                        "demande_document"=>"M (Mme) :nom_demandeur, votre demande de :type_document d'acte de :type_acte a ete prise en compte. le code pour valider le telechargement est :code_otp."
                     ]
                 ]
             ],

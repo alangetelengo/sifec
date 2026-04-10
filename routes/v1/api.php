@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PayementController;
 use App\Http\Controllers\Api\SignatureController;
 use App\Http\Controllers\Api\DocumentEtatCivilController;
 use App\Http\Controllers\Api\AuthentificationActeController;
+use App\Http\Controllers\Api\BanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,10 @@ Route::get('etatactemariage/{id}',[AuthentificationActeController::class,"displa
 
 //route d'accès à la liste des centre d'état civil depuis le portail
 Route::get('listeCec',[AuthentificationActeController::class,"listeCec"])->name('listeCec');
+
+//route affichage bon de mariage
+Route::get('banMariage', [BanController::class, 'journalMariagesSansActe'])
+        ->name('banMariage');
 
 //statut paiement MOMO
 Route::post('statutPaiementMomo',[PayementController::class,"statutPaiementMomo"])->name('statutPaiementMomo');

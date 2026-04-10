@@ -16,12 +16,15 @@ Déclaration
     Liste des déclarations de naissance
 @endsection
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
                 <h4>Liste des déclarations de naissance</h4>
-                <a href="{{ route("declarationNaissance.create") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >Créer déclaration  <i class="fa fa-plus-circle"></i></button></a>
+                <a href="{{ route("declarationNaissance.create") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >Enregistrer un certificat  <i class="fa fa-plus-circle"></i></button></a>
             </div>
             <div class="col-12">
                 <div class="card">
@@ -127,6 +130,9 @@ Déclaration
             </div>
         </div>
     </div>
+</div>
+</div>
+</div>
 </div>
 @endsection
 @section("scripts")

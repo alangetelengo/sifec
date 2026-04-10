@@ -10,7 +10,7 @@
             $acteValide = $dd->acte && $dd->acte->statut == 1 && $dd->acte->approbation_pompe_funebre;
             $dejaConfirme = in_array('MOUV_0019', $codesMouvements);
         @endphp
-        <tr width="100%" @if($dejaConfirme) style="background: #f5f5f5; color: #aaa;" @endif>
+        <tr width="100%" @if($dejaConfirme) class="table-light" @endif>
             <td>
                 @if(!$dejaConfirme)
                     <input type="checkbox" class="checkbox-document" value="{{ $dd->code_declaration_deces }}">

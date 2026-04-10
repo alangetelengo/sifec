@@ -3,6 +3,7 @@
    Modifier l'institution
 @endsection
 @section('corps')
+<div class="page-sifec-form">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -127,6 +128,12 @@
                                     </div>
                                 @enderror
                             </div>
+
+                            @include('referentiel::institution.partials.form-liens-metier', [
+                                'institution' => $institution,
+                                'cecPourLiens' => $cecPourLiens,
+                                'tribunauxPourLiens' => $tribunauxPourLiens,
+                            ])
                         </div>
                         <div class="d-flex gap-2 mt-3 flex-wrap">
                             <button type="submit" class="btn btn-primary btn-lg">
@@ -141,6 +148,7 @@
             </div>
         </div>
     </div>
+</div>
 @endsection
 @section('scripts')
 <script>

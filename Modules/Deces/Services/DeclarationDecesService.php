@@ -256,9 +256,8 @@ class DeclarationDecesService
             // Elles sont déjà gérées dans creerDeclaration() et seront toujours mises à jour avec les nouvelles valeurs du formulaire.
         }
 
-        // Pour le père et la mère : mettre à jour uniquement le téléphone (modifiable à tout moment)
-        if ($suffixe === "_pere" || $suffixe === "_mere") {
-            // Mettre à jour le téléphone dans la table Personne
+        // Pour le père, la mère, le déclarant et le conjoint : téléphone sur Personne (modifiable à tout moment)
+        if (in_array($suffixe, ['_pere', '_mere', '_declarant', '_conjoint'], true)) {
             if ($request->has("telephone" . $suffixe)) {
                 $personne->telephone = $request->input("telephone" . $suffixe);
             }
@@ -269,21 +268,21 @@ class DeclarationDecesService
         // Mettre à jour le contact (téléphone, email) - principalement pour père/mère
         $contact = \Modules\Referentiel\Entities\ContactPersonne::where('code_personne', $personne->code_personne)->first();
         if ($contact) {
-            // Mettre à jour le téléphone si fourni (toujours modifiable pour père/mère)
-            if (($suffixe === "_pere" || $suffixe === "_mere") && $request->has("telephone" . $suffixe)) {
+            if (in_array($suffixe, ['_pere', '_mere', '_declarant', '_conjoint'], true) && $request->has("telephone" . $suffixe)) {
                 $contact->telephone = $request->input("telephone" . $suffixe);
             }
-            // Mettre à jour l'email si fourni
             if ($request->has("email" . $suffixe)) {
                 $contact->email_personnelle = $request->input("email" . $suffixe);
             }
-            // Mettre à jour l'indicatif si fourni
+            if ($request->has("email_professionnel" . $suffixe)) {
+                $contact->email_professionnelle = $request->input("email_professionnel" . $suffixe) ?: null;
+            }
             if ($request->has("code_pays" . $suffixe)) {
                 $contact->indicatif = $request->input("code_pays" . $suffixe);
             }
             $contact->save();
-        } else if (($suffixe === "_pere" || $suffixe === "_mere") && ($request->has("telephone" . $suffixe) || $request->has("email" . $suffixe))) {
-            // Créer le contact s'il n'existe pas mais qu'on a des données pour père/mère
+        } elseif (in_array($suffixe, ['_pere', '_mere', '_declarant', '_conjoint'], true)
+            && ($request->has("telephone" . $suffixe) || $request->has("email" . $suffixe) || $request->has("email_professionnel" . $suffixe))) {
             $contact = new \Modules\Referentiel\Entities\ContactPersonne();
             $contact->code_personne = $personne->code_personne;
             if ($request->has("telephone" . $suffixe)) {
@@ -291,6 +290,9 @@ class DeclarationDecesService
             }
             if ($request->has("email" . $suffixe)) {
                 $contact->email_personnelle = $request->input("email" . $suffixe);
+            }
+            if ($request->has("email_professionnel" . $suffixe)) {
+                $contact->email_professionnelle = $request->input("email_professionnel" . $suffixe) ?: null;
             }
             if ($request->has("code_pays" . $suffixe)) {
                 $contact->indicatif = $request->input("code_pays" . $suffixe);

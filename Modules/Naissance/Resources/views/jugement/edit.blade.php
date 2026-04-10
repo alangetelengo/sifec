@@ -5,12 +5,14 @@
 @endsection
 
 @section("corps")
+<div class="page-sifec-form">
     <!-- row -->
     <div class="row" id="validation">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h4> {{ $jugmt->type_jugement }} POUR LE {{ $jugmt->declarationNaissance->type_declaration }}  N° <strong style="color: red">{{ $jugmt->declarationNaissance->numero_certificat}}</strong></h4>
+                    @php($decJug = $jugmt->declarationNaissance ?? $jugmt->declarationParCodeJugement)
+                    <h4> {{ $jugmt->type_jugement }} POUR LE {{ $decJug ? $decJug->libelleAffichageType() : '—' }}  N° <strong style="color: red">{{ optional($decJug)->numero_certificat ?? '—' }}</strong></h4>
                 </div>
                 <div class="card wizard-content">
                     <div class="card-body">
@@ -56,5 +58,6 @@
             </div>
         </div>
     </div>
+</div>
 @endsection
 

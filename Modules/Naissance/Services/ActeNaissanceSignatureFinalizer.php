@@ -12,13 +12,6 @@ use RuntimeException;
 
 class ActeNaissanceSignatureFinalizer
 {
-    private NiuppNaissanceCounter $counter;
-
-    public function __construct(NiuppNaissanceCounter $counter)
-    {
-        $this->counter = $counter;
-    }
-
     /**
      * Attribue le NIUPP, met à jour le registre et crée le feuillet (après signature / validation OTP).
      */
@@ -38,11 +31,6 @@ class ActeNaissanceSignatureFinalizer
             throw new RuntimeException('Déclaration ou enfant manquant pour finaliser l’acte.');
         }
 
-        $codeInstitution = $acte->code_institution ?? $user->affectationActive()->code_institution;
-        if (!$codeInstitution) {
-            throw new RuntimeException('Institution introuvable pour le compteur NIUPP.');
-        }
-
         $registre = Registre::query()->whereKey($acte->code_registre)->lockForUpdate()->first();
         if (!$registre) {
             throw new RuntimeException('Registre introuvable pour finaliser l’acte.');
@@ -53,7 +41,8 @@ class ActeNaissanceSignatureFinalizer
             throw new RuntimeException('Registre plein : impossible d’inscrire l’acte signé.');
         }
 
-        $ordre = $this->counter->allocateNextOrdre($codeInstitution, $declaration);
+        // Ordre NIUPP = rang dans ce volume (référentiel : un registre annuel par type d’acte et par CEC ; même suite que le feuillet).
+        $ordre = $position;
         $niupp = Sifec::genererNiupp($declaration->code_declaration_naissance, $ordre);
 
         if (ActeNaissance::query()->where('niupp', $niupp)->exists()) {

@@ -5,8 +5,6 @@ Actes de naissance
 @section("styles")
 <!-- Datatable -->
     <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
 
     <style>
         .modal-content {
@@ -24,236 +22,241 @@ Actes de naissance
             border-top: 1px solid #dee2e6;
             border-radius: 0 0 0.75rem 0.75rem;
         }
-
-        .card.border-light {
-            border: 1px solid #e9ecef !important;
-            border-radius: 0.5rem;
-        }
     </style>
 @endsection
 
 @section('corps')
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-header">
-                <h4>Liste des actes de naissance</h4>
-                <div class="row">
-                    <div id="dupcreer">
-                        @can('module.acteNaissance.generate')
-                        <button class="btn btn-sm btn-success mb-2 generate-actes d-none">Générer les actes</button>
-                        @endcan
-                        @can('module.acteNaissance.signature')
-                        <button class="btn btn-sm btn-primary mb-2 validate-actes d-none">Valider les actes</button>
-                        <button class="btn btn-sm btn-primary mb-2 validate-on-acte d-none">Valider un acte</button>
-                        @endcan
-                        <button class="btn btn-sm btn-info mb-2 confirmer-documents d-none">Confirmer les dossiers</button>
-                        <button class="btn btn-sm btn-warning mb-2 renvoyer-documents d-none">Renvoyer les dossiers</button>
+<div class="page-sifec-index">
+    <div class="an-shell">
+        <header class="an-hero">
+            <div class="an-hero-text">
+                <h1>Liste des actes de naissance</h1>
+                <p>Workflow CEC : contrôle des pièces, confirmation des dossiers, puis génération et validation des actes (signature par OTP).</p>
+            </div>
+            <div id="dupcreer" class="an-toolbar">
+                @can('module.acteNaissance.generate')
+                <button type="button" class="btn btn-sm btn-success generate-actes d-none">Générer les actes</button>
+                @endcan
+                @can('module.acteNaissance.signature')
+                <button type="button" class="btn btn-sm btn-primary validate-actes d-none">Valider les actes</button>
+                <button type="button" class="btn btn-sm btn-primary validate-on-acte d-none">Valider un acte</button>
+                @endcan
+                <button type="button" class="btn btn-sm btn-info text-white confirmer-documents d-none">Confirmer les dossiers</button>
+                <button type="button" class="btn btn-sm btn-warning text-dark renvoyer-documents d-none">Renvoyer les dossiers</button>
+            </div>
+        </header>
+
+        <div class="an-body">
+            <div class="an-tabs mb-3">
+                <ul class="nav nav-pills" id="naissanceTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a href="#liste-documents"
+                           class="nav-link active"
+                           id="tab-documents"
+                           data-bs-toggle="tab"
+                           role="tab"
+                           aria-controls="liste-documents"
+                           aria-selected="true">
+                            <i class="fas fa-clipboard-check me-1"></i>
+                            Documents à contrôler
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a href="#gestion-actes"
+                           class="nav-link"
+                           id="tab-actes"
+                           data-bs-toggle="tab"
+                           role="tab"
+                           aria-controls="gestion-actes"
+                           aria-selected="false">
+                            <i class="fas fa-tasks me-1"></i>
+                            Gestion des actes
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tab-content">
+                <div id="liste-documents" class="tab-pane fade show active">
+                    <div class="an-hint an-hint--step1" role="note">
+                        <span class="an-hint__icon" aria-hidden="true"><span class="fw-bold small">1</span></span>
+                        <div>
+                            <strong>Étape 1 — Validation au CEC.</strong>
+                            Confirmez le dossier (certificat → déclaration de naissance), puis passez à l’onglet
+                            <em>Gestion des actes</em> pour générer l’acte et la signature (OTP).
+                            Les dossiers déjà validés restent listés ici : utilisez les actions pour ouvrir les PDF (certificat, déclaration générée).
+                        </div>
+                    </div>
+
+                    <div class="card an-filter-card shadow-none">
+                        <div class="card-header">
+                            <h2 class="card-title mb-0">
+                                <i class="fas fa-search me-2 text-secondary"></i>Filtrer les documents
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="form-search-documents">
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-numero-declaration-documents">N° déclaration</label>
+                                        <input type="text" class="form-control" name="numero_declaration" id="filter-numero-declaration-documents" placeholder="Rechercher…">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-debut-documents">Date début</label>
+                                        <input type="date" class="form-control" name="date_debut" id="filter-date-debut-documents">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-fin-documents">Date fin</label>
+                                        <input type="date" class="form-control" name="date_fin" id="filter-date-fin-documents">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-sexe-documents">Sexe</label>
+                                        <select class="form-control" name="sexe" id="filter-sexe-documents">
+                                            <option value="">Tous</option>
+                                            <option value="M">Masculin</option>
+                                            <option value="F">Féminin</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-type-documents">Type de déclaration</label>
+                                        <select class="form-control" name="type_declaration" id="filter-type-documents">
+                                            <option value="">Tous</option>
+                                            @foreach($typesDeclaration ?? [] as $type)
+                                                <option value="{{ $type }}">{{ $type }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-statut-documents">Statut</label>
+                                        <select class="form-control" name="statut" id="filter-statut-documents">
+                                            <option value="">Tous</option>
+                                            <option value="dossier_recu">Dossier reçu</option>
+                                            <option value="confirme">Confirmé</option>
+                                            <option value="en_attente">En attente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12 d-flex flex-wrap gap-2">
+                                        <button type="submit" class="btn btn-primary an-btn-search text-white">
+                                            <i class="fas fa-search me-1"></i>Rechercher
+                                        </button>
+                                        <button type="button" class="btn btn-secondary an-btn-reset" id="btn-reset-filters-documents">
+                                            <i class="fas fa-redo me-1"></i>Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="an-table-wrap">
+                        <div class="table-responsive">
+                            <table id="table-documents-controle" class="table table-hover an-data-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="check-all-documents" aria-label="Tout sélectionner"></th>
+                                        <th>N° déclaration</th>
+                                        <th>Enfant</th>
+                                        <th>Date naissance</th>
+                                        <th>Sexe</th>
+                                        <th>Type document</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-documents-controle">
+                                    @include('naissance::acte.partials.table-documents', ['documents' => $documentsAControler])
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-12">
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="profile-tab">
-                            <div class="custom-tab-1">
-                                <ul class="nav nav-tabs nav-pills mb-3" id="naissanceTabs" role="tablist">
-                                    <li class="nav-item" role="presentation">
-                                        <a href="#liste-documents"
-                                           class="nav-link active"
-                                           id="tab-documents"
-                                           data-bs-toggle="tab"
-                                           role="tab"
-                                           aria-controls="liste-documents"
-                                           aria-selected="true">
-                                            <i class="fas fa-clipboard-check me-1"></i>
-                                            Documents à contrôler
-                                        </a>
-                                    </li>
-                                    <li class="nav-item" role="presentation">
-                                        <a href="#gestion-actes"
-                                           class="nav-link"
-                                           id="tab-actes"
-                                           data-bs-toggle="tab"
-                                           role="tab"
-                                           aria-controls="gestion-actes"
-                                           aria-selected="false">
-                                            <i class="fas fa-tasks me-1"></i>
-                                            Gestion des actes
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content">
-                                    <div id="liste-documents" class="tab-pane fade active show">
-                                        <div class="pt-3">
-                                            <!-- Formulaire de recherche pour Documents à contrôler -->
-                                            <div class="card mb-3">
-                                                <div class="card-header">
-                                                    <h5 class="card-title mb-0">
-                                                        <i class="fas fa-search me-2"></i>Recherche
-                                                    </h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <form id="form-search-documents">
-                                                        <div class="row">
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">N° Déclaration</label>
-                                                                <input type="text" class="form-control" name="numero_declaration" id="filter-numero-declaration-documents" placeholder="Rechercher...">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date début</label>
-                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-documents">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date fin</label>
-                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-documents">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Sexe</label>
-                                                                <select class="form-control" name="sexe" id="filter-sexe-documents">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="M">Masculin</option>
-                                                                    <option value="F">Féminin</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Type de déclaration</label>
-                                                                <select class="form-control" name="type_declaration" id="filter-type-documents">
-                                                                    <option value="">Tous</option>
-                                                                    @foreach($typesDeclaration ?? [] as $type)
-                                                                        <option value="{{ $type }}">{{ $type }}</option>
-                                                                    @endforeach
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Statut</label>
-                                                                <select class="form-control" name="statut" id="filter-statut-documents">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="dossier_recu">Dossier reçu</option>
-                                                                    <option value="confirme">Confirmé</option>
-                                                                    <option value="en_attente">En attente</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div class="row mt-3">
-                                                            <div class="col-md-12">
-                                                                <button type="submit" class="btn btn-primary">
-                                                                    <i class="fas fa-search me-1"></i> Rechercher
-                                                                </button>
-                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-documents">
-                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            <div class="table-responsive">
-                                                <table id="table-documents-controle" class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr>
-                                                            <th><input type="checkbox" id="check-all-documents"></th>
-                                                            <th>N° Déclaration</th>
-                                                            <th>Enfant</th>
-                                                            <th>Date naissance</th>
-                                                            <th>Sexe</th>
-                                                            <th>Type Document</th>
-                                                            <th>Statut</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="tbody-documents-controle">
-                                                        @include('naissance::acte.partials.table-documents', ['documents' => $documentsAControler])
-                                                    </tbody>
-                                                    {{-- tfoot retiré pour éviter les conflits avec DataTables --}}
-                                                </table>
-                                            </div>
-                                        </div>
+                <div id="gestion-actes" class="tab-pane fade">
+                    <div class="an-hint an-hint--step2" role="note">
+                        <span class="an-hint__icon" aria-hidden="true"><span class="fw-bold small">2–3</span></span>
+                        <div>
+                            <strong>Étapes 2 et 3 — Acte et signature.</strong>
+                            Colonne <em>Étape</em> : génération de l’acte, puis validation par l’officier (OTP).
+                            Les dossiers les plus urgents (sans acte, puis acte non validé) apparaissent en tête sur l’accueil (20 derniers).
+                        </div>
+                    </div>
+
+                    <div class="card an-filter-card shadow-none">
+                        <div class="card-header">
+                            <h2 class="card-title mb-0">
+                                <i class="fas fa-search me-2 text-secondary"></i>Filtrer les actes
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="form-search-actes">
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-niupp-actes">NIUPP</label>
+                                        <input type="text" class="form-control" name="niupp" id="filter-niupp-actes" placeholder="Rechercher…">
                                     </div>
-
-                                    <div id="gestion-actes" class="tab-pane fade">
-                                        <div class="pt-3">
-                                            <!-- Formulaire de recherche pour Gestion des actes -->
-                                            <div class="card mb-3">
-                                                <div class="card-header">
-                                                    <h5 class="card-title mb-0">
-                                                        <i class="fas fa-search me-2"></i>Recherche
-                                                    </h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <form id="form-search-actes">
-                                                        <div class="row">
-
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">NIUPP</label>
-                                                                <input type="text" class="form-control" name="niupp" id="filter-niupp-actes" placeholder="Rechercher...">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date début</label>
-                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-actes">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date fin</label>
-                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-actes">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Sexe</label>
-                                                                <select class="form-control" name="sexe" id="filter-sexe-actes">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="M">Masculin</option>
-                                                                    <option value="F">Féminin</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Statut</label>
-                                                                <select class="form-control" name="statut" id="filter-statut-actes">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="en_attente_generation">En attente de génération</option>
-                                                                    <option value="en_attente_validation">En attente de validation</option>
-                                                                    <option value="valide_non_retire">Validé, non rétiré</option>
-                                                                    <option value="retire">Rétiré</option>
-                                                                    <option value="annule">Annulé</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div class="row mt-3">
-                                                            <div class="col-md-12">
-                                                                <button type="submit" class="btn btn-primary">
-                                                                    <i class="fas fa-search me-1"></i> Rechercher
-                                                                </button>
-                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-actes">
-                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            <div class="table-responsive">
-                                                <table id="table-actes-gestion" class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr>
-                                                            <th><input type="checkbox" id="check-all-actes"></th>
-                                                            <th>N° Acte</th>
-                                                            <th>Enfant</th>
-                                                            <th>Date naissance</th>
-                                                            <th>Sexe</th>
-                                                            <th>Statut</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="tbody-actes-gestion">
-                                                        @include('naissance::acte.partials.table-actes', ['actes' => $actesGestion])
-                                                    </tbody>
-                                                    {{-- tfoot retiré pour éviter les conflits avec DataTables --}}
-                                                </table>
-                                            </div>
-                                        </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-debut-actes">Date début</label>
+                                        <input type="date" class="form-control" name="date_debut" id="filter-date-debut-actes">
                                     </div>
-
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-fin-actes">Date fin</label>
+                                        <input type="date" class="form-control" name="date_fin" id="filter-date-fin-actes">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-sexe-actes">Sexe</label>
+                                        <select class="form-control" name="sexe" id="filter-sexe-actes">
+                                            <option value="">Tous</option>
+                                            <option value="M">Masculin</option>
+                                            <option value="F">Féminin</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-statut-actes">Statut</label>
+                                        <select class="form-control" name="statut" id="filter-statut-actes">
+                                            <option value="">Tous</option>
+                                            <option value="en_attente_generation">En attente de génération</option>
+                                            <option value="en_attente_validation">En attente de validation</option>
+                                            <option value="valide_non_retire">Validé, non rétiré</option>
+                                            <option value="retire">Rétiré</option>
+                                            <option value="annule">Annulé</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
+                                <div class="row mt-3">
+                                    <div class="col-12 d-flex flex-wrap gap-2">
+                                        <button type="submit" class="btn btn-primary an-btn-search text-white">
+                                            <i class="fas fa-search me-1"></i>Rechercher
+                                        </button>
+                                        <button type="button" class="btn btn-secondary an-btn-reset" id="btn-reset-filters-actes">
+                                            <i class="fas fa-redo me-1"></i>Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="an-table-wrap">
+                        <div class="table-responsive">
+                            <table id="table-actes-gestion" class="table table-hover an-data-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="check-all-actes" aria-label="Tout sélectionner"></th>
+                                        <th>N° acte</th>
+                                        <th>Enfant</th>
+                                        <th>Date naissance</th>
+                                        <th>Sexe</th>
+                                        <th>Étape</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-actes-gestion">
+                                    @include('naissance::acte.partials.table-actes', ['actes' => $actesGestion])
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -291,8 +294,8 @@ Actes de naissance
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-primary light generate cacher">Valider</button>
-                <button type="button" class="btn btn-sm btn-danger light" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-sm btn-primary generate cacher">Valider</button>
+                <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">Fermer</button>
             </div>
         </div>
     </div>
@@ -357,22 +360,31 @@ Actes de naissance
 <div class="modal fade" id="modal-validate-acte" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fas fa-shield-alt me-2"></i>Validation de l'acte de naissance
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="code_declaration_naissance_validate">
                 <input type="hidden" id="validation_type">
 
-                {{-- Alerte info --}}
+                {{-- Rappel métier : officier unique du CEC, connecté ; acte définitif après OTP --}}
                 <div class="alert alert-info py-2 mb-3">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <small>Un code à usage unique a été envoyé par SMS à l'officier d'état civil.
-                        Ce code est valide pendant <strong>1 minute</strong>.</small>
+
+                    <p class="mb-2 small">
+                        Après validation, l’acte est <strong>signé</strong> : le <strong>NIUPP</strong> et l’acte PDF officiel (QR de vérification) deviennent disponibles.
+                    </p>
+                    <p class="mb-0 small text-muted">
+                        <i class="fas fa-lock me-1"></i>
+                        <strong>Sécurité :</strong> au plus <strong>3 renvois</strong> du code tant qu’un code est encore valide,
+                        au plus <strong>3 saisies incorrectes</strong> ; en cas de dépassement, attente <strong>3 minutes</strong> avant de recommencer.
+                        Chaque code reste valide <strong>1 minute</strong>.
+                    </p>
                 </div>
+
+                <div id="otp-feedback" class="alert alert-warning py-2 small d-none mb-3" role="status"></div>
 
                 <div class="row g-3">
                     {{-- Champ OTP --}}
@@ -387,10 +399,10 @@ Actes de naissance
                                placeholder="_ _ _ _ _ _ _ _"
                                maxlength="8"
                                inputmode="numeric"
-                               pattern="[0-9]{4,8}"
+                               pattern="[0-9]{8}"
                                autocomplete="one-time-code"
                                required>
-                        <small class="text-muted">Saisissez les chiffres reçus par SMS.</small>
+                        <small class="text-muted">Saisissez les <strong>8 chiffres</strong> reçus par SMS (et par mail le cas échéant).</small>
                     </div>
 
                     {{-- Countdown --}}
@@ -415,7 +427,7 @@ Actes de naissance
                         <div id="otp-expired-block" class="d-none mb-2">
                             <div class="alert alert-danger py-2 mb-1">
                                 <i class="fas fa-exclamation-triangle me-1"></i>
-                                <strong>Code expiré.</strong> Veuillez demander un nouveau code.
+                                <strong>Code expiré.</strong> Utilisez « Renvoyer le code » (dans la limite des renvois autorisés).
                             </div>
                         </div>
                         {{-- Bouton renvoyer --}}
@@ -426,7 +438,7 @@ Actes de naissance
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary btn-sm" id="btn-validate">
+                <button type="button" class="btn btn-success btn-sm" id="btn-validate">
                     <i class="fas fa-check me-1"></i> Valider
                 </button>
                 <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">
@@ -756,30 +768,6 @@ Actes de naissance
     </div>
 </div>
 
-<!-- Modal de validation OTP -->
-<div class="modal fade" id="modal-validate-otp" tabindex="-1">
-    <div class="modal-dialog">
-        <form id="form-validate-otp">
-            @csrf
-            <input type="hidden" id="otp_code_declaration_naissance" name="code_declaration_naissance">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Validation de l'acte</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <label for="otp_approbation_mairie" class="form-label">Code OTP reçu</label>
-                    <input type="text" class="form-control" id="otp_approbation_mairie" name="otp_approbation_mairie" required>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Valider</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -796,16 +784,24 @@ Actes de naissance
 
     // ── Gestion du timer OTP ─────────────────────────────────────────────
     var otpTimerInterval = null;
-    var otpTimerSeconds  = 30;
+    var otpTimerSeconds  = 60;
+    var otpTimerInitialTotal = 60;
     var otpExpired       = false;
 
-    function startOtpTimer() {
+    /** @param {number} [totalSeconds] durée initiale affichée (serveur : valid_for_seconds) */
+    function startOtpTimer(totalSeconds) {
+        var t = parseInt(totalSeconds, 10);
+        if (!t || t < 1) {
+            t = 60;
+        }
+        otpTimerInitialTotal = t;
         clearInterval(otpTimerInterval);
         otpExpired       = false;
-        otpTimerSeconds  = 60;
+        otpTimerSeconds  = t;
 
         // Réinitialiser l'UI
-        $('#otp-countdown').text('60s').css('color', '');
+        $('#otp-feedback').addClass('d-none').empty();
+        $('#otp-countdown').text(t + 's').css('color', '');
         $('#otp-progress').css('width', '100%')
                           .removeClass('bg-danger').addClass('bg-warning');
         $('#otp-timer-block').removeClass('d-none');
@@ -816,7 +812,8 @@ Actes de naissance
 
         otpTimerInterval = setInterval(function () {
             otpTimerSeconds--;
-            var pct = Math.round((otpTimerSeconds / 60) * 100);
+            var denom = otpTimerInitialTotal > 0 ? otpTimerInitialTotal : 1;
+            var pct = Math.round((otpTimerSeconds / denom) * 100);
 
             $('#otp-countdown').text(otpTimerSeconds + 's');
             $('#otp-progress').css('width', pct + '%');
@@ -877,7 +874,10 @@ Actes de naissance
                 "searching": true,
                 "info": false,
                 "ordering": true,
-                "autoWidth": false
+                "autoWidth": false,
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 7] }
+                ]
             });
         }
 
@@ -888,13 +888,16 @@ Actes de naissance
                 "searching": true,
                 "info": false,
                 "ordering": true,
-                "autoWidth": false
+                "autoWidth": false,
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 7] }
+                ]
             });
         }
     });
 
     // Fonction pour rechercher les documents côté serveur
-    function searchDocumentsServer() {
+    function searchDocumentsServer(submitBtn) {
         var formData = $('#form-search-documents').serialize();
         formData += '&_token={{ csrf_token() }}';
 
@@ -995,7 +998,10 @@ Actes de naissance
                                 "info": false,
                                 "ordering": true,
                                 "destroy": true,
-                                "autoWidth": false
+                                "autoWidth": false,
+                                "columnDefs": [
+                                    { "orderable": false, "targets": [0, 7] }
+                                ]
                             });
                         }
                     } catch(e) {
@@ -1015,12 +1021,17 @@ Actes de naissance
                     } catch(e) {}
                 }
                 flashAlert("Erreur", "error", errorMessage);
+            },
+            complete: function() {
+                if (submitBtn) {
+                    sifecBtnReset(submitBtn);
+                }
             }
         });
     }
 
     // Fonction pour rechercher les actes côté serveur
-    function searchActesServer() {
+    function searchActesServer(submitBtn) {
         var formData = $('#form-search-actes').serialize();
         formData += '&_token={{ csrf_token() }}';
 
@@ -1029,7 +1040,7 @@ Actes de naissance
             type: 'POST',
             data: formData,
             beforeSend: function() {
-                $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
+                $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
             },
             success: function(response) {
                 try {
@@ -1069,7 +1080,10 @@ Actes de naissance
                                         "info": false,
                                         "ordering": true,
                                         "destroy": true,
-                                        "autoWidth": false
+                                        "autoWidth": false,
+                                        "columnDefs": [
+                                            { "orderable": false, "targets": [0, 7] }
+                                        ]
                                     });
                                 } else {
                                     // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
@@ -1088,11 +1102,11 @@ Actes de naissance
                         }
                     } else {
                         flashAlert("Erreur", "error", response.message || "Erreur lors de la recherche");
-                        $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
+                        $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
                     }
                 } catch(e) {
                     flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
-                    $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors du traitement</td></tr>');
+                    $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du traitement</td></tr>');
                 }
             },
             error: function(xhr) {
@@ -1104,7 +1118,7 @@ Actes de naissance
                 } catch(e) {
                     // Erreur silencieuse lors de la destruction de DataTables
                 }
-                $('#tbody-actes-gestion').html('<tr><td colspan="7" class="text-center text-danger">Erreur lors du chargement</td></tr>');
+                $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du chargement</td></tr>');
 
                 // Réinitialiser DataTables même en cas d'erreur
                 setTimeout(function() {
@@ -1119,7 +1133,10 @@ Actes de naissance
                                 "info": false,
                                 "ordering": true,
                                 "destroy": true,
-                                "autoWidth": false
+                                "autoWidth": false,
+                                "columnDefs": [
+                                    { "orderable": false, "targets": [0, 7] }
+                                ]
                             });
                         }
                     } catch(e) {
@@ -1139,6 +1156,11 @@ Actes de naissance
                     } catch(e) {}
                 }
                 flashAlert("Erreur", "error", errorMessage);
+            },
+            complete: function() {
+                if (submitBtn) {
+                    sifecBtnReset(submitBtn);
+                }
             }
         });
     }
@@ -1146,13 +1168,21 @@ Actes de naissance
     // Soumission du formulaire de recherche Documents
     $('#form-search-documents').on('submit', function(e) {
         e.preventDefault();
-        searchDocumentsServer();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            sifecBtnLoading(submitBtn, 'Recherche...');
+        }
+        searchDocumentsServer(submitBtn);
     });
 
     // Soumission du formulaire de recherche Actes
     $('#form-search-actes').on('submit', function(e) {
         e.preventDefault();
-        searchActesServer();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            sifecBtnLoading(submitBtn, 'Recherche...');
+        }
+        searchActesServer(submitBtn);
     });
 
     // Réinitialiser les filtres Documents
@@ -1370,15 +1400,25 @@ Actes de naissance
     $("button.validate-actes").on("click", function(){
         if(actesGeneres.length > 0){
             var url = "{{ route('acteNaissance.send.otp.bulk') }}";
-            var data = {codes:actesGeneres};
+            var data = { codes: actesGeneres, resend: 0, _token: '{{ csrf_token() }}' };
+            var btnBulkOtp = this;
+            sifecBtnLoading(btnBulkOtp, 'Envoi OTP...');
             $.post(url,data,function(response){
             if(response.code == "200"){
 
                 $(".over-loader-page").fadeOut(600);
                 $("#validation_type").val("bulk");
                 $("#modal-validate-acte").modal('show');
-                startOtpTimer();
+                var sec = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                startOtpTimer(sec);
+                if (response.otp_session === 'reused') {
+                    flashAlert("Info", "info", typeof response.message === "string" ? response.message : "Code toujours valide — utilisez le même SMS ou e-mail.");
+                }
 
+            }else if (response.code == "184") {
+                $(".over-loader-page").fadeOut(600);
+                var m184 = typeof response.message === "string" ? response.message : traiterMessageErreur(response);
+                flashAlert("Sécurité OTP", "error", m184);
             }else{
                 $(".over-loader-page").fadeOut(600);
                 //notification("error",response.message);
@@ -1387,7 +1427,9 @@ Actes de naissance
                 flashAlert("Opération échouée","error",messageErreur);
 
             }
-        });
+        }).always(function() {
+                sifecBtnReset(btnBulkOtp);
+            });
         }
         return false;
     });
@@ -1397,11 +1439,11 @@ Actes de naissance
         // ── Gardes côté client (UX) — la vraie sécurité est dans OtpService côté serveur ──
         var otp = $("#otp_approbation_mairie").val().trim();
         if (!otp) {
-            flashAlert("Attention", "warning", "Veuillez saisir le code reçu par SMS.");
+            flashAlert("Attention", "warning", "Veuillez saisir le code à 8 chiffres reçu par SMS (ou par mail).");
             return false;
         }
-        if (!/^\d{4,8}$/.test(otp)) {
-            flashAlert("Attention", "warning", "Le code doit être composé de chiffres uniquement (4 à 8 chiffres).");
+        if (!/^\d{8}$/.test(otp)) {
+            flashAlert("Attention", "warning", "Le code doit comporter exactement 8 chiffres (0 à 9).");
             return false;
         }
 
@@ -1442,11 +1484,28 @@ Actes de naissance
                 success: function(response){
                     var msg = extraireMsg(response.message);
                     if (response.code === '200') {
+                        $('#otp-feedback').addClass('d-none').empty();
                         flashAlert("Succès", "success", msg);
                         clearInterval(otpTimerInterval);
                         $('#modal-validate-acte').modal('hide');
                         setTimeout(function(){ location.reload(); }, 1500);
+                    } else if (response.code === '184') {
+                        $('#otp-feedback').addClass('d-none').empty();
+                        flashAlert("Sécurité OTP", "error", typeof response.message === "string" ? response.message : msg);
+                        clearInterval(otpTimerInterval);
+                        $('#modal-validate-acte').modal('hide');
+                        $('#btn-validate').prop('disabled', false)
+                                         .html('<i class="fas fa-check me-1"></i> Valider');
                     } else {
+                        if (response.message && typeof response.message === 'object' && response.message.error) {
+                            var fb = response.message.error;
+                            if (response.message.remaining_validate_attempts != null) {
+                                fb += ' — Tentatives de saisie restantes : ' + response.message.remaining_validate_attempts + '.';
+                            }
+                            $('#otp-feedback').removeClass('d-none').text(fb);
+                        } else {
+                            $('#otp-feedback').addClass('d-none').empty();
+                        }
                         flashAlert("Échec", "error", msg);
                         $('#btn-validate').prop('disabled', false)
                                          .html('<i class="fas fa-check me-1"></i> Valider');
@@ -1456,6 +1515,7 @@ Actes de naissance
                     var msg = (xhr.responseJSON && xhr.responseJSON.message)
                         ? extraireMsg(xhr.responseJSON.message)
                         : 'Erreur lors de la validation de l\'acte.';
+                    $('#otp-feedback').addClass('d-none').empty();
                     flashAlert("Erreur", "error", msg);
                     $('#btn-validate').prop('disabled', false)
                                      .html('<i class="fas fa-check me-1"></i> Valider');
@@ -1472,11 +1532,28 @@ Actes de naissance
                 success: function(response){
                     var msg = extraireMsg(response.message);
                     if (response.code === '200') {
+                        $('#otp-feedback').addClass('d-none').empty();
                         flashAlert("Succès", "success", msg);
                         clearInterval(otpTimerInterval);
                         $('#modal-validate-acte').modal('hide');
                         setTimeout(function(){ location.reload(); }, 1500);
+                    } else if (response.code === '184') {
+                        $('#otp-feedback').addClass('d-none').empty();
+                        flashAlert("Sécurité OTP", "error", typeof response.message === "string" ? response.message : msg);
+                        clearInterval(otpTimerInterval);
+                        $('#modal-validate-acte').modal('hide');
+                        $('#btn-validate').prop('disabled', false)
+                                         .html('<i class="fas fa-check me-1"></i> Valider');
                     } else {
+                        if (response.message && typeof response.message === 'object' && response.message.error) {
+                            var fbB = response.message.error;
+                            if (response.message.remaining_validate_attempts != null) {
+                                fbB += ' — Tentatives de saisie restantes : ' + response.message.remaining_validate_attempts + '.';
+                            }
+                            $('#otp-feedback').removeClass('d-none').text(fbB);
+                        } else {
+                            $('#otp-feedback').addClass('d-none').empty();
+                        }
                         flashAlert("Échec", "error", msg);
                         $('#btn-validate').prop('disabled', false)
                                          .html('<i class="fas fa-check me-1"></i> Valider');
@@ -1486,6 +1563,7 @@ Actes de naissance
                     var msg = (xhr.responseJSON && xhr.responseJSON.message)
                         ? extraireMsg(xhr.responseJSON.message)
                         : 'Erreur lors de la validation des actes.';
+                    $('#otp-feedback').addClass('d-none').empty();
                     flashAlert("Erreur", "error", msg);
                     $('#btn-validate').prop('disabled', false)
                                      .html('<i class="fas fa-check me-1"></i> Valider');
@@ -1504,11 +1582,19 @@ Actes de naissance
             var code = $("#code_declaration_naissance_validate").val();
             $.post("{{ route('acteNaissance.send.otp') }}", {
                 code_declaration_naissance: code,
+                resend: 1,
                 _token: '{{ csrf_token() }}'
             }, function(response){
                 if (response.code == "200") {
-                    startOtpTimer();
-                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS.");
+                    var secR = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                    startOtpTimer(secR);
+                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS (et par courriel si configuré).");
+                } else if (response.code == "184") {
+                    var lockMsg = typeof response.message === "string" ? response.message : (response.message && response.message.error) || "Accès temporairement bloqué.";
+                    flashAlert("Sécurité OTP", "error", lockMsg);
+                    clearInterval(otpTimerInterval);
+                    $("#modal-validate-acte").modal("hide");
+                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
                 } else {
                     let msg = response.message && response.message.error ? response.message.error : response.message;
                     flashAlert("Erreur", "error", msg);
@@ -1520,11 +1606,18 @@ Actes de naissance
             });
         } else {
             var url  = "{{ route('acteNaissance.send.otp.bulk') }}";
-            var data = { codes: actesGeneres, _token: '{{ csrf_token() }}' };
+            var data = { codes: actesGeneres, resend: 1, _token: '{{ csrf_token() }}' };
             $.post(url, data, function(response){
                 if (response.code == "200") {
-                    startOtpTimer();
-                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS.");
+                    var secB = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                    startOtpTimer(secB);
+                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS (et par courriel si configuré).");
+                } else if (response.code == "184") {
+                    var lockMsgB = typeof response.message === "string" ? response.message : (response.message && response.message.error) || "Accès temporairement bloqué.";
+                    flashAlert("Sécurité OTP", "error", lockMsgB);
+                    clearInterval(otpTimerInterval);
+                    $("#modal-validate-acte").modal("hide");
+                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
                 } else {
                     let msg = typeof response.message === 'object' ? JSON.stringify(response.message) : response.message;
                     flashAlert("Erreur", "error", msg);
@@ -1541,6 +1634,7 @@ Actes de naissance
     $('#modal-validate-acte').on('hidden.bs.modal', function() {
         clearInterval(otpTimerInterval);
         otpExpired = false;
+        $('#otp-feedback').addClass('d-none').empty();
         $('#btn-validate').prop('disabled', false).html('<i class="fas fa-check me-1"></i> Valider');
     });
 
@@ -1553,8 +1647,11 @@ Actes de naissance
         var data = {
             code_declaration_naissance: cdn,
             motif_renvoi: motif,
-            observation: observation
+            observation: observation,
+            _token: '{{ csrf_token() }}'
         };
+        var btnSendBack = this;
+        sifecBtnLoading(btnSendBack, 'Envoi...');
         $.post(route, data, function(response){
             let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
             flashAlert("Réponse","success",msg);
@@ -1563,6 +1660,8 @@ Actes de naissance
         }).fail(function(xhr){
             let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du renvoi du dossier';
             flashAlert("Réponse","error",msg);
+        }).always(function() {
+            sifecBtnReset(btnSendBack);
         });
         return false;
     });
@@ -1585,6 +1684,8 @@ Actes de naissance
     // Remplacement du JS de confirmation groupée
     $("#btn-confirmer-bulk-final").on("click", function(){
         var observation = $("#observation-confirmation-bulk").val();
+        var btnConfBulk = this;
+        sifecBtnLoading(btnConfBulk, 'Confirmation...');
         $.ajax({
             url: "{{ route('acteNaissance.confirmer.bulk') }}",
             type: 'POST',
@@ -1602,6 +1703,9 @@ Actes de naissance
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation des documents';
                 flashAlert("Réponse","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnConfBulk);
             }
         });
     });
@@ -1615,6 +1719,8 @@ Actes de naissance
             flashAlert("ALERTE","error",msg);
             return;
         }
+        var btnRenvBulk = this;
+        sifecBtnLoading(btnRenvBulk, 'Envoi...');
     $.ajax({
             url: "{{ route('acteNaissance.renvoyer.bulk') }}",
             type: 'POST',
@@ -1633,6 +1739,9 @@ Actes de naissance
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du renvoi des documents';
                 flashAlert("Réponse","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnRenvBulk);
             }
         });
     });
@@ -1653,6 +1762,8 @@ Actes de naissance
             flashAlert("ALERTE","error",msg);
             return;
         }
+        var btnAnnulBulk = this;
+        sifecBtnLoading(btnAnnulBulk, 'Annulation...');
         $.ajax({
             url: "{{ route('acteNaissance.annuler.bulk') }}",
             type: 'POST',
@@ -1671,6 +1782,9 @@ Actes de naissance
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation des actes';
                 flashAlert("Réponse","error",msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnAnnulBulk);
             }
         });
     });
@@ -1714,7 +1828,9 @@ Actes de naissance
         if(actesNonGeneres.length > 0){
 
             var url = "{{ route('acteNaissance.generate.bulk') }}";
-            var data = {codes:actesNonGeneres};
+            var data = {codes:actesNonGeneres, _token: '{{ csrf_token() }}'};
+            var btnGenBulk = this;
+            sifecBtnLoading(btnGenBulk, 'Génération...');
             $.post(url,data,function(response){
                 if(response.code == "200"){
                     $(".over-loader-page").fadeOut(600);
@@ -1736,6 +1852,8 @@ Actes de naissance
                     flashAlert("Une erreur est survenue","error",outString);
 
                 }
+            }).always(function() {
+                sifecBtnReset(btnGenBulk);
             });
         }
     return false;
@@ -1753,7 +1871,8 @@ Actes de naissance
     $('#btn-generer-single-confirm').on('click', function(){
         var code = $('#generer-single-code').val();
         var url = "{{ route('acteNaissance.generate.single') }}";
-        $(this).prop('disabled', true);
+        var btnGenOne = this;
+        sifecBtnLoading(btnGenOne, 'Génération...');
         $('#generer-single-message').html('<i class="fa fa-spinner fa-spin"></i> Génération en cours...');
 
         $.post(url, {code_declaration_naissance: code, _token: '{{ csrf_token() }}'})
@@ -1786,9 +1905,6 @@ Actes de naissance
 
                 // Utiliser flashAlert pour le message d'erreur
                 flashAlert("Erreur", "error", errorMessage);
-
-                // Réactiver le bouton
-                $('#btn-generer-single-confirm').prop('disabled', false);
             }
         })
         .fail(function(xhr){
@@ -1799,9 +1915,10 @@ Actes de naissance
 
             // Utiliser flashAlert pour le message d'erreur
             flashAlert("Erreur", "error", errorMessage);
-
-            // Réactiver le bouton
-            $('#btn-generer-single-confirm').prop('disabled', false);
+        })
+        .always(function() {
+            sifecBtnReset(btnGenOne);
+            $('#generer-single-message').empty();
         });
     });
 
@@ -1817,6 +1934,8 @@ Actes de naissance
             flashAlert("Erreur", "error", "Veuillez renseigner le nom et le téléphone de l'intéressé.");
             return;
         }
+        var btnRetrait = this;
+        sifecBtnLoading(btnRetrait, 'Enregistrement...');
         $.ajax({
             url: "{{ route('acteNaissance.retrait') }}",
             type: 'POST',
@@ -1846,19 +1965,35 @@ Actes de naissance
             error: function(xhr) {
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du retrait de l\'acte';
                 flashAlert("Erreur", "error", msg);
+            },
+            complete: function() {
+                sifecBtnReset(btnRetrait);
             }
         });
     });
 
-    // Ouvre la modale de validation OTP (singleton)
-    $('.btn-validate-single').on('click', function() {
+    // Ouvre la modale de validation OTP (singleton) — délégation : lignes rechargées par filtre AJAX
+    $(document).on('click', '.btn-validate-single', function() {
         var code = $(this).data('id');
-        $.post("{{ route('acteNaissance.send.otp') }}", {code_declaration_naissance: code, _token: '{{ csrf_token() }}'}, function(response){
+        var btnValSingle = this;
+        sifecBtnLoading(btnValSingle, 'Envoi OTP...');
+        $.post("{{ route('acteNaissance.send.otp') }}", {
+            code_declaration_naissance: code,
+            resend: 0,
+            _token: '{{ csrf_token() }}'
+        }, function(response){
             if(response.code == "200"){
                 $('#code_declaration_naissance_validate').val(code);
                 $("#validation_type").val("simple");
                 $("#modal-validate-acte").modal('show');
-                startOtpTimer();
+                var secS = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                startOtpTimer(secS);
+                if (response.otp_session === 'reused') {
+                    flashAlert("Info", "info", typeof response.message === "string" ? response.message : "Code toujours valide — utilisez le même SMS ou e-mail.");
+                }
+            }else if (response.code == "184") {
+                let msg184 = typeof response.message === "string" ? response.message : (response.message && response.message.error) || "Accès temporairement bloqué.";
+                flashAlert("Sécurité OTP", "error", msg184);
             }else{
                 let msg = response.message && response.message.error ? response.message.error : response.message;
                 flashAlert("Erreur", "error", msg);
@@ -1866,6 +2001,8 @@ Actes de naissance
         }).fail(function(xhr){
             let msg = xhr.responseJSON?.message || 'Erreur lors de l\'envoi du code OTP';
             flashAlert("Erreur", "error", msg);
+        }).always(function() {
+            sifecBtnReset(btnValSingle);
         });
     });
 

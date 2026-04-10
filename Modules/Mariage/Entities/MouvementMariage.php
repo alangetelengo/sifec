@@ -5,7 +5,6 @@ namespace Modules\Mariage\Entities;
 use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Modules\Mariage\Entities\Declarationmariage;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 

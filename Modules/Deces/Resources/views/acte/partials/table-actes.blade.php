@@ -10,7 +10,7 @@
             $approbationPompeFunebre = $dd->acte ? ($dd->acte->approbation_pompe_funebre ?? null) : null;
             $acteValide = $dd->acte && !empty($approbationPompeFunebre) && $approbationPompeFunebre !== '0';
         @endphp
-        <tr width="100%" @if($acteValide) style="background: #f5f5f5; color: #aaa;" @endif>
+        <tr width="100%" @if($acteValide) class="table-light" @endif>
             <td>
                 @if($acteValide)
                     <span class="badge bg-success" style="font-size: 13px;font-weight:600;">Acte déjà validé</span>

@@ -67,11 +67,10 @@ Remove-Item -Path "public\scanner" -Recurse -Force
 | `declaration/js/edit.blade copy.php` | 🟢 Fichier backup | BASSE |
 | `adoption/adopter.blade.php` | 🟡 Migration recommandée | MOYENNE |
 | `adoption/js/edit.blade.php` | 🟡 Migration recommandée | MOYENNE |
-| `fiche-maternite/index.blade.php` | 🟡 Migration recommandée | MOYENNE |
 
-**Total : 13 fichiers**
+**Total : 12 fichiers**
 - 🔴 **Haute priorité :** 6 fichiers
-- 🟡 **Moyenne priorité :** 4 fichiers
+- 🟡 **Moyenne priorité :** 3 fichiers
 - 🟢 **Basse priorité :** 3 fichiers (fichiers de backup)
 
 ---
@@ -109,9 +108,6 @@ Ces fonctions ne sont **plus disponibles** et causeront des erreurs :
 
 2. **Adoption**
    - ❌ Scan de documents d'adoption
-
-3. **Fiche Maternité**
-   - ❌ Scan de documents médicaux
 
 ### Fonctionnalités Non Affectées ✅
 
@@ -165,12 +161,11 @@ Ces fonctions ne sont **plus disponibles** et causeront des erreurs :
 ---
 
 ### Phase 2 : Migration Standard (Semaine prochaine)
-🟡 **4 fichiers moyenne priorité**
+🟡 **3 fichiers moyenne priorité**
 
 1. `declaration/edit_piece_parent.blade.php`
 2. `adoption/adopter.blade.php`
 3. `adoption/js/edit.blade.php`
-4. `fiche-maternite/index.blade.php`
 
 **Actions :**
 - Appliquer le même pattern que Phase 1

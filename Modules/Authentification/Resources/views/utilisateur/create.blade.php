@@ -2,27 +2,26 @@
 @section('titre')
     Nouvel Utilisateur
 @endsection
-@section('styles')
-@endsection
 @section('corps')
+<div class="page-utilisateur-form-sifec">
 <div class="row">
     <div class="col-12">
-        <div class="card">
+        <div class="card pu-card">
             <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Créer un nouvel utilisateur</h4>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-warning"
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm pu-btn-search-person"
                             data-bs-toggle="modal" data-bs-target="#modalPersonne">
                         <i class="fas fa-search me-1"></i> Personne existante
                     </button>
-                    <a href="{{ route('utilisateur.index') }}" class="btn btn-sm btn-secondary">
+                    <a href="{{ route('utilisateur.index') }}" class="btn btn-sm pu-btn-back">
                         <i class="fas fa-arrow-left me-1"></i> Retour
                     </a>
                 </div>
             </div>
             <div class="card-body">
 
-                <div class="alert alert-info">
+                <div class="alert alert-info pu-alert-info">
                     <i class="fas fa-info-circle me-1"></i>
                     Le compte sera créé avec le mot de passe par défaut <strong>123456</strong>.
                     L'utilisateur devra le modifier lors de sa première connexion.
@@ -206,11 +205,11 @@
                     </div>
 
                     {{-- ── BOUTONS ─────────────────────────────────────────────────────── --}}
-                    <div class="mt-3 d-flex justify-content-between">
-                        <a href="{{ route('utilisateur.index') }}" class="btn btn-sm btn-danger">
+                    <div class="pu-form-actions">
+                        <a href="{{ route('utilisateur.index') }}" class="btn btn-sm pu-btn-cancel">
                             <i class="fas fa-times me-1"></i> Annuler
                         </a>
-                        <button type="submit" class="btn btn-sm btn-primary" id="submitBtn">
+                        <button type="submit" class="btn btn-sm pu-btn-submit" id="submitBtn">
                             <i class="fas fa-save me-1"></i> Créer l'utilisateur
                         </button>
                     </div>
@@ -219,11 +218,12 @@
         </div>
     </div>
 </div>
+</div>
 
 {{-- ── MODAL RECHERCHE PERSONNE ─────────────────────────────────────────────── --}}
-<div class="modal fade" id="modalPersonne" data-bs-backdrop="static"
+<div class="modal fade modal-utilisateur-sifec" id="modalPersonne" data-bs-backdrop="static"
      tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -329,6 +329,15 @@ $(function () {
                 $('#resultatPersonne').html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Erreur lors de la recherche.</div>');
             }
         });
+    });
+
+    $('#createUserForm').on('submit', function () {
+        var btn = $('#submitBtn');
+        if (btn.data('sifec-submitting')) return;
+        btn.data('sifec-submitting', 1);
+        if (!btn.data('sifec-html')) btn.data('sifec-html', btn.html());
+        btn.prop('disabled', true).attr('aria-busy', 'true').addClass('sifec-btn-loading')
+            .html('<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>Création en cours…');
     });
 });
 

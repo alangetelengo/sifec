@@ -2,22 +2,21 @@
 @section('titre')
     Modifier — {{ $user->personne->nom ?? '' }}
 @endsection
-@section('styles')
-@endsection
 @section('corps')
+<div class="page-utilisateur-form-sifec">
 <div class="row">
     <div class="col-12">
-        <div class="card">
+        <div class="card pu-card">
             <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <h4 class="mb-0">
                     <i class="fas fa-user-edit me-2"></i>Modifier —
                     {{ $user->personne->nom ?? '' }} {{ $user->personne->prenom ?? '' }}
                 </h4>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="btn btn-sm btn-info">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="btn btn-sm pu-btn-profile">
                         <i class="fas fa-eye me-1"></i> Voir le profil
                     </a>
-                    <a href="{{ route('utilisateur.index') }}" class="btn btn-sm btn-secondary">
+                    <a href="{{ route('utilisateur.index') }}" class="btn btn-sm pu-btn-back">
                         <i class="fas fa-arrow-left me-1"></i> Retour
                     </a>
                 </div>
@@ -191,11 +190,11 @@
                     </div>
 
                     {{-- ── BOUTONS ──────────────────────────────────────────────────────── --}}
-                    <div class="mt-3 d-flex justify-content-between">
-                        <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="btn btn-sm btn-danger">
+                    <div class="pu-form-actions">
+                        <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="btn btn-sm pu-btn-cancel">
                             <i class="fas fa-times me-1"></i> Annuler
                         </a>
-                        <button type="submit" class="btn btn-sm btn-primary">
+                        <button type="submit" class="btn btn-sm pu-btn-submit" id="editUserSubmitBtn">
                             <i class="fas fa-save me-1"></i> Enregistrer les modifications
                         </button>
                     </div>
@@ -204,6 +203,25 @@
         </div>
     </div>
 </div>
+</div>
 @endsection
 @section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('editUserForm');
+    var btn = document.getElementById('editUserSubmitBtn');
+    if (!form || !btn) return;
+    form.addEventListener('submit', function () {
+        if (btn.getAttribute('data-sifec-submitting') === '1') return;
+        btn.setAttribute('data-sifec-submitting', '1');
+        if (!btn.getAttribute('data-sifec-html')) {
+            btn.setAttribute('data-sifec-html', btn.innerHTML);
+        }
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.classList.add('sifec-btn-loading');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>Enregistrement en cours…';
+    });
+});
+</script>
 @endsection

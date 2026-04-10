@@ -856,7 +856,7 @@
                                         '" data-nom="'+response.personnes[i].nom+
                                         '" data-prenom="'+response.personnes[i].prenom+
                                         '" data-date_naissance="'+response.personnes[i].date_naissance+
-                                        '" data-email="'+response.personnes[i].email_personnelle+
+                                        '" data-email="'+response.personnes[i].email_personnelle+'" data-email-professionnel="'+(response.personnes[i].email_professionnelle || '')+
                                         '" data-sexe="'+response.personnes[i].sexe+
                                         '" data-numero="'+response.personnes[i].numero_rue+
                                         '" data-rue="'+response.personnes[i].avenue+
@@ -899,6 +899,7 @@
                          var telephone = $(this).data('telephone');
                          var indicatif = $(this).data('indicatif');
                          var email = $(this).data('email');
+                         var emailProfessionnel = $(this).data('emailProfessionnel') || '';
 
                          var code_nationalite = $(this).data('code_nationalite');
                          var code_profession = $(this).data('code_profession');
@@ -913,6 +914,7 @@
                          $("#prenom_pere").val(prenom);
                          $("#date_naissance_pere").val(date_naissance);
                          $("#email_pere").val(email);
+                         $("#email_professionnel_pere").val(emailProfessionnel);
                          $("#sexe_pere").val(sexe);
                          $("#domicile_numero_pere").val(numero);
                          $("#domicile_nomvoie_pere").val(rue);
@@ -1009,7 +1011,7 @@
                              '" data-nom="'+response.personnes[i].nom+
                              '" data-prenom="'+response.personnes[i].prenom+
                              '" data-date_naissance="'+response.personnes[i].date_naissance+
-                             '" data-email="'+response.personnes[i].email_personnelle+
+                             '" data-email="'+response.personnes[i].email_personnelle+'" data-email-professionnel="'+(response.personnes[i].email_professionnelle || '')+
                              '" data-sexe="'+response.personnes[i].sexe+
                              '" data-numero="'+response.personnes[i].numero_rue+
                              '" data-rue="'+response.personnes[i].avenue+
@@ -1049,6 +1051,7 @@
                          var telephone = $(this).data('telephone');
                          var indicatif = $(this).data('indicatif');
                          var email = $(this).data('email');
+                         var emailProfessionnel = $(this).data('emailProfessionnel') || '';
 
                          var code_nationalite = $(this).data('code_nationalite');
                          var code_profession = $(this).data('code_profession');
@@ -1064,6 +1067,7 @@
                          $("#date_naissance_mere").val(date_naissance);
                          $("#sexe_mere").val(sexe);
                          $("#email_mere").val(email);
+                         $("#email_professionnel_mere").val(emailProfessionnel);
                          $("#domicile_numero_mere").val(numero);
                          $("#domicile_nomvoie_mere").val(rue);
                          $("#domicile_quartier_mere").val(quartier);
@@ -1166,7 +1170,7 @@
                              '" data-nom="'+response.personnes[i].nom+
                              '" data-prenom="'+response.personnes[i].prenom+
                              '" data-date_naissance="'+response.personnes[i].date_naissance+
-                             '" data-email="'+response.personnes[i].email_personnelle+
+                             '" data-email="'+response.personnes[i].email_personnelle+'" data-email-professionnel="'+(response.personnes[i].email_professionnelle || '')+
                              '" data-sexe="'+response.personnes[i].sexe+
                              '" data-numero="'+response.personnes[i].numero_rue+
                              '" data-rue="'+response.personnes[i].avenue+
@@ -1206,7 +1210,8 @@
                          var arrondissement = $(this).data('arrondissement');
                          var telephone = $(this).data('telephone');
                          var indicatif = $(this).data('indicatif');
-                         var email = $(this).data('emal');
+                         var email = $(this).data('email');
+                         var emailProfessionnel = $(this).data('emailProfessionnel') || '';
 
                          var code_nationalite = $(this).data('code_nationalite');
                          var code_profession = $(this).data('code_profession');
@@ -1222,7 +1227,8 @@
                          $("#prenom_declarant").val(prenom);
                          $("#date_naissance_declarant").val(date_naissance);
                          $("#sexe_declarant").val(sexe);
-                         $("#email_declarant").val(sexe);
+                         $("#email_declarant").val(email);
+                         $("#email_professionnel_declarant").val(emailProfessionnel);
                          $("#domicile_quartier_declarant").val(quartier);
                          if($(this).data('arrondissement')===null)
                          {

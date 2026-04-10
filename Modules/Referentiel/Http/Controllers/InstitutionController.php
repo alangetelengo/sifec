@@ -4,6 +4,7 @@ namespace Modules\Referentiel\Http\Controllers;
 
 use Exception;
 use App\Sifec\Sifec;
+use App\Services\InstitutionLienSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\TypeInstitution;
 use Modules\Referentiel\Entities\TypeLocalite;
+use Modules\Referentiel\Entities\TypeLienInstitution;
 
 class InstitutionController extends Controller
 {
@@ -129,6 +131,14 @@ class InstitutionController extends Controller
 
 
     /**
+     * La création se fait depuis la liste (modal). Cette route évite une erreur 500 si un lien direct est utilisé.
+     */
+    public function create()
+    {
+        return redirect()->route('institution.index');
+    }
+
+    /**
      * Show the form for editing the specified resource.
      * @param string $id Code de l'institution (code_institution)
      * @return Renderable
@@ -163,7 +173,27 @@ class InstitutionController extends Controller
             ->orderBy('lib_institution')
             ->get();
 
-        return view('referentiel::institution.edit', compact('institution', 'localites', 'typeInstitutions', 'tribunaux', 'typeLocalites', 'availableParents'));
+        $institution->load(['liensSortants' => function ($q) {
+            $q->whereIn('code_type_lien', [
+                TypeLienInstitution::CODE_PARTENAIRE_DECES_POMPE,
+                TypeLienInstitution::CODE_TRIBUNAL_RESSORT,
+                TypeLienInstitution::CODE_FORMATION_CEC_NAISSANCE,
+            ]);
+        }]);
+
+        $cecPourLiens = $this->institutionsCecPourLiens($institution->code_institution);
+        $tribunauxPourLiens = $this->institutionsTribunauxPourLiens($institution->code_institution);
+
+        return view('referentiel::institution.edit', compact(
+            'institution',
+            'localites',
+            'typeInstitutions',
+            'tribunaux',
+            'typeLocalites',
+            'availableParents',
+            'cecPourLiens',
+            'tribunauxPourLiens'
+        ));
     }
 
     /**
@@ -178,8 +208,13 @@ class InstitutionController extends Controller
             "code_type_institution" => ["required","string"],
             "code_localite" => ["required","string"],
             "code_institution_parent" => ["nullable","string"],
-            "code_pompe_funebre" => ["nullable","string"],
-            "statut" => ["nullable","boolean"]
+            "statut" => ["nullable","boolean"],
+            "liens_cec_deces" => ["nullable", "array"],
+            "liens_cec_deces.*" => ["string", "max:16"],
+            "liens_cec_naissance" => ["nullable", "array"],
+            "liens_cec_naissance.*" => ["string", "max:16"],
+            "liens_tribunal_ressort" => ["nullable", "array"],
+            "liens_tribunal_ressort.*" => ["string", "max:16"],
         ]);
 
         try {
@@ -201,7 +236,6 @@ class InstitutionController extends Controller
             $institution->code_type_institution = $request->code_type_institution;
             $institution->statut = $request->statut ?? 1;
             $institution->code_institution_parent = $request->code_institution_parent ?: null;
-            $institution->code_pompe_funebre = $request->code_pompe_funebre ?: null;
             $institution->code_localite = $request->code_localite;
 
             if($request->hasFile('sceau')){
@@ -217,6 +251,8 @@ class InstitutionController extends Controller
             }
 
             $institution->save();
+
+            app(InstitutionLienSyncService::class)->syncFromRequest($institution, $request->all(), true);
 
             DB::commit();
 
@@ -261,8 +297,13 @@ class InstitutionController extends Controller
                 "code_type_institution" => ["required","string"],
                 "code_localite" => ["required","string"],
                 "code_institution_parent" => ["nullable","string"],
-                "code_pompe_funebre" => ["nullable","string"],
-                "statut" => ["nullable","boolean"]
+                "statut" => ["nullable","boolean"],
+                "liens_cec_deces" => ["nullable", "array"],
+                "liens_cec_deces.*" => ["string", "max:16"],
+                "liens_cec_naissance" => ["nullable", "array"],
+                "liens_cec_naissance.*" => ["string", "max:16"],
+                "liens_tribunal_ressort" => ["nullable", "array"],
+                "liens_tribunal_ressort.*" => ["string", "max:16"],
             ]);
 
             // Valider la hiérarchie (éviter les boucles)
@@ -281,7 +322,6 @@ class InstitutionController extends Controller
             $institution->code_type_institution = $request->code_type_institution;
             $institution->statut = $request->statut ?? $institution->statut;
             $institution->code_institution_parent = $request->code_institution_parent ?: null;
-            $institution->code_pompe_funebre = $request->code_pompe_funebre ?: null;
             $institution->code_localite = $request->code_localite;
 
             if($request->hasFile('sceau')){
@@ -296,6 +336,10 @@ class InstitutionController extends Controller
             }
 
             $institution->save();
+
+            if ($request->boolean('_gestion_liens_institution')) {
+                app(InstitutionLienSyncService::class)->syncFromRequest($institution, $request->all(), true);
+            }
 
             Log::channel('sifec')->info('Institution modifiée avec succès', [
                 'code_institution' => $institution->code_institution,
@@ -419,5 +463,41 @@ class InstitutionController extends Controller
             Log::channel('sifec')->error('Erreur lors de la récupération des parents par type: ' . $e->getMessage());
             return response()->json(['error' => 'Erreur lors de la récupération des parents'], 500);
         }
+    }
+
+    /**
+     * Centres d'état civil utilisables comme cible de lien (hors tribunaux, hors pompe funèbre type).
+     */
+    private function institutionsCecPourLiens(?string $exclureCode = null)
+    {
+        $q = Institution::with('typeInstitution')
+            ->whereHas('typeInstitution', function ($q) {
+                $q->where('code_type_categorie_ins', 'TCINS_0001');
+            })
+            ->where('code_type_institution', '!=', 'TPINS_0003')
+            ->whereNotIn('code_type_institution', ['TPINS_0004', 'TPINS_0001'])
+            ->orderBy('lib_institution');
+
+        if ($exclureCode) {
+            $q->where('code_institution', '!=', $exclureCode);
+        }
+
+        return $q->get();
+    }
+
+    private function institutionsTribunauxPourLiens(?string $exclureCode = null)
+    {
+        $q = Institution::with('typeInstitution')
+            ->whereHas('typeInstitution', function ($q) {
+                $q->where('code_type_categorie_ins', 'TCINS_0002');
+            })
+            ->whereNotIn('code_type_institution', ['TPINS_0004', 'TPINS_0001'])
+            ->orderBy('lib_institution');
+
+        if ($exclureCode) {
+            $q->where('code_institution', '!=', $exclureCode);
+        }
+
+        return $q->get();
     }
 }

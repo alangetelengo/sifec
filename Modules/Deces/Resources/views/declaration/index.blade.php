@@ -12,12 +12,15 @@ Actes Décès
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
-                <h4>Liste des déclarations de deces</h4>
-                <a href="{{ route("declarationDeces.create") }}"><button type="button" class="btn btn-warning m-t-2 float-end text-white" >Créer déclaration  <i class="fa fa-plus-circle"></i></button></a>
+                <h4>{{ $title ?? 'Liste des déclarations de décès' }}</h4>
+                <a href="{{ route("declarationDeces.create") }}"><button type="button" class="btn btn-warning m-t-2 float-end text-white" >{{ $button ?? 'Enregistrer un certificat de décès' }}  <i class="fa fa-plus-circle"></i></button></a>
             </div>
             <div class="col-12">
                 <div class="card">
@@ -74,6 +77,7 @@ Actes Décès
                                                         $peutSupprimer = false;
                                                         break;
                                                     case 'MOUV_0032':
+                                                    case 'MOUV_2005':
                                                         $statutBadge = ['class' => 'badge-primary', 'label' => $dernierMouvement->lib_mouvement];
                                                         $peutEnvoyer = true;
                                                         $peutModifier = true;
@@ -311,8 +315,9 @@ Actes Décès
     </div>
 </div>
 {{-- FIN DETAILS RENVOIE DECLARATION --}}
-
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 
@@ -382,16 +387,15 @@ Actes Décès
                 e.preventDefault();
 
                 let url = "{{ route('declarationDeces.mouvement') }}";
-                let $btnSend = $('#btn-send');
-
-                $btnSend.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Traitement en cours...');
+                var btn = document.getElementById('btn-send');
+                sifecBtnLoading(btn, "Envoi...");
 
                 $.ajax({
                     url: url,
                     type: 'POST',
                     data: $(this).serialize(),
                     success: function(response){
-                        $btnSend.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Envoyer');
+                        sifecBtnReset(btn, "Envoyer");
 
                         if(response.code == "200"){
                             flashAlert("Réponse","success",response.message);
@@ -404,7 +408,7 @@ Actes Décès
                         }
                     },
                     error: function(xhr, status, error) {
-                        $btnSend.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Envoyer');
+                        sifecBtnReset(btn, "Envoyer");
                         flashAlert("Erreur","error", xhr.responseJSON?.message || "Erreur lors de l'envoi: " + error);
                     }
                 });

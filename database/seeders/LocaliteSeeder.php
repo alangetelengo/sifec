@@ -7,26 +7,34 @@ use Illuminate\Support\Facades\DB;
 
 class LocaliteSeeder extends Seeder
 {
+    /**
+     * Charge les localités depuis database/data/tr_localite_seed.sql
+     * (extrait de tr_localite.sql). Retombe sur database/data/localites.sql si absent.
+     */
     public function run(): void
     {
-        $sqlFile = database_path('data/localites.sql');
+        $primary = database_path('data/tr_localite_seed.sql');
+        $fallback = database_path('data/localites.sql');
+        $sqlFile = is_file($primary) ? $primary : $fallback;
 
-        if (!file_exists($sqlFile)) {
-            $this->command->warn("Fichier introuvable : {$sqlFile}. Seeder ignoré.");
+        if (! is_file($sqlFile)) {
+            $this->command?->warn("Aucun fichier SQL de localités trouvé ({$primary} ou {$fallback}). Seeder ignoré.");
+
             return;
         }
 
         $sql = file_get_contents($sqlFile);
+        $statements = preg_split('/;\s*\R/m', $sql) ?: [];
 
-        // Exécuter chaque instruction SQL séparément
-        foreach (explode(";\n", $sql) as $statement) {
+        foreach ($statements as $statement) {
             $stmt = trim($statement);
-            if ($stmt !== '' && !str_starts_with($stmt, '--')) {
-                DB::unprepared($stmt);
+            if ($stmt === '' || str_starts_with($stmt, '--')) {
+                continue;
             }
+            DB::unprepared($stmt);
         }
 
         $total = DB::table('tr_localite')->count();
-        $this->command->info("tr_localite : {$total} localités insérées.");
+        $this->command?->info("tr_localite : {$total} ligne(s) (fichier : ".basename($sqlFile).').');
     }
 }

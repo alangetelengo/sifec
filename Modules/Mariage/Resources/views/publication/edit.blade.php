@@ -25,6 +25,7 @@
 @endsection
 @section("corps")
 
+<div class="page-sifec-form">
         <!-- row -->
         <div class="row" id="validation">
             <div class="col-12">
@@ -530,8 +531,7 @@
                 </div>
             </div>
         </div>
-
-
+</div>
 @endsection
 @section("scripts")
 <script src="{{ asset('tpl/vendor/jquery-smartwizard/dist/js/jquery.smartWizard.js') }}"></script>
@@ -799,7 +799,8 @@
                     heure_naissance_enfant:heure_naissance_enfant.val(),
                     lieu_survenance:lieu_survenance.val(),
                     nombre_enfant:nombre_enfants.val(),
-                    _method:'PUT'
+                    _method:'PUT',
+                    _token: '{{ csrf_token() }}'
                 };
 
 
@@ -807,10 +808,17 @@
                 var code = "{{$dn->code_declaration_naissance}}";
                 var route = "{{route('declarationNaissance.update',':id')}}";
                 route = route.replace(':id',code);
-              // alert(route);
-                  $.post(route,data,function(response)
-                {
-                    console.log(response.declaration);
+                var btnValidatePub = this;
+                sifecBtnLoading(btnValidatePub, 'Enregistrement...');
+                $.post(route, data, function(response) {
+                    if (response && response.declaration) {
+                        console.log(response.declaration);
+                    }
+                }).fail(function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Erreur lors de l\'enregistrement.';
+                    flashAlert('Erreur', 'error', msg);
+                }).always(function() {
+                    sifecBtnReset(btnValidatePub);
                 });
 
                 //return false;

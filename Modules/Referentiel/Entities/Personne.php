@@ -82,6 +82,50 @@ class Personne extends Model
         return $this->hasMany(ContactPersonne::class, 'code_personne', 'code_personne');
     }
 
+    /**
+     * E-mails du premier enregistrement `t_contact_personne` (ex. déclarant).
+     *
+     * @return array<string, string> Libellé => adresse (ex. « Professionnel » => « …@… »)
+     */
+    public function emailsDepuisPremierContact(): array
+    {
+        $c = $this->contacts()->orderBy('id')->first();
+        if (! $c) {
+            return [];
+        }
+        $out = [];
+        $pro = trim((string) $c->email_professionnelle);
+        $perso = trim((string) $c->email_personnelle);
+        if ($pro !== '') {
+            $out['Professionnel'] = $pro;
+        }
+        if ($perso !== '') {
+            $out['Personnel'] = $perso;
+        }
+
+        return $out;
+    }
+
+    /**
+     * E-mails valides (pro + perso par contact) fusionnés sur toutes les fiches contact actives, tri par id, sans doublon.
+     * À utiliser pour l’OTP officier lorsque plusieurs lignes existent dans t_contact_personne.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, ContactPersonne>|null  $contacts  Déjà chargées (ex. orderBy id) pour éviter une requête en double
+     * @return list<string>
+     */
+    public function adressesEmailPourNotificationAgregees($contacts = null): array
+    {
+        $contacts = $contacts ?? $this->contacts()->orderBy('id')->get();
+        $emails = [];
+        foreach ($contacts as $contact) {
+            foreach ($contact->adressesEmailPourNotification() as $email) {
+                $emails[$email] = true;
+            }
+        }
+
+        return array_keys($emails);
+    }
+
     public function telephone()
     {
         return $this->contacts->first()->indicatif.$this->contacts->first()->telephone;

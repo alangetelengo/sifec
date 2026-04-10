@@ -41,6 +41,7 @@ class User extends Authenticatable
         'two_factor_verified_at' => 'datetime',
         'google2fa_enabled' => 'boolean',
         'two_factor_required' => 'boolean',
+        'must_change_password' => 'boolean',
     ];
 
 
@@ -53,8 +54,13 @@ class User extends Authenticatable
      * Retourne l'affectation active de l'utilisateur (résultat direct)
      * @return InstitutionUser|null
      */
-    public function affectationActive(){
-        return $this->affectations->where("active",1)->first();
+    public function affectationActive()
+    {
+        // Ne pas utiliser Collection::where('active', 1) : comparaison stricte ;
+        // en base / PDO, active peut être 1, '1' ou true selon le driver.
+        return $this->affectations->first(function (InstitutionUser $a) {
+            return (int) $a->active === 1;
+        });
     }
 
     /**
@@ -96,7 +102,13 @@ class User extends Authenticatable
         $userFonctionnalites = $this->fonctionnalites;
         $fonction = $this->fonction();
         $fonctionFonctionnalites = $fonction ? $fonction->fonctionnalites : collect();
-        return $userFonctionnalites->merge($fonctionFonctionnalites)->flatten();
+        return $userFonctionnalites
+            ->merge($fonctionFonctionnalites)
+            ->flatten()
+            ->filter(function ($f) {
+                return ($f->etat_fonctionnalite ?? 'Activé') === 'Activé';
+            })
+            ->values();
     }
 
     public function modules(){

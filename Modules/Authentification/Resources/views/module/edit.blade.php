@@ -4,6 +4,7 @@ Modification du module
 @endsection
 
 @section('corps')
+<div class="page-sifec-form">
     <div class="row">
         <div class="col-xl-12">
             <div class="card">
@@ -64,5 +65,6 @@ Modification du module
             </div>
         </div>
     </div>
+</div>
 @endsection
 

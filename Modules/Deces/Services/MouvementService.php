@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Deces\Entities\MouvementDeces;
 use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Deces\Services\DecesDestinataireEnvoiService;
 
 class MouvementService
 {
@@ -64,15 +65,24 @@ class MouvementService
             throw new Exception('Mouvement référentiel introuvable.');
         }
 
-        $destinataire = "";
-        if($declaration->institution->pompeFunebre){
-            $destinataire = $declaration->institution->pompeFunebre->code_institution;
-        }else{
-            //si type_declaration ==declaration tardive alors destination sera la même institution
-            if($declaration->type_declaration == 'DECLARATION TARDIVE'){
-                $destinataire = $declaration->institution->code_institution;
-            }else{
-                $destinataire = $declaration->institution->institutionParent->code_institution;
+        $destinataire = null;
+        if ($typeMouvement === 'certificat_constatation_deces') {
+            $declaration->loadMissing(['institution.pompeFunebre', 'institution.institutionParent']);
+            $resolu = app(DecesDestinataireEnvoiService::class)->resolveCodeInstitutionDestinataire($declaration);
+            if ($resolu !== null) {
+                $destinataire = $resolu;
+            }
+        }
+
+        if ($destinataire === null) {
+            if ($declaration->institution->pompeFunebre) {
+                $destinataire = $declaration->institution->pompeFunebre->code_institution;
+            } else {
+                if ($declaration->type_declaration == 'DECLARATION TARDIVE') {
+                    $destinataire = $declaration->institution->code_institution;
+                } else {
+                    $destinataire = $declaration->institution->institutionParent->code_institution;
+                }
             }
         }
 
@@ -264,7 +274,7 @@ class MouvementService
         }
     }
 
-      //ajouter les événement d'enregistrement de declaration selon les type de declaration(declaration de naissance,fiche de maternité,certificat de non inscription,certificat de destruction,jugement d'homologation,jugement d'adoption,jugement supplétif,fiche de transcription)
+      //ajouter les événement d'enregistrement de declaration selon les type de declaration(declaration de naissance,certificat de non inscription,certificat de destruction,jugement d'homologation,jugement d'adoption,jugement supplétif,fiche de transcription)
       public function ajouterEvenementDeclaration($user, $declaration, string $evenement, $observation = null)
       {
           // Mapping des types de déclaration vers les codes mouvements

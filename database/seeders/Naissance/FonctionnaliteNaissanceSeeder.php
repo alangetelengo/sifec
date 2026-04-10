@@ -29,9 +29,9 @@ class FonctionnaliteNaissanceSeeder extends Seeder
             ],
             [
                 'code_fonctionnalite' => FonctionnaliteCodes::DECLARATION_NAISSANCE_CREATE,
-                'lib_fonctionnalite' => 'Créer une déclaration de naissance',
+                'lib_fonctionnalite' => 'Enregistrer un certificat de naissance (déclaration générée)',
                 'lib_technique' => 'module.ActeNaissance.declarationNaissance.create',
-                'description_fonctionnalite' => "Permet de créer une déclaration de naissance",
+                'description_fonctionnalite' => "Permet de saisir le certificat de naissance ; la déclaration est générée à partir de ce certificat.",
                 'code_fonctionnalite_parent' => FonctionnaliteCodes::GESTION_ACTE_NAISSANCE,
                 'code_module' => ModuleCodes::NAISSANCE,
                 'etat_fonctionnalite' => 'Activé',

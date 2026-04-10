@@ -6,9 +6,9 @@ use App\Models\TypeJugement;
 use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Jugement extends Model
@@ -28,11 +28,19 @@ class Jugement extends Model
     }
 
     /**
-     * Relation correcte : un Jugement appartient à une déclaration de naissance
+     * Déclaration de naissance liée (t_jugement.code_declaration → t_declaration_naissance).
      */
     public function declarationNaissance(): BelongsTo
     {
-        return $this->belongsTo(Declarationnaissance::class, 'code_jugement', 'code_jugement');
+        return $this->belongsTo(Declarationnaissance::class, 'code_declaration', 'code_declaration_naissance');
+    }
+
+    /**
+     * Déclaration référençant ce jugement par t_declaration_naissance.code_jugement.
+     */
+    public function declarationParCodeJugement(): HasOne
+    {
+        return $this->hasOne(Declarationnaissance::class, 'code_jugement', 'code_jugement');
     }
 
     /**

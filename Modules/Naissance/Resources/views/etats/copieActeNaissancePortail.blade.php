@@ -51,6 +51,30 @@
         $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
     }
 
+    if($acte->declaration->type_declaration == "FICHE DE TRANSCRIPTION"){
+        $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
+    }
+
+    $nomEnfant = $acte->declaration->enfant->nom ?? '';
+    $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
+    if ($acte->lastRectification && $acte->lastRectification->detailsRectification && $acte->lastRectification->detailsRectification->count() > 0) {
+        foreach ($acte->lastRectification->detailsRectification as $d) {
+            if ($d->code_rubrique === 'RUB_0001') {
+                $nomEnfant = $d->nouvelle_valeur ?? $nomEnfant;
+            }
+            if ($d->code_rubrique === 'RUB_0002') {
+                $prenomEnfant = $d->nouvelle_valeur ?? $prenomEnfant;
+            }
+        }
+    }
+    $prenomEnfant = \App\Sifec\Sifec::formatPrenomPourActe($prenomEnfant);
+    $personneDeclCopie = filled(optional($acte->declaration)->code_adoptant) && $acte->declaration->adoptant
+        ? $acte->declaration->adoptant
+        : $acte->declaration->declarant;
+    $ligneDeclarantCopie = $personneDeclCopie
+        ? \App\Sifec\Sifec::formatNomPrenomPourActe($personneDeclCopie->nom ?? '', $personneDeclCopie->prenom ?? '')
+        : '';
+    $datePourCopiePdf = $acte->date_emission ?? optional($acte->declaration)->date_heure_declaration ?? now();
 
     @endphp
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
@@ -109,7 +133,7 @@
             <td style="width:100%; text-align: center;">
                 <p><strong style="font-size: 18px;">COPIE D'ACTE DE NAISSANCE </strong>
                     {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
-                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong></p>
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong></p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -141,33 +165,17 @@
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td><strong>{{ $acte->declaration->enfant->sexe=="M" ? "Nommé " : "Nommée "  }}
-                       <span style="color: red;">
-                         @php
-                         $nomEnfant = $acte->declaration->enfant->nom ?? '';
-                         $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
-                         if ($acte->lastRectification && $acte->lastRectification->detailsRectification->count() > 0) {
-                             foreach ($acte->lastRectification->detailsRectification as $d) {
-                                 if ($d->code_rubrique === 'RUB_0001') {
-                                     $nomEnfant = $d->nouvelle_valeur ?? $nomEnfant;
-                                 }
-                                 if ($d->code_rubrique === 'RUB_0002') {
-                                     $prenomEnfant = $d->nouvelle_valeur ?? $prenomEnfant;
-                                 }
-                             }
-                         }
-                         @endphp
-                        {{ trim($nomEnfant.' '.$prenomEnfant) }}
-                        </span></strong>
+                       <span style="color: red;">{{ trim($nomEnfant.' '.$prenomEnfant) }}</span></strong>
                     </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Déclaré par: <strong>{{  $acte->declaration->adoptant != "" ? $acte->declaration->adoptant->nomcomplet() : $acte->declaration->declarant->nomcomplet() }}</strong></td>
+                    <td>Déclaré par: <strong>{{ $ligneDeclarantCopie }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Situation matrimoniale des parents: <strong>{{ $acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {{ $acte->declaration->pere ? $acte->declaration->pere->nom." ".$acte->declaration->pere->prenom : $dummy}}</strong></td>
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Fils " : "Fille "  }} de:<strong> {{ $acte->declaration->pere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->pere->nom, $acte->declaration->pere->prenom) : $dummy}}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Né le : <strong>
@@ -192,7 +200,7 @@
                     <td>Proféssion: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->profession->lib_profession : $dummy }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>Et de :<strong> {{ $acte->declaration->mere ? $acte->declaration->mere->nom." ".$acte->declaration->mere->prenom : $dummy}}</strong></td>
+                    <td>Et de :<strong> {{ $acte->declaration->mere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->mere->nom, $acte->declaration->mere->prenom) : $dummy}}</strong></td>
                 </tr>
 
                 <tr style="width:100%; text-align: left;">
@@ -256,10 +264,10 @@
                         {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
                     <td style="text-align: left;">
-                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($libLocalite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
+                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($libLocalite)))}}, le {{ utf8_encode(strftime('%d %B %Y', strtotime($datePourCopiePdf))) }}<br>L'officier de l'état civil</p>
                          @if ($acte->approbation_mairie != "")
                              <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
-                             <span style="color:black; font-weight:bold"> {{ $acte->signataire->user->personne->nomcomplet() }}</span>
+                             <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
                          @endif
                      </td>
                   </tr>

@@ -10,6 +10,9 @@ Liste des tribunaux
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
     <div class="row">
         <div class="col-xl-12">
             <div class="card">
@@ -46,7 +49,6 @@ Liste des tribunaux
 
                                                 </td>
                                                 <td>{{ $tribunal->lib_institution }}</td>
-                                                {{-- <td>{{ $tribunal->courAppel->lib_cour_appel }}</td> --}}
                                                 @if($tribunal->statut == "1")
                                                 <td><span class="badge light badge-success" style="font-size: 13px;font-weight:600;">Activé</span></td>
                                                 @endif
@@ -73,14 +75,6 @@ Liste des tribunaux
                                                                                     <label class="form-label">Tribunal</label>
                                                                                     <input  class="form-control form-control-sm" required name="lib_institution" type="text" value="{{ $tribunal->lib_institution }}">
                                                                                 </div>
-                                                                                {{-- <div class="mb-2 col-md-6">
-                                                                                    <label class="form-label">Cour d'appel <span class="text-danger">*</span></label>
-                                                                                    <select id="code_cour_appel" name="code_cour_appel" required class="form-control form-control wide">
-                                                                                        @foreach ($courAppels as $courAppel)
-                                                                                            <option value="{{ $courAppel->code_cour_appel }}" {{$courAppel->code_cour_appel == $tribunal->code_cour_appel ? "selected":""}}>{{ $courAppel->lib_cour_appel  }}</option>
-                                                                                        @endforeach
-                                                                                    </select>
-                                                                                </div> --}}
                                                                             </div>
                                                                             <div class="row">
 
@@ -158,16 +152,6 @@ Liste des tribunaux
                             <label class="form-label">Libéllé <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" class="form-control @error('lib_institution') is-invalid @enderror" value="{{ old("lib_institution") }}" required  name="lib_institution">
                         </div>
-
-                        <div class="mb-2 col-md-6">
-                            <label class="form-label">Cour d'appel <span class="text-danger">*</span></label>
-                            <select id="code_cour_appel" name="code_cour_appel" required class="form-control form-control wide">
-                                <option value="">Choisissez</option>
-                                @foreach ($courAppels as $item)
-                                    <option value="{{ $item->code_cour_appel }}" >{{ $item->lib_cour_appel  }}</option>
-                                @endforeach
-                            </select>
-                        </div>
                     </div>
                     <div class="row">
                         <div class="mb-2 col-md-6">
@@ -185,6 +169,9 @@ Liste des tribunaux
         </div>
         </div>
     </div>
+</div>
+</div>
+</div>
 @endsection
 @section('scripts')
       <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>

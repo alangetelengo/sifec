@@ -14,6 +14,7 @@
     <link rel="stylesheet" type="text/css" href="{{ URL::to('carte/css/demo1.css') }}" />
      <!-- css de la carte -->
      <script src="{{ URL::to('carte/js/modernizr.custom.js') }}"></script>
+    <link href="{{ asset('css/sifec-registre-livret.css') }}?v=4" rel="stylesheet">
 
     <!-- Styles personnalisés pour l'amélioration UX -->
     <style>
@@ -24,7 +25,7 @@
         }
 
         .table-header-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%);
             color: white;
         }
 
@@ -167,8 +168,34 @@
 
 @section("corps")
 
+<div class="page-sifec-form page-sifec-registre-livret registre-livret-toolbar-unified">
+<div class="row mb-0 g-0 registre-livret-toolbar">
+    <div class="col-12">
+        <div class="registre-livret-toolbar-surface">
+            <div class="registre-livret-toolbar-row">
+                <div class="flex-grow-1 min-w-0">
+                    <h4 class="mb-0"><i class="fas fa-book-open me-2"></i>Registre de mariage</h4>
+                    <small class="text-muted registre-livret-toolbar-sub">{{ $registre->lib_registre }} — {{ $registre->institutionUser->institution->lib_institution ?? '' }}</small>
+                </div>
+                <div class="d-flex flex-wrap gap-2 flex-shrink-0 align-items-center">
+                    @if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0002")
+                        <a href="{{ route('registre.tribunal') }}" class="btn btn-sm pu-btn-back">
+                            <i class="fas fa-arrow-left me-1"></i> Liste des registres
+                        </a>
+                    @else
+                        <a href="{{ route('registre.index') }}" class="btn btn-sm pu-btn-back">
+                            <i class="fas fa-arrow-left me-1"></i> Liste des registres
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="main clearfix">
     <div class="bb-custom-wrapper">
+        <div class="registre-livret-panel">
 
         <div id="bb-bookblock" class="bb-bookblock">
               <!-- page 1 -->
@@ -176,9 +203,9 @@
             <div class="bb-item">
                 <div class="row">
                     <div class="col-sm-12">
-                        <div class="card" style="height: 680px; border: 2px solid; text-align: left; padding: 20px; font-size: 12px">
+                        <div class="card registre-livret-doc-inner" style="height: 680px; border: 2px solid; text-align: left; font-size: 12px">
                             <h2>
-                                {!! $registre->getTexteParapheRegistre('mariage') !!}<br><br><br><br><br><br>
+                                {!! $registre->getTexteParapheRegistre('mariage') !!}<br><br>
                             </h2>
                             <h2><span style="margin-left: 730px;"> Fait à <strong>{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->created_at)) }}</strong> </span></h2>
                             <b style="margin-left: 730px;">
@@ -206,7 +233,7 @@
                                 @endif
                             </div>
                             <div class="card-body">
-                                <p class="card-text" style="margin-top: 100px">
+                                <p class="card-text registre-livret-cec-intro">
                                     <h2><strong> C.E.C :  {{  $registre->institutionUser->institution->lib_institution}} </strong></h2>
                                     <h2><strong> {{$registre->lib_registre}} </strong></h2>
                                     <h2><strong>Année : {{date("Y", strtotime($registre->updated_at))}} </strong></h2>
@@ -465,8 +492,8 @@
                    <div class="spiral-binding"></div>
 
                    <div class="col-sm-11">
-                       <div class="card" style="height: 670px; border: 2px solid; text-align: left; padding: 20px; font-size: 18px">
-                           <br><br><br><br>
+                       <div class="card registre-livret-doc-inner" style="height: 670px; border: 2px solid; text-align: left; font-size: 18px">
+                           <br>
                            <h2>
                                Nous <strong>{{ $nomcompletcec }}</strong>, officier de l'Etat-civil de <strong>{{ $registre->institutionUser->institution->lib_institution }}</strong><br>
                                arrêtons et clôturons le présent registre de <strong>{{ $registre->typeRegistre->lib_type_registre }}</strong><br>
@@ -485,18 +512,22 @@
            @endif
         </div>
 
-        <nav id="btn_footer">
-            <a id="bb-nav-first" href="#" class="bb-custom-icon bb-custom-icon-first">First page</a>
-            <a id="bb-nav-prev" href="#" class="bb-custom-icon bb-custom-icon-arrow-left">Previous</a>
-            <a id="bb-nav-next" href="#" class="bb-custom-icon bb-custom-icon-arrow-right">Next</a>
-            <a id="bb-nav-last" href="#" class="bb-custom-icon bb-custom-icon-last">Last page</a>
-        </nav>
-        <a href="{{ route('registre.index') }}" class="btn btn-primary mb-2" style="float: right;">
-            <i class="fas fa-list"></i>
-            Liste des registres
-        </a>
+        <div class="registre-livret-footer d-flex flex-column align-items-center w-100">
+            <nav id="btn_footer">
+                <a id="bb-nav-first" href="#" class="bb-custom-icon bb-custom-icon-first">First page</a>
+                <a id="bb-nav-prev" href="#" class="bb-custom-icon bb-custom-icon-arrow-left">Previous</a>
+                <a id="bb-nav-next" href="#" class="bb-custom-icon bb-custom-icon-arrow-right">Next</a>
+                <a id="bb-nav-last" href="#" class="bb-custom-icon bb-custom-icon-last">Last page</a>
+            </nav>
+            <div class="text-muted small registre-livret-footer-hint">
+                <i class="fas fa-keyboard me-1"></i> Flèches gauche / droite pour feuilleter
+            </div>
+        </div>
+        </div>
     </div>
 </div><!-- /container -->
+
+</div>
 
 @endsection
 

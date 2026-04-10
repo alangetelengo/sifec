@@ -16,6 +16,8 @@ use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Modules\Rectification\Entities\Rectification;
+use Modules\Referentiel\Entities\InstitutionLien;
+use Modules\Referentiel\Entities\TypeLienInstitution;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
 
 
@@ -85,9 +87,23 @@ class Institution extends Model
         return $this->institutionsUsers->map->declarationDeces->flatten();
     }
 
+    /**
+     * Colonne historique : pour une pompe funèbre, cible CEC décès ; pour une formation, souvent CEC naissances.
+     * Préférer les liens {@see liensSortants()} / {@see getInstitutionsPompeFunebre()} selon le cas.
+     */
     public function pompeFunebre(): BelongsTo
     {
         return $this->belongsTo(Institution::class, 'code_pompe_funebre', 'code_institution');
+    }
+
+    public function liensSortants(): HasMany
+    {
+        return $this->hasMany(InstitutionLien::class, 'code_institution_source', 'code_institution');
+    }
+
+    public function liensEntrants(): HasMany
+    {
+        return $this->hasMany(InstitutionLien::class, 'code_institution_cible', 'code_institution');
     }
 
     //Le nom du responsable du tribunal du ressort
@@ -198,6 +214,9 @@ class Institution extends Model
      * Récupère les déclarations envoyées par les formations sanitaires (ou pompes funèbres pour décès)
      * en attente de confirmation par le centre d'état civil.
      * Exclut les dossiers déjà confirmés (cec_approuver = 'OUI').
+     *
+     * Le mariage n’est pas concerné : les déclarations de mariage sont créées uniquement au CEC
+     * (les dispenses passent par le tribunal via réquisition / jugement, pas par une formation sanitaire).
      */
     public function getDeclarationsFormationSanitaireAControler($module)
     {
@@ -209,14 +228,21 @@ class Institution extends Model
             ->toArray();
 
         if ($module === "naissance") {
+            $codesFormationsLiees = InstitutionLien::query()
+                ->where('code_institution_cible', $this->code_institution)
+                ->where('code_type_lien', TypeLienInstitution::CODE_FORMATION_CEC_NAISSANCE)
+                ->pluck('code_institution_source')
+                ->all();
+            $institutionsEmettrices = array_values(array_unique(array_merge($formationsSanitairesCodes, $codesFormationsLiees)));
+
             return Declarationnaissance::with(['enfant', 'declarant', 'pere', 'mere', 'mouvements'])
-                ->whereIn('code_institution', $formationsSanitairesCodes)
+                ->whereIn('code_institution', $institutionsEmettrices)
                 // ->where('type_declaration', "DECLARATION DE NAISSANCE")
                 ->where('type_declaration', "CERTIFICAT DE NAISSANCE")
                 ->where('declarant_approuver', 'OUI')
                 ->where('cec_approuver', 'NON')
                 ->where('code_institution_destinataire', $this->code_institution)
-                ->whereHas('mouvements', fn($q) => $q->whereIn('code_mouvement', ['MOUV_0001', 'MOUV_0011']))
+                ->whereHas('mouvements', fn($q) => $q->whereIn('code_mouvement', ['MOUV_0001', 'MOUV_0035', 'MOUV_0011']))
                 ->get();
         }
 
@@ -233,25 +259,15 @@ class Institution extends Model
                 ->get();
         }
 
-        if ($module === "mariage") {
-            return DeclarationMariage::with(['epoux', 'epouse', 'acte'])
-                ->whereIn('code_institution', $formationsSanitairesCodes)
-                ->where('type_declaration', "DECLARATION DE MARIAGE")
-                ->where('declarant_approuver', 'OUI')
-                ->where('cec_approuver', 'NON')
-                ->where('code_institution_destinataire', $this->code_institution)
-                ->get();
-        }
-
         return collect();
     }
 
     /**
-     * Récupère les déclarations de naissance envoyées par les formations sanitaires
-     * qui ont été validées par le centre d'état civil (cec_approuver = 'OUI')
-     */
-    /**
-     * Récupère les déclarations approuvées des formations sanitaires pour un module donné
+     * Récupère les déclarations approuvées émises par les formations sanitaires (et pompes funèbres pour décès),
+     * une fois validées par ce CEC (cec_approuver = OUI, destinataire = ce centre).
+     *
+     * Pour le mariage : toujours une collection vide — pas de flux formation sanitaire ; le CEC crée les dossiers
+     * et le tribunal intervient pour les dispenses (voir getDeclarationsWithRequisitionsOrJugements).
      *
      * @param string $module naissance|deces|mariage
      * @return \Illuminate\Support\Collection
@@ -262,13 +278,24 @@ class Institution extends Model
             throw new \InvalidArgumentException("Module invalide. Valeurs acceptées : naissance, deces, mariage");
         }
 
-        // Récupération des codes des institutions concernées
-        $institutionsCodes = match($module) {
-            'naissance', 'mariage' => $this->descendants()
+        if ($module === 'mariage') {
+            return collect();
+        }
+
+        $institutionsCodes = match ($module) {
+            'naissance' => $this->descendants()
                 ->filter(fn($institution) =>
                     $institution->typeInstitution?->code_type_categorie_ins === 'TCINS_0003'
                 )
-                ->pluck('code_institution'),
+                ->pluck('code_institution')
+                ->merge(
+                    InstitutionLien::query()
+                        ->where('code_institution_cible', $this->code_institution)
+                        ->where('code_type_lien', TypeLienInstitution::CODE_FORMATION_CEC_NAISSANCE)
+                        ->pluck('code_institution_source')
+                )
+                ->unique()
+                ->values(),
             'deces' => $this->descendants()
                 ->filter(fn($institution) =>
                     $institution->typeInstitution?->code_type_categorie_ins === 'TCINS_0003'
@@ -279,26 +306,20 @@ class Institution extends Model
                 ->values(),
         };
 
-        // Configuration spécifique par module
         $config = [
             'naissance' => [
                 'model' => Declarationnaissance::class,
                 'with' => ['enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte'],
-                'types' => ['DECLARATION DE NAISSANCE']
+                'types' => ['DECLARATION DE NAISSANCE'],
             ],
             'deces' => [
                 'model' => DeclarationDeces::class,
                 'with' => ['defunt', 'declarant', 'pere', 'mere', 'mouvements', 'acte'],
                 'types' => [
                     'DECLARATION DE DECES',
-                    'CERTIFICAT DE CONSTATATION DE DECES'
-                ]
+                    'CERTIFICAT DE CONSTATATION DE DECES',
+                ],
             ],
-            'mariage' => [
-                'model' => DeclarationMariage::class,
-                'with' => ['epoux', 'epouse', 'acte'],
-                'types' => ['DECLARATION DE MARIAGE']
-            ]
         ];
 
         $moduleConfig = $config[$module];
@@ -307,7 +328,7 @@ class Institution extends Model
             ->whereIn('type_declaration', $moduleConfig['types'])
             ->where([
                 'cec_approuver' => 'OUI',
-                'code_institution_destinataire' => $this->code_institution
+                'code_institution_destinataire' => $this->code_institution,
             ]);
 
         return $query->get();
@@ -341,7 +362,12 @@ class Institution extends Model
             'naissance' => [
                 'model' => Declarationnaissance::class,
                 'with' => ['enfant', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement'],
-                'types' => ["CERTIFICAT DE NON INSCRIPTION", "CERTIFICAT DE DESTRUCTION DE L'ACTE"]
+                'types' => [
+                    "CERTIFICAT DE NON INSCRIPTION",
+                    "CERTIFICAT DE DESTRUCTION DE L'ACTE",
+                    'FICHE DE TRANSCRIPTION',
+                    'CERTIFICAT DE TRANSCRIPTION',
+                ]
             ],
             'deces' => [
                 'model' => DeclarationDeces::class,
@@ -408,15 +434,15 @@ class Institution extends Model
             'mariage' => [
                 'model' => DeclarationMariage::class,
                 'with' => ['epoux', 'epouse', 'acte'],
-                'types' => ['DECLARATION DE MARIAGE']
-            ]
+                'types' => ['DECLARATION DE MARIAGE', 'DISPENSE'],
+            ],
         ];
 
         $moduleConfig = $config[$module];
         return $moduleConfig['model']::with($moduleConfig['with'])
             ->where([
                 'code_institution' => $this->code_institution,
-                'cec_approuver' => 'OUI'
+                'cec_approuver' => 'OUI',
             ])
             ->whereIn('type_declaration', $moduleConfig['types'])
             ->get();
@@ -429,24 +455,46 @@ class Institution extends Model
      */
     public function getStatistiquesDocuments($module)
     {
+        $modulesAvecStats = ['naissance', 'deces', 'mariage'];
+
         return [
-            'documents_a_controler' => $module == "naissance" || $module == "deces" ? $this->getDocumentsAControler($module)->count() : 0,
-            'actes_gestion' => $module == "naissance" || $module == "deces" ? $this->getActesGestion($module)->count() : 0,
-            'declarations_formation_sanitaire' => $module == "naissance" || $module == "deces" ? $this->getDeclarationsFormationSanitaireAControler($module)->count() : 0,
-            'certificats_centre_etat_civil' => $module == "naissance" || $module == "deces" ? $this->getDeclarationsWithRequisitionsOrJugements($module)->count() : 0,
+            'documents_a_controler' => in_array($module, $modulesAvecStats, true)
+                ? $this->getDocumentsAControler($module)->count()
+                : 0,
+            'actes_gestion' => in_array($module, $modulesAvecStats, true)
+                ? $this->getActesGestion($module)->count()
+                : 0,
+            'declarations_formation_sanitaire' => $module === 'naissance' || $module === 'deces'
+                ? $this->getDeclarationsFormationSanitaireAControler($module)->count()
+                : 0,
+            'certificats_centre_etat_civil' => in_array($module, $modulesAvecStats, true)
+                ? $this->getDeclarationsWithRequisitionsOrJugements($module)->count()
+                : 0,
         ];
     }
 
     /**
-     * Récupère tous les documents à contrôler (cec_approuver = NON)
-     * Combine les déclarations formation sanitaire + certificats centre état civil
+     * Récupère les documents à contrôler (cec_approuver = NON).
+     * Naissance / décès : déclarations reçues des formations sanitaires (ou partenaires décès).
+     * Mariage : dossiers saisis au CEC de ce centre, en attente de validation interne (pas de formation sanitaire).
      */
     public function getDocumentsAControler($module)
     {
+        if ($module === 'mariage') {
+            return DeclarationMariage::with(['epoux', 'epouse', 'mouvements'])
+                ->where('code_institution', $this->code_institution)
+                ->where('cec_approuver', 'NON')
+                ->get()
+                ->sortByDesc('date_declaration_mariage')
+                ->values();
+        }
+
         $documentsAControler = collect();
-        // 1. Déclarations de naissance et de deces envoyées par les formations sanitaires (non approuvées)
-        // $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module))->merge($this->getDeclarationsWithRequisitionsOrJugements($module)) : $documentsAControler;
-        $documentsAControler = $module == "naissance" || $module == "deces" ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module)) : $documentsAControler;
+        // $documentsAControler->merge($this->getDeclarationsWithRequisitionsOrJugements($module))
+        $documentsAControler = $module === 'naissance' || $module === 'deces'
+            ? $documentsAControler->merge($this->getDeclarationsFormationSanitaireAControler($module))
+            : $documentsAControler;
+
         return $documentsAControler->sortByDesc('date_heure_declaration');
     }
 
@@ -502,7 +550,7 @@ class Institution extends Model
             });
         };
 
-        // 1. Déclarations approuvées des formations sanitaires
+        // 1. Déclarations approuvées des formations sanitaires (vide pour le mariage)
         $addUniqueDeclarations($this->getDeclarationsFormationSanitaireApprouvees($module));
 
         // 2. Déclarations avec réquisitions/jugements approuvés
@@ -511,13 +559,33 @@ class Institution extends Model
         // 3. Déclarations directes du centre approuvées
         $addUniqueDeclarations($this->getDeclarationsCentreEtatCivilApprouvees($module));
 
+        if ($module === 'mariage') {
+            return $actesGestion->sortByDesc('date_declaration_mariage')->values();
+        }
+
         return $actesGestion->sortByDesc('date_heure_declaration');
     }
 
-    //une fonction qui permet de récuperer les institutions ayants le code_pompe_funebre comme parent
+    /**
+     * Institutions partenaires « pompe funèbre » pour ce CEC : ancienne colonne code_pompe_funebre
+     * (cible = cette institution) et liens tr_institution_lien (TPLIEN_0001, source → cible = cette institution).
+     */
     public function getInstitutionsPompeFunebre()
     {
-        return $this->where('code_pompe_funebre', $this->code_institution)->get();
+        $codesFromLiens = InstitutionLien::query()
+            ->where('code_institution_cible', $this->code_institution)
+            ->where('code_type_lien', TypeLienInstitution::CODE_PARTENAIRE_DECES_POMPE)
+            ->pluck('code_institution_source');
+
+        $fromLiens = static::query()
+            ->whereIn('code_institution', $codesFromLiens)
+            ->get();
+
+        $fromLegacy = static::query()
+            ->where('code_pompe_funebre', $this->code_institution)
+            ->get();
+
+        return $fromLiens->merge($fromLegacy)->unique('code_institution')->values();
     }
 
     //les appareils de l'institution

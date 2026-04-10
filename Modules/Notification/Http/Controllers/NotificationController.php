@@ -33,10 +33,16 @@ class NotificationController extends Controller
     public function read($id)
     {
         $notification = Auth::user()->notifications->find($id);
-        if ($notification) {
-            $notification->markAsRead();
+        if (! $notification) {
+            toastr()->warning('Notification introuvable ou déjà supprimée.');
+
+            return redirect()->route('notifications.index');
         }
-        return redirect($notification->data['url'] ?? route('notifications.index'));
+
+        $notification->markAsRead();
+        $url = $notification->data['url'] ?? null;
+
+        return $url ? redirect()->to($url) : redirect()->route('notifications.index');
     }
 
     /**
@@ -107,7 +113,7 @@ class NotificationController extends Controller
 
     public function unreadList()
     {
-        $notifications = Auth::user()->unreadNotifications->take(5);
+        $notifications = Auth::user()->unreadNotifications->take(8);
         $html = view('notification::partials.dropdown', compact('notifications'))->render();
         return response()->json(['html' => $html]);
     }

@@ -14,7 +14,7 @@
             <div class="card wizard-content">
                 <div class="card-body">
                     <div class="ligne">
-                        <h4>{{ $dn->type_declaration }} N° <strong>{{ $dn->code_declaration_naissance }}</strong></h4>
+                        <h4>{{ $dn->libelleAffichageType() }} N° <strong>{{ $dn->code_declaration_naissance }}</strong></h4>
                     </div>
 
                    <div class="row">

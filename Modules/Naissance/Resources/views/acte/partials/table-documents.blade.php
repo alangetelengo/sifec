@@ -10,7 +10,7 @@
         $acteValide = $dn->acte && $dn->acte->statut == 1 && $dn->acte->approbation_mairie;
         $dejaConfirme = in_array('MOUV_0019', $codesMouvements);
     @endphp
-    <tr width="100%" @if($dejaConfirme) style="background: #f5f5f5; color: #aaa;" @endif>
+    <tr width="100%" @if($dejaConfirme) class="table-light" @endif>
         <td>
             @if(!$dejaConfirme)
                 <input type="checkbox" class="checkbox-document" value="{{ $dn->code_declaration_naissance }}">
@@ -25,7 +25,7 @@
         <td>{{ $dn->type_declaration }}</td>
         <td style="width: 15%">
             @if($dernierMouvement)
-                @if($dernierMouvement->code_mouvement == 'MOUV_0001' || $dernierMouvement->code_mouvement == 'MOUV_0011' || $dernierMouvement->code_mouvement == 'MOUV_0024')
+                @if($dernierMouvement->code_mouvement == 'MOUV_0001' || $dernierMouvement->code_mouvement == 'MOUV_0035' || $dernierMouvement->code_mouvement == 'MOUV_0011' || $dernierMouvement->code_mouvement == 'MOUV_0024' || $dernierMouvement->code_mouvement == 'MOUV_0033')
                     <span class="badge light badge-warning" style="font-size: 13px;font-weight:600;">
                         Dossier reçu
                     </span>
@@ -46,6 +46,11 @@
                         {{ $dernierMouvement->lib_mouvement}}
                     </span>
                 @endif
+                @if($dernierMouvement->code_mouvement == 'MOUV_0019')
+                    <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
+                        Confirmé par le CEC
+                    </span>
+                @endif
                 <br>
                 @if($dernierMouvement->observation)
                     <small>Observation : {{ $dernierMouvement->observation }}</small>
@@ -56,22 +61,32 @@
             @endif
         </td>
         <td>
-            <div class="btn-group btn-group-xs">
+            <div class="d-flex flex-wrap align-items-center gap-1">
                 <a href="{{ route('declarationNaissance.show', $dn->code_declaration_naissance) }}"
-                   class="btn btn-info shadow btn-xs sharp me-1" title="Voir détail">
+                   class="btn btn-sm btn-info" title="Voir détail">
                     <i class="fas fa-eye"></i>
                 </a>
-                @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE']))
-                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le certificat de naissance">
+                @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'], true))
+                    {{-- PDF certificat (mise en page formation sanitaire) : toujours pour ces types --}}
+                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn btn-sm btn-warning"
+                       title="Ouvrir le PDF du certificat de naissance">
                         <i class="fas fa-file-medical"></i>
                     </a>
-                    @if($dn->type_declaration == 'DECLARATION DE NAISSANCE')
-                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir la déclaration de naissance">
-                        <i class="fas fa-file-alt"></i>
-                    </a>
+                    @if($dn->type_declaration === 'DECLARATION DE NAISSANCE')
+                        {{-- PDF déclaration telle que générée pour le centre d’état civil --}}
+                        <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}"
+                           target="_blank"
+                           rel="noopener"
+                           class="btn btn-sm btn-success"
+                           title="Ouvrir le PDF de la déclaration de naissance générée">
+                            <i class="fas fa-file-alt"></i>
+                        </a>
                     @endif
                 @else
-                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
+                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-sm btn-warning" title="Voir le document (PDF)">
                         <i class="fas fa-print"></i>
                     </a>
                 @endif
@@ -79,18 +94,18 @@
                 @if($dn->type_declaration != 'DECLARATION DE NAISSANCE')
                     @if(isset($dn->requisition) && $dn->requisition || isset($dn->jugement) && $dn->jugement)
                         <a href="{{ route('tribunal.voir_document', ['type' => "naissance", 'id' =>  $dn->code_declaration_naissance]) }}"
-                            class="btn btn-info btn-xs text-start me-1" title="Télécharger {{ $dn->requisition ? "la requisition importée" : "le jugement importé" }} par le tribunal">
+                            class="btn btn-sm btn-info" title="Télécharger {{ $dn->requisition ? "la requisition importée" : "le jugement importé" }} par le tribunal">
                             <i class="fas fa-download"></i>
                         </a>
                     @endif
                 @endif
                 @if(!$dejaConfirme)
-                <button class="btn btn-success shadow btn-xs sharp me-1 btn-confirmer-document"
+                <button type="button" class="btn btn-sm btn-success btn-confirmer-document"
                         data-id="{{ $dn->code_declaration_naissance }}" title="Confirmer le dossier">
                     <i class="fas fa-check"></i>
                 </button>
 
-                <button class="btn btn-warning shadow btn-xs sharp btn-renvoyer-document"
+                <button type="button" class="btn btn-sm btn-warning btn-renvoyer-document"
                         data-id="{{ $dn->code_declaration_naissance }}" title="Renvoyer">
                     <i class="fas fa-undo"></i>
                 </button>

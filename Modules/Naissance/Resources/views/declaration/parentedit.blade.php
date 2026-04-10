@@ -170,8 +170,12 @@
             </div>
 
             <div class="mb-2 col-md-4">
-                <label class="form-label">Email</label>
-                <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="Email père" value="{{ $dn->pere->user->email ?? '' }}">
+                <label class="form-label">E-mail personnel</label>
+                <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail personnel du père" autocomplete="email" value="{{ optional($dn->pere ? $dn->pere->contacts->first() : null)->email_personnelle ?? '' }}">
+            </div>
+            <div class="mb-2 col-md-4">
+                <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+                <input type="email" id="email_professionnel_pere" class="form-control" name="email_professionnel_pere" placeholder="E-mail professionnel du père" autocomplete="email" value="{{ optional($dn->pere ? $dn->pere->contacts->first() : null)->email_professionnelle ?? '' }}">
             </div>
 
             <div class="ligne">
@@ -376,15 +380,13 @@
             <label class="form-label">Téléphone mère</label>
             <input type="number" min="0" minlength="9" maxlength="15" id="telephone_mere" name="telephone_mere" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="Téléphone mère" value="{{ $dn->mere->telephone }}">
         </div>
-        @if($typeDeclaration == "FICHE DE MATERNITE")
-        <div class="col-md-3">
-            <label class="form-label">Téléphone tuteur</label>
-            <input type="number" min="0" minlength="9" maxlength="15" id="telephone_parent" name="telephone_parent" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="Téléphone mère" value="{{ $dn->mere->telephone }}">
-        </div>
-        @endif
         <div class="mb-2 col-md-3">
-            <label class="form-label">Email</label>
-            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="Email mère" value="{{ $dn->mere->user !='' ? $dn->mere->user->email : "" }}">
+            <label class="form-label">E-mail personnel</label>
+            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail personnel de la mère" autocomplete="email" value="{{ optional($dn->mere ? $dn->mere->contacts->first() : null)->email_personnelle ?? '' }}">
+        </div>
+        <div class="mb-2 col-md-3">
+            <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+            <input type="email" id="email_professionnel_mere" class="form-control" name="email_professionnel_mere" placeholder="E-mail professionnel de la mère" autocomplete="email" value="{{ optional($dn->mere ? $dn->mere->contacts->first() : null)->email_professionnelle ?? '' }}">
         </div>
 
         <div class="ligne">

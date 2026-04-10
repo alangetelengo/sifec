@@ -5,6 +5,7 @@
 @endsection
 
 @section("corps")
+<div class="page-sifec-form">
     <!-- row -->
     <div class="row" id="validation">
         <div class="col-12">
@@ -23,6 +24,7 @@
     @include("naissance::declaration.search_parents")
 
     {{-- @include("naissance::declaration.ajout_piece_parent") --}}
+</div>
 @endsection
 
 @include('naissance::jugementsupletif.js.create')

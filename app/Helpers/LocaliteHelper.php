@@ -3,9 +3,77 @@
 namespace App\Helpers;
 
 use Illuminate\Support\Collection;
+use Modules\Referentiel\Entities\Localite;
 
 class LocaliteHelper
 {
+    /**
+     * Districts (TPLOC_0002) et communes (TPLOC_0003), non supprimés (soft delete).
+     * Préférer cette méthode à where()->Orwhere() : même résultat SQL, plus lisible.
+     */
+    public static function communesEtDistricts(): Collection
+    {
+        $q = ['TPLOC_0002', 'TPLOC_0003'];
+
+        $rows = Localite::query()
+            ->whereIn('code_type_localite', $q)
+            ->orderBy('lib_localite')
+            ->get();
+
+        if ($rows->isNotEmpty()) {
+            return $rows;
+        }
+
+        return Localite::onlyTrashed()
+            ->whereIn('code_type_localite', $q)
+            ->orderBy('lib_localite')
+            ->get();
+    }
+
+    /**
+     * Arrondissements (TPLOC_0004) et communautés urbaines (TPLOC_0005).
+     */
+    public static function arrondissementsEtCommunautesUrbaines(): Collection
+    {
+        $q = ['TPLOC_0004', 'TPLOC_0005'];
+
+        $rows = Localite::query()
+            ->whereIn('code_type_localite', $q)
+            ->orderBy('lib_localite')
+            ->get();
+
+        if ($rows->isNotEmpty()) {
+            return $rows;
+        }
+
+        return Localite::onlyTrashed()
+            ->whereIn('code_type_localite', $q)
+            ->orderBy('lib_localite')
+            ->get();
+    }
+
+    /**
+     * Quartiers (TPLOC_0007) et villages (TPLOC_0008).
+     */
+    public static function quartiersEtVillages(): Collection
+    {
+        $q = ['TPLOC_0007', 'TPLOC_0008'];
+
+        $rows = Localite::query()
+            ->whereIn('code_type_localite', $q)
+            ->orderBy('lib_localite')
+            ->get();
+
+        if ($rows->isNotEmpty()) {
+            return $rows;
+        }
+
+        return Localite::onlyTrashed()
+            ->whereIn('code_type_localite', $q)
+            ->orderBy('lib_localite')
+            ->get();
+    }
+
     /**
      * Récupère toutes les localités d'un type donné (par code_type_localite)
      * @param string $codeTypeLocalite

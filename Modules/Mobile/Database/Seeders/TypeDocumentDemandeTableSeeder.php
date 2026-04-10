@@ -19,7 +19,7 @@ class TypeDocumentDemandeTableSeeder extends Seeder
         DB::statement('set foreign_key_checks = 0');
         DB::statement("truncate tr_type_document_demande");
 
-        $donnees = ["Copie","Extrait","Duplicata"];
+        $donnees = ["Copie","Extrait"];
         $data = [];
         for($i = 0; $i < count($donnees); $i++){
             $count = $i+1;

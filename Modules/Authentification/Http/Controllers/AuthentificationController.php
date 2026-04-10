@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Contracts\Support\Renderable;
+use App\Services\MetierDashboardService;
 use Modules\Deces\Entities\DeclarationDeces;
-use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Naissance\Entities\Declarationnaissance;
 
 class AuthentificationController extends Controller
@@ -31,6 +31,14 @@ class AuthentificationController extends Controller
 
         $categorie           = $typeIns ? $typeIns->typeCategorieInstitution : null;
         $codeTypeCategorie   = $categorie ? $categorie->code_type_categorie_ins : null;
+
+        if ($user && $affectation && $institution) {
+            $institution->loadMissing(['institutionParent', 'lieu', 'typeInstitution.typeCategorieInstitution', 'institutionsEnfants']);
+            $metier = app(MetierDashboardService::class)->resolve($user);
+            if ($metier !== null) {
+                return view($metier['view'], $metier['data']);
+            }
+        }
 
         /*
          * Stratégie de filtrage par institution :
@@ -211,6 +219,11 @@ class AuthentificationController extends Controller
 
         // Audit trail pour connexion réussie
         UserAuditTrail::log($user->code_user, 'login', "Connexion réussie");
+
+        if ($user->must_change_password) {
+            return redirect()->route('first-login-password.show')
+                ->with('first_login_notice', true);
+        }
 
         toastr()->success("Connexion réussie");
 
@@ -494,5 +507,67 @@ class AuthentificationController extends Controller
 
     public function home(){
         return view('home');
+    }
+
+    /**
+     * Formulaire obligatoire après connexion si must_change_password (compte créé avec mot de passe provisoire).
+     */
+    public function showFirstLoginPassword()
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+        $user = Auth::user();
+        if (! $user->must_change_password) {
+            return redirect()->route('dashboard.index');
+        }
+
+        return view('auth.first-login-password');
+    }
+
+    /**
+     * Enregistre le nouveau mot de passe et lève l'obligation de changement.
+     */
+    public function updateFirstLoginPassword(Request $request)
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+        $user = Auth::user();
+        if (! $user->must_change_password) {
+            return redirect()->route('dashboard.index');
+        }
+
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'current_password.required' => 'Le mot de passe provisoire est obligatoire.',
+            'new_password.required' => 'Le nouveau mot de passe est obligatoire.',
+            'new_password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+            'new_password.confirmed' => 'La confirmation ne correspond pas.',
+        ]);
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Le mot de passe provisoire est incorrect.'])->withInput();
+        }
+
+        if ($request->new_password === '123456') {
+            return back()->withErrors(['new_password' => 'Vous devez choisir un mot de passe différent du mot de passe provisoire (123456).'])->withInput();
+        }
+
+        if (Hash::check($request->new_password, $user->password)) {
+            return back()->withErrors(['new_password' => 'Le nouveau mot de passe doit être différent du mot de passe provisoire.'])->withInput();
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->must_change_password = false;
+        $user->save();
+
+        UserAuditTrail::log($user->code_user, 'password_change', 'Mot de passe personnel défini (première connexion après compte provisoire)');
+
+        toastr()->success('Votre mot de passe a été enregistré. Bienvenue sur SIFEC.');
+
+        return redirect()->route('dashboard.index');
     }
 }

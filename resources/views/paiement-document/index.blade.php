@@ -11,6 +11,9 @@ Actes de naissance
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -236,9 +239,9 @@ Actes de naissance
     </div>
 </div>
 {{-- FIN MODAL RETRAIT ACTE DE NAISSACE --}}
-
-
-
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 <!-- Datatable -->

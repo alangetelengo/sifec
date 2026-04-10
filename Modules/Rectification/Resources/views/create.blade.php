@@ -6,8 +6,6 @@ Rectification Acte
 @section("styles")
 <!-- Datatable -->
     <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
     <style>
         @media print {
             body * { visibility: hidden; }
@@ -56,24 +54,137 @@ Rectification Acte
             transform: translate(-50%, -50%);
             color: #fff;
         }
+
+        /* Compléments charte formulaire SIFEC — rectification */
+        .sifec-page-rectification-create .sifec-rectif-step-panel {
+            border-top: 1px solid var(--pu-line);
+            margin-top: 1.25rem;
+            padding-top: 1.35rem;
+            background: linear-gradient(180deg, #fafcfb 0%, #fff 12%);
+            border-radius: 0 0 var(--pu-radius) var(--pu-radius);
+            margin-left: -1.35rem;
+            margin-right: -1.35rem;
+            margin-bottom: -1.5rem;
+            padding-left: 1.35rem;
+            padding-right: 1.35rem;
+            padding-bottom: 1.5rem;
+        }
+        .sifec-page-rectification-create .sifec-rectif-hint {
+            border-radius: 10px;
+            border: 1px solid #b8d4ce;
+            background: linear-gradient(135deg, #f0f9f7 0%, #e8f4f1 100%);
+            color: #1e4d42;
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .sifec-page-rectification-create .sifec-rectif-table-wrap {
+            border: 1px solid var(--pu-line);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(26, 46, 38, 0.06);
+        }
+        .sifec-page-rectification-create .sifec-rectif-table-wrap table thead th {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--pu-muted);
+            font-weight: 700;
+            border-bottom-width: 1px;
+        }
+        .sifec-page-rectification-create .sifec-rectif-actions-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.65rem;
+            margin: 1rem 0 0.75rem;
+        }
+        @media (max-width: 767.98px) {
+            .sifec-page-rectification-create .sifec-rectif-step-panel {
+                margin-left: -1rem;
+                margin-right: -1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+
+        /* SweetAlert2 — confirmation suppression rectification (charte SIFEC) */
+        .sifec-swal-rectif-popup {
+            border-radius: 16px !important;
+            border: 1px solid #e2e8e4 !important;
+            box-shadow: 0 22px 55px rgba(26, 46, 38, 0.16) !important;
+            padding: 0.25rem 0.5rem 1.25rem !important;
+        }
+        .sifec-swal-rectif-popup .swal2-title {
+            padding: 0.85rem 0.5rem 0.35rem !important;
+            font-size: 1.2rem !important;
+            font-weight: 700 !important;
+            color: #1a2e26 !important;
+            letter-spacing: -0.02em;
+        }
+        .sifec-swal-rectif-popup .swal2-html-container {
+            margin: 0.35rem 0.5rem 0.5rem !important;
+            font-size: 0.95rem !important;
+            line-height: 1.55 !important;
+            color: #5c6d66 !important;
+        }
+        .sifec-swal-rectif-popup .swal2-icon.swal2-warning {
+            border-color: #f59e0b !important;
+            color: #d97706 !important;
+            margin: 1.25rem auto 0.5rem !important;
+        }
+        .sifec-swal-rectif-popup .swal2-actions {
+            margin: 1.15rem auto 0 !important;
+            gap: 0.65rem !important;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .sifec-swal-rectif-popup .swal2-actions .swal2-confirm.btn-danger {
+            background: #b91c1c !important;
+            border-color: #b91c1c !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+            padding: 0.5rem 1.15rem !important;
+            border-radius: 10px !important;
+            box-shadow: 0 2px 10px rgba(185, 28, 28, 0.28);
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+        }
+        .sifec-swal-rectif-popup .swal2-actions .swal2-confirm.btn-danger:hover {
+            background: #991b1b !important;
+            border-color: #991b1b !important;
+        }
+        .sifec-swal-rectif-popup .swal2-actions .swal2-cancel {
+            background: #fff !important;
+            border: 1px solid #cfd8d3 !important;
+            color: #1a2e26 !important;
+            font-weight: 600 !important;
+            padding: 0.5rem 1.15rem !important;
+            border-radius: 10px !important;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .sifec-swal-rectif-popup .swal2-actions .swal2-cancel:hover {
+            background: #f4f7f5 !important;
+            border-color: #b8c4bc !important;
+        }
     </style>
 @endsection
 
 @section('corps')
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-header">
-                <h4>Formulaire de rectification d'acte</h4>
-                 <a href="{{ route("rectification.index") }}"><button type="button" class="btn btn-sm btn-warning">Liste des rectifications</button></a>
+<div class="page-sifec-form sifec-page-rectification-create">
+    <div class="pu-card">
+        <div class="card-header d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+                <h4 class="mb-1">Rectification d’acte</h4>
+                <p class="mb-0 small text-muted">Renseignez le réquerant et l’adresse, identifiez l’acte, puis saisissez les rubriques à corriger.</p>
             </div>
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row">
-                            {{-- <h5> <i class="flaticon-381-file-1"></i><strong style="font-weight:bolder"> Informations sur réquerant </strong></h5><hr> --}}
-                             <div class="ligne">
-                                <h4>Informations du réquerant</h4>
+            <a href="{{ route('rectification.index') }}" class="btn btn-sm pu-btn-back text-decoration-none">
+                <i class="fas fa-arrow-left me-1"></i> Liste des rectifications
+            </a>
+        </div>
+        <div class="card-body">
+                        <div class="row g-3">
+                             <div class="col-12">
+                                <div class="ligne"><h4><i class="fas fa-user me-1 opacity-75"></i> Informations du réquerant</h4></div>
                             </div>
                             <div class="mb-2 col-md-3">
                                 <label class="form-label">Nom <span class="text-danger">*</span></label>
@@ -98,8 +209,8 @@ Rectification Acte
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="ligne">
-                                <h4>ADRESSE</h4>
+                            <div class="col-12">
+                                <div class="ligne"><h4><i class="fas fa-map-marker-alt me-1 opacity-75"></i> Adresse du réquerant</h4></div>
                             </div>
                              <div class="mb-2 col-md-3">
                                 <label class="form-label">Département <span class="text-danger">*</span></label>
@@ -153,32 +264,37 @@ Rectification Acte
                             </div>
 
 
-                            {{-- <h5> <i class="flaticon-381-file-1"></i><strong style="font-weight:bolder"> Informations sur l'acte </strong></h5><hr> --}}
-                            <div class="ligne">
-                                <h4>Informations sur l'acte</h4>
+                            <div class="col-12">
+                                <div class="ligne"><h4><i class="fas fa-file-alt me-1 opacity-75"></i> Acte à rectifier</h4></div>
                             </div>
-                            <div class="mb-2 col-md-5">
+                            <div class="mb-2 col-md-5 col-lg-4">
                                 <label class="form-label">Type d'acte <span class="text-danger">*</span></label>
-                                <select type="text" class="form-control" id="type_acte">
+                                <select class="form-control" id="type_acte">
                                     <option selected disabled>Sélectionner</option>
                                     @foreach ($typesActe as $type)
                                            <option value="{{ $type->code_type_acte }}" class="">{{ $type->lib_type_acte }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="mb-2 col-md-5">
+                            <div class="mb-2 col-md-4 col-lg-4">
                                 <label class="form-label">Numéro de l'acte <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control"  placeholder="" id="numero_acte">
+                                <input type="text" class="form-control" placeholder="Numéro d'acte" id="numero_acte" autocomplete="off">
                             </div>
 
-                             <div class="mb-2 col-md-2">
-                                <button class="btn btn-success" style="margin-top:30px; height:45px" id="btn_afficher_form">Continuer</button>
+                             <div class="mb-2 col-md-3 col-lg-4 d-flex align-items-end">
+                                <button type="button" class="btn pu-btn-submit w-100 py-2" id="btn_afficher_form"><i class="fas fa-search me-1"></i> Continuer</button>
                             </div>
                         </div>
-                        <div class="row" style="margin-top:30px" id="form_rectification">
-                            {{-- <h5> <i class="flaticon-381-layer-1"></i><strong style="font-weight:bolder"> Détails de la rectification </strong></h5><hr> --}}
-                            <div class="ligne">
-                                <h4>Détail de la rectification</h4>
+
+                        <div class="row g-3 sifec-rectif-step-panel" id="form_rectification" style="display: none;">
+                            <div class="col-12">
+                                <div class="sifec-rectif-hint mb-0">
+                                    <i class="fas fa-layer-group me-1"></i>
+                                    <strong>Étape suivante :</strong> choisissez la rubrique, vérifiez l’ancienne valeur, saisissez la nouvelle valeur puis enregistrez. Vous pouvez enchaîner plusieurs rectifications pour le même acte avant d’imprimer la fiche.
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="ligne"><h4><i class="fas fa-edit me-1 opacity-75"></i> Détail de la rectification</h4></div>
                             </div>
                             <div class="mb-2 col-md-3">
                                 <label class="form-label">Rubrique <span class="text-danger">*</span></label>
@@ -193,68 +309,68 @@ Rectification Acte
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="mb-2 col-md-3">
-                                <label class="form-label">Ancienne valeur </label>
-                                <input type="tel" class="form-control" readonly id="anciennce_valeur">
-
+                            <div class="mb-2 col-md-4 col-lg-3">
+                                <label class="form-label">Ancienne valeur</label>
+                                <input type="text" class="form-control bg-light" readonly id="anciennce_valeur" placeholder="—">
                             </div>
 
-                             <div class="mb-2 col-md-3">
-                                <label class="form-label">Nouvelle valeur </label>
-                                <input type="tel" class="form-control"  id="nouvelle_valeur">
-
+                             <div class="mb-2 col-md-4 col-lg-3">
+                                <label class="form-label">Nouvelle valeur <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nouvelle_valeur" placeholder="Saisie selon la rubrique">
                             </div>
 
-                            <div class="mb-2 col-md-12">
-                                <label class="form-label">Pièce justificative <span class="text-muted">(non obligatoire)</span></label>
+                            <div class="mb-2 col-md-12 col-lg-6">
+                                <label class="form-label">Pièce justificative <span class="text-muted fw-normal">(facultatif)</span></label>
                                 <input type="file" class="form-control" id="piece_justificative" name="piece_justificative" accept=".pdf,.jpg,.jpeg,.png">
-                                <div class="form-text">PDF ou image</div>
+                                <div class="form-text">Formats acceptés : PDF, JPG, PNG</div>
                             </div>
 
-                            <div class="mb-2 col-md-3">
-                                <button class="btn btn-success form-control" style="margin-top:30px; height:45px;color:white" id="btn_enregistrer_rectification">  Enregistrer</button>
-
+                            <div class="mb-2 col-md-6 col-lg-3 d-flex align-items-end">
+                                <button type="button" class="btn pu-btn-submit w-100 py-2" id="btn_enregistrer_rectification"><i class="fas fa-save me-1"></i> Enregistrer</button>
                             </div>
 
-                            <hr>
-                            {{-- Affichage du bouton d'impression si des rectifications sont présentes --}}
-                            <div class="mb-2 col-md-12">
-                                <button class="btn btn-primary" id="btn_imprimer_rectification" style="margin-top:30px; height:45px; color:white">Imprimer la rectification</button>
+                            <div class="col-12">
+                                <div class="sifec-rectif-actions-bar">
+                                    <button type="button" class="btn btn-primary px-3 py-2 rounded-3 fw-semibold shadow-sm" id="btn_imprimer_rectification">
+                                        <i class="fas fa-print me-1"></i> Imprimer la fiche
+                                    </button>
+                                    <span class="small text-muted">Disponible dès qu’au moins une ligne figure dans le tableau ci-dessous.</span>
+                                </div>
                             </div>
 
-                            <div class="table-responsive">
-                                <table id="example" class="display table table-bordered table-striped" style="min-width: 845px">
-                                    <thead>
-                                        <tr>
-                                            <th>Rubrique</th>
-                                            <th>Ancienne valeur</th>
-                                            <th>Nouvelle valeur</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody_rectification">
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted">Aucune rectification enregistrée</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="col-12">
+                                <div class="sifec-rectif-table-wrap">
+                                    <div class="table-responsive">
+                                        <table id="example" class="display table table-hover table-striped align-middle mb-0" style="min-width: 845px">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Rubrique</th>
+                                                    <th>Ancienne valeur</th>
+                                                    <th>Nouvelle valeur</th>
+                                                    <th class="text-end" style="width: 9rem;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tbody_rectification">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted py-4">Aucune rectification enregistrée</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 </div>
 
 {{-- Modal affichage PDF fiche de rectification (PDF.js comme acte.blade.php) --}}
-<div class="modal fade" id="modal-pdf-rectification" tabindex="-1" aria-labelledby="modalPdfRectificationLabel" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade modal-utilisateur-sifec" id="modal-pdf-rectification" tabindex="-1" aria-labelledby="modalPdfRectificationLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalPdfRectificationLabel">Fiche de rectification</h5>
+                <h5 class="modal-title" id="modalPdfRectificationLabel"><i class="fas fa-file-pdf text-danger me-2"></i>Fiche de rectification</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body p-0">
@@ -268,15 +384,14 @@ Rectification Acte
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                <button type="button" class="btn btn-primary" id="btn-print-pdf-rectif">
+                <button type="button" class="btn btn-outline-secondary rounded-3 fw-semibold" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-primary rounded-3 fw-semibold px-3" id="btn-print-pdf-rectif">
                     <i class="fas fa-print me-1"></i> Imprimer
                 </button>
             </div>
         </div>
     </div>
 </div>
-
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -550,11 +665,12 @@ Rectification Acte
                 window.print();
             });
 
+            var localiteEnfantsUrlTpl = @json(route('localite.children', ['code' => '__PARENT_CODE__']));
+
             //permet de remplir le select des communes en fonction du département selectionné
             $("#code_departement").change(function(){
                 var codeDepartement = $(this).val();
-                var route = "{{ route('localite.commune.district',':id') }}";
-                route = route.replace(':id', codeDepartement);
+                var route = localiteEnfantsUrlTpl.replace('__PARENT_CODE__', encodeURIComponent(codeDepartement)) + '?types=' + encodeURIComponent('TPLOC_0003,TPLOC_0002');
                 $.get(route, function(response) {
                     $("#sub_departement").empty();
                     $("#sub_departement").append("<option selected disabled>Sélectionner</option>");
@@ -567,8 +683,7 @@ Rectification Acte
             //permet de remplir le select des arrondissements en fonction de la commune selectionnée
             $("#sub_departement").change(function(){
                 var codeCommune = $(this).val();
-                var route = "{{ route('localite.arrondissement.communaute',':id') }}";
-                route = route.replace(':id', codeCommune);
+                var route = localiteEnfantsUrlTpl.replace('__PARENT_CODE__', encodeURIComponent(codeCommune)) + '?types=' + encodeURIComponent('TPLOC_0004,TPLOC_0005');
                 $.get(route, function(response) {
                     $("#sub_arrondissement").empty();
                     $("#sub_arrondissement").append("<option selected disabled>Sélectionner</option>");
@@ -581,8 +696,7 @@ Rectification Acte
             //permet de remplir le select des quartiers en fonction de l'arrondissement selectionné
             $("#sub_arrondissement").change(function(){
                 var codeArrondissement = $(this).val();
-                var route = "{{ route('localite.quartier.village',':id') }}";
-                route = route.replace(':id', codeArrondissement);
+                var route = localiteEnfantsUrlTpl.replace('__PARENT_CODE__', encodeURIComponent(codeArrondissement)) + '?types=' + encodeURIComponent('TPLOC_0006,TPLOC_0007');
                 $.get(route, function(response) {
                     $("#quartier").empty();
                     $("#quartier").append("<option selected disabled>Sélectionner</option>");
@@ -603,6 +717,10 @@ Rectification Acte
             type_acte: (typeacte || '').toString().trim(),
             _token: "{{ csrf_token() }}"
         };
+        var btnContinuer = document.getElementById('btn_afficher_form');
+        if (btnContinuer) {
+            sifecBtnLoading(btnContinuer, 'Recherche...');
+        }
         $.ajax({
             type: "POST",
             url: route,
@@ -626,6 +744,11 @@ Rectification Acte
                 var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "Erreur lors de la recherche de l'acte.";
                 flashAlert("Erreur", "error", msg);
                 $("#form_rectification").hide(300);
+            },
+            complete: function() {
+                if (btnContinuer) {
+                    sifecBtnReset(btnContinuer, 'Continuer');
+                }
             }
         });
     }
@@ -655,6 +778,10 @@ Rectification Acte
         if (fileInput && fileInput.files && fileInput.files[0]) {
             formData.append("piece_justificative", fileInput.files[0]);
         }
+        var btnEnregistrer = document.getElementById('btn_enregistrer_rectification');
+        if (btnEnregistrer) {
+            sifecBtnLoading(btnEnregistrer, 'Enregistrement...');
+        }
         $.ajax({
             type: "POST",
             url: route,
@@ -668,7 +795,6 @@ Rectification Acte
                 if(response.code == "200"){
                    flashAlert("Réponse","success",response.message);
                     getDetailsRectification(numeroActe, typeActe);
-                    $("#tbody_rectification").append("<tr><td>"+librubrique+"</td><td>"+anienneValeur+"</td><td>"+nouvelleValeur+"</td><td><button class='btn btn-danger btn-sm btn-delete-rubrique' code='"+response.data.details.code_detail_rectification+"' onclick='deleteRectification(\""+response.data.details.code_detail_rectification+"\")'>Supprimer</button></td></tr>");
                     $("#piece_justificative").val("");
                 }
                 if(response.code == "500" || response.code == "400"){
@@ -676,6 +802,15 @@ Rectification Acte
                 }
                 if(response.code == "403"){
                     flashAlert("Rectification non autorisée", "error", response.message);
+                }
+            },
+            error: function(xhr) {
+                var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "Erreur lors de l'enregistrement.";
+                flashAlert("Erreur", "error", msg);
+            },
+            complete: function() {
+                if (btnEnregistrer) {
+                    sifecBtnReset(btnEnregistrer, 'Enregistrer');
                 }
             }
         });
@@ -703,8 +838,8 @@ Rectification Acte
                                 "<td><strong>" + (item.lib_rubrique || '-') + "</strong></td>" +
                                 "<td>" + ancienneVal + "</td>" +
                                 "<td><strong class='text-success'>" + (item.nouvelle_valeur || '-') + "</strong></td>" +
-                                "<td>" +
-                                "<button class='btn btn-danger btn-sm btn-delete-rubrique' " +
+                                "<td class='text-end'>" +
+                                "<button type='button' class='btn btn-outline-danger btn-sm btn-delete-rubrique' " +
                                 "code='" + item.code_detail_rectification + "' " +
                                 "onclick='deleteRectification(\"" + item.code_detail_rectification + "\")' " +
                                 "title='Supprimer cette rectification'>" +
@@ -770,16 +905,36 @@ Rectification Acte
     });
 
 
-    //Fonction de flashAlert confirmation
-    function flashAlertConfirmationWithCallback(titre,icon,message,callback){
+    /**
+     * Confirmation SweetAlert2 — style SIFEC (boutons Bootstrap, carte arrondie).
+     * Paramètres : titre, icon (warning|question|info), message, callback, opts optionnel
+     * (confirmText, cancelText, destructive).
+     */
+    function flashAlertConfirmationWithCallback(titre, icon, message, callback, opts) {
+        opts = opts || {};
+        var confirmText = opts.confirmText || 'Confirmer';
+        var cancelText = opts.cancelText || 'Annuler';
+        var destructive = opts.destructive !== false;
         Swal.fire({
             title: titre,
             text: message,
             icon: icon,
+            iconColor: icon === 'warning' ? '#d97706' : undefined,
             showCancelButton: true,
-            confirmButtonText: 'Oui',
-            cancelButtonText: 'Non'
-        }).then((result) => {
+            focusCancel: true,
+            reverseButtons: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: cancelText,
+            buttonsStyling: false,
+            width: '28rem',
+            padding: '1.25rem',
+            customClass: {
+                popup: 'sifec-swal-rectif-popup',
+                actions: 'sifec-swal-rectif-actions',
+                confirmButton: destructive ? 'swal2-confirm btn btn-danger' : 'swal2-confirm btn btn-success',
+                cancelButton: 'swal2-cancel'
+            }
+        }).then(function (result) {
             if (result.isConfirmed) {
                 callback();
             }
@@ -790,9 +945,9 @@ Rectification Acte
     // Fonction de suppression de la rectification
     function deleteRectification(code){
         flashAlertConfirmationWithCallback(
-            "Confirmation",
+            "Supprimer cette rectification ?",
             "warning",
-            "Êtes-vous sûr de vouloir supprimer cette rectification ?",
+            "Cette action retirera la ligne du tableau. Vous pourrez en ajouter d’autres tant que la fiche n’est pas finalisée.",
             function() {
                 var route = "{{ route('rectification.destroy',':id') }}";
                 route = route.replace(':id', code);
@@ -827,7 +982,8 @@ Rectification Acte
                         flashAlert("Erreur", "error", msg);
                     }
                 });
-            }
+            },
+            { confirmText: 'Oui, supprimer', cancelText: 'Annuler', destructive: true }
         );
     }
 

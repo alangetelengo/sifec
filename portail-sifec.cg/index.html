@@ -1146,7 +1146,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                       var numeroActe = $("#NumActe").val();
                       //récupération
                       var data = {type_acte:typeActe,numero_acte:numeroActe, administration:admin};
-                      var connexion = 'http://192.168.0.190/sifec/public/api/v1/authentification';
+                      var connexion = 'http://192.168.100.84/sifec/public/api/v1/authentification';
                       //gestion de la connexion
                       var httpRequest =  $.post(connexion, data);
 
@@ -1780,7 +1780,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
 
 
         //récupération de la liste des CEC
-        var connexion1 = 'http://192.168.0.190/sifec/public/api/v1/listeCec'   ;
+        var connexion1 = 'http://192.168.100.84/sifec/public/api/v1/listeCec'   ;
         //kendo.alert("ok");
         var data1 ="";
         var httpRequest1 =  $.get(connexion1, data1);
@@ -1892,7 +1892,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                     //exit();
 
                      //Appel du service demandeActe
-                     var connexion = 'http://192.168.0.190/sifec/public/api/v1/demandeActe';
+                     var connexion = 'http://192.168.100.84/sifec/public/api/v1/demandeActe';
                     //Traitement de la réponse
                     var httpRequest =  $.post(connexion, dataDemande);
                     //Retour en cas de succès
@@ -2324,7 +2324,8 @@ box-shadow: 0px 3px 9px -3px #000000;">
                                template:" <div id='daterangepicker' title='daterangepicker'></div>"
 
                             },
-                            { type: "button", text: "Rechercher", icon:"search" },
+                            { type: "button", text: "Rechercher", icon:"search", attributes: { id: "btnRechercheJournal" } },
+                            { type: "button", text: "Réinitialiser", icon:"reload", attributes: { id: "btnResetJournal" } },
 
                         ]
 
@@ -2336,23 +2337,14 @@ box-shadow: 0px 3px 9px -3px #000000;">
                         optionLabel: "Département",
                         dataTextField: "text",
                         dataValueField: "value",
-                        dataSource: [
-                            { text: "Brazzaville", value: 1 },
-                            { text: "Pointe-Noire", value: 2 },
-
-                        ]
+                        dataSource: []
                     });
 
                     $("#dropdownCec").kendoDropDownList({
                         optionLabel: "Centre d'état civil",
                         dataTextField: "text",
                         dataValueField: "value",
-                        dataSource: [
-                            { text: "BACONGO", value: 1 },
-                            { text: "MOUNGALI", value: 2 },
-                            { text: "MAKELEKELE", value: 3 },
-
-                        ]
+                        dataSource: []
                     });
 
 
@@ -2391,8 +2383,16 @@ box-shadow: 0px 3px 9px -3px #000000;">
 
             $("#grid").kendoGrid({
                 dataSource: {
-                    data: '',
+                    transport: {
+                        read: {
+                            url: "http://192.168.100.84/sifec/public/api/v1/banMariage",
+                            dataType: "json",
+                            type: "GET"
+                        }
+                    },
                     schema: {
+                        data: "data",
+                        total: "total",
                         model: {
                             fields: {
 
@@ -2400,11 +2400,16 @@ box-shadow: 0px 3px 9px -3px #000000;">
                                 NomEpoux: { type: "string" },
                                 NomEpouse: { type: "string" },
                                 DateCelebration: { type: "date" },
-                                LieuCelebration: { type: "string" }
+                                LieuCelebration: { type: "string" },
+                                Departement: { type: "string" },
+                                Institution: { type: "string" }
 
                             }
                         }
                     },
+                    serverPaging: false,
+                    serverFiltering: false,
+                    serverSorting: false,
                     pageSize: 20
                 },
                 height: 550,
@@ -2416,14 +2421,93 @@ box-shadow: 0px 3px 9px -3px #000000;">
                     numeric: false
                 },
                 columns: [
-
-                    { field: "NumeroDeclaration", title: "Formualire type" },
+                    { field: "Departement", title: "Département" },
+                    { field: "Institution", title: "Institution" },
+                   
                     { field: "NomEpoux", title: "Nom Epoux" },
                     { field: "NomEpouse", title: "Nom Epouse" },
-                    { field: "DateCelebration", title: "Date de célébration" },
-                    { field: "LieuCelebration", title: "Lieu de célébration" }
+                    { field: "DateCelebration", title: "Date de célébration", format: "{0:dd/MM/yyyy}" },
+                    { field: "LieuCelebration", title: "Lieu de célébration" },
+                   
 
                 ]
+            });
+
+            var gridJournal = $("#grid").data("kendoGrid");
+            var depJournal = $("#dropdownDep").data("kendoDropDownList");
+            var cecJournal = $("#dropdownCec").data("kendoDropDownList");
+
+            function uniqueSortedValues(rows, key) {
+                var values = {};
+                for (var i = 0; i < rows.length; i++) {
+                    var value = (rows[i][key] || "").toString().trim();
+                    if (value !== "") {
+                        values[value] = true;
+                    }
+                }
+                return Object.keys(values).sort();
+            }
+
+            function toDropDownItems(values) {
+                return values.map(function(item) {
+                    return { text: item, value: item };
+                });
+            }
+
+            function getRowsFromGrid() {
+                var data = gridJournal.dataSource.data();
+                return data && data.toJSON ? data.toJSON() : [];
+            }
+
+            function loadDepartements() {
+                var rows = getRowsFromGrid();
+                depJournal.dataSource.data(toDropDownItems(uniqueSortedValues(rows, "Departement")));
+            }
+
+            function loadInstitutionsByDepartement(departement) {
+                var rows = getRowsFromGrid();
+                var filteredRows = rows;
+
+                if (departement) {
+                    filteredRows = rows.filter(function(row) {
+                        return (row.Departement || "").toString().trim() === departement;
+                    });
+                }
+
+                cecJournal.value("");
+                cecJournal.dataSource.data(toDropDownItems(uniqueSortedValues(filteredRows, "Institution")));
+            }
+
+            depJournal.bind("change", function() {
+                loadInstitutionsByDepartement(this.value());
+            });
+
+            gridJournal.bind("dataBound", function() {
+                loadDepartements();
+                loadInstitutionsByDepartement(depJournal.value());
+            });
+
+            $("#btnRechercheJournal").on("click", function() {
+                var departement = depJournal.value();
+                var institution = cecJournal.value();
+                var filters = [];
+
+                if (departement) {
+                    filters.push({ field: "Departement", operator: "eq", value: departement });
+                }
+
+                if (institution) {
+                    filters.push({ field: "Institution", operator: "eq", value: institution });
+                }
+
+                gridJournal.dataSource.filter(filters.length ? { logic: "and", filters: filters } : {});
+            });
+
+            $("#btnResetJournal").on("click", function() {
+                depJournal.value("");
+                cecJournal.value("");
+                gridJournal.dataSource.filter({});
+                loadInstitutionsByDepartement("");
             });
 
             var frmDec = $("#frmDec"),
@@ -2654,7 +2738,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                 var data = {code_administration:idAdmin};
 
                         //récuépration historique des authentifications
-                      var connexion = 'http://192.168.0.190/sifec/public/api/v1/historiqueAuthentification';
+                      var connexion = 'http://192.168.100.84/sifec/public/api/v1/historiqueAuthentification';
                       //gestion de la connexion
                        var httpRequest =  $.post(connexion, data);
 

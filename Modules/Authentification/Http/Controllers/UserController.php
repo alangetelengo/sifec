@@ -19,6 +19,8 @@ use Modules\Referentiel\Entities\Fonction;
 use Modules\Referentiel\Entities\Personne;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use App\Models\UserAuditTrail;
 use Modules\Authentification\Entities\Fonctionnalite;
 use Modules\Referentiel\Entities\Profession;
 use Modules\Referentiel\Entities\Commune;
@@ -164,6 +166,7 @@ class UserController extends Controller
                 $user->password = Hash::make("123456");
                 $user->code_personne = $personne->code_personne;
                 $user->status = 1;
+                $user->must_change_password = true;
                 $user->save();
             }
 
@@ -322,7 +325,7 @@ class UserController extends Controller
 
     public function profile($id){
 
-        $user = User::find($id);
+        $user = User::query()->with(['personne.contacts'])->find($id);
         //charger les permissions
         $permissions = Fonctionnalite::all();
         if($user == null){
@@ -331,6 +334,236 @@ class UserController extends Controller
         }
 
         return view('authentification::utilisateur.profile',compact('user','permissions'));
+    }
+
+    /**
+     * Journal d'audit des comptes (table tr_user_audit_trail) — réservé au menu Administration.
+     */
+    public function auditJournal(Request $request)
+    {
+        $query = UserAuditTrail::query()
+            ->with(['user.personne'])
+            ->orderByDesc('created_at');
+
+        if ($request->filled('code_user')) {
+            $q = trim($request->code_user);
+            $query->where('code_user', 'like', '%'.$q.'%');
+        }
+
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+
+        if ($request->filled('date_debut')) {
+            $query->whereDate('created_at', '>=', $request->date_debut);
+        }
+
+        if ($request->filled('date_fin')) {
+            $query->whereDate('created_at', '<=', $request->date_fin);
+        }
+
+        $rows = $query->paginate(40)->appends($request->except('page'));
+        $actionLabels = UserAuditTrail::getAvailableActions();
+
+        return view('authentification::utilisateur.audit_journal', compact('rows', 'actionLabels'));
+    }
+
+    /**
+     * Page dédiée : mise à jour coordonnées, affectation et compte (depuis le profil).
+     */
+    public function editProfileData($id)
+    {
+        $user = User::find($id);
+        if ($user === null) {
+            toastr()->error("Impossible d'effectuer cette opération", 'Gestion des utilisateurs');
+
+            return back();
+        }
+
+        $nationalites = Nationalite::all();
+        $niveauInstructions = Sifec::niveauInstructions();
+        $typeDocuments = TypeDocument::all();
+        $fonctions = Fonction::all();
+        $institutions = Institution::all();
+
+        $auditHistory = UserAuditTrail::byUser($user->code_user)
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get();
+
+        $affActive = $user->affectationActive();
+        $pieceNominationChemin = $affActive ? $affActive->piece_nomination_chemin : null;
+        $codeFonctionActuel = $affActive?->code_fonction;
+        $codeInstitutionActuel = $affActive?->code_institution;
+
+        return view('authentification::utilisateur.profile_mise_a_jour', compact(
+            'user',
+            'nationalites',
+            'niveauInstructions',
+            'typeDocuments',
+            'fonctions',
+            'institutions',
+            'auditHistory',
+            'pieceNominationChemin',
+            'codeFonctionActuel',
+            'codeInstitutionActuel'
+        ));
+    }
+
+    /**
+     * Enregistrement depuis la page « Mise à jour des données » + journalisation tr_user_audit_trail.
+     */
+    public function updateProfileData(Request $request, $id)
+    {
+        $user = User::find($id);
+        if ($user === null) {
+            toastr()->error("Impossible d'effectuer cette opération", 'Gestion des utilisateurs');
+
+            return back();
+        }
+
+        $personne = Personne::find($user->code_personne);
+        if ($personne === null) {
+            toastr()->error('Personne introuvable pour cet utilisateur.');
+
+            return redirect()->back();
+        }
+
+        $aff = $user->affectationActive();
+        if ($aff === null) {
+            toastr()->error('Aucune affectation active : impossible de mettre à jour le poste ou le centre.');
+
+            return redirect()->back();
+        }
+
+        $insUser = InstitutionUser::find($aff->cui);
+        if ($insUser === null) {
+            toastr()->error("L'enregistrement d'affectation (institution) est introuvable.");
+
+            return redirect()->back();
+        }
+
+        $affectationModifiee = $request->code_fonction !== $insUser->code_fonction
+            || $request->code_institution !== $insUser->code_institution;
+
+        $pieceNominationRules = $affectationModifiee
+            ? ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120']
+            : ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
+
+        $request->validate([
+            'nom' => ['required', 'string'],
+            'sexe' => ['required', 'string'],
+            'date_naissance' => ['required'],
+            'code_nationalite' => ['required'],
+            'adresse' => ['required', 'string'],
+            'telephone' => ['nullable', 'string', 'max:32'],
+            'code_fonction' => ['required'],
+            'code_institution' => ['required'],
+            'email' => ['required', 'email', Rule::unique('tr_user', 'email')->ignore($user->code_user, 'code_user')],
+            'active' => ['required', 'in:0,1'],
+            'niveau_instruction' => ['nullable', 'string'],
+            'code_type_document' => ['nullable', 'required_with:numero_document'],
+            'numero_document' => ['nullable', 'required_with:code_type_document', 'string'],
+            'piece_nomination' => $pieceNominationRules,
+        ], [
+            'piece_nomination.required' => 'Une note de service ou un acte de nomination (PDF ou image) est obligatoire lorsque la fonction ou le centre est modifié.',
+            'piece_nomination.mimes' => 'Le justificatif doit être un fichier PDF, JPG ou PNG.',
+            'piece_nomination.max' => 'Le fichier ne doit pas dépasser 5 Mo.',
+        ]);
+
+        $oldNominationPath = $insUser->piece_nomination_chemin;
+
+        $oldSnapshot = [
+            'email' => $user->email,
+            'status' => (int) $user->status,
+            'code_institution' => $insUser->code_institution,
+            'code_fonction' => $insUser->code_fonction,
+            'adresse' => $personne->adresse,
+            'telephone' => $personne->telephone,
+            'code_nationalite' => $personne->code_nationalite,
+            'niveau_instruction' => $personne->niveau_instruction,
+            'piece_nomination_chemin' => $oldNominationPath,
+        ];
+
+        DB::beginTransaction();
+        try {
+            if ($request->filled('code_type_document') && $request->filled('numero_document')) {
+                $document = new Document;
+                $document->code_document = Sifec::genererCodeUniqueReferentiel($document, 'code_document', 8, 'DOC_');
+                $document->numero_document = $request->numero_document;
+                $document->code_type_document = $request->code_type_document;
+                $document->code_personne = $personne->code_personne;
+                $document->save();
+            }
+
+            $insUser->code_institution = $request->code_institution;
+            $insUser->code_fonction = $request->code_fonction;
+
+            if ($request->hasFile('piece_nomination')) {
+                $file = $request->file('piece_nomination');
+                if (! $file->isValid()) {
+                    throw new Exception('Le fichier de note de service / nomination est corrompu ou inaccessible.');
+                }
+                $destDir = public_path('app/nominations');
+                if (! is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                if (! empty($insUser->piece_nomination_chemin)) {
+                    $ancienAbsolu = public_path('app/'.$insUser->piece_nomination_chemin);
+                    if (file_exists($ancienAbsolu)) {
+                        @unlink($ancienAbsolu);
+                    }
+                }
+                $filename = $file->hashName();
+                $file->move($destDir, $filename);
+                $insUser->piece_nomination_chemin = 'nominations/'.$filename;
+            }
+
+            $insUser->save();
+
+            $personne->adresse = $request->adresse;
+            $personne->telephone = $request->telephone;
+            $personne->code_nationalite = $request->code_nationalite;
+            if ($request->filled('niveau_instruction')) {
+                $personne->niveau_instruction = $request->niveau_instruction;
+            }
+            $personne->save();
+
+            $user->email = $request->email;
+            $user->status = (bool) (int) $request->active;
+            $user->save();
+
+            $newSnapshot = [
+                'email' => $user->email,
+                'status' => (int) $user->status,
+                'code_institution' => $insUser->code_institution,
+                'code_fonction' => $insUser->code_fonction,
+                'adresse' => $personne->adresse,
+                'telephone' => $personne->telephone,
+                'code_nationalite' => $personne->code_nationalite,
+                'niveau_instruction' => $personne->niveau_instruction,
+                'nouveau_document' => $request->filled('code_type_document') && $request->filled('numero_document'),
+                'piece_nomination_chemin' => $insUser->piece_nomination_chemin,
+            ];
+
+            UserAuditTrail::log(
+                $user->code_user,
+                'profile_update',
+                'Mise à jour des données (page profil / affectation & compte)',
+                $oldSnapshot,
+                $newSnapshot
+            );
+
+            DB::commit();
+            toastr()->success('Les informations ont été mises à jour.');
+
+            return redirect()->route('utilisateur.profile', $user->code_user);
+        } catch (Exception $e) {
+            DB::rollBack();
+            toastr()->error($e->getMessage());
+
+            return redirect()->back()->withInput();
+        }
     }
 
     /**
@@ -458,7 +691,22 @@ class UserController extends Controller
         // Charger les modules avec leurs fonctionnalités
         $modules = Module::with('fonctionnalites')->get();
 
-        return view("authentification::utilisateur.assignation", compact("user","modules"));
+        $userPermissionCodes = $user->toutesfonctionnalites()
+            ->pluck('code_fonctionnalite')
+            ->unique()
+            ->values()
+            ->all();
+
+        $totalFonctionnalites = (int) $modules->sum(static function ($m) {
+            return $m->fonctionnalites->count();
+        });
+
+        return view('authentification::utilisateur.assignation', compact(
+            'user',
+            'modules',
+            'userPermissionCodes',
+            'totalFonctionnalites'
+        ));
 
     }
 
@@ -768,6 +1016,7 @@ class UserController extends Controller
         try {
             // Mettre à jour le mot de passe
             $user->password = Hash::make($request->new_password);
+            $user->must_change_password = false;
             $user->save();
 
             // Log de l'audit trail

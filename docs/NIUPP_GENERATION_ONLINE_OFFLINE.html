@@ -144,7 +144,7 @@
                     </tr>
                     <tr>
                         <td>Ordre séquentiel</td>
-                        <td><strong>4 chiffres</strong> (padded zéros), unique par couple <em>CEC (institution)</em> + <em>année</em> + <em>mois de naissance</em></td>
+                        <td><strong>4 chiffres</strong> (padded zéros) : rang d’inscription dans le <strong>volume annuel</strong> du type d’acte (ex. naissances 2026) pour le CEC, identifié par <code>code_registre</code> — même ordre que sur le feuillet, <strong>indépendant</strong> du mois de naissance de l’enfant. Référentiel : un registre par type et par année civile par CEC.</td>
                     </tr>
                 </tbody>
             </table>
@@ -152,8 +152,9 @@
                 NIUPP = sexe + AAAA + MM + codeDept + codeLoc + typeCEC + ordre0001→9999
             </div>
             <p>
-                L’unicité <strong>nationale</strong> repose sur la combinaison des segments géographiques / typologie CEC
-                et d’un <strong>compteur d’ordre</strong> géré sans collision entre sites (voir ci-dessous).
+                L’unicité <strong>nationale</strong> repose sur la combinaison des segments (y compris la date de naissance
+                dans la chaîne) et de l’ordre sur le registre, avec verrouillage transactionnel du volume pour éviter
+                les doublons en parallèle.
             </p>
         </section>
 
@@ -164,28 +165,65 @@
                 alloué de façon <strong>atomique</strong> au moment de la <strong>finalisation après signature</strong>
                 (service de finalisation d’acte + validation OTP).
             </p>
-            <h3>2.1 Table de compteur</h3>
+            <h3>2.1 Référentiel métier : un volume annuel par type de registre et par CEC</h3>
             <p>
-                Une table dédiée — par exemple <code>tr_compteur_niupp_naissance</code> — enregistre, pour chaque
-                <strong>code institution (CEC)</strong>, chaque <strong>année</strong> et chaque <strong>mois</strong>
-                (mois de naissance de l’enfant), le dernier ordre utilisé (<code>dernier_ordre</code>).
+                Pour un <strong>centre d’état civil (CEC)</strong> donné, la règle d’organisation est d’ouvrir
+                <strong>un seul registre (un seul <code>code_registre</code>) par type d’acte et par année civile</strong> :
+                par exemple le registre des <strong>naissances 2026</strong> du CEC A est le <strong>seul</strong> volume où
+                doivent être transcrits, sur toute l’année 2026, les actes de naissance validés par ce CEC (du 1<sup>er</sup> janvier
+                au 31 décembre). Chaque autre type (mariage, décès, divorce, etc.) possède de la même façon
+                <strong>son registre annuel</strong> pour le même CEC et la même année, lorsque le référentiel l’exige.
+            </p>
+            <p>
+                Sous cette convention, la suite d’ordre <code>0001</code>, <code>0002</code>, … sur le registre naissance 2026
+                correspond à la <strong>chronologie des validations</strong> de l’officier pour <strong>toutes</strong> les naissances
+                de l’année dans ce CEC, quelle que soit la date de naissance de l’enfant.
+            </p>
+            <h3>2.2 Source technique de l’ordre dans le volume</h3>
+            <p>
+                L’ordre à 4 chiffres du NIUPP n’est pas issu d’une table séparée par mois de naissance : il est le
+                <strong>prochain rang d’inscription</strong> dans le volume concerné : <code>nombre_acte_transcrit + 1</code> sur
+                <code>tr_registre</code>, après verrouillage pessimiste (<code>lockForUpdate</code>) de la ligne registre dans la
+                même transaction que la finalisation de l’acte.
             </p>
             <ul>
-                <li>Contrainte d’unicité sur le triplet <code>(code_institution, annee, mois)</code>.</li>
-                <li>Lecture avec verrouillage pessimiste (<code>lockForUpdate</code>) dans une transaction pour éviter deux attributions identiques en parallèle.</li>
-                <li>Première naissance du mois pour ce CEC : création de la ligne avec ordre <code>1</code> ; sinon incrément de <code>dernier_ordre</code>.</li>
+                <li>Le premier acte validé dans un volume neuf reçoit l’ordre <code>0001</code>, le suivant <code>0002</code>, etc., quel que soit le mois de naissance des enfants.</li>
+                <li>Cet ordre est <strong>aligné</strong> sur le numéro de position utilisé pour le <strong>feuillet de registre</strong> (même validation, même transaction).</li>
+                <li>En principe, un <code>code_registre</code> représente un couple <em>(CEC, type de registre, exercice annuel)</em> ; un nouvel exercice civil ou un nouveau type ouvre un nouveau volume et la suite repart à <code>0001</code> pour ce volume.</li>
             </ul>
-            <h3>2.2 Enchaînement métier</h3>
+            <h3>2.3 Enchaînement métier</h3>
             <ol>
                 <li>Génération de l’acte : création de l’enregistrement avec UUID, <code>niupp</code> encore <code>NULL</code>, sans consommation du compteur ni création de feuillet de registre.</li>
-                <li>Signature / validation OTP : ouverture d’une transaction ; verrouillage de l’acte et du registre ; allocation du prochain ordre via le compteur ; calcul du NIUPP ; contrôle d’unicité sur <code>niupp</code> ; mise à jour du registre ; création du feuillet (numéro sur feuillet seulement à cette étape).</li>
+                <li>Signature / validation OTP : ouverture d’une transaction ; verrouillage de l’acte et du registre ; lecture du rang <code>nombre_acte_transcrit + 1</code> comme ordre NIUPP ; calcul du NIUPP ; contrôle d’unicité sur <code>niupp</code> ; mise à jour du registre ; création du feuillet (numéro sur feuillet seulement à cette étape).</li>
                 <li>En cas d’échec : annulation de la transaction (pas de « trou » durable si la politique de base le garantit).</li>
             </ol>
             <div class="note">
                 <strong>Capacité.</strong> Quatre chiffres pour l’ordre permettent jusqu’à <strong>9 999</strong> actes
-                validés par CEC et par mois civil de naissance — volume jugé largement suffisant par typologie d’usage SIFEC.
-                Un CEC très sollicité sur un même mois de naissance pourrait nécessiter une évolution (passage à 5 chiffres ou autre règle), à traiter par évolution fonctionnelle.
+                par volume de registre (<code>nombre_acte_prevu</code>). Un dépassement nécessiterait un nouveau volume
+                ou une évolution de format, à traiter par évolution fonctionnelle.
             </div>
+            <h3>2.4 Rappels utiles (tests et cohérence)</h3>
+            <ul>
+                <li>
+                    <strong>Suffixe NIUPP et feuillet.</strong> Pour un même volume, le suffixe NIUPP (4 chiffres) suit la
+                    <strong>même position</strong> que l’inscription sur le registre (ordre de validation de l’officier dans ce volume).
+                </li>
+                <li>
+                    <strong>Année civile et registre unique.</strong> Pour un CEC, le registre naissance de l’année N doit
+                    concentrer toutes les naissances transcrites sur N ; la suite <code>0001</code>, <code>0002</code>, … est
+                    celle des validations dans <strong>ce</strong> volume annuel, sans réinitialisation par mois de naissance.
+                </li>
+                <li>
+                    <strong>En recette.</strong> Pour repartir à <code>0001</code>, remettre <code>nombre_acte_transcrit</code> à
+                    <code>0</code> sur le registre concerné et supprimer les actes / feuillets de test cohérents avec ce volume.
+                    Il n’y a plus de table <code>tr_compteur_niupp_naissance</code> à vider pour l’ordre NIUPP.
+                </li>
+                <li>
+                    <strong>Unicité du NIUPP complet.</strong> Même si deux enfants partagent sexe, année et mois de naissance
+                    et le même CEC, l’ordre sur registre les distingue ; le contrôle d’unicité sur la colonne <code>niupp</code>
+                    reste en base.
+                </li>
+            </ul>
         </section>
 
         <section id="offline">
@@ -195,7 +233,7 @@
                 l’usage combiné de <strong>deux familles d’outils</strong> selon le contexte local : application mobile
                 dédiée et/ou instance <strong>Laravel déployée sur site</strong>. Le principe d’unicité reste le même :
                 un <strong>ordre</strong> ne doit être utilisé qu’<strong>une seule fois</strong> pour un couple
-                (CEC, année, mois de naissance) au niveau national après consolidation.
+                (volume de registre identifié, ex. <code>code_registre</code>) au niveau national après consolidation.
             </p>
             <h3>3.1 Stratégie recommandée : plages (blocs) d’ordres réservées</h3>
             <p>
@@ -206,7 +244,7 @@
                 <li>
                     <strong>Synchronisation opportuniste</strong> : lorsque le site ou le terminal retrouve le réseau,
                     il contacte l’API centrale pour obtenir un <strong>bloc</strong> d’ordres consécutifs
-                    (ex. ordres 120–219 pour <code>INS_XXXX</code>, année 2026, mois 04), marqués comme « attribués » côté central.
+                    (ex. ordres 120–219 pour le volume <code>REG_XX</code>), marqués comme « attribués » côté central.
                 </li>
                 <li>
                     <strong>Consommation locale</strong> : tant que le bloc n’est pas épuisé, le poste offline incrémente
@@ -219,7 +257,7 @@
             </ul>
             <h3>3.2 Laravel local par site</h3>
             <p>
-                Une instance installée dans un CEC peut implémenter la même table de compteur <strong>en local</strong>
+                Une instance installée dans un CEC peut suivre localement le <strong>compteur d’inscriptions par volume</strong>
                 pour les actes saisis sans internet, à condition que les ordres utilisés proviennent exclusivement de
                 <strong>plages préalablement réservées</strong> auprès du central (ou d’un serveur régional faisant foi).
                 À la synchronisation, les actes validés sont poussés vers le central ; le NIUPP définitif doit reprendre
@@ -235,7 +273,7 @@
             <div class="note">
                 <strong>Cohérence avec l’existant central.</strong> Le mode online décrit en section 2 est la référence :
                 toute implémentation offline doit converger vers la même structure de NIUPP et des mêmes règles de
-                comptage par CEC / année / mois de naissance, sous réserve des mécanismes de réservation et de sync
+                comptage par volume de registre (ordre d’inscription), sous réserve des mécanismes de réservation et de sync
                 décrits ci-dessus.
             </div>
         </section>
@@ -253,7 +291,7 @@
                 <tbody>
                     <tr>
                         <td>Source de vérité pour l’ordre</td>
-                        <td>Table <code>tr_compteur_niupp_naissance</code> sur la base centrale, transaction + verrou</td>
+                        <td>Champ <code>nombre_acte_transcrit</code> du volume annuel du type concerné (<code>tr_registre</code> / <code>code_registre</code>), transaction + verrou registre</td>
                         <td>Plages réservées + compteur local dans la plage ; sync vers le central</td>
                     </tr>
                     <tr>
@@ -277,7 +315,7 @@
     </main>
 
     <footer>
-        <p>SIFEC — Documentation NIUPP. Pour toute évolution du schéma ou des API de réservation de plages, mettre à jour ce fichier et les migrations associées.</p>
+        <p>SIFEC — Documentation NIUPP. Pour toute évolution du schéma ou des API de réservation de plages, mettre à jour ce fichier et les migrations associées. (L’ancienne table <code>tr_compteur_niupp_naissance</code> a été retirée au profit du compteur porté par le registre.)</p>
     </footer>
 </body>
 </html>

@@ -4,6 +4,7 @@ namespace Modules\Notification\Jobs;
 
 use App\Mail\ValidationActeNaissanceMailable;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -38,6 +39,30 @@ class ValidationacteNaissanceJob implements ShouldQueue
      */
     public function handle()
     {
-        Mail::to($this->to)->send(new ValidationActeNaissanceMailable($this->maire,$this->nombre,$this->code_otp));
+        $to = trim((string) $this->to);
+        if ($to === '' || ! filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            Log::channel('sifec')->warning('ValidationacteNaissanceJob : destinataire e-mail ignoré (vide ou invalide).', [
+                'to_masque' => $to === '' ? '(vide)' : substr($to, 0, 3).'…',
+            ]);
+
+            return;
+        }
+
+        Log::channel('sifec')->info('Envoi e-mail OTP validation acte naissance', [
+            'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+        ]);
+
+        try {
+            Mail::to($to)->send(new ValidationActeNaissanceMailable($this->maire, $this->nombre, $this->code_otp));
+            Log::channel('sifec')->info('E-mail OTP validation acte naissance : envoi SMTP terminé sans exception.', [
+                'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('sifec')->error('Échec envoi e-mail OTP validation acte naissance', [
+                'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                'exception' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

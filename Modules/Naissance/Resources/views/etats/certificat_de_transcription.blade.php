@@ -94,7 +94,7 @@
 
 		<tr>
 			<td style="border-right: solid; padding:5px 0px;text-align: center">&nbsp;</td>
-			<td style="border: solid; padding:5px 0px;text-align: center" colspan="2"><span style="font-size: 18px;font-weight:bold;">{{ $certificat->type_declaration }} </span></td>
+			<td style="border: solid; padding:5px 0px;text-align: center" colspan="2"><span style="font-size: 18px;font-weight:bold;">{{ $certificat->libelleAffichageType() }} </span></td>
 			<td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
 		</tr>
         {{-- <tr>

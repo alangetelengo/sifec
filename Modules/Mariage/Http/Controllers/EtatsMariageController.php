@@ -16,7 +16,7 @@ use Modules\Mariage\Services\ActeMariageService;
 use Modules\Referentiel\Entities\Registre;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Carbon;
-use Modules\Mariage\Entities\Declarationmariage;
+use Modules\Mariage\Entities\DeclarationMariage;
 
 class EtatsMariageController extends Controller
 {
@@ -24,7 +24,7 @@ class EtatsMariageController extends Controller
 
    public function declaration($id)
    {
-        $dm = Declarationmariage::find($id);
+        $dm = DeclarationMariage::find($id);
 
         if($dm == null){
             toastr()->error("Impossible de charger cette page");
@@ -176,13 +176,13 @@ class EtatsMariageController extends Controller
 
    public function requisition()
    {
-       $requisitions = Declarationmariage::where("type_declaration","DISPENSE")->get();
+       $requisitions = DeclarationMariage::where("type_declaration","DISPENSE")->get();
         return view('mariage::requisition.index',compact("requisitions"));
    }
 
    public function generateRequisition(Request $request, $id)
     {
-        $dm = Declarationmariage::find($id);
+        $dm = DeclarationMariage::find($id);
 
         if($dm == null){
             toastr()->error("Cette déclaration n'existe pas !");
@@ -237,7 +237,7 @@ class EtatsMariageController extends Controller
     public function displayRequisition($id)
     {
 
-        $requisition = Declarationmariage::where("code_declaration_mariage",$id)->first();
+        $requisition = DeclarationMariage::where("code_declaration_mariage",$id)->first();
 
 
         if($requisition->titre_requisition == "REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS ET DE DELAI DE CELEBRATION DU MARIAGE"){

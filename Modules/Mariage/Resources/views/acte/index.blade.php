@@ -93,6 +93,9 @@ Actes de mariage
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -608,6 +611,9 @@ Actes de mariage
         </div>
     </div>
     {{-- FIN MODAL ANNULATION ACTES EN LOT --}}
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -731,7 +737,7 @@ Actes de mariage
                 handleGenerateMultiple: function(e) {
                     e.preventDefault();
                     if (this.actesNonGeneres.length > 0) {
-                        this.generateActesMultiple(this.actesNonGeneres);
+                        this.generateActesMultiple(this.actesNonGeneres, e.currentTarget);
                     }
                 },
 
@@ -739,7 +745,7 @@ Actes de mariage
                 handleValidateMultiple: function(e) {
                     e.preventDefault();
                     if (this.actesGeneres.length > 0) {
-                        this.sendOtpMultiple(this.actesGeneres);
+                        this.sendOtpMultiple(this.actesGeneres, e.currentTarget);
                     }
                 },
 
@@ -763,54 +769,68 @@ Actes de mariage
                 },
 
                 // Méthodes utilitaires pour les appels API
-                generateActesMultiple: function(codes) {
+                generateActesMultiple: function(codes, btnEl) {
                     $(".over-loader-page").fadeIn(600);
+                    if (btnEl) {
+                        sifecBtnLoading(btnEl, 'Génération...');
+                    }
                     const url = "{{ route('acteMariage.generate.bulk') }}";
 
-                    $.post(url, {codes: codes})
+                    $.post(url, { codes: codes, _token: '{{ csrf_token() }}' })
                         .done((response) => {
-                    $(".over-loader-page").fadeOut(600);
                             if (response.code === "200") {
                                 flashAlert("Résultat", "success", response.message.reponse);
                                 $('#modal-generer-single').modal('hide');
                                 setTimeout(() => location.reload(), 4000);
                             } else {
-                    var outString = "<ul>";
+                                var outString = "<ul>";
                                 for (const [key, value] of Object.entries(response.message)) {
                                     outString += `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                    }
-                    outString += "</ul>";
+                                }
+                                outString += "</ul>";
                                 flashAlert("Une erreur est survenue", "error", outString);
-                }
-                        })
-                        .fail(() => {
-                            $(".over-loader-page").fadeOut(600);
-                            flashAlert("Erreur", "error", "Erreur de communication avec le serveur");
-            });
-                },
-
-                sendOtpMultiple: function(codes) {
-            $(".over-loader-page").fadeIn(600);
-                    const url = "{{ route('acteMariage.send.otp.bulk') }}";
-
-                    $.post(url, {codes: codes})
-                        .done((response) => {
-                    $(".over-loader-page").fadeOut(600);
-                            if (response.code === "200") {
-                    $("#validation_type").val("bulk");
-                    $("#modal-validate-acte").modal('show');
-                            } else {
-                    var outString = "<ul>";
-                                for (const [key, value] of Object.entries(response.message)) {
-                    outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                    }
-                    outString += "</ul>";
-                                flashAlert("ALERTE","error",outString);
                             }
                         })
                         .fail(() => {
-                            $(".over-loader-page").fadeOut(600);
                             flashAlert("Erreur", "error", "Erreur de communication avec le serveur");
+                        })
+                        .always(() => {
+                            $(".over-loader-page").fadeOut(600);
+                            if (btnEl) {
+                                sifecBtnReset(btnEl);
+                            }
+                        });
+                },
+
+                sendOtpMultiple: function(codes, btnEl) {
+                    $(".over-loader-page").fadeIn(600);
+                    if (btnEl) {
+                        sifecBtnLoading(btnEl, 'Envoi OTP...');
+                    }
+                    const url = "{{ route('acteMariage.send.otp.bulk') }}";
+
+                    $.post(url, { codes: codes, _token: '{{ csrf_token() }}' })
+                        .done((response) => {
+                            if (response.code === "200") {
+                                $("#validation_type").val("bulk");
+                                $("#modal-validate-acte").modal('show');
+                            } else {
+                                var outString = "<ul>";
+                                for (const [key, value] of Object.entries(response.message)) {
+                                    outString += `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
+                                }
+                                outString += "</ul>";
+                                flashAlert("ALERTE", "error", outString);
+                            }
+                        })
+                        .fail(() => {
+                            flashAlert("Erreur", "error", "Erreur de communication avec le serveur");
+                        })
+                        .always(() => {
+                            $(".over-loader-page").fadeOut(600);
+                            if (btnEl) {
+                                sifecBtnReset(btnEl);
+                            }
                         });
                 },
 
@@ -847,7 +867,8 @@ Actes de mariage
 
                     $.post(url, {
                         code_declaration_mariage: inputs.code_declaration_mariage,
-                        otp_approbation_mairie: inputs.otp_approbation_mairie
+                        otp_approbation_mairie: inputs.otp_approbation_mairie,
+                        _token: '{{ csrf_token() }}'
                     })
                     .done((response) => {
                         var msg = this.extraireMsg(response.message);
@@ -875,7 +896,8 @@ Actes de mariage
 
                     $.post(url, {
                         codes: inputs.codes,
-                        otp_approbation_mairie: inputs.otp_approbation_mairie
+                        otp_approbation_mairie: inputs.otp_approbation_mairie,
+                        _token: '{{ csrf_token() }}'
                     })
                     .done((response) => {
                         var msg = this.extraireMsg(response.message);
@@ -926,37 +948,38 @@ Actes de mariage
             
             var code = $('#generer-single-code').val();
             var url = "{{ route('acteMariage.generate.single') }}";
-            
-            // Désactiver immédiatement le bouton pour éviter les clics multiples
-            $(this).prop('disabled', true);
-            $('#generer-single-message').html('<i class="fa fa-spinner fa-spin"></i> Génération en cours...');
+            var btn = this;
+            sifecBtnLoading(btn, 'Génération...');
+            $('#generer-single-message').html('');
             
             $.post(url, {code_declaration_mariage: code, _token: '{{ csrf_token() }}'}, function(response){
                 if(response.code == "200"){
+                    sifecBtnReset(btn);
                     $('#generer-single-message').html('<span class="text-success">'+(response.message.reponse || response.message)+'</span>');
                     setTimeout(() => { location.reload(); }, 1200);
                 }else if(response.code == "409"){
-                    // Acte déjà existant
+                    sifecBtnReset(btn);
                     $('#generer-single-message').html('<span class="text-warning">'+(response.message.reponse || response.message)+'</span>');
                     setTimeout(() => { location.reload(); }, 1500);
                 }else if(response.code == "429"){
-                    // Génération en cours
+                    sifecBtnReset(btn);
                     $('#generer-single-message').html('<span class="text-info">'+(response.message.reponse || response.message)+'</span>');
-                    $('#btn-generer-single-confirm').prop('disabled', false);
                 }else{
+                    sifecBtnReset(btn);
                     $('#generer-single-message').html('<span class="text-danger">'+(response.message.reponse || response.message)+'</span>');
-                    $('#btn-generer-single-confirm').prop('disabled', false);
                 }
             }).fail(function(xhr){
+                sifecBtnReset(btn);
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la génération de l\'acte';
                 $('#generer-single-message').html('<span class="text-danger">'+msg+'</span>');
-                $('#btn-generer-single-confirm').prop('disabled', false);
             });
         });
 
-        // Validation d'un acte individuel
-        $('.btn-validate-single').on('click', function() {
+        // Validation d'un acte individuel (délégation : cohérent avec rechargements futurs)
+        $(document).on('click', '.btn-validate-single', function() {
             var code = $(this).data('id');
+            var btnValM = this;
+            sifecBtnLoading(btnValM, 'Envoi OTP...');
             $.post("{{ route('acteMariage.send.otp') }}", {code_declaration_mariage: code, _token: '{{ csrf_token() }}'}, function(response){
                 if(response.code == "200"){
                     $('#code_declaration_mariage_validate').val(code);
@@ -970,6 +993,8 @@ Actes de mariage
             }).fail(function(xhr){
                 let msg = xhr.responseJSON?.message || 'Erreur lors de l\'envoi du code OTP';
                 flashAlert("Erreur", "error", msg);
+            }).always(function() {
+                sifecBtnReset(btnValM);
             });
         });
 
@@ -988,6 +1013,8 @@ Actes de mariage
                 flashAlert("Erreur", "error", "Veuillez sélectionner un motif d'annulation");
                 return;
             }
+            var btn = this;
+            sifecBtnLoading(btn, 'Traitement...');
             $.ajax({
                 url: "{{ route('acteMariage.annuler') }}",
                 type: 'POST',
@@ -998,6 +1025,7 @@ Actes de mariage
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(resp) {
+                    sifecBtnReset(btn);
                     if(resp.code == "200"){
                         flashAlert("Résultat", "success", resp.message.reponse);
                         $('#modal-annulation-acte').modal('hide');
@@ -1007,6 +1035,7 @@ Actes de mariage
                     }
                 },
                 error: function(xhr) {
+                    sifecBtnReset(btn);
                     let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation de l\'acte';
                     flashAlert("Erreur", "error", msg);
                 }
@@ -1029,6 +1058,8 @@ Actes de mariage
                 flashAlert("Erreur", "error", "Veuillez sélectionner un motif d'annulation");
                 return;
             }
+            var btn = this;
+            sifecBtnLoading(btn, 'Traitement...');
             $.ajax({
                 url: "{{ route('acteMariage.annuler.bulk') }}",
                 type: 'POST',
@@ -1039,6 +1070,7 @@ Actes de mariage
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(resp) {
+                    sifecBtnReset(btn);
                     if(resp.code == "200"){
                         flashAlert("Résultat", "success", resp.message.reponse);
                         $('#modal-annulation-actes-bulk').modal('hide');
@@ -1048,6 +1080,7 @@ Actes de mariage
                     }
                 },
                 error: function(xhr) {
+                    sifecBtnReset(btn);
                     let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation des actes';
                     flashAlert("Erreur", "error", msg);
                 }
@@ -1075,6 +1108,8 @@ Actes de mariage
                 flashAlert("Erreur", "error", "Veuillez renseigner le nom et le téléphone de l'intéressé.");
                 return;
             }
+            var btn = this;
+            sifecBtnLoading(btn, 'Enregistrement...');
             $.ajax({
                 url: "{{ route('acteMariage.retrait') }}",
                 type: 'POST',
@@ -1086,6 +1121,7 @@ Actes de mariage
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(resp) {
+                    sifecBtnReset(btn);
                     if(resp.code == "200"){
                         flashAlert("Résultat", "success", resp.message.reponse);
                         $('#modal-retrait-acte').modal('hide');
@@ -1095,36 +1131,14 @@ Actes de mariage
                     }
                 },
                 error: function(xhr) {
+                    sifecBtnReset(btn);
                     let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors du retrait de l\'acte';
                     flashAlert("Erreur", "error", msg);
                 }
             });
         });
 
-        // Validation d'actes en lot (conforme au module Naissance)
-        $("button.validate-actes").on("click", function(){
-            if(actesGeneres.length > 0){
-                var url = "{{ route('acteMariage.send.otp.bulk') }}";
-                var data = {codes:actesGeneres};
-                $.post(url,data,function(response){
-                    if(response.code == "200"){
-                        $(".over-loader-page").fadeOut(600);
-                        $("#validation_type").val("bulk");
-                        $("#modal-validate-acte").modal('show');
-                    }else{
-                        $(".over-loader-page").fadeOut(600);
-                        var outString = "<ul>";
-                        for (const [key, value] of Object.entries(response.message))
-                        {
-                        outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                        }
-                        outString += "</ul>";
-                        flashAlert("ALERTE","error",outString);
-                    }
-                });
-            }
-            return false;
-        });
+        // Validation d'actes en lot : géré par ActeManager.handleValidateMultiple (pas de doublon ici)
 
         // Validation OTP (singleton ou bulk) - conforme au module Naissance
         // Handler #btn-validate géré exclusivement par ActeManager.handleValidate (ci-dessus)

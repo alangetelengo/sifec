@@ -146,6 +146,42 @@ class Sifec {
         return $mois[$numero -1];
     }
 
+    /**
+     * Prénom(s) pour acte d'état civil : première lettre de chaque mot en majuscule, le reste en minuscules (UTF-8).
+     */
+    public static function formatPrenomPourActe(?string $prenom): string
+    {
+        if ($prenom === null || trim($prenom) === '') {
+            return '';
+        }
+        $prenom = trim($prenom);
+        if (function_exists('mb_convert_case')) {
+            return mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8');
+        }
+
+        return ucwords(strtolower($prenom));
+    }
+
+    /**
+     * Nom + prénom sur acte : le nom est conservé tel qu'en base, le prénom est formaté (voir formatPrenomPourActe).
+     */
+    public static function formatNomPrenomPourActe(?string $nom, ?string $prenom): string
+    {
+        $n = trim((string) ($nom ?? ''));
+        $p = self::formatPrenomPourActe($prenom);
+        if ($n === '' && $p === '') {
+            return '';
+        }
+        if ($n === '') {
+            return $p;
+        }
+        if ($p === '') {
+            return $n;
+        }
+
+        return $n.' '.$p;
+    }
+
     //Transcription date
     public static function asLetters($number,$separateur=",") {
         $convert = explode($separateur, $number);
@@ -223,25 +259,128 @@ class Sifec {
         }
     }
 
-    public function sendSms($to,$content){
-        $data = array(
-            "client"=>"mukinayiseth",
-            // "client"=>"exactit",
-            "password"=>"123456789@123456789",
-            // "password"=>"@24Ex-Tech",
-            "phone"=>substr($to,1),
-            "from"=>"ETAT-CIVIL",
-            // "from"=>"SIFEC",
-            "text"=>$content
-        );
+    /**
+     * Envoi SMS : un seul fournisseur selon config `sifec.sms.provider` (wirepick | infobip).
+     */
+    public function sendSms($to, $content)
+    {
+        $provider = strtolower((string) config('sifec.sms.provider', 'wirepick'));
+        $phoneNorm = $this->normalizeSmsPhone((string) $to);
 
-        $req = Http::asForm()->get("https://api.wirepick.com/httpsms/send", $data);
-        if ($req->status() == 200) {
+        Log::channel('sifec')->info('SMS sendSms (entrée)', [
+            'provider' => $provider,
+            'to_brut' => $to,
+            'phone_normalise' => $phoneNorm,
+            'phone_masque' => $this->maskMsisdnForLog($phoneNorm),
+            'from_config' => config('sifec.sms.sender_id', 'ETAT-CIVIL'),
+            'texte_apercu' => mb_substr((string) $content, 0, 240),
+            'texte_longueur' => mb_strlen((string) $content),
+        ]);
 
-            return $req->body();
+        if ($provider === 'infobip') {
+            return $this->infobipSms($to, $content);
         }
 
-        return $req->body();
+        return $this->sendSmsWirepick($to, $content);
+    }
+
+    /**
+     * MSISDN international pour agrégateurs : chiffres uniquement, sans « + » ni espaces.
+     * Évite substr($to, 1) qui cassait « 242… » (sans +) en « 42… » et poussait Wirepick vers un expéditeur par défaut (ex. GROWIN-C).
+     */
+    protected function normalizeSmsPhone(string $to): string
+    {
+        $digits = preg_replace('/\D/', '', ltrim(trim($to), '+'));
+
+        return is_string($digits) ? $digits : '';
+    }
+
+    /** Pour les logs : garde le début / la fin du MSISDN, sans exposer tout le numéro. */
+    protected function maskMsisdnForLog(string $digits): string
+    {
+        $len = strlen($digits);
+        if ($len === 0) {
+            return '(vide)';
+        }
+        if ($len <= 6) {
+            return str_repeat('*', $len);
+        }
+
+        return substr($digits, 0, 3).'…'.substr($digits, -4).' ('.$len.' chiffres)';
+    }
+
+    /** Réponse HTTP / corps tronqué pour éviter des logs énormes. */
+    protected function truncateForLog(?string $raw, int $max = 2000): string
+    {
+        if ($raw === null || $raw === '') {
+            return '';
+        }
+        if (strlen($raw) <= $max) {
+            return $raw;
+        }
+
+        return substr($raw, 0, $max).'… [tronqué]';
+    }
+
+    /** Statut XML Wirepick (<sms><status>…</status>) — ex. ACT, MAX, REJ. */
+    protected function parseWirepickResponseStatus(?string $xmlBody): ?string
+    {
+        if ($xmlBody === null || $xmlBody === '') {
+            return null;
+        }
+
+        try {
+            $sx = @simplexml_load_string($xmlBody);
+            if ($sx === false) {
+                return null;
+            }
+            if (isset($sx->sms->status)) {
+                return trim((string) $sx->sms->status);
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
+    }
+
+    protected function sendSmsWirepick($to, $content)
+    {
+        $phone = $this->normalizeSmsPhone((string) $to);
+        $from = config('sifec.sms.sender_id', 'ETAT-CIVIL');
+        $data = [
+            'client' => 'mukinayiseth',
+            'password' => '123456789@123456789',
+            'phone' => $phone,
+            'from' => $from,
+            'text' => $content,
+        ];
+
+        $req = Http::asForm()->get('https://api.wirepick.com/httpsms/send', $data);
+
+        $responseBody = $req->body();
+        $wirepickStatus = $this->parseWirepickResponseStatus($responseBody);
+
+        Log::channel('sifec')->info('Wirepick SMS (réponse)', [
+            'client' => $data['client'],
+            'from_envoye' => $from,
+            'phone_masque' => $this->maskMsisdnForLog($phone),
+            'texte_apercu' => mb_substr((string) $content, 0, 240),
+            'texte_longueur' => mb_strlen((string) $content),
+            'http_status' => $req->status(),
+            'wirepick_status' => $wirepickStatus,
+            'corps_reponse' => $this->truncateForLog($responseBody),
+        ]);
+
+        if ($wirepickStatus !== null && strtoupper($wirepickStatus) !== 'ACT') {
+            Log::channel('sifec')->warning('Wirepick: statut autre que ACT — livraison non confirmée (contacter le fournisseur API si besoin).', [
+                'wirepick_status' => $wirepickStatus,
+                'phone_masque' => $this->maskMsisdnForLog($phone),
+                'texte_longueur' => mb_strlen((string) $content),
+            ]);
+        }
+
+        return $responseBody;
     }
 
     public static function uniqueString(Request $request,$sufix,$sexe,$adopter="",$poids="",$taille="",$pc=""){
@@ -381,6 +520,7 @@ class Sifec {
                         $contact->indicatif = $indicatif;
                         $contact->telephone = $telephone;
                         $contact->email_personnelle = $email;
+                        $contact->email_professionnelle = self::normalizeEmailForContact($request->input('email_professionnel' . $sufix));
                         $contact->code_personne = $personne->code_personne;
                         $contact->save();
 
@@ -498,8 +638,9 @@ class Sifec {
     }
 
     public function validiteCodeOtpActeNaissance(){
-        // Purge uniquement les OTP expirés — les codes encore valides sont conservés
+        // Purge uniquement les OTP expirés sur les actes non encore signés (après signature le code reste en base pour le QR)
         ActeNaissance::whereNotNull('otp_approbation_mairie')
+                     ->whereNull('approbation_mairie')
                      ->whereNotNull('otp_expire_at')
                      ->where('otp_expire_at', '<', now())
                      ->update(['otp_approbation_mairie' => null, 'otp_expire_at' => null]);
@@ -694,7 +835,8 @@ class Sifec {
 
                 $contact->indicatif = $request->input("code_pays".$sufix);
                 $contact->telephone = $request->input("telephone".$sufix);
-                $contact->email_personnelle = $request->input("email".$sufix);
+                $contact->email_personnelle = self::normalizeEmailForContact($request->input('email'.$sufix));
+                $contact->email_professionnelle = self::normalizeEmailForContact($request->input('email_professionnel'.$sufix));
                 $contact->save();
 
                 [$numRue, $typeVoieAddr2, $nomVoieAddr2] = self::normalizeAdresseValues(
@@ -895,6 +1037,7 @@ class Sifec {
             $contact->indicatif = $indicatif;
             $contact->telephone = $telephone;
             $contact->email_personnelle = $email;
+            $contact->email_professionnelle = self::normalizeEmailForContact($request->input('email_professionnel' . $sufix));
             $contact->code_personne = $personne->code_personne;
             $contact->save();
 
@@ -969,6 +1112,20 @@ class Sifec {
         return [$indicatif, $telephone ?: null, $email];
     }
 
+    /**
+     * E-mail optionnel pour t_contact_personne (professionnel ou saisi seul), mêmes règles de longueur que normalizeContactValues.
+     */
+    private static function normalizeEmailForContact($email): ?string
+    {
+        $dummy = 'XXXXXXXXXXXXXXXX';
+        $email = $email === null ? '' : (string) $email;
+        if (strlen($email) > 100 || $email === $dummy) {
+            return null;
+        }
+
+        return substr($email, 0, 100) ?: null;
+    }
+
     public function format_nombre(int $nombre,int $taille):string{
         return str_pad($nombre,$taille,"0",STR_PAD_LEFT);
     }
@@ -1041,29 +1198,49 @@ class Sifec {
             "Accept" => "application/json"
         ];
 
+        // Format Infobip « SMS / 2 / text / advanced » : `messages` = tableau de messages (pas un seul objet)
+        $toNormalized = $this->normalizeSmsPhone((string) $to);
+
         $body = [
-            "messages" => [
-                "destinations" => [
-                    "to" => $to
+            'messages' => [
+                [
+                    'from' => config('sifec.sms.sender_id', 'ETAT-CIVIL'),
+                    'destinations' => [
+                        ['to' => $toNormalized],
+                    ],
+                    'text' => self::normaliserCaracteresSpeciaux($content),
                 ],
-                "from" => "ETAT-CIVIL",
-                "text" => self::normaliserCaracteresSpeciaux($content)
-            ]
+            ],
         ];
 
         $response = Http::asJson()->withHeaders($headers)->post($endpoint, $body);
 
-        // Log pour diagnostic
-        Log::channel("sifec")->info("Infobip SMS - Status: " . $response->status());
-        Log::channel("sifec")->info("Infobip SMS - Response: " . $response->body());
-        Log::channel("sifec")->info("Infobip SMS - Request: " . json_encode($body));
+        $responseBody = $response->body();
+        $from = $body['messages'][0]['from'] ?? config('sifec.sms.sender_id', 'ETAT-CIVIL');
+
+        Log::channel('sifec')->info('Infobip SMS (requête / réponse)', [
+            'endpoint' => $endpoint,
+            'from_envoye' => $from,
+            'phone_masque' => $this->maskMsisdnForLog($toNormalized),
+            'texte_apercu' => mb_substr((string) ($body['messages'][0]['text'] ?? ''), 0, 240),
+            'texte_longueur' => mb_strlen((string) ($body['messages'][0]['text'] ?? '')),
+            'http_status' => $response->status(),
+            'corps_reponse' => $this->truncateForLog($responseBody),
+            'payload_sans_secret' => [
+                'messages' => [
+                    [
+                        'from' => $from,
+                        'destinations' => [['to' => $this->maskMsisdnForLog($toNormalized)]],
+                    ],
+                ],
+            ],
+        ]);
 
         if ($response->status() == 200) {
-            return $response->body();
+            return $responseBody;
         }
 
-        // Retourner la réponse même en cas d'erreur pour diagnostic
-        return $response->body();
+        return $responseBody;
     }
 
 
@@ -1918,21 +2095,47 @@ class Sifec {
     }
 
     /**
-     * Compose le NIUPP (NIUPP national) à partir de la déclaration et de l’ordre séquentiel (CEC / mois de naissance).
+     * Compose le NIUPP (NIUPP national) à partir de la déclaration et de l’ordre séquentiel sur 4 chiffres.
+     * Les segments géographiques (département, localité parente, type CEC) proviennent de l’institution liée à la déclaration.
+     * L’ordre ($numOrdre) est le rang d’inscription dans le volume au moment de la validation (aligné sur le feuillet).
+     * Référentiel métier : un registre par type d’acte et par année civile par CEC (ex. seul registre naissances 2026 pour ce CEC).
      */
     public static function genererNiupp(string $codeDn, int $numOrdre): string
     {
-        $dn = Declarationnaissance::find($codeDn);
+        $dn = Declarationnaissance::query()
+            ->with([
+                'institution.lieu.localiteParent.localiteParent',
+                'institution.lieu.localiteParent.typelocalite',
+                'enfant',
+            ])
+            ->find($codeDn);
 
         if ($dn === null) {
             throw new \InvalidArgumentException('Aucune déclaration de naissance trouvée pour le code : '.$codeDn);
         }
 
-        $dept = $dn->institutionUser->institution->lieu->localiteParent->localiteParent ?? $dn->institutionUser->institution->lieu->localiteParent;
-        $codeDept = $dept->code_officel;
+        if ($dn->enfant === null) {
+            throw new \InvalidArgumentException('Enfant manquant pour générer le NIUPP (déclaration : '.$codeDn.').');
+        }
+
         $institution = $dn->institution;
-        $codeCec = $institution->lieu->localiteParent->typeLocalite->type_cec;
-        $codeLoc = $institution->lieu->localiteParent->code_officel;
+        if ($institution === null || $institution->lieu === null) {
+            throw new \InvalidArgumentException('Institution ou lieu manquant pour générer le NIUPP (déclaration : '.$codeDn.').');
+        }
+
+        $parent = $institution->lieu->localiteParent;
+        if ($parent === null) {
+            throw new \InvalidArgumentException('Hiérarchie de localité incomplète pour le NIUPP (déclaration : '.$codeDn.').');
+        }
+
+        $dept = $parent->localiteParent ?? $parent;
+        $codeDept = $dept->code_officel;
+        $typeLoc = $parent->typelocalite;
+        if ($typeLoc === null) {
+            throw new \InvalidArgumentException('Type de localité parent manquant pour le NIUPP (déclaration : '.$codeDn.').');
+        }
+        $codeCec = $typeLoc->type_cec;
+        $codeLoc = $parent->code_officel;
 
         $sexe = $dn->enfant->sexe == 'M' ? '1' : '2';
         $anneeNais = new Carbon($dn->enfant->date_naissance);

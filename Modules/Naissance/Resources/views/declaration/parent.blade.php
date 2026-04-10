@@ -29,9 +29,9 @@
         <div class="mb-2 col-md-4">
             <label class="form-label">Lieu de naissance père</label>
             <input type="text" name="lieu_naissance_pere" class="form-control d-none" id="lieu_naissance_pere" placeholder="Lieu de naissance">
-            <select id="code_localite_pere" class="form-control required">
-                <option disabled selected>Choisissez</option>
-                @foreach ($localites as $localite)
+            <select id="code_localite_pere" name="code_localite_pere" class="form-control required">
+                <option value="" selected>Choisissez</option>
+                @foreach ($localites ?? [] as $localite)
                     <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                 @endforeach
             </select>
@@ -77,6 +77,7 @@
             <label class="form-label">Numéro pièce d'identité</label>
             <input type="text" id="numero_document_pere" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()">
         </div>
+    </div>
 
         <div class="ligne">
             <h4>ADRESSE</h4>
@@ -94,7 +95,7 @@
                 <label class="form-label">Commune/District<span class="text-danger"></span></label>
                 <select name="domicile_ville_pere" id="domicile_ville_pere" class="form-control">
                     <option value="">Choisir</option>
-                    @foreach ($localites as $localite)
+                    @foreach ($localites ?? [] as $localite)
                         <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
                     @endforeach
                 </select>
@@ -163,8 +164,12 @@
                 </div>
 
                 <div class="mb-2 col-md-4">
-                    <label class="form-label">Email</label>
-                    <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="Email père">
+                    <label class="form-label">E-mail personnel</label>
+                    <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail personnel du père" autocomplete="email">
+                </div>
+                <div class="mb-2 col-md-4">
+                    <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+                    <input type="email" id="email_professionnel_pere" class="form-control" name="email_professionnel_pere" placeholder="E-mail professionnel du père" autocomplete="email">
                 </div>
 
                 <div class="ligne">
@@ -180,7 +185,6 @@
                 </div>
             </div>
         </div>
-    </div>
 </section>
 <!-- Step 3 -->
 <h6>Mère</h6>
@@ -356,8 +360,12 @@
         </div>
 
         <div class="mb-2 col-md-4">
-            <label class="form-label">Email</label>
-            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="Email mère">
+            <label class="form-label">E-mail personnel</label>
+            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail personnel de la mère" autocomplete="email">
+        </div>
+        <div class="mb-2 col-md-4">
+            <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
+            <input type="email" id="email_professionnel_mere" class="form-control" name="email_professionnel_mere" placeholder="E-mail professionnel de la mère" autocomplete="email">
         </div>
 
         <div class="ligne">

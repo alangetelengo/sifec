@@ -1,0 +1,310 @@
+/**
+ * Formulaires create / edit SIFEC (charte utilisateur)
+ */
+.page-utilisateur-form-sifec, .page-sifec-form {
+        --pu-ink: #1a2e26;
+        --pu-muted: #5c6d66;
+        --pu-green: #0f5132;
+        --pu-green-mid: #1b6f4a;
+        --pu-green-soft: #e8f0eb;
+        --pu-line: #e2e8e4;
+        --pu-paper: #ffffff;
+        --pu-shadow-lg: 0 12px 40px rgba(26, 46, 38, 0.08);
+        --pu-radius: 14px;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        margin: -0.35rem -0.5rem 0;
+        padding: 0.5rem 0.5rem 2rem;
+        min-height: calc(100vh - 100px);
+        background: linear-gradient(180deg, #fafaf8 0%, #eef1ee 100%);
+    }
+
+    .page-utilisateur-form-sifec .pu-card, .page-sifec-form .pu-card {
+        border: 1px solid var(--pu-line);
+        border-radius: var(--pu-radius);
+        box-shadow: var(--pu-shadow-lg);
+        overflow: hidden;
+        background: var(--pu-paper);
+    }
+
+    .page-utilisateur-form-sifec .pu-card > .card-header, .page-sifec-form .pu-card > .card-header {
+        background: linear-gradient(135deg, var(--pu-green-soft) 0%, #f4f7f5 100%);
+        border-bottom: 1px solid var(--pu-line);
+        padding: 1.1rem 1.25rem;
+    }
+
+    .page-utilisateur-form-sifec .pu-card > .card-header h4, .page-sifec-form .pu-card > .card-header h4 {
+        color: var(--pu-ink);
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-utilisateur-form-sifec .pu-card .card-body, .page-sifec-form .pu-card .card-body {
+        padding: 1.25rem 1.35rem 1.5rem;
+    }
+
+    .page-utilisateur-form-sifec .pu-alert-info, .page-sifec-form .pu-alert-info {
+        border-radius: 10px;
+        border: 1px solid #b8d4ce;
+        background: linear-gradient(135deg, #f0f9f7 0%, #e8f4f1 100%);
+        color: #1e4d42;
+        font-size: 0.92rem;
+    }
+
+    .page-utilisateur-form-sifec .pu-alert-info strong, .page-sifec-form .pu-alert-info strong {
+        color: var(--pu-green);
+    }
+
+    .page-utilisateur-form-sifec .alert-warning.py-2, .page-sifec-form .alert-warning.py-2 {
+        border-radius: 10px;
+        border-color: #e8d9a8;
+    }
+
+    .page-utilisateur-form-sifec .ligne, .page-sifec-form .ligne {
+        margin-top: 1.5rem;
+        margin-bottom: 0.65rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 2px solid rgba(27, 111, 74, 0.2);
+    }
+
+    .page-utilisateur-form-sifec .ligne:first-of-type, .page-sifec-form .ligne:first-of-type {
+        margin-top: 0;
+    }
+
+    .page-utilisateur-form-sifec .ligne h4, .page-sifec-form .ligne h4 {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--pu-green-mid);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .page-utilisateur-form-sifec .ligne h4 .text-muted, .page-sifec-form .ligne h4 .text-muted {
+        text-transform: none;
+        letter-spacing: normal;
+        font-weight: 500;
+    }
+
+    .page-utilisateur-form-sifec .form-label, .page-sifec-form .form-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--pu-ink);
+    }
+
+    .page-utilisateur-form-sifec .form-control,
+    .page-utilisateur-form-sifec select.form-control,
+    .page-sifec-form .form-control,
+    .page-sifec-form select.form-control {
+        border-radius: 10px;
+        border-color: #cfd8d3;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .page-utilisateur-form-sifec .form-control:focus,
+    .page-utilisateur-form-sifec select.form-control:focus,
+    .page-sifec-form .form-control:focus,
+    .page-sifec-form select.form-control:focus {
+        border-color: var(--pu-green-mid);
+        box-shadow: 0 0 0 3px rgba(27, 111, 74, 0.2);
+    }
+
+    .page-utilisateur-form-sifec .form-control.bg-light, .page-sifec-form .form-control.bg-light {
+        background: #f4f7f5 !important;
+        border-color: #dde5e0;
+        color: var(--pu-muted);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-back, .page-sifec-form .pu-btn-back {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.4rem 0.95rem;
+        border: 1px solid #991b1b;
+        background: #b91c1c;
+        color: #fff !important;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(185, 28, 28, 0.28);
+        transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-back:hover, .page-sifec-form .pu-btn-back:hover {
+        background: #991b1b;
+        border-color: #7f1d1d;
+        color: #fff !important;
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-back:focus, .page-sifec-form .pu-btn-back:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.38);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-search-person, .page-sifec-form .pu-btn-search-person {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.4rem 0.95rem;
+        border: 1px solid #d97706;
+        background: #f59e0b;
+        color: #1a1408 !important;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-search-person:hover, .page-sifec-form .pu-btn-search-person:hover {
+        background: #d97706;
+        border-color: #b45309;
+        color: #fff !important;
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-profile, .page-sifec-form .pu-btn-profile {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.4rem 0.95rem;
+        background: #0d6e8c;
+        border-color: #0d6e8c;
+        color: #fff !important;
+        box-shadow: 0 2px 6px rgba(13, 110, 140, 0.25);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-profile:hover, .page-sifec-form .pu-btn-profile:hover {
+        background: #0a5a73;
+        border-color: #0a5a73;
+        color: #fff !important;
+    }
+
+    .page-utilisateur-form-sifec .pu-form-actions, .page-sifec-form .pu-form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.15rem;
+        border-top: 1px solid var(--pu-line);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-cancel, .page-sifec-form .pu-btn-cancel {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.45rem 1.15rem;
+        border: 1px solid #991b1b;
+        background: #b91c1c;
+        color: #fff !important;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(185, 28, 28, 0.28);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-cancel:hover, .page-sifec-form .pu-btn-cancel:hover {
+        background: #991b1b;
+        border-color: #7f1d1d;
+        color: #fff !important;
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-submit, .page-sifec-form .pu-btn-submit {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.45rem 1.25rem;
+        background: var(--pu-green-mid);
+        border-color: var(--pu-green-mid);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(27, 111, 74, 0.25);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-submit:hover, .page-sifec-form .pu-btn-submit:hover {
+        background: var(--pu-green);
+        border-color: var(--pu-green);
+        color: #fff;
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-submit.sifec-btn-loading, .page-sifec-form .pu-btn-submit.sifec-btn-loading {
+        pointer-events: none;
+        opacity: 0.92;
+    }
+
+    /* Modal (hors du wrapper page : variables locales) */
+    .modal-utilisateur-sifec {
+        --pu-m-green-soft: #e8f0eb;
+        --pu-m-line: #e2e8e4;
+        --pu-m-ink: #1a2e26;
+        --pu-m-green-mid: #1b6f4a;
+        --pu-m-green: #0f5132;
+    }
+
+    .modal-utilisateur-sifec .modal-content {
+        border: none;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 18px 48px rgba(26, 46, 38, 0.14);
+    }
+
+    .modal-utilisateur-sifec .modal-header {
+        background: linear-gradient(135deg, var(--pu-m-green-soft) 0%, #f0f4f1 100%);
+        border-bottom: 1px solid var(--pu-m-line);
+    }
+
+    .modal-utilisateur-sifec .modal-title {
+        font-weight: 700;
+        color: var(--pu-m-ink);
+        font-size: 1.05rem;
+    }
+
+    .modal-utilisateur-sifec .modal-footer {
+        border-top: 1px solid var(--pu-m-line);
+        background: #fafcfb;
+    }
+
+    .modal-utilisateur-sifec .modal-footer .btn {
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    .modal-utilisateur-sifec .modal-body .form-control:focus,
+    .modal-utilisateur-sifec .modal-body select.form-control:focus {
+        border-color: var(--pu-m-green-mid);
+        box-shadow: 0 0 0 3px rgba(27, 111, 74, 0.2);
+    }
+
+    .modal-utilisateur-sifec .tosearch {
+        border-radius: 10px;
+        font-weight: 600;
+        background: var(--pu-m-green-mid);
+        border-color: var(--pu-m-green-mid);
+    }
+
+    .modal-utilisateur-sifec .tosearch:hover {
+        background: var(--pu-m-green);
+        border-color: var(--pu-m-green);
+    }
+/* Cartes principales sans classe pu-card (create / edit génériques) */
+.page-sifec-form > .row > [class*="col-"] > .card {
+    border: 1px solid var(--pu-line);
+    border-radius: var(--pu-radius);
+    box-shadow: var(--pu-shadow-lg);
+    overflow: hidden;
+    background: var(--pu-paper);
+}
+
+.page-sifec-form > .row > [class*="col-"] > .card > .card-header {
+    background: linear-gradient(135deg, var(--pu-green-soft) 0%, #f4f7f5 100%);
+    border-bottom: 1px solid var(--pu-line);
+    padding: 1.1rem 1.25rem;
+}
+
+.page-sifec-form > .row > [class*="col-"] > .card > .card-header h4,
+.page-sifec-form > .row > [class*="col-"] > .card > .card-header h5 {
+    color: var(--pu-ink);
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.page-sifec-form > .row > [class*="col-"] > .card > .card-body {
+    padding: 1.25rem 1.35rem 1.5rem;
+}
+
+.page-sifec-form > .row > [class*="col-"] > .card.wizard-content > .card-body {
+    padding: 1.25rem 1.35rem 1.5rem;
+}

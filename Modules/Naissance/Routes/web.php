@@ -6,7 +6,6 @@ use Modules\Naissance\Http\Controllers\JugementController;
 use Modules\Naissance\Http\Controllers\NaissanceController;
 use Modules\Naissance\Http\Controllers\RequisitionController;
 use Modules\Naissance\Http\Controllers\ActeNaissanceController;
-use Modules\Naissance\Http\Controllers\FicheMaterniteController;
 use Modules\Naissance\Http\Controllers\LivretNaissanceController;
 use Modules\Naissance\Http\Controllers\MouvementNaissanceController;
 use Modules\Naissance\Http\Controllers\RequisitionTardiveController;
@@ -154,18 +153,6 @@ Route::middleware('auth')->prefix('statistiquesNaissance')->group(function() {
     // Route::get('naissances/repertoire', [ActeNaissanceController ::class,'repertoireetat'])->name("statistiquesNaissance.repertoire");
     Route::post('naissances/repertoire', [ActeNaissanceController ::class,'repertoireAlphabetique'])->name("statistiquesNaissance.repertoire.resultat");
 });
-
-Route::middleware('auth')->prefix('fiche_maternite')->group(function(){
-    Route::get('/', [FicheMaterniteController::class,'index'])->name('fiche_maternite.index');
-    Route::get('create',[FicheMaterniteController::class,'create'])->name("fiche_maternite.create");
-    Route::post('store',[FicheMaterniteController::class,'store'])->name("fiche_maternite.store");
-    Route::get('edit/{id}',[FicheMaterniteController::class,'edit'])->name("fiche_maternite.edit");
-    Route::put('update/{id}',[FicheMaterniteController::class,'update'])->name("fiche_maternite.update");
-    Route::get('send/notification/{id}',[FicheMaterniteController::class,'sendNotification'])->name("fiche_maternite.send.notification");
-});
-
-
-
 
 // Mouvements de naissance
 Route::middleware('auth')->prefix('naissance/mouvements')->name('naissance.mouvements.')->group(function () {

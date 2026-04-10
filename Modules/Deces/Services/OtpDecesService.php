@@ -3,8 +3,8 @@
 namespace Modules\Deces\Services;
 
 use App\Sifec\SifecFacade;
-use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Deces\Entities\ActeDeces;
+use Modules\Notification\Jobs\DeclarantActeDisponibleInformationJob;
 use Modules\Notification\Jobs\ValidationacteDecesJob;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +36,6 @@ class OtpDecesService
         $contact = $user->personne->contacts->last();
         if ($contact) {
             SifecFacade::sendSms($contact->indicatif . $contact->telephone, $temp);
-            dispatch(new SendSmsJob($contact->indicatif . $contact->telephone, $temp));
             dispatch(new ValidationacteDecesJob(
                 $user->personne->nomComplet(),
                 count($actes),
@@ -113,12 +112,19 @@ class OtpDecesService
             if ($contactDeclarant !== null) {
                 $indicatif = $contactDeclarant->indicatif ?? '+242';
                 $temp = config("sifec.sms.templates.actions.acte_deces");
-                $temp = str_replace(":declarant",    $ad->declaration->declarant->nomcomplet(), $temp);
+                $temp = str_replace(":declarant", $ad->declaration->declarant->nomcomplet(), $temp);
                 $temp = str_replace(":code_acte_deces", $ad->code_acte_deces, $temp);
-                $temp = str_replace(":defunt",       $ad->declaration->defunt->nomcomplet(), $temp);
-                $temp = str_replace(":libCec",       $ad->institution->lib_institution, $temp);
+                $temp = str_replace(":defunt", $ad->declaration->defunt->nomcomplet(), $temp);
+                $temp = str_replace(":libCec", $ad->institution->lib_institution, $temp);
                 SifecFacade::sendSms($indicatif . $contactDeclarant->telephone, $temp);
-                dispatch(new SendSmsJob($indicatif . $contactDeclarant->telephone, $temp));
+                $emailsDecl = $contactDeclarant->adressesEmailPourNotification();
+                if ($emailsDecl !== []) {
+                    dispatch(new DeclarantActeDisponibleInformationJob(
+                        $emailsDecl,
+                        $temp,
+                        'SIFEC — Acte de décès disponible'
+                    ));
+                }
                 dispatch(new ValidationacteDecesJob(
                     $user->personne->nomComplet(),
                     $ad->count(),

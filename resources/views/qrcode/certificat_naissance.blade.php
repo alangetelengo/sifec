@@ -94,12 +94,12 @@
                                             <td style="text-align: center;">
                                                 <br>
                                                @php
-                                                   if ($certificat->type_declaration != "DECLARATION DE NAISSANCE") {
-                                                        $numcert = $certificat->numero_certificat;
-                                                   } else {
+                                                   if ($certificat->estDeclarationSimpleSansOrigine()) {
                                                         $numcert = $certificat->code_declaration_naissance;
                                                         $localiteParent = "";
                                                         $localite = "MINISTERE DE LA SANTE ET DE LA POPULATION";
+                                                   } else {
+                                                        $numcert = $certificat->numero_certificat;
                                                    }
                                                @endphp
                                                 <strong>{{ $localiteParent }} <br>
@@ -116,7 +116,7 @@
                             </div>
                             <br>
                             <div class="row">
-                                <span class="text-center">{{$certificat->type_declaration}} <br> Année: <strong>{{date("Y", strtotime($certificat->date_heure_declaration))}}</strong>; n° <strong>{{$numcert}}</strong></span>
+                                <span class="text-center">{{$certificat->libelleAffichageType()}} <br> Année: <strong>{{date("Y", strtotime($certificat->date_heure_declaration))}}</strong>; n° <strong>{{$numcert}}</strong></span>
                             </div><br>
                             <div class="row">
                                 <div class="col-md-4 col-sm-12">

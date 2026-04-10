@@ -12,8 +12,9 @@
 </style>
 <page orientation="portrait" backimg="{{asset("tpl/armoirie_congo.png")}}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
     @php
+        $typeMetaNaissance = optional($jugement->declarationNaissance ?? $jugement->declarationParCodeJugement)->type_declaration;
         $tribunal = "";
-        if ($jugement->type_declaration == "CERTIFICAT DE NON INSCRIPTION") {
+        if ($typeMetaNaissance == "CERTIFICAT DE NON INSCRIPTION") {
             $tribunal = $jugement->institutionUser->institution->institutionParent->lib_institution;
 
         }else {
@@ -21,7 +22,7 @@
         }
 
         $institution = "";
-        if ($jugement->type_declaration == "CERTIFICAT DE NON INSCRIPTION") {
+        if ($typeMetaNaissance == "CERTIFICAT DE NON INSCRIPTION") {
             $institution = $jugement->institutionUser->institution->lib_institution;
         } else {
             $institution = $jugement->institutionUser->institution->institutionParent->lib_institution;
@@ -40,7 +41,7 @@
             <td style="width:40%; text-align: center; font-size: 200!important%">
                 @php
                  $courAppel = "";
-                    if ($jugement->type_declaration == "CERTIFICAT DE NON INSCRIPTION") {
+                    if ($typeMetaNaissance == "CERTIFICAT DE NON INSCRIPTION") {
                         $courAppel = $jugement->institutionUser->institution->institutionParent->institutionParent->lib_institution;
                     } else {
                         $courAppel = $jugement->institutionUser->institution->institutionParent->institutionParent->institutionParent->lib_institution;

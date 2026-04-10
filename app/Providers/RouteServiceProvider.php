@@ -59,5 +59,14 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
         });
+
+        // Paraphe registre : fenêtre 1 minute (decay de perMinute). Ne doit pas bloquer avant la logique métier 3/3.
+        RateLimiter::for('registre-validate-otp', function (Request $request) {
+            return Limit::perMinute(40)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        RateLimiter::for('registre-send-otp', function (Request $request) {
+            return Limit::perMinute(20)->by(optional($request->user())->id ?: $request->ip());
+        });
     }
 }

@@ -14,6 +14,9 @@ Certificat de destruction d'acte de naissance
     Liste des déclarations de destruction d'acte de naissance
 @endsection
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
@@ -228,6 +231,9 @@ Certificat de destruction d'acte de naissance
         </form>
     </div>
 </div>
+</div>
+</div>
+</div>
 @endsection
 @section("scripts")
 
@@ -282,12 +288,15 @@ Certificat de destruction d'acte de naissance
         });
         $('#form-envoyer-tribunal').on('submit', function(e){
             e.preventDefault();
-            let url = "{{ route('certificatDestruction.mouvement') }}";
+            var $btn = $('#btn-envoyer-tribunal-final');
+            sifecBtnLoading($btn[0], "Envoi...");
+            let url = "{{ route('certificatTranscription.mouvement') }}";
             $.ajax({
                 url: url,
                 type: 'POST',
                 data: $(this).serialize(),
                 success: function(resp){
+                    sifecBtnReset($btn[0], "Envoyer");
                     if(resp.code == "200"){
                         flashAlert("Réponse","success",resp.message);
                         $('#modal-envoyer-tribunal').modal('hide');
@@ -297,6 +306,7 @@ Certificat de destruction d'acte de naissance
                     }
                 },
                 error: function(xhr){
+                    sifecBtnReset($btn[0], "Envoyer");
                     flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
                 }
             });

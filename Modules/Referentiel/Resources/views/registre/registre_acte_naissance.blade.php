@@ -14,6 +14,7 @@
     <link rel="stylesheet" type="text/css" href="{{ URL::to('carte/css/demo1.css') }}" />
      <!-- css de la carte -->
      <script src="{{ URL::to('carte/js/modernizr.custom.js') }}"></script>
+    <link href="{{ asset('css/sifec-registre-livret.css') }}?v=4" rel="stylesheet">
 
     <!-- Styles personnalisés pour l'amélioration UX -->
     <style>
@@ -24,7 +25,7 @@
         }
 
         .table-header-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%);
             color: white;
         }
 
@@ -204,7 +205,7 @@
             position: sticky;
             top: 0;
             z-index: 10;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #92b885 0%, #a3ce85 100%);
         }
 
         /* Ajuster le card-body pour le scroll */
@@ -231,8 +232,8 @@
         }
 
         #search-acte-input:focus {
-            border-color: #764ba2;
-            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25);
+            border-color: #92b885;
+            box-shadow: 0 0 0 0.2rem rgba(146, 184, 133, 0.25);
         }
 
         #clear-search-btn {
@@ -257,8 +258,31 @@
 
 @section("corps")
 
+<div class="page-sifec-form page-sifec-registre-livret registre-livret-toolbar-unified">
+<div class="row mb-0 g-0 registre-livret-toolbar">
+    <div class="col-12">
+        <div class="registre-livret-toolbar-surface">
+            <div class="registre-livret-toolbar-row">
+                <h4 class="mb-0 flex-grow-1 min-w-0"><i class="fas fa-book-open me-2"></i>Registre de naissance</h4>
+                <div class="d-flex flex-wrap gap-2 flex-shrink-0 align-items-center">
+                    @if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0002")
+                        <a href="{{ route('registre.tribunal') }}" class="btn btn-sm pu-btn-back">
+                            <i class="fas fa-arrow-left me-1"></i> Liste des registres
+                        </a>
+                    @else
+                        <a href="{{ route('registre.index') }}" class="btn btn-sm pu-btn-back">
+                            <i class="fas fa-arrow-left me-1"></i> Liste des registres
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="main clearfix">
     <div class="bb-custom-wrapper">
+        <div class="registre-livret-panel">
 
         <div id="bb-bookblock" class="bb-bookblock">
               <!-- page 1 -->
@@ -266,12 +290,15 @@
             <div class="bb-item">
                 <div class="row">
                     <div class="col-sm-12">
-                        <div class="card" style="height: 680px; border: 2px solid; text-align: left; padding: 20px; font-size: 12px">
+                        <div class="card registre-livret-doc-inner" style="height: 680px; border: 2px solid; text-align: left; font-size: 12px">
                             <h2>
-                                {!! $registre->getTexteParapheRegistre('naissance') !!}<br><br><br><br><br><br>
+                                {!! $registre->getTexteParapheRegistre('naissance') !!}<br><br>
                             </h2>
 
-                            <h2><span style="margin-left: 730px;"> Fait à <strong style="text-transform: capitalize">{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->updated_at)) }}</strong> </span></h2>
+                            @php
+                                $villeParapheNaissance = mb_strtoupper((string) ($registre->institutionUser->institution->lieu->localiteparent->lib_localite ?? ''), 'UTF-8');
+                            @endphp
+                            <h2><span style="margin-left: 730px;">Fait à <strong>{{ $villeParapheNaissance }}</strong>, le <strong>{{ date('d-m-Y', strtotime($registre->updated_at)) }}</strong></span></h2>
                             <b style="margin-left: 730px;">
                                 <img src='{{ asset("app/".$registre->sceau) }}' alt="">
                                 <img src='{{ asset("app/".$registre->signature_tribunal) }}' alt="" width="200" height="200">
@@ -299,7 +326,7 @@
                                 @endif
                             </div>
                             <div class="card-body">
-                                <p class="card-text" style="margin-top: 100px;">
+                                <p class="card-text registre-livret-cec-intro">
                                     <h2><strong> C.E.C :  {{  $registre->institutionUser->institution->lib_institution}} </strong></h2>
                                     <h2><strong> {{$registre->lib_registre}} </strong></h2>
                                     <h2><strong>Année : {{date("Y", strtotime($registre->updated_at))}} </strong></h2>
@@ -314,10 +341,10 @@
                                 <div class="card-header border-0 pb-0 card-header-registre" style="flex-shrink: 0;">
                                     <h3><strong> Liste des actes de naissance du registre </strong></h3>
                                     <div class="input-group mt-2" style="max-width: 100%;">
-                                        <span class="input-group-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                                        <span class="input-group-text">
                                             <i class="fas fa-search"></i>
                                         </span>
-                                        <input type="text" id="search-acte-input" class="form-control" placeholder="Rechercher par nom, prénom, feuillet..." style="border: 1px solid #667eea;">
+                                        <input type="text" id="search-acte-input" class="form-control" placeholder="Rechercher par nom, prénom, feuillet...">
                                         <button class="btn btn-secondary" type="button" id="clear-search-btn" style="display: none;">
                                             <i class="fas fa-times"></i>
                                         </button>
@@ -432,7 +459,7 @@
                                                    $infos = 'ACTE ETABLIT SUIVANT LE JUGEMENT N° '.$acte->declaration->jugement->num_jugement.'  DU '.(date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)))." AU ".$acte->declaration->jugement->institutionUser->institution->lib_institution;
                                                }
 
-                                               if($acte->declaration->type_declaration == "DECLARATION DE NAISSANCE" && $acte->declaration->numero_req != 0){
+                                               if($acte->declaration->type_declaration == "DECLARATION DE NAISSANCE" && ($acte->declaration->numero_req != 0 || ($acte->declaration->type_declaration_origine ?? '') === 'DECLARATION TARDIVE DE NAISSANCE')){
                                                    $infos = 'ACTE ETABLIT SUIVANT '.$top.' DE DECLARATION TARDIVE N° '.$titre." ".$num;
                                                }
 
@@ -569,7 +596,7 @@
                    <div class="spiral-binding"></div>
 
                    <div class="col-sm-11">
-                       <div class="card" style="height: 670px; border: 2px solid; text-align: left; padding: 20px; font-size: 18px">
+                       <div class="card registre-livret-doc-inner" style="height: 670px; border: 2px solid; text-align: left; font-size: 18px">
 
                            <h2>
                                Nous <strong>{{ $nomcompletcec }}</strong>,
@@ -597,26 +624,22 @@
            @endif
         </div>
 
-        <nav id="btn_footer">
-            <a id="bb-nav-first" href="#" class="bb-custom-icon bb-custom-icon-first">First page</a>
-            <a id="bb-nav-prev" href="#" class="bb-custom-icon bb-custom-icon-arrow-left">Previous</a>
-            <a id="bb-nav-next" href="#" class="bb-custom-icon bb-custom-icon-arrow-right">Next</a>
-            <a id="bb-nav-last" href="#" class="bb-custom-icon bb-custom-icon-last">Last page</a>
-        </nav>
-
-
-        @if(Auth::user()->affectationActive()->institution->typeInstitution->typeCategorieInstitution->code_type_categorie_ins == "TCINS_0002")
-        <a href="{{ route('registre.tribunal') }}" class="btn btn-primary mb-2" style="float: right;>
-         <i class="fas fa-list"></i>
-        Liste des registres</a>
-        @else
-        <a href="{{ route('registre.index') }}" class="btn btn-primary mb-2" style="float: right;">
-            <i class="fas fa-list"></i>
-            Liste des registres
-        </a>
-        @endif        <!-- lien vers la page de la liste de registres -->
+        <div class="registre-livret-footer d-flex flex-column align-items-center w-100">
+            <nav id="btn_footer">
+                <a id="bb-nav-first" href="#" class="bb-custom-icon bb-custom-icon-first">First page</a>
+                <a id="bb-nav-prev" href="#" class="bb-custom-icon bb-custom-icon-arrow-left">Previous</a>
+                <a id="bb-nav-next" href="#" class="bb-custom-icon bb-custom-icon-arrow-right">Next</a>
+                <a id="bb-nav-last" href="#" class="bb-custom-icon bb-custom-icon-last">Last page</a>
+            </nav>
+            <div class="text-muted small registre-livret-footer-hint">
+                <i class="fas fa-keyboard me-1"></i> Flèches gauche / droite pour feuilleter
+            </div>
+        </div>
+        </div>
     </div>
 </div><!-- /container -->
+
+</div>
 
 @endsection
 

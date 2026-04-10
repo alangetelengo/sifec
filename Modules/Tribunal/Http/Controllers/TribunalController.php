@@ -622,10 +622,10 @@ class TribunalController extends Controller
                     $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact('certificat'))->render());
                     return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
                 }
-                if($certificat->type_declaration === "FICHE DE TRANSCRIPTION"){
+                if($certificat->type_declaration === "FICHE DE TRANSCRIPTION" || $certificat->type_declaration === "CERTIFICAT DE TRANSCRIPTION"){
                     $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                     $html2pdf->setDefaultFont('Arial');
-                    $html2pdf->writeHTML(view('naissance::etats.certificat_transcription', compact('certificat'))->render());
+                    $html2pdf->writeHTML(view('naissance::etats.certificat_de_transcription', compact('certificat'))->render());
                     return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
                 }
                 if($certificat->type_declaration === "CERTIFICAT DE NON INSCRIPTION"){
@@ -635,7 +635,7 @@ class TribunalController extends Controller
                     return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
                 }
 
-
+                abort(404, 'Aucun modèle PDF pour ce type de déclaration naissance.');
 
             }elseif($module === 'mariage'){
                 $dm = DeclarationMariage::findOrFail($id);

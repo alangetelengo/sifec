@@ -19,6 +19,9 @@
 @endsection
 
 @section('corps')
+<div class="page-sifec-index">
+<div class="an-shell">
+<div class="an-body">
 <div class="container-fluid">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
@@ -146,6 +149,9 @@
             </form>
         </div>
     </div>
+</div>
+</div>
+</div>
 </div>
 @endsection
 

@@ -215,7 +215,7 @@
                 @endif
 
                 <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de déc&egrave;s :<span style="font-size: 15px;font-weight:bold;"> {{ $ddc->lieuDeces->lib_localite }} kkk </span></td>
+                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de déc&egrave;s :<span style="font-size: 15px;font-weight:bold;"> {{ $ddc->lieuDeces?->lib_localite ?? $ddc->lieu_deces }} </span></td>
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>

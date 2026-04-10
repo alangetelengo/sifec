@@ -22,6 +22,7 @@
 @endsection
 @section("corps")
 
+<div class="page-sifec-form">
         <!-- row -->
     <div class="row" id="validation">
         <div class="col-12">
@@ -30,7 +31,9 @@
 
                     <h4>{{ $title }}</h4>
                       <!-- retour à la liste selon le type de declaration -->
-                      @if($type_declaration == 'CERTIFICAT DE NON INSCRIPTION' || $type_declaration == 'DECLARATION TARDIVE')
+                      @isset($decesDeclarationSuccessListUrl)
+                      <a href="{{ $decesDeclarationSuccessListUrl }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
+                      @elseif($type_declaration == 'CERTIFICAT DE NON INSCRIPTION' || $type_declaration == 'DECLARATION TARDIVE')
                       <a href="{{ route('certificatNonInscriptionDeces.index') }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
                       @elseif($type_declaration == 'CERTIFICAT DE DESTRUCTION DE L\'ACTE')
                       <a href="{{ route('certificatDestructionDeces.index') }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
@@ -57,9 +60,18 @@
     </div>
 
     @include('deces::declaration.modal-search')
-
+</div>
 @endsection
 @section("scripts")
+@php
+    $sifecDecesDeclarationForm = [
+        'storeUrl' => isset($decesDeclarationStoreUrl) ? $decesDeclarationStoreUrl : route('declarationDeces.store'),
+        'afterSuccessListUrl' => isset($decesDeclarationSuccessListUrl) ? $decesDeclarationSuccessListUrl : null,
+    ];
+@endphp
+<script>
+    window.sifecDecesDeclarationForm = @json($sifecDecesDeclarationForm);
+</script>
 @include("deces::declaration.js.create")
 
 @endsection

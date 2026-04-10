@@ -5,6 +5,7 @@ Créer un module
 @section('styles')
 @endsection
 @section('corps')
+<div class="page-sifec-form">
     <div class="row">
         <div class="col-xl-12">
             <div class="card">
@@ -64,4 +65,5 @@ Créer un module
             </div>
         </div>
     </div>
+</div>
 @endsection
