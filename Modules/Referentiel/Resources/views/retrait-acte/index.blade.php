@@ -10,17 +10,20 @@
 @section('corps')
 <div class="page-sifec-index">
     <div class="an-shell">
-        <header class="an-hero">
+        <header class="an-hero an-hero--sifec-green">
             <div class="an-hero-text">
-                <h1>Consultation des actes retirés</h1>
+                <h1>
+                    <span class="an-hero-icon" aria-hidden="true"><i class="fas fa-file-signature"></i></span>
+                    Consultation des actes retirés
+                </h1>
                 <p>
                     Vérifiez si un acte a bien été retiré au guichet : choisissez le type d’acte, puis renseignez l’identité
                     telle qu’elle figure sur l’acte de naissance.
                 </p>
             </div>
             <div class="an-toolbar">
-                <a href="{{ route('dashboard.index') }}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Accueil
+                <a href="{{ route('dashboard.index') }}" class="an-hero-ghost">
+                    <i class="fas fa-arrow-left"></i> Accueil
                 </a>
             </div>
         </header>

@@ -106,8 +106,10 @@
         </div>
         <div class="col-md-5">
             <div class="d-flex gap-2 flex-wrap justify-content-md-end mt-2 mt-md-0">
+                @if(auth()->user()->canVoirCarteOuStatistiquesDashboard())
                 <a href="{{ route('dashboard.carteducongo') }}" class="btn-hd"><i class="fa fa-map"></i> Carte</a>
                 <a href="{{ route('dashboard.statgenredep') }}" class="btn-hd"><i class="fa fa-chart-bar"></i> Statistiques</a>
+                @endif
             </div>
         </div>
     </div>
@@ -344,6 +346,8 @@
                             <span class="mc-lbl">Naissance</span>
                         </a>
                     </div>
+                    @endcan
+                    @can('module.acteNaissance')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('acteNaissance.index') }}" class="mod-card">
                             <div class="mc-ico" style="background:rgba(90,155,201,0.14);color:#5a9bc9;"><i class="fa fa-file-medical"></i></div>
@@ -403,6 +407,7 @@
                         </a>
                     </div>
                     @endcan
+                    @if(auth()->user()->canVoirCarteOuStatistiquesDashboard())
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('dashboard.carteducongo') }}" class="mod-card">
                             <div class="mc-ico" style="background:rgba(106,158,126,0.18);color:#5a9d78;"><i class="fa fa-map-marked-alt"></i></div>
@@ -415,6 +420,7 @@
                             <span class="mc-lbl">Statistiques</span>
                         </a>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

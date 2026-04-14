@@ -69,8 +69,10 @@
             </div>
             <div class="col-lg-4">
                 <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                    @if(auth()->user()->canVoirCarteOuStatistiquesDashboard())
                     <a href="{{ route('dashboard.carteducongo') }}" class="btn-hd"><i class="fa fa-map"></i> Carte</a>
                     <a href="{{ route('dashboard.statgenredep') }}" class="btn-hd"><i class="fa fa-chart-bar"></i> Statistiques</a>
+                    @endif
                     <a href="{{ route('notifications.index') }}" class="btn-hd"><i class="fa fa-bell"></i> Notifications</a>
                 </div>
             </div>

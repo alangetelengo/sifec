@@ -81,6 +81,7 @@
                     </a>
                 </div>
                 @endcan
+                @canany(['module.menus.tribunal', 'module.menus.cec'])
                 <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('documents.requisitions') }}" class="mod-card h-100">
                         <span class="mc-ico req"><i class="fa fa-file-signature"></i></span>
@@ -93,6 +94,8 @@
                         <span class="mc-lbl">Jugements</span>
                     </a>
                 </div>
+                @endcanany
+                @if(auth()->user()->canVoirCarteOuStatistiquesDashboard())
                 <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('dashboard.carteducongo') }}" class="mod-card h-100">
                         <span class="mc-ico" style="background:rgba(33,185,49,0.1);color:#21B931;"><i class="fa fa-map-marked-alt"></i></span>
@@ -105,6 +108,7 @@
                         <span class="mc-lbl">Statistiques nationales</span>
                     </a>
                 </div>
+                @endif
                 <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="mod-card h-100">
                         <span class="mc-ico" style="background:rgba(90,155,201,0.14);color:#5a9bc9;"><i class="fa fa-id-card"></i></span>

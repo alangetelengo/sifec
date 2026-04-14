@@ -56,6 +56,171 @@
     line-height: 1.5;
 }
 
+/* Même charte que l’en-tête « Droits & fonctionnalités » (permissions) — index + formulaires mariage */
+.page-sifec-index .an-hero.an-hero--sifec-green,
+.page-sifec-form .an-hero.an-hero--sifec-green {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    position: relative;
+    padding: 1.5rem 1.5rem 1.35rem;
+    border-bottom: none;
+    overflow: hidden;
+    color: #fff;
+    background-color: #009e49;
+    background-image: linear-gradient(135deg, #006b31 0%, #009e49 55%, #21b931 100%);
+    box-shadow: 0 8px 32px rgba(0, 107, 49, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.page-sifec-index .an-hero.an-hero--sifec-green::after,
+.page-sifec-form .an-hero.an-hero--sifec-green::after {
+    content: '';
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    top: -60px;
+    right: -40px;
+    pointer-events: none;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-text,
+.page-sifec-index .an-hero.an-hero--sifec-green .an-toolbar,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-text,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-toolbar {
+    position: relative;
+    z-index: 1;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-text h1,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-text h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    color: #fff;
+    font-weight: 600;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-text p,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-text p {
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 46rem;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-icon,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.18);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-ghost,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--si-radius-sm);
+    text-decoration: none !important;
+    box-shadow: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-ghost:hover,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-ghost:hover {
+    background: rgba(255, 255, 255, 0.24);
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-btn-primary,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.15rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #006b31 !important;
+    background: #fff;
+    border: none;
+    border-radius: var(--si-radius-sm);
+    text-decoration: none !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+.page-sifec-index .an-hero.an-hero--sifec-green .an-hero-btn-primary:hover,
+.page-sifec-form .an-hero.an-hero--sifec-green .an-hero-btn-primary:hover {
+    color: #006b31 !important;
+    filter: brightness(1.03);
+    transform: translateY(-1px);
+}
+
+/* Sélecteurs du bandeau formulaire type (création / édition) */
+.page-sifec-form .an-hero.an-hero--sifec-green .mariage-ft-head-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem 0.65rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.page-sifec-form .an-hero.an-hero--sifec-green .mariage-ft-head-right .form-control,
+.page-sifec-form .an-hero.an-hero--sifec-green .mariage-ft-head-right select.form-control {
+    max-width: 220px;
+    width: auto;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #1a2e26;
+    font-weight: 500;
+}
+.page-sifec-form .an-hero.an-hero--sifec-green .mariage-ft-head-right .form-control:focus,
+.page-sifec-form .an-hero.an-hero--sifec-green .mariage-ft-head-right select.form-control:focus {
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+/* Lien « Liste des … » : même apparence que les .form-control du même bandeau */
+.page-sifec-form .an-hero.an-hero--sifec-green a.an-hero-toolbar-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.375rem 0.75rem;
+    min-height: calc(1.5em + 0.75rem + 2px);
+    max-width: 280px;
+    width: auto;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 0.25rem;
+    color: #1a2e26 !important;
+    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.5;
+    text-decoration: none !important;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+.page-sifec-form .an-hero.an-hero--sifec-green a.an-hero-toolbar-link:hover {
+    color: #1a2e26 !important;
+    background: #fff;
+    border-color: rgba(255, 255, 255, 0.85);
+}
+.page-sifec-form .an-hero.an-hero--sifec-green a.an-hero-toolbar-link:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
 .page-sifec-index .an-toolbar {
     display: flex;
     flex-wrap: wrap;

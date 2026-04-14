@@ -30,9 +30,18 @@
         <div class="row" id="validation">
             <div class="col-12">
                 <div class="card mariage-ft-card">
-                    <div class="card-header mariage-ft-head">
-                        <h4>Créer un formulaire type</h4>
-                    </div>
+                    <header class="an-hero an-hero--sifec-green">
+                        <div class="an-hero-text">
+                            <h1>
+                                <span class="an-hero-icon" aria-hidden="true"><i class="fas fa-bullhorn"></i></span>
+                                Créer un formulaire type
+                            </h1>
+                            <p>Saisie liée à la publication de mariage : complétez le formulaire aux étapes indiquées.</p>
+                        </div>
+                        <div class="an-toolbar">
+                            <a href="{{ route('publicationMariage.index') }}" class="an-hero-toolbar-link"><i class="fas fa-list-alt me-1"></i> Liste des publications</a>
+                        </div>
+                    </header>
                     <div class="card wizard-content">
                         <div class="card-body">
                            @include('mariage::declaration.form')

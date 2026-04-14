@@ -55,9 +55,15 @@
         <div class="row" id="validation">
             <div class="col-12">
                 <div class="card mariage-ft-card">
-                    <div class="card-header mariage-ft-head">
-                        <h4>Créer un formulaire type</h4>
-                        <div class="mariage-ft-head-right">
+                    <header class="an-hero an-hero--sifec-green">
+                        <div class="an-hero-text">
+                            <h1>
+                                <span class="an-hero-icon" aria-hidden="true"><i class="fas fa-file-signature"></i></span>
+                                Créer un formulaire type
+                            </h1>
+                            <p>Complétez les étapes du formulaire : époux, épouse, témoins, puis les informations générales.</p>
+                        </div>
+                        <div class="an-toolbar mariage-ft-head-right">
                             <select id="type_mariage" class="form-control">
                                  {{-- <option value="" selected>Type de mariage</option> --}}
                                 <option value="NORMAL">Mariage normal</option>
@@ -70,9 +76,9 @@
                                 <option value="mandant_epouse">Epouse</option>
                                 <!-- <option value="posthume">Mariage à titre posthume</option> -->
                             </select>
-                            <a href="{{ route('declarationMariage.index') }}" class="btn btn-mariage-ft">Liste des formulaires types</a>
+                            <a href="{{ route('declarationMariage.index') }}" class="an-hero-toolbar-link"><i class="fas fa-list-alt me-1"></i> Liste des formulaires types</a>
                         </div>
-                    </div>
+                    </header>
                     <div id="notificationMsgProcuration" class="mariage-procuration-banner" role="alert">
                         <div class="mariage-procuration-banner__inner">
                             <span class="mariage-procuration-banner__icon" aria-hidden="true"><i class="fa fa-user-circle"></i></span>

@@ -15,14 +15,25 @@ Formulaires types
 @section('corps')
 <div class="page-sifec-index">
 <div class="an-shell">
+    <header class="an-hero an-hero--sifec-green">
+        <div class="an-hero-text">
+            <h1>
+                <span class="an-hero-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
+                Liste des formulaires types
+            </h1>
+            <p>Consultez et pilotez les dossiers de déclaration de mariage (statuts, confirmation, envoi au tribunal).</p>
+        </div>
+        <div class="an-toolbar">
+            <a href="{{ route('declarationMariage.create') }}" class="an-hero-btn-primary">
+                <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                <span>Créer un formulaire type</span>
+            </a>
+        </div>
+    </header>
 <div class="an-body">
 <div class="row">
     <div class="col-xl-12">
         <div class="card mariage-ft-card">
-            <div class="card-header mariage-ft-head">
-                <h4>Liste des formulaires types</h4>
-                <a href="{{ route('declarationMariage.create') }}" class="btn btn-mariage-ft"><i class="fa fa-plus-circle" aria-hidden="true"></i> Créer un formulaire type</a>
-            </div>
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">

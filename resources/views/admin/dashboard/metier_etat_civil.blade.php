@@ -94,6 +94,8 @@
                         <span class="mc-lbl">Déclarations naissance</span>
                     </a>
                 </div>
+                @endcan
+                @can('module.acteNaissance')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('acteNaissance.index') }}" class="mod-card h-100">
                         <div class="mc-ico" style="background:rgba(90,155,201,0.14);color:#5a9bc9;"><i class="fa fa-file-medical"></i></div>
@@ -109,8 +111,7 @@
                     </a>
                 </div>
                 @endcan
-                @if($showKpiDeces)
-                @can('module.menus.naissance')
+                @can('module.menus.deces')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('declarationDeces.index') }}" class="mod-card h-100">
                         <div class="mc-ico deces"><i class="fa fa-cross"></i></div>
@@ -118,7 +119,6 @@
                     </a>
                 </div>
                 @endcan
-                @endif
                 @can('module.menus.tribunal')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('tribunal.document.index') }}" class="mod-card h-100">
@@ -155,6 +155,7 @@
                     </a>
                 </div>
                 @endcan
+                @if(auth()->user()->canVoirCarteOuStatistiquesDashboard())
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('dashboard.carteducongo') }}" class="mod-card h-100">
                         <div class="mc-ico" style="background:rgba(33,185,49,0.1);color:#21B931;"><i class="fa fa-map-marked-alt"></i></div>
@@ -167,6 +168,7 @@
                         <span class="mc-lbl">Statistiques</span>
                     </a>
                 </div>
+                @endif
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="mod-card h-100">
                         <span class="mc-ico compte"><i class="fa fa-id-card"></i></span>

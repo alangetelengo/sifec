@@ -12,6 +12,7 @@ use Modules\Authentification\Entities\Fonctionnalite;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Gate;
 use Modules\Deces\Entities\DeclarationDeces;
 
 class User extends Authenticatable
@@ -109,6 +110,37 @@ class User extends Authenticatable
                 return ($f->etat_fonctionnalite ?? 'Activé') === 'Activé';
             })
             ->values();
+    }
+
+    /**
+     * Carte du Congo et statistiques nationales du tableau de bord : visibles si l’utilisateur
+     * a au moins un accès métier (menu ou gestion des menus), via sa fonction et/ou ses affectations.
+     */
+    public function canVoirCarteOuStatistiquesDashboard(): bool
+    {
+        $permissions = [
+            'module.menus',
+            'module.menus.naissance',
+            'module.menus.deces',
+            'module.menus.mariage',
+            'module.menus.referentiel',
+            'module.menus.administration',
+            'module.menus.cec',
+            'module.menus.tribunal',
+            'module.menus.formationSanitaire',
+            'module.menus.centreHygiene',
+            'module.menus.pompesFunebres',
+            'module.menus.mairie_centrale',
+            'module.menus.ambassade',
+        ];
+
+        foreach ($permissions as $permission) {
+            if (Gate::forUser($this)->allows($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function modules(){

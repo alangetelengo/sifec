@@ -46,45 +46,6 @@
         pointer-events: none;
     }
 
-    .page-users-sifec .users-header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--u-line);
-        position: relative;
-        z-index: 1;
-    }
-
-    .page-users-sifec .users-header h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        color: var(--u-ink);
-        margin: 0 0 0.35rem;
-    }
-
-    .page-users-sifec .users-header .users-sub {
-        font-size: 0.875rem;
-        color: var(--u-ink-muted);
-        margin: 0;
-        max-width: 36rem;
-        line-height: 1.5;
-    }
-
-    .page-users-sifec .users-header .users-sub::before {
-        content: '';
-        display: block;
-        width: 36px;
-        height: 3px;
-        background: linear-gradient(90deg, var(--u-gold), rgba(154, 123, 44, 0.2));
-        border-radius: 2px;
-        margin-bottom: 0.65rem;
-    }
-
     .page-users-sifec .btn-users-primary {
         display: inline-flex;
         align-items: center;
@@ -531,21 +492,25 @@
 @section('corps')
 <div class="page-sifec-index">
 <div class="an-shell">
+    <header class="an-hero an-hero--sifec-green">
+        <div class="an-hero-text">
+            <h1>
+                <span class="an-hero-icon" aria-hidden="true"><i class="fas fa-users"></i></span>
+                Gestion des utilisateurs
+            </h1>
+            <p>Administration des comptes agents, affectations aux centres d’état civil et sécurisation (2FA).</p>
+        </div>
+        <div class="an-toolbar">
+            <a href="{{ route('utilisateur.create') }}" class="an-hero-btn-primary">
+                <i class="fa fa-user-plus"></i>
+                <span>Nouvel utilisateur</span>
+            </a>
+        </div>
+    </header>
 <div class="an-body">
 <div class="row page-users-sifec">
     <div class="col-12">
         <div class="users-shell">
-            <header class="users-header">
-                <div>
-                    <h1>Gestion des utilisateurs</h1>
-                    <p class="users-sub">Administration des comptes agents, affectations aux centres d’état civil et sécurisation (2FA).</p>
-                </div>
-                <a href="{{ route('utilisateur.create') }}" class="btn-users-primary">
-                    <i class="fa fa-user-plus"></i>
-                    <span>Nouvel utilisateur</span>
-                </a>
-            </header>
-
             {{-- KPIs --}}
             <div class="kpi-grid">
                 <div class="kpi-card kpi-card--total">

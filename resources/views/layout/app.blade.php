@@ -40,7 +40,7 @@
     <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
     <!-- Formulaires SIFEC (champs, sections, cartes — même esprit que la page login) -->
     <link href="{{ asset('css/sifec-forms.css') }}?v=2" rel="stylesheet">
-    <link href="{{ asset('css/sifec-index-pages.css') }}?v=4" rel="stylesheet">
+    <link href="{{ asset('css/sifec-index-pages.css') }}?v=11" rel="stylesheet">
     <link href="{{ asset('css/sifec-modals.css') }}?v=1" rel="stylesheet">
     <link href="{{ asset('css/sifec-crud-forms.css') }}?v=6" rel="stylesheet">
 
