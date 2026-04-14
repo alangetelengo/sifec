@@ -202,6 +202,17 @@
                                    placeholder="exemple@domaine.com">
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        <div class="mb-2 col-md-6">
+                            <label class="form-label" for="email_professionnel">E-mail professionnel</label>
+                            <input type="email" id="email_professionnel"
+                                   class="form-control @error('email_professionnel') is-invalid @enderror"
+                                   name="email_professionnel"
+                                   value="{{ old('email_professionnel') }}"
+                                   placeholder="agent@ministere.gouv.cg"
+                                   autocomplete="email">
+                            <small class="text-muted">Si renseigné, les messages d’activation 2FA (codes, QR) sont envoyés à cette adresse plutôt qu’à l’e-mail du compte.</small>
+                            @error('email_professionnel')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                     </div>
 
                     {{-- ── BOUTONS ─────────────────────────────────────────────────────── --}}

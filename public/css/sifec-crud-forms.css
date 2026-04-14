@@ -39,6 +39,112 @@
         letter-spacing: -0.02em;
     }
 
+    .page-utilisateur-form-sifec .pu-card > .card-header h5, .page-sifec-form .pu-card > .card-header h5 {
+        color: var(--pu-ink);
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: -0.02em;
+        margin: 0;
+    }
+
+    /* Sous-cartes page édition utilisateur (document / affectation / compte) */
+    .page-utilisateur-form-sifec .pu-card.pu-section-card {
+        overflow: visible;
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card > .card-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card .pu-section-card__title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--pu-ink);
+        text-transform: uppercase;
+        letter-spacing: 0.055em;
+        line-height: 1.3;
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card .pu-section-card__hint {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--pu-muted);
+        line-height: 1.4;
+        max-width: 48rem;
+        text-transform: none;
+        letter-spacing: normal;
+        font-weight: 500;
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card--doc {
+        border-top: 4px solid #d97706;
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card--doc > .card-header {
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.14) 0%, #f6faf7 100%);
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card--aff {
+        border-top: 4px solid #0d6e8c;
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card--aff > .card-header {
+        background: linear-gradient(180deg, rgba(13, 110, 140, 0.1) 0%, #f6faf8 100%);
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card--compte {
+        border-top: 4px solid var(--pu-green-mid);
+    }
+
+    .page-utilisateur-form-sifec .pu-card.pu-section-card--compte > .card-header {
+        background: linear-gradient(180deg, var(--pu-green-soft) 0%, #f6faf7 100%);
+    }
+
+    .page-utilisateur-form-sifec .pu-btn-mise-a-jour {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.4rem 0.95rem;
+        box-shadow: 0 2px 6px rgba(13, 110, 140, 0.22);
+    }
+
+    /* Page édition utilisateur : pas de hauteur mini plein écran ; marges horizontales nulles (évite débordement + rognage avec #main-wrapper overflow:hidden) */
+    .page-utilisateur-form-sifec.pu-edit-user-page {
+        min-height: unset !important;
+        height: auto;
+        padding-bottom: 2.5rem;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    /* Évite que les cartes s’étirent comme des colonnes flex (espaces vides entre blocs) */
+    .page-utilisateur-form-sifec.pu-edit-user-page > .row {
+        align-items: flex-start;
+    }
+
+    .page-utilisateur-form-sifec.pu-edit-user-page > .row > [class*="col-"] {
+        align-self: flex-start;
+    }
+
+    .page-utilisateur-form-sifec.pu-edit-user-page .pu-card {
+        height: auto;
+        min-height: 0;
+    }
+
+    /* Bloc document dans la carte principale (état civil + pièce sur le même écran) */
+    .page-utilisateur-form-sifec .pu-edit-inline-doc {
+        border-top: 2px solid rgba(217, 119, 6, 0.35);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.07) 0%, rgba(255, 255, 255, 0) 100%);
+        border-radius: 10px;
+        padding: 1rem 1rem 0.25rem;
+        margin-top: 1.25rem;
+    }
+
     .page-utilisateur-form-sifec .pu-card .card-body, .page-sifec-form .pu-card .card-body {
         padding: 1.25rem 1.35rem 1.5rem;
     }
@@ -307,4 +413,19 @@
 
 .page-sifec-form > .row > [class*="col-"] > .card.wizard-content > .card-body {
     padding: 1.25rem 1.35rem 1.5rem;
+}
+
+/**
+ * Thème (Tixia) : #main-wrapper { overflow: hidden } rogne tout le contenu qui dépasse
+ * la zone initiale — les cartes « Affectation » et « Compte » disparaissaient visuellement.
+ */
+#main-wrapper:has(.pu-edit-user-page) {
+    overflow: visible !important;
+}
+
+/* Annule min-height inline (layout) + JS custom.js handleMinHeight (≈ hauteur fenêtre) qui créent du vide sous le contenu */
+#main-wrapper:has(.pu-edit-user-page) .content-body,
+#main-wrapper:has(.pu-edit-user-page) .content-body > .container-fluid {
+    min-height: unset !important;
+    overflow: visible;
 }

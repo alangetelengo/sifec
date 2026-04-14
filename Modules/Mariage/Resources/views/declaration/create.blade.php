@@ -22,6 +22,8 @@
 <!-- Custom CSS -->
 <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('app/script-sifec/form.js') }}">
+@include('mariage::partials._formulaire_type_header_ui')
+<link rel="stylesheet" href="{{ asset('css/mariage/declaration-form.css') }}">
 
 <style>
     /* Style pour les champs en mode lecture seule */
@@ -52,32 +54,34 @@
         <!-- row -->
         <div class="row" id="validation">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
+                <div class="card mariage-ft-card">
+                    <div class="card-header mariage-ft-head">
                         <h4>Créer un formulaire type</h4>
-
-
-                        <div class="d-flex justify-content-end">
-                            <!--label class="form-label col-md-3">Type de mariage</label-->
-                            <select id="type_mariage"  class="form-control" style="width:200px">
+                        <div class="mariage-ft-head-right">
+                            <select id="type_mariage" class="form-control">
                                  {{-- <option value="" selected>Type de mariage</option> --}}
                                 <option value="NORMAL">Mariage normal</option>
                                 <option value="PROCURATION">Mariage par procuration</option>
                                 <!-- <option value="posthume">Mariage à titre posthume</option> -->
                             </select>
-                            <select id="type_mandant"  class="form-control" style="width:200px">
-                                <option value="" seleccted> Choix du mandant </option>
+                            <select id="type_mandant" class="form-control">
+                                <option value="" selected> Choix du mandant </option>
                                 <option value="mandant_epoux">Epoux</option>
                                 <option value="mandant_epouse">Epouse</option>
                                 <!-- <option value="posthume">Mariage à titre posthume</option> -->
                             </select>
-                            <br>
-                            <a href="{{ route('declarationMariage.index') }}" class="btn btn-primary me-2">Liste des formulaires types</a>
-
+                            <a href="{{ route('declarationMariage.index') }}" class="btn btn-mariage-ft">Liste des formulaires types</a>
                         </div>
                     </div>
-                    <p id="notificationMsgProcuration"  style="background:red; color:white; padding:10px; font-size:15px;font-weight:bold"> <i class="fa fa-warning"></i> Ce type de mariage requiert la présence du mandant  conformément à l'article 152 du code de la famille.
-                    </p>
+                    <div id="notificationMsgProcuration" class="mariage-procuration-banner" role="alert">
+                        <div class="mariage-procuration-banner__inner">
+                            <span class="mariage-procuration-banner__icon" aria-hidden="true"><i class="fa fa-user-circle"></i></span>
+                            <div>
+                                <p class="mariage-procuration-banner__text">Ce type de mariage requiert la présence du mandant conformément à l&rsquo;article 152 du code de la famille.</p>
+                                <span class="mariage-procuration-banner__ref">Article 152</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="card wizard-content">
                         <div class="card-body">
                            @include('mariage::declaration.form')
@@ -119,17 +123,33 @@
      });
 
     function getRegime(optionmariage){
-        var out = "";
-
-        $.get("{{ route('declarationMariage.regime') }}", { optionmariage:optionmariage }, function(data){
-            if(data.length > 0){
-                $(".showregime").removeClass("d-none");
-                for(var i=0; i < data.length; i++){
-                    out += "<option value="+data[i].code_regime+" >"+data[i].lib_regime+"</option>";
+        if (!optionmariage) {
+            $(".showregime").addClass("d-none");
+            $("#regime_mariage").html("");
+            return;
+        }
+        $.ajax({
+            url: "{{ route('declarationMariage.regime') }}",
+            data: { optionmariage: optionmariage },
+            dataType: "json",
+            success: function(data) {
+                var list = Array.isArray(data) ? data : [];
+                var out = "";
+                if (list.length > 0) {
+                    $(".showregime").removeClass("d-none");
+                    for (var i = 0; i < list.length; i++) {
+                        var r = list[i];
+                        out += "<option value=\"" + r.code_regime + "\">" + r.lib_regime + "</option>";
+                    }
+                } else {
+                    $(".showregime").addClass("d-none");
                 }
+                $("#regime_mariage").html(out);
+            },
+            error: function() {
+                $(".showregime").addClass("d-none");
+                $("#regime_mariage").html("");
             }
-            $("#regime_mariage").html(out);
-
         });
     }
     function getQuartierVillage(codeparent,cle){
@@ -1765,8 +1785,6 @@
                 $("input.new_quartier_ceremonie").attr("disabled","disabled");
             }
         });
-
-
 
     });
 

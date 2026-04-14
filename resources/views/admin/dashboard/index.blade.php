@@ -133,21 +133,21 @@
                     Naissance
                 </div>
                 <span style="background:rgba(255,255,255,0.2);border-radius:20px;padding:2px 12px;font-size:.72rem;color:#fff;font-weight:600;">
-                    {{ $totDeclN + $totActeN }} opérations
+                    {{ ($cumulDeclN ?? $totDeclN) + ($cumulActeN ?? $totActeN) }} opérations
                         </span>
             </div>
             <div class="fait-body">
                 <div class="fait-metrics">
                     <div class="fait-metric">
-                        <div class="fm-val fm-decl">{{ $totDeclN }}</div>
-                        <div class="fm-lbl">Déclarations</div>
-                        <div class="fm-sub">enregistrées</div>
+                        <div class="fm-val fm-decl">{{ $cumulDeclN ?? $totDeclN }}</div>
+                        <div class="fm-lbl">Dossiers</div>
+                        <div class="fm-sub">naissance (tous types)</div>
                     </div>
                     @if($showActeNaissance)
                     <div class="fait-metric">
-                        <div class="fm-val fm-acte">{{ $totActeN }}</div>
+                        <div class="fm-val fm-acte">{{ $cumulActeN ?? $totActeN }}</div>
                         <div class="fm-lbl">Actes</div>
-                        <div class="fm-sub">produits</div>
+                        <div class="fm-sub">signés par l’officier</div>
                     </div>
                     @endif
                 </div>
@@ -166,21 +166,21 @@
                     Mariage
                 </div>
                 <span style="background:rgba(255,255,255,0.2);border-radius:20px;padding:2px 12px;font-size:.72rem;color:#fff;font-weight:600;">
-                    {{ $totDeclM + $totActeM }} opérations
+                    {{ ($cumulDeclM ?? $totDeclM) + ($cumulActeM ?? $totActeM) }} opérations
                 </span>
             </div>
             <div class="fait-body">
                 <div class="fait-metrics">
                     <div class="fait-metric">
-                        <div class="fm-val fm-decl">{{ $totDeclM }}</div>
+                        <div class="fm-val fm-decl">{{ $cumulDeclM ?? $totDeclM }}</div>
                         <div class="fm-lbl">Déclarations</div>
-                        <div class="fm-sub">enregistrées</div>
+                        <div class="fm-sub">générées (total)</div>
                     </div>
                     @if($showActeMariage)
                     <div class="fait-metric">
-                        <div class="fm-val fm-acte">{{ $totActeM }}</div>
+                        <div class="fm-val fm-acte">{{ $cumulActeM ?? $totActeM }}</div>
                         <div class="fm-lbl">Actes</div>
-                        <div class="fm-sub">produits</div>
+                        <div class="fm-sub">signés par l’officier</div>
                     </div>
                     @endif
                 </div>
@@ -199,21 +199,21 @@
                     Décès
                 </div>
                 <span style="background:rgba(255,255,255,0.2);border-radius:20px;padding:2px 12px;font-size:.72rem;color:#fff;font-weight:600;">
-                    {{ $totDeclD + $totActeD }} opérations
+                    {{ ($cumulDeclD ?? $totDeclD) + ($cumulActeD ?? $totActeD) }} opérations
                 </span>
             </div>
             <div class="fait-body">
                 <div class="fait-metrics">
                     <div class="fait-metric">
-                        <div class="fm-val fm-decl">{{ $totDeclD }}</div>
+                        <div class="fm-val fm-decl">{{ $cumulDeclD ?? $totDeclD }}</div>
                         <div class="fm-lbl">Déclarations</div>
-                        <div class="fm-sub">enregistrées</div>
+                        <div class="fm-sub">générées (total)</div>
                     </div>
                     @if($showActeDeces)
                     <div class="fait-metric">
-                        <div class="fm-val fm-acte">{{ $totActeD }}</div>
+                        <div class="fm-val fm-acte">{{ $cumulActeD ?? $totActeD }}</div>
                         <div class="fm-lbl">Actes</div>
-                        <div class="fm-sub">produits</div>
+                        <div class="fm-sub">signés (officier / PF)</div>
                     </div>
                     @endif
                 </div>
@@ -225,76 +225,6 @@
 </div>
 
 {{-- ══════════════════════════════════════════════
-     GRAPHIQUES
-══════════════════════════════════════════════ --}}
-<div class="row g-3 mb-3">
-
-    {{-- Barres groupées : Déclarations --}}
-    <div class="{{ ($showActeNaissance || $showActeDeces || $showActeMariage) ? 'col-xl-8' : 'col-12' }}">
-        <div class="sec-card h-100">
-            <div class="sc-head">
-                <h5 class="sc-title">
-                    <i class="fa fa-chart-bar" style="color:#009E49;"></i>
-                    Déclarations — évolution hebdomadaire
-                </h5>
-                <div class="chart-leg">
-                    @if($showNaissance)<span><span class="dot" style="background:#009E49;"></span>Naissance</span>@endif
-                    @if($showMariage)<span><span class="dot" style="background:#FBDE4A;"></span>Mariage</span>@endif
-                    @if($showDeces)<span><span class="dot" style="background:#DC241F;"></span>Décès</span>@endif
-                </div>
-            </div>
-            <div class="sc-body">
-                <canvas id="chartDeclarations" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-
-    {{-- Donut : répartition — uniquement si au moins 2 faits visibles --}}
-    @if($showActeNaissance || $showActeDeces || $showActeMariage)
-    <div class="col-xl-4">
-        <div class="sec-card h-100">
-            <div class="sc-head">
-                <h5 class="sc-title">
-                    <i class="fa fa-chart-pie" style="color:#DC241F;"></i>
-                    Bilan : Décl. → Actes
-                </h5>
-            </div>
-            <div class="sc-body d-flex justify-content-center align-items-center" style="min-height:220px;">
-                <div style="max-width:280px;width:100%;">
-                    <canvas id="chartBilan"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
-</div>
-
-{{-- Graphique Actes (uniquement si l'institution produit des actes) --}}
-@if($showActeNaissance || $showActeDeces || $showActeMariage)
-<div class="row g-3 mb-3">
-    <div class="col-12">
-        <div class="sec-card">
-            <div class="sc-head">
-                <h5 class="sc-title">
-                    <i class="fa fa-chart-line" style="color:#2781d5;"></i>
-                    Actes produits — évolution sur la semaine
-                </h5>
-                <div class="chart-leg">
-                    @if($showActeNaissance)<span><span class="dot" style="background:#2781d5;"></span>Actes Naissance</span>@endif
-                    @if($showActeMariage)<span><span class="dot" style="background:#2781d5;"></span>Actes Mariage</span>@endif
-                    @if($showActeDeces)<span><span class="dot" style="background:#2781d5;"></span>Actes Décès</span>@endif
-                </div>
-            </div>
-            <div class="sc-body">
-                <canvas id="chartActes" height="110"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-
-{{-- ══════════════════════════════════════════════
      TABLEAU RÉCAPITULATIF
 ══════════════════════════════════════════════ --}}
 <div class="row g-3 mb-3">
@@ -302,9 +232,10 @@
         <div class="sec-card">
             <div class="sc-head">
                 <h5 class="sc-title">
-                    <i class="fa fa-table" style="color:#c8960a;"></i>
+                    <i class="fa fa-table" style="color:#7e8fa3;"></i>
                     Récapitulatif jour par jour — Semaine du {{ $dateLun }} au {{ $dateDim }}
                 </h5>
+                <p class="small text-muted mb-0 mt-1">Les cartes du haut affichent les cumuls sur votre périmètre ; ce tableau ne compte que la semaine indiquée.</p>
             </div>
             <div class="tbl-scroll">
                 <table class="recap-tbl">
@@ -312,22 +243,22 @@
                         <tr>
                             <th>Jour</th>
                             @if($showNaissance)
-                            <th class="text-center" style="color:#009E49;"><i class="fa fa-baby me-1"></i>Décl. Naissance</th>
+                            <th class="text-center" style="color:#4a8f68;"><i class="fa fa-baby me-1"></i>Décl. Naissance</th>
                             @endif
                             @if($showActeNaissance)
-                            <th class="text-center" style="color:#2781d5;"><i class="fa fa-file-alt me-1"></i>Actes Naissance</th>
+                            <th class="text-center" style="color:#5a9bc9;"><i class="fa fa-file-alt me-1"></i>Actes Naissance</th>
                             @endif
                             @if($showMariage)
-                            <th class="text-center" style="color:#c8960a;"><i class="fa fa-ring me-1"></i>Décl. Mariage</th>
+                            <th class="text-center" style="color:#5c6d82;"><i class="fa fa-ring me-1"></i>Décl. Mariage</th>
                             @endif
                             @if($showActeMariage)
-                            <th class="text-center" style="color:#2781d5;"><i class="fa fa-file-alt me-1"></i>Actes Mariage</th>
+                            <th class="text-center" style="color:#5a9bc9;"><i class="fa fa-file-alt me-1"></i>Actes Mariage</th>
                             @endif
                             @if($showDeces)
-                            <th class="text-center" style="color:#DC241F;"><i class="fa fa-cross me-1"></i>Décl. Décès</th>
+                            <th class="text-center" style="color:#c44742;"><i class="fa fa-cross me-1"></i>Décl. Décès</th>
                             @endif
                             @if($showActeDeces)
-                            <th class="text-center" style="color:#2781d5;"><i class="fa fa-file-alt me-1"></i>Actes Décès</th>
+                            <th class="text-center" style="color:#5a9bc9;"><i class="fa fa-file-alt me-1"></i>Actes Décès</th>
                             @endif
                             <th class="text-center">Total</th>
                         </tr>
@@ -366,7 +297,7 @@
                                 <span class="fw-bold">{{ $tot }}</span>
                                 @if($tot > 0)
                                 <div class="progress mt-1" style="height:3px;">
-                                    <div class="progress-bar" style="width:{{ $pct }}%;background:linear-gradient(90deg,#009E49,#FBDE4A,#DC241F);"></div>
+                                    <div class="progress-bar" style="width:{{ $pct }}%;background:linear-gradient(90deg,#8bc4a8,#a8c0d4,#e0a8a5);"></div>
                                 </div>
                                 @endif
                             </td>
@@ -383,7 +314,7 @@
                             @if($showDeces)<td class="n-cell n-dec text-center">{{ $totDeclD }}</td>@endif
                             @if($showActeDeces)<td class="n-cell n-ad text-center">{{ $totActeD }}</td>@endif
                             @php $grandTotal = ($showNaissance?$totDeclN:0)+($showActeNaissance?$totActeN:0)+($showMariage?$totDeclM:0)+($showActeMariage?$totActeM:0)+($showDeces?$totDeclD:0)+($showActeDeces?$totActeD:0); @endphp
-                            <td class="text-center" style="font-size:1rem;color:#006B31;font-weight:800;">{{ $grandTotal }}</td>
+                            <td class="text-center" style="font-size:1rem;color:#4a7c62;font-weight:800;">{{ $grandTotal }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -400,7 +331,7 @@
         <div class="sec-card">
             <div class="sc-head">
                 <h5 class="sc-title">
-                    <i class="fa fa-th" style="color:#009E49;"></i>
+                    <i class="fa fa-th" style="color:#5a9d78;"></i>
                     Accès rapide
                 </h5>
             </div>
@@ -409,13 +340,13 @@
                     @can('module.menus.naissance')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('declarationNaissance.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(0,158,73,0.12);color:#009E49;"><i class="fa fa-baby"></i></div>
+                            <div class="mc-ico" style="background:rgba(74,143,104,0.14);color:#4a8f68;"><i class="fa fa-baby"></i></div>
                             <span class="mc-lbl">Naissance</span>
                         </a>
                     </div>
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('acteNaissance.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(39,129,213,0.12);color:#2781d5;"><i class="fa fa-file-medical"></i></div>
+                            <div class="mc-ico" style="background:rgba(90,155,201,0.14);color:#5a9bc9;"><i class="fa fa-file-medical"></i></div>
                             <span class="mc-lbl">Actes Naissance</span>
                         </a>
                     </div>
@@ -423,7 +354,7 @@
                     @can('module.menus.mariage')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('declarationMariage.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(251,222,74,0.25);color:#a07800;"><i class="fa fa-ring"></i></div>
+                            <div class="mc-ico" style="background:rgba(100,119,140,0.16);color:#5c6d82;"><i class="fa fa-ring"></i></div>
                             <span class="mc-lbl">Mariage</span>
                         </a>
                     </div>
@@ -431,7 +362,7 @@
                     @can('module.menus.deces')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('declarationDeces.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(220,36,31,0.1);color:#DC241F;"><i class="fa fa-cross"></i></div>
+                            <div class="mc-ico" style="background:rgba(196,71,66,0.12);color:#c44742;"><i class="fa fa-cross"></i></div>
                             <span class="mc-lbl">Décès</span>
                         </a>
                     </div>
@@ -439,7 +370,7 @@
                     @can('module.menus.tribunal')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('tribunal.document.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(251,222,74,0.2);color:#856404;"><i class="fa fa-gavel"></i></div>
+                            <div class="mc-ico" style="background:rgba(120,144,156,0.18);color:#546e7a;"><i class="fa fa-gavel"></i></div>
                             <span class="mc-lbl">Tribunal</span>
                         </a>
                     </div>
@@ -447,19 +378,19 @@
                     @can('module.menus.referentiel')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('localite.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(33,185,49,0.12);color:#006B31;"><i class="fa fa-map-marked-alt"></i></div>
+                            <div class="mc-ico" style="background:rgba(74,124,98,0.12);color:#4a7c62;"><i class="fa fa-map-marked-alt"></i></div>
                             <span class="mc-lbl">Localités</span>
                         </a>
                     </div>
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('typelocalite.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(0,158,73,0.12);color:#009E49;"><i class="fa fa-layer-group"></i></div>
+                            <div class="mc-ico" style="background:rgba(74,143,104,0.12);color:#4a8f68;"><i class="fa fa-layer-group"></i></div>
                             <span class="mc-lbl">Types localité</span>
                         </a>
                     </div>
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('institution.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(39,129,213,0.1);color:#2781d5;"><i class="fa fa-university"></i></div>
+                            <div class="mc-ico" style="background:rgba(90,155,201,0.12);color:#5a9bc9;"><i class="fa fa-university"></i></div>
                             <span class="mc-lbl">Institutions</span>
                         </a>
                     </div>
@@ -467,20 +398,20 @@
                     @can('module.menus.administration')
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('utilisateur.index') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(0,107,49,0.1);color:#006B31;"><i class="fa fa-users-cog"></i></div>
+                            <div class="mc-ico" style="background:rgba(74,124,98,0.12);color:#4a7c62;"><i class="fa fa-users-cog"></i></div>
                             <span class="mc-lbl">Administration</span>
                         </a>
                     </div>
                     @endcan
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('dashboard.carteducongo') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(33,185,49,0.1);color:#21B931;"><i class="fa fa-map-marked-alt"></i></div>
+                            <div class="mc-ico" style="background:rgba(106,158,126,0.18);color:#5a9d78;"><i class="fa fa-map-marked-alt"></i></div>
                             <span class="mc-lbl">Carte</span>
                         </a>
                     </div>
                     <div class="col-xl-2 col-md-3 col-4">
                         <a href="{{ route('dashboard.statgenredep') }}" class="mod-card">
-                            <div class="mc-ico" style="background:rgba(220,36,31,0.08);color:#DC241F;"><i class="fa fa-chart-pie"></i></div>
+                            <div class="mc-ico" style="background:rgba(196,71,66,0.1);color:#c44742;"><i class="fa fa-chart-pie"></i></div>
                             <span class="mc-lbl">Statistiques</span>
                         </a>
                     </div>
@@ -494,115 +425,4 @@
 </div>
 </div>
 </div>
-@endsection
-
-@section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-(function(){
-    /* ── Données ── */
-    var jours = @json($joursCourt);
-    var DN    = @json($serieDN);
-    var DD    = @json($serieDD);
-    var DM    = @json($serieDM);
-    var AN    = @json($serieAN);
-    var AD    = @json($serieAD);
-    var AM    = @json($serieAM);
-    var totDN = {{ $totDeclN }}, totDD = {{ $totDeclD }}, totDM = {{ $totDeclM }};
-    var totAN = {{ $totActeN }}, totAD = {{ $totActeD }}, totAM = {{ $totActeM }};
-
-    Chart.defaults.font.family = "'Segoe UI',system-ui,-apple-system,sans-serif";
-    Chart.defaults.font.size   = 11;
-    Chart.defaults.color       = '#6e6e6e';
-
-    var tooltip = {
-        backgroundColor:'#006B31', titleColor:'#fff',
-        bodyColor:'#d1fae5', padding:11, cornerRadius:8,
-        callbacks:{ label: function(c){ return '  '+c.dataset.label+' : '+c.parsed.y; } }
-    };
-
-    /* ── Flags de visibilité depuis PHP ── */
-    var showN  = {{ $showNaissance     ? 'true' : 'false' }};
-    var showM  = {{ $showMariage       ? 'true' : 'false' }};
-    var showD  = {{ $showDeces         ? 'true' : 'false' }};
-    var showAN = {{ $showActeNaissance ? 'true' : 'false' }};
-    var showAM = {{ $showActeMariage   ? 'true' : 'false' }};
-    var showAD = {{ $showActeDeces     ? 'true' : 'false' }};
-
-    var scaleOpts = {
-        x:{ grid:{display:false}, ticks:{font:{weight:'600'}} },
-        y:{ beginAtZero:true, grid:{color:'rgba(0,0,0,.05)'}, ticks:{precision:0} }
-    };
-
-    /* ══════════════════════════════════════════
-       1. Barres groupées — Déclarations filtrées
-    ═════════════════════════════════════════ */
-    var elDecl = document.getElementById('chartDeclarations');
-    if(elDecl){
-        var declDatasets = [];
-        if(showN) declDatasets.push({ label:'Décl. Naissance', data:DN, backgroundColor:'rgba(0,158,73,.72)',   borderColor:'#009E49', borderWidth:1.5, borderRadius:6, borderSkipped:false });
-        if(showM) declDatasets.push({ label:'Décl. Mariage',   data:DM, backgroundColor:'rgba(251,222,74,.80)', borderColor:'#c8960a', borderWidth:1.5, borderRadius:6, borderSkipped:false });
-        if(showD) declDatasets.push({ label:'Décl. Décès',     data:DD, backgroundColor:'rgba(220,36,31,.70)',  borderColor:'#DC241F', borderWidth:1.5, borderRadius:6, borderSkipped:false });
-        new Chart(elDecl,{
-            type:'bar',
-            data:{ labels:jours, datasets:declDatasets },
-            options:{ responsive:true, maintainAspectRatio:true,
-                plugins:{ legend:{display:false}, tooltip:tooltip },
-                scales: scaleOpts,
-                animation:{ duration:900, easing:'easeOutQuart' }
-                }
-            });
-        }
-
-    /* ══════════════════════════════════════════
-       2. Bilan horizontal — Décl vs Actes (filtré)
-    ═════════════════════════════════════════ */
-    var elBilan = document.getElementById('chartBilan');
-    if(elBilan){
-        var bilanLabels = [], bilanDecl = [], bilanActes = [];
-        var bilanBgDecl = [], bilanBdDecl = [], bilanBgActe = [], bilanBdActe = [];
-        if(showN){ bilanLabels.push('Naissance'); bilanDecl.push(totDN); bilanActes.push(showAN?totAN:0); bilanBgDecl.push('rgba(0,158,73,.72)');   bilanBdDecl.push('#009E49'); bilanBgActe.push('rgba(39,129,213,.6)');  bilanBdActe.push('#2781d5'); }
-        if(showM){ bilanLabels.push('Mariage');   bilanDecl.push(totDM); bilanActes.push(showAM?totAM:0); bilanBgDecl.push('rgba(251,222,74,.80)'); bilanBdDecl.push('#c8960a'); bilanBgActe.push('rgba(39,129,213,.45)'); bilanBdActe.push('#2781d5'); }
-        if(showD){ bilanLabels.push('Décès');     bilanDecl.push(totDD); bilanActes.push(showAD?totAD:0); bilanBgDecl.push('rgba(220,36,31,.70)');  bilanBdDecl.push('#DC241F'); bilanBgActe.push('rgba(39,129,213,.35)'); bilanBdActe.push('#2781d5'); }
-        var bilanDS = [{ label:'Déclarations', data:bilanDecl, backgroundColor:bilanBgDecl, borderColor:bilanBdDecl, borderWidth:1.5, borderRadius:5 }];
-        if(showAN||showAM||showAD) bilanDS.push({ label:'Actes produits', data:bilanActes, backgroundColor:bilanBgActe, borderColor:bilanBdActe, borderWidth:1.5, borderRadius:5 });
-        new Chart(elBilan,{
-            type:'bar',
-            data:{ labels:bilanLabels, datasets:bilanDS },
-            options:{ indexAxis:'y', responsive:true,
-                plugins:{ legend:{ position:'bottom', labels:{font:{size:11},padding:10,usePointStyle:true,pointStyle:'circle'} },
-                    tooltip:{ backgroundColor:'#006B31', titleColor:'#fff', bodyColor:'#d1fae5', padding:10, cornerRadius:8,
-                        callbacks:{ label:function(c){ return '  '+c.dataset.label+' : '+c.parsed.x; } } }
-                },
-                scales:{ x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{precision:0}}, y:{grid:{display:false},ticks:{font:{weight:'700'}}} },
-                animation:{ duration:900, easing:'easeOutQuart' }
-                }
-            });
-        }
-
-    /* ══════════════════════════════════════════
-       3. Lignes — Actes produits (filtré)
-    ═════════════════════════════════════════ */
-    var elActes = document.getElementById('chartActes');
-    if(elActes){
-        var actesDS = [];
-        if(showAN) actesDS.push({ label:'Actes Naissance', data:AN, borderColor:'#009E49', backgroundColor:'rgba(0,158,73,.07)',   fill:true, tension:.4, pointBackgroundColor:'#009E49', pointBorderColor:'#fff', pointBorderWidth:2, pointRadius:5, pointHoverRadius:7, borderWidth:2.5 });
-        if(showAM) actesDS.push({ label:'Actes Mariage',   data:AM, borderColor:'#c8960a', backgroundColor:'rgba(251,222,74,.10)', fill:true, tension:.4, pointBackgroundColor:'#c8960a', pointBorderColor:'#fff', pointBorderWidth:2, pointRadius:5, pointHoverRadius:7, borderWidth:2.5, borderDash:[5,3] });
-        if(showAD) actesDS.push({ label:'Actes Décès',     data:AD, borderColor:'#DC241F', backgroundColor:'rgba(220,36,31,.06)',  fill:true, tension:.4, pointBackgroundColor:'#DC241F', pointBorderColor:'#fff', pointBorderWidth:2, pointRadius:5, pointHoverRadius:7, borderWidth:2.5 });
-        new Chart(elActes,{
-            type:'line',
-            data:{ labels:jours, datasets:actesDS },
-            options:{ responsive:true, maintainAspectRatio:true,
-                plugins:{ legend:{display:false},
-                    tooltip:{ backgroundColor:'#1e293b', titleColor:'#f1f5f9', bodyColor:'#cbd5e1', padding:11, cornerRadius:8, mode:'index', intersect:false }
-                },
-                scales: scaleOpts,
-                animation:{ duration:1100, easing:'easeOutQuart' },
-                interaction:{ mode:'nearest', axis:'x', intersect:false }
-            }
-        });
-    }
-
-})();
-</script>
 @endsection

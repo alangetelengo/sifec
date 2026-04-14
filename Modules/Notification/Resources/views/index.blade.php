@@ -271,7 +271,7 @@
         return \Illuminate\Support\Str::limit($plain, 280);
     };
 
-    $notifMeta = function ($type) {
+    $notifMeta = function ($type, $data = []) {
         $label = 'Notification';
         $variant = 'default';
         $icon = 'fa-bell';
@@ -305,7 +305,17 @@
             $variant = 'mariage';
             $icon = 'fa-heart';
         } elseif (str_contains($type, 'DeclarationEnvoyeeCentre')) {
-            $label = 'Déclaration';
+            $label = $data['badge_label'] ?? null;
+            if (! is_string($label) || $label === '') {
+                $msg = (string) ($data['message'] ?? '');
+                if (preg_match('/certificat de (naissance|non inscription)|certificat de non inscription de décès/ui', $msg)) {
+                    $label = 'Certificat';
+                } elseif (preg_match('/tribunal\s*:|^tribunal\s*:/ui', $msg) || preg_match('/\bréquisition\b|\bjugement\b/ui', $msg)) {
+                    $label = 'Tribunal';
+                } else {
+                    $label = 'Déclaration';
+                }
+            }
             $variant = 'declaration';
             $icon = 'fa-paper-plane';
         } elseif (str_contains($type, 'DocumentImporteTribunal')) {
@@ -379,7 +389,7 @@
                         <tbody>
                             @forelse($notifications as $notification)
                                 @php
-                                    $meta = $notifMeta($notification->type);
+                                    $meta = $notifMeta($notification->type, $notification->data ?? []);
                                     $preview = $notifPreview($notification->data ?? []);
                                     if ($meta['variant'] === 'rectif') {
                                         $badgeClass = 'badge badge-type-notif text-white';

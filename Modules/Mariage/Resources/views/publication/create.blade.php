@@ -1,7 +1,7 @@
 <html lang="fr">
 @extends("layout.app")
 @section("titre")
-    Déclaration mariage
+    Formulaire type
 @endsection
 
 @section("styles")
@@ -21,6 +21,7 @@
 <link href="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.min.css') }}" rel="stylesheet">
 <!-- Custom CSS -->
 <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+@include('mariage::partials._formulaire_type_header_ui')
 @endsection
 @section("corps")
 
@@ -28,9 +29,9 @@
         <!-- row -->
         <div class="row" id="validation">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Créer une déclaration de mariage</h4>
+                <div class="card mariage-ft-card">
+                    <div class="card-header mariage-ft-head">
+                        <h4>Créer un formulaire type</h4>
                     </div>
                     <div class="card wizard-content">
                         <div class="card-body">

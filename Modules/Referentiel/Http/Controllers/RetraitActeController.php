@@ -73,7 +73,9 @@ class RetraitActeController extends Controller
                 return back()->withInput();
             }else{
                 //vérification de l'acte de naissance
-                $acte = ActeNaissance::where("code_declaration_naissance",$dn->code_declaration_naissance)->first();
+                $acte = ActeNaissance::where('code_declaration_naissance', $dn->code_declaration_naissance)
+                    ->with(['retrait', 'declaration.enfant', 'declaration.pere', 'declaration.mere'])
+                    ->first();
 
 
                 if($acte->signature_mairie == null){

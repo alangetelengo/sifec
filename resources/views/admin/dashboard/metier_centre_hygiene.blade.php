@@ -12,7 +12,7 @@
     }
     .fs-stat-tbl thead th {
         font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
-        color:#5a5a5a; background:#f6f7f9; border-bottom:2px solid #009E49;
+        color:#5a5a5a; background:#f6f7f9; border-bottom:2px solid #8bc4a8;
     }
     .fs-stat-tbl tbody tr:hover { background:#fafcfb; }
     .fs-stat-lbl { color:#444; font-weight:500; }
@@ -24,7 +24,7 @@
     .fs-st-transmis { background:#cce5ff; color:#004085; }
     .fs-st-valide { background:#d4edda; color:#155724; }
     .fs-actions .mod-card .mc-ico.deces { background:rgba(220,36,31,0.12); color:#DC241F; }
-    .fs-actions .mod-card .mc-ico.compte { background:rgba(39,129,213,0.12); color:#2781d5; }
+    .fs-actions .mod-card .mc-ico.compte { background:rgba(90,155,201,0.14); color:#5a9bc9; }
     .fs-btn-deces-tout {
         background: linear-gradient(135deg, #e05550, #c41e1a);
         color: #fff !important;
@@ -35,7 +35,7 @@
     .fs-col-module { display: flex; flex-direction: column; gap: 1rem; }
     .fs-col-module .fait-card,
     .fs-col-module .sec-card { margin-bottom: 0; }
-    .hy-routing-alert { border-left: 4px solid #2781d5; background: #f0f7fc; }
+    .hy-routing-alert { border-left: 4px solid #5a9bc9; background: #f0f7fc; }
 </style>
 @endsection
 
@@ -81,7 +81,7 @@
 
     <div class="sec-card fs-actions mb-3">
         <div class="sc-head">
-            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#FBDE4A;"></i> Actions rapides</h5>
+            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#7e8fa3;"></i> Actions rapides</h5>
         </div>
         <div class="sc-body">
             <div class="row g-3">

@@ -31,7 +31,6 @@ Actes de naissance
         <header class="an-hero">
             <div class="an-hero-text">
                 <h1>Liste des actes de naissance</h1>
-                <p>Workflow CEC : contrôle des pièces, confirmation des dossiers, puis génération et validation des actes (signature par OTP).</p>
             </div>
             <div id="dupcreer" class="an-toolbar">
                 @can('module.acteNaissance.generate')

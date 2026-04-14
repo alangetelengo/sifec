@@ -98,7 +98,7 @@
                             <small class="d-block text-muted mt-1">Rétiré le {{ $acte->retrait->created_at ? $acte->retrait->created_at->format('d/m/Y à H:i') : '—' }}</small>
                         @else
                             <span class="badge bg-info">Signé, non encore rétiré</span>
-                            <small class="d-block text-muted mt-1">L’acte a été signé et peut être rétiré par le déclarant.</small>
+                            <small class="d-block text-muted mt-1">L’acte a été signé et doit être rétiré par le déclarant.</small>
                         @endif
                     </dd>
 

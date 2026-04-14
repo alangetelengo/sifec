@@ -80,7 +80,7 @@ class Enable2FAManually extends Command
         // Générer l'URL du QR Code
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
             config('app.name'),
-            $user->email,
+            $user->twoFactorAccountLabel(),
             $secret
         );
 
@@ -208,15 +208,15 @@ class Enable2FAManually extends Command
     {
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
             config('app.name'),
-            $user->email,
+            $user->twoFactorAccountLabel(),
             $secret
         );
 
-        $fileName = '2fa-activation-' . str_replace(['@', '.'], ['_', '_'], $user->email) . '.html';
+        $fileName = '2fa-activation-' . str_replace(['@', '.'], ['_', '_'], $user->twoFactorAccountLabel()) . '.html';
         $filePath = public_path($fileName);
 
         $data = [
-            'email' => $user->email,
+            'email' => $user->emailForTwoFactorMail() ?? $user->email,
             'secret' => $secret,
             'qrCodeUrl' => $qrCodeUrl,
             'recoveryCodes' => $recoveryCodes

@@ -71,6 +71,12 @@
         .col-sm-6:last-child {
             padding-left: 10px;
         }
+
+        .registre-acte-qrcode svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 
 @endsection
@@ -240,7 +246,9 @@
                                         @endif
                                     </div><br><br>
                                     Le déclarant,
-                                    <div class="col-xl-12" style="margin-left: 100px">
+                                    <div class="col-xl-12 d-flex align-items-start" style="margin-left: 100px; gap: 12px;">
+                                        @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
+                                        <div>
                                         <p>Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
                                             @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
                                                 L'Officier de l'Etat Civil
@@ -252,6 +260,7 @@
                                             <img src='{{ asset("app/".$acte->signature_mairie) }}'><br>
                                             {{ $acte->signataire->user->personne->nomcomplet() }}
                                         @endif
+                                        </div>
                                     </div>
                                 </div>
 

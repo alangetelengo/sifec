@@ -590,7 +590,6 @@ $(function(){
 
         $('#email_pere').val("");
         document.getElementById('email_pere').readOnly = false;
-        $('#email_professionnel_pere').val("");
 
         $('#lieu_naissance_pere').val("");
         document.getElementById('lieu_naissance_pere').readOnly = false;
@@ -646,7 +645,6 @@ $(function(){
 
         $('#email_mere').val("");
         document.getElementById('email_mere').readOnly = false;
-        $('#email_professionnel_mere').val("");
 
         $('#date_naissance_mere').val("");
         document.getElementById('date_naissance_mere').readOnly = false;
@@ -715,8 +713,6 @@ $(function(){
 
                 $('#email_declarant').val($('#email_pere').val());
                 document.getElementById('email_declarant').readOnly = true;
-                $('#email_professionnel_declarant').val($('#email_professionnel_pere').val());
-                document.getElementById('email_professionnel_declarant').readOnly = true;
 
                 $('#date_naissance_declarant').val($('#date_naissance_pere').val());
                 document.getElementById('date_naissance_declarant').readOnly = true;
@@ -835,8 +831,6 @@ $(function(){
 
                 $('#email_declarant').val($('#email_pere').val());
                 document.getElementById('email_declarant').readOnly = true;
-                $('#email_professionnel_declarant').val($('#email_professionnel_pere').val());
-                document.getElementById('email_professionnel_declarant').readOnly = true;
 
                 $('#date_naissance_declarant').val($('#date_naissance_pere').val());
                 document.getElementById('date_naissance_declarant').readOnly = true;
@@ -942,8 +936,6 @@ $(function(){
 
                 $('#email_declarant').val($('#email_mere').val());
                 document.getElementById('email_declarant').readOnly = true;
-                $('#email_professionnel_declarant').val($('#email_professionnel_mere').val());
-                document.getElementById('email_professionnel_declarant').readOnly = true;
 
                 $('#date_naissance_declarant').val($('#date_naissance_mere').val());
                 document.getElementById('date_naissance_declarant').readOnly = true;
@@ -1047,8 +1039,6 @@ $(function(){
                 document.getElementById('prenom_declarant').readOnly = false;
                 $('#email_declarant').val("");
                 document.getElementById('email_declarant').readOnly = false;
-                $('#email_professionnel_declarant').val("");
-                document.getElementById('email_professionnel_declarant').readOnly = false;
 
                 $('#date_naissance_declarant').val("");
                 document.getElementById('date_naissance_declarant').readOnly = false;
@@ -1381,9 +1371,9 @@ $(function(){
             email_pere:email_pere.val(),
             email_mere:email_mere.val(),
             email_declarant:email_declarant.val(),
-            email_professionnel_pere:$("#email_professionnel_pere").val() || '',
-            email_professionnel_mere:$("#email_professionnel_mere").val() || '',
-            email_professionnel_declarant:$("#email_professionnel_declarant").val() || '',
+            email_professionnel_pere:'',
+            email_professionnel_mere:'',
+            email_professionnel_declarant:'',
             domicile_pays_pere:domicile_pays_pere.val(),
             domicile_arrondissement_pere:domicile_arrondissement_pere.val(),
             domicile_quartier_pere:domicile_quartier_pere.val(),
@@ -1826,7 +1816,6 @@ $(function(){
 
         $('#email_pere').val("");
         document.getElementById('email_pere').readOnly = false;
-        $('#email_professionnel_pere').val("");
 
         $('#lieu_naissance_pere').val("");
         document.getElementById('lieu_naissance_pere').readOnly = false;
@@ -1882,7 +1871,6 @@ $(function(){
 
         $('#email_mere').val("");
         document.getElementById('email_mere').readOnly = false;
-        $('#email_professionnel_mere').val("");
 
         $('#date_naissance_mere').val("");
         document.getElementById('date_naissance_mere').readOnly = false;
@@ -2042,8 +2030,7 @@ $(function(){
                         $("#nom_pere").val(nom);
                         $("#prenom_pere").val(prenom);
                         $("#date_naissance_pere").val(date_naissance);
-                        $("#email_pere").val(email);
-                        $("#email_professionnel_pere").val(emailProfessionnel);
+                        $("#email_pere").val(email || emailProfessionnel);
                         $("#sexe_pere").val(sexe);
                         $("#domicile_numero_pere").val(numero);
                         $("#domicile_nomvoie_pere").val(rue);
@@ -2210,8 +2197,7 @@ $(function(){
                          $("#prenom_mere").val(prenom);
                          $("#date_naissance_mere").val(date_naissance);
                          $("#sexe_mere").val(sexe);
-                         $("#email_mere").val(email);
-                         $("#email_professionnel_mere").val(emailProfessionnel);
+                         $("#email_mere").val(email || emailProfessionnel);
                          $("#domicile_numero_mere").val(numero);
                          $("#domicile_nomvoie_mere").val(rue);
                          $("#domicile_quartier_mere").val(quartier);
@@ -2386,8 +2372,7 @@ $(function(){
                          $("#prenom_declarant").val(prenom);
                          $("#date_naissance_declarant").val(date_naissance);
                          $("#sexe_declarant").val(sexe);
-                         $("#email_declarant").val(email);
-                         $("#email_professionnel_declarant").val(emailProfessionnel);
+                         $("#email_declarant").val(email || emailProfessionnel);
                          $("#domicile_quartier_declarant").val(quartier);
                          if($(this).data('arrondissement')===null)
                          {

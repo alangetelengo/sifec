@@ -1228,11 +1228,11 @@ class MariageController extends Controller
     public function getRegime()
     {
         $id = request('optionmariage');
-        $regimes = [];
-        if ($id == "OMRG_0001") {
-            $regimes = Regime::where("code_regime", "RGIM_0002")->get();
-        }
-        if ($id == "OMRG_0002") {
+        $regimes = collect();
+        // OMRG_* : codes métier historiques ; OPM_* : seed OptionMariageSeeder (Monogamie puis Polygamie)
+        if (in_array($id, ['OMRG_0001', 'OPM_0002'], true)) {
+            $regimes = Regime::where('code_regime', 'RGIM_0002')->get();
+        } elseif (in_array($id, ['OMRG_0002', 'OPM_0001'], true)) {
             $regimes = Regime::all();
         }
 

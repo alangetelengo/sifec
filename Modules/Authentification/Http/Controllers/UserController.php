@@ -69,6 +69,7 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('email', 'like', "%{$search}%")
+                  ->orWhere('email_professionnel', 'like', "%{$search}%")
                   ->orWhere('pseudo', 'like', "%{$search}%")
                   ->orWhereHas('personne', function($q2) use ($search) {
                       $q2->where('nom', 'like', "%{$search}%")
@@ -107,15 +108,17 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            "nom" => ["required", "string"],
-            "sexe" => ["required", "string"],
-            "date_naissance" => ["required"],
-            "code_nationalite" => ["required"],
-            "adresse" => ["required"],
-            "numero_document" => ["required","string"],
-            "code_type_document" => ["required"],
-            "code_fonction" => ["required"],
-            "code_institution" => ["required"],
+            'nom' => ['required', 'string'],
+            'sexe' => ['required', 'string'],
+            'date_naissance' => ['required'],
+            'code_nationalite' => ['required'],
+            'adresse' => ['required'],
+            'numero_document' => ['required', 'string'],
+            'code_type_document' => ['required'],
+            'code_fonction' => ['required'],
+            'code_institution' => ['required'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', 'email')],
+            'email_professionnel' => ['nullable', 'email', 'max:255', Rule::unique('tr_user', 'email_professionnel')],
         ]);
 
     // dd($request->all());
@@ -163,6 +166,7 @@ class UserController extends Controller
                 $user->code_user = Sifec::genererCodeUniqueReferentiel($user,"code_user",8,"USR_");
                 $user->pseudo = $request->pseudo;
                 $user->email = $request->email;
+                $user->email_professionnel = $request->filled('email_professionnel') ? $request->email_professionnel : null;
                 $user->password = Hash::make("123456");
                 $user->code_personne = $personne->code_personne;
                 $user->status = 1;
@@ -226,10 +230,18 @@ class UserController extends Controller
     public function edit($id)
     {
 
-        $user = User::find($id);
+        $user = User::query()
+            ->with([
+                'personne',
+                'affectations' => static function ($q) {
+                    $q->with(['fonction', 'institution']);
+                },
+            ])
+            ->find($id);
 
-        if($user == null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des modules");
+        if ($user == null) {
+            toastr()->error("Impossible d'effectuer cette opération", 'Gestion des modules');
+
             return back();
         }
 
@@ -248,79 +260,147 @@ class UserController extends Controller
 
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Enregistrement d’un nouveau document d’identité (formulaire isolé sur la page édition).
+     */
+    public function updateDocument(Request $request, string $id)
     {
-
         $user = User::find($id);
-        $personne = Personne::find($user->personne->code_personne);
-        // $document = Document::find($user->personne->document->code_document);
+        if ($user === null || $user->personne === null) {
+            toastr()->error('Utilisateur ou personne introuvable.');
 
-        $insUser = InstitutionUser::find($user->affectationActive()->cui);
-
-
-
-        if ($personne == null){
-            toastr()->error("Impossible de charger cette page");
             return redirect()->back();
         }
 
-
         $request->validate([
-            "nom" => ["required", "string"],
-            "sexe" => ["required", "string"],
-            "date_naissance" => ["required"],
-            "code_nationalite" => ["required"],
-            "adresse" => ["required"],
-            "numero_document" => ["required","string"],
-            "code_type_document" => ["required"],
-            "code_fonction" => ["required"],
-            "code_institution" => ["required"],
+            'code_type_document' => ['required', 'string'],
+            'numero_document' => ['required', 'string', 'max:255'],
         ]);
 
-
         DB::beginTransaction();
-
-        try{
-        //     $personne->nom = $request->nom;
-        //     $personne->prenom = $request->prenom;
-        //     $personne->sexe = $request->sexe;
-        //     $personne->date_naissance = Carbon::parse($request->date_naissance);
-        //     $personne->niveau_instruction = $request->niveau_instruction;
-        //     $personne->code_nationalite = $request->code_nationalite;
-        //     $personne->lieu_naissance  = $request->lieu_naissance;
-        //    // $personne->code_localite  = $request->code_localite;
-        //     $personne->telephone = $request->telephone;
-        //     $personne->adresse = $request->adresse;
-        //     $personne->save();
-
+        try {
             $document = new Document;
-            $document->code_document = Sifec::genererCodeUniqueReferentiel($document,"code_document",8, "DOC_");
-
+            $document->code_document = Sifec::genererCodeUniqueReferentiel($document, 'code_document', 8, 'DOC_');
             $document->numero_document = $request->numero_document;
             $document->code_type_document = $request->code_type_document;
-            $document->code_personne = $personne->code_personne;
+            $document->code_personne = $user->personne->code_personne;
             $document->save();
 
-            $insUser->code_user = $user->code_user;
+            DB::commit();
+            toastr()->success('Nouveau document d’identité enregistré.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            toastr()->error($e->getMessage());
+
+            return redirect()->back()->withInput();
+        }
+
+        return redirect()->route('utilisateur.edit', $user->code_user);
+    }
+
+    /**
+     * Mise à jour fonction + centre (affectation active uniquement).
+     */
+    public function updateAffectation(Request $request, string $id)
+    {
+        $user = User::find($id);
+        if ($user === null) {
+            toastr()->error('Utilisateur introuvable.');
+
+            return redirect()->back();
+        }
+
+        $aff = $user->affectationActive();
+        if ($aff === null) {
+            toastr()->error('Aucune affectation active : impossible de modifier le poste ou le centre.');
+
+            return redirect()->back();
+        }
+
+        $insUser = InstitutionUser::find($aff->cui);
+        if ($insUser === null) {
+            toastr()->error('Enregistrement d’affectation introuvable.');
+
+            return redirect()->back();
+        }
+
+        $request->validate([
+            'code_fonction' => ['required', 'string'],
+            'code_institution' => ['required', 'string'],
+        ]);
+
+        DB::beginTransaction();
+        try {
             $insUser->code_institution = $request->code_institution;
             $insUser->code_fonction = $request->code_fonction;
             $insUser->save();
 
+            DB::commit();
+            toastr()->success('Affectation mise à jour.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            toastr()->error($e->getMessage());
+
+            return redirect()->back()->withInput();
+        }
+
+        return redirect()->route('utilisateur.edit', $user->code_user);
+    }
+
+    /**
+     * Mise à jour compte (e-mails, statut) + coordonnées personne modifiables sur cette page.
+     */
+    public function updateCompte(Request $request, string $id)
+    {
+        $user = User::find($id);
+        if ($user === null) {
+            toastr()->error('Utilisateur introuvable.');
+
+            return redirect()->back();
+        }
+
+        $personne = Personne::find($user->code_personne);
+        if ($personne === null) {
+            toastr()->error('Personne introuvable pour cet utilisateur.');
+
+            return redirect()->back();
+        }
+
+        $request->validate([
+            'code_nationalite' => ['required', 'string'],
+            'adresse' => ['required', 'string'],
+            'telephone' => ['nullable', 'string', 'max:32'],
+            'niveau_instruction' => ['nullable', 'string'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', 'email')->ignore($user->code_user, 'code_user')],
+            'email_professionnel' => ['nullable', 'email', 'max:255', Rule::unique('tr_user', 'email_professionnel')->ignore($user->code_user, 'code_user')],
+            'active' => ['required', 'in:0,1'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $personne->code_nationalite = $request->code_nationalite;
+            $personne->adresse = $request->adresse;
+            $personne->telephone = $request->telephone;
+            if ($request->filled('niveau_instruction')) {
+                $personne->niveau_instruction = $request->niveau_instruction;
+            }
+            $personne->save();
 
             $user->email = $request->email;
+            $user->email_professionnel = $request->filled('email_professionnel') ? $request->email_professionnel : null;
+            $user->status = (bool) (int) $request->active;
             $user->save();
 
             DB::commit();
-
-            toastr()->success("Utilisateur modifié avec succès");
-            return redirect()->route("utilisateur.index");
-
-        }catch(Exception $e){
+            toastr()->success('Compte et coordonnées mis à jour.');
+        } catch (Exception $e) {
             DB::rollBack();
-
             toastr()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
+
+        return redirect()->route('utilisateur.edit', $user->code_user);
     }
 
     public function profile($id){
@@ -459,7 +539,8 @@ class UserController extends Controller
             'telephone' => ['nullable', 'string', 'max:32'],
             'code_fonction' => ['required'],
             'code_institution' => ['required'],
-            'email' => ['required', 'email', Rule::unique('tr_user', 'email')->ignore($user->code_user, 'code_user')],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', 'email')->ignore($user->code_user, 'code_user')],
+            'email_professionnel' => ['nullable', 'email', 'max:255', Rule::unique('tr_user', 'email_professionnel')->ignore($user->code_user, 'code_user')],
             'active' => ['required', 'in:0,1'],
             'niveau_instruction' => ['nullable', 'string'],
             'code_type_document' => ['nullable', 'required_with:numero_document'],
@@ -475,6 +556,7 @@ class UserController extends Controller
 
         $oldSnapshot = [
             'email' => $user->email,
+            'email_professionnel' => $user->email_professionnel,
             'status' => (int) $user->status,
             'code_institution' => $insUser->code_institution,
             'code_fonction' => $insUser->code_fonction,
@@ -530,11 +612,13 @@ class UserController extends Controller
             $personne->save();
 
             $user->email = $request->email;
+            $user->email_professionnel = $request->filled('email_professionnel') ? $request->email_professionnel : null;
             $user->status = (bool) (int) $request->active;
             $user->save();
 
             $newSnapshot = [
                 'email' => $user->email,
+                'email_professionnel' => $user->email_professionnel,
                 'status' => (int) $user->status,
                 'code_institution' => $insUser->code_institution,
                 'code_fonction' => $insUser->code_fonction,
@@ -888,21 +972,23 @@ class UserController extends Controller
                     }
 
                     // Construction de l'URL otpauth pour le QR code Google Authenticator
-                    $label   = urlencode($appName . ':' . ($user->email ?? $user->code_user));
-                    $otpUrl  = "otpauth://totp/{$label}?secret={$rawSecret}&issuer=" . urlencode($appName);
-                    $qrUrl   = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=' . urlencode($otpUrl);
+                    $accountLabel = $user->twoFactorAccountLabel();
+                    $label        = urlencode($appName . ':' . $accountLabel);
+                    $otpUrl       = "otpauth://totp/{$label}?secret={$rawSecret}&issuer=" . urlencode($appName);
+                    $qrUrl        = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=' . urlencode($otpUrl);
 
-                    if (!empty($user->email)) {
+                    $mail2fa = $user->emailForTwoFactorMail();
+                    if ($mail2fa !== null) {
                         try {
-                            Mail::to($user->email)
+                            Mail::to($mail2fa)
                                 ->send(new TwoFactorBulkMailable($user, $codes, 'enabled', $rawSecret, $qrUrl));
-                            Log::channel('sifec')->info("[bulk2FA] Email envoyé à {$user->email}.");
+                            Log::channel('sifec')->info("[bulk2FA] Email 2FA envoyé à {$mail2fa} (user #{$user->code_user}).");
                         } catch (\Throwable $mailEx) {
-                            Log::channel('sifec')->warning("[bulk2FA] Email non envoyé à {$user->email} : " . $mailEx->getMessage());
-                            $mailErrors[] = ($user->personne->nom ?? '') . ' <' . $user->email . '>';
+                            Log::channel('sifec')->warning("[bulk2FA] Email non envoyé à {$mail2fa} : " . $mailEx->getMessage());
+                            $mailErrors[] = ($user->personne->nom ?? '') . ' <' . $mail2fa . '>';
                         }
                     } else {
-                        Log::channel('sifec')->warning("[bulk2FA] Aucun email pour #{$user->code_user} — email non envoyé.");
+                        Log::channel('sifec')->warning("[bulk2FA] Aucune adresse e-mail (compte ou professionnelle) pour #{$user->code_user} — e-mail 2FA non envoyé.");
                     }
 
                 } else {
@@ -911,14 +997,15 @@ class UserController extends Controller
                         $user->disableTwoFactor();
                         Log::channel('sifec')->info("[bulk2FA] 2FA désactivée pour #{$user->code_user}.");
 
-                        if (!empty($user->email)) {
+                        $mail2fa = $user->emailForTwoFactorMail();
+                        if ($mail2fa !== null) {
                             try {
-                                Mail::to($user->email)
+                                Mail::to($mail2fa)
                                     ->send(new TwoFactorBulkMailable($user, [], 'disabled', null, null));
-                                Log::channel('sifec')->info("[bulk2FA] Email désactivation envoyé à {$user->email}.");
+                                Log::channel('sifec')->info("[bulk2FA] Email désactivation envoyé à {$mail2fa}.");
                             } catch (\Throwable $mailEx) {
-                                Log::channel('sifec')->warning("[bulk2FA] Email désactivation non envoyé à {$user->email} : " . $mailEx->getMessage());
-                                $mailErrors[] = ($user->personne->nom ?? '') . ' <' . $user->email . '>';
+                                Log::channel('sifec')->warning("[bulk2FA] Email désactivation non envoyé à {$mail2fa} : " . $mailEx->getMessage());
+                                $mailErrors[] = ($user->personne->nom ?? '') . ' <' . $mail2fa . '>';
                             }
                         }
                     } else {

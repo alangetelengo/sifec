@@ -164,12 +164,8 @@
                 </div>
 
                 <div class="mb-2 col-md-4">
-                    <label class="form-label">E-mail personnel</label>
-                    <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail personnel du père" autocomplete="email">
-                </div>
-                <div class="mb-2 col-md-4">
-                    <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
-                    <input type="email" id="email_professionnel_pere" class="form-control" name="email_professionnel_pere" placeholder="E-mail professionnel du père" autocomplete="email">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail du père" autocomplete="email">
                 </div>
 
                 <div class="ligne">
@@ -360,12 +356,8 @@
         </div>
 
         <div class="mb-2 col-md-4">
-            <label class="form-label">E-mail personnel</label>
-            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail personnel de la mère" autocomplete="email">
-        </div>
-        <div class="mb-2 col-md-4">
-            <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
-            <input type="email" id="email_professionnel_mere" class="form-control" name="email_professionnel_mere" placeholder="E-mail professionnel de la mère" autocomplete="email">
+            <label class="form-label">E-mail</label>
+            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail de la mère" autocomplete="email">
         </div>
 
         <div class="ligne">

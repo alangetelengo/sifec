@@ -171,13 +171,17 @@
                         <div class="row">
                             <div class="mb-2 col-md-6">
                                 <label class="form-label">Type pièce d'identité</label>
-                                <select id="code_type_document_pere" class="form-control form-control wide" readOnly>
-                                    <option value="{{ $dn->pere->document->numero_document }}">{{ $dn->pere->document->typeDocument->lib_type_document }}</option>
+                                <select id="code_type_document_pere" class="form-control form-control wide" readonly>
+                                    @if($dn->pere?->document)
+                                        <option value="{{ $dn->pere->document->numero_document ?? '' }}">{{ optional($dn->pere->document->typeDocument)->lib_type_document ?? '—' }}</option>
+                                    @else
+                                        <option value="">— Non renseigné (formulaire père) —</option>
+                                    @endif
                                 </select>
                             </div>
                             <div class="mb-2 col-md-6">
                                 <label class="form-label">Numéro pièce d'identité</label>
-                                <input type="text" name="numero_document_pere" class="form-control form-control wide" reaonly placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->pere->document->numero_document }}">
+                                <input type="text" name="numero_document_pere" class="form-control form-control wide" readonly placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->pere?->document?->numero_document ?? '' }}">
                             </div>
 
                             <div class="col-md-8 formate">
@@ -383,13 +387,17 @@
                         <div class="row">
                             <div class="mb-2 col-md-6">
                                 <label class="form-label">Type pièce d'identité</label>
-                                <select id="code_type_document_mere" class="form-control form-control wide" readOnly>
-                                    <option value="{{ $dn->mere->document->numero_document }}">{{ $dn->mere->document->typeDocument->lib_type_document }}</option>
+                                <select id="code_type_document_mere" class="form-control form-control wide" readonly>
+                                    @if($dn->mere?->document)
+                                        <option value="{{ $dn->mere->document->numero_document ?? '' }}">{{ optional($dn->mere->document->typeDocument)->lib_type_document ?? '—' }}</option>
+                                    @else
+                                        <option value="">— Non renseigné (formulaire mère) —</option>
+                                    @endif
                                 </select>
                             </div>
                             <div class="mb-2 col-md-6">
                                 <label class="form-label">Numéro pièce d'identité</label>
-                                <input type="text" name="numero_document_mere" class="form-control form-control wide" reaonly placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->mere->document->numero_document }}">
+                                <input type="text" name="numero_document_mere" class="form-control form-control wide" readonly placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->mere?->document?->numero_document ?? '' }}">
                             </div>
 
                             <div class="col-md-8 formate">

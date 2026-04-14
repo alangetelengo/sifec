@@ -26,7 +26,7 @@ class OtpService
 
     /**
      * Prépare ou envoie l’OTP pour validation d’acte(s) à l’officier connecté : SMS + e-mail(s) valides
-     * (professionnel et/ou personnel, sans doublon, sur toutes les fiches contact actives via Personne::adressesEmailPourNotificationAgregees).
+     * (e-mail personnel en priorité, puis professionnel si présent ; sans doublon, via Personne::adressesEmailPourNotificationAgregees).
      *
      * @param  bool  $demandeRenvoi  true uniquement si l’utilisateur a cliqué « Renvoyer le code »
      * @return array{kind: 'reused'|'sent', valid_for_seconds: int, row_count: int}

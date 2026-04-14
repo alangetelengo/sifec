@@ -732,6 +732,15 @@
                                    value="{{ old('email', $user->email) }}">
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label" for="pu-mail-pro">E-mail professionnel (2FA)</label>
+                            <input id="pu-mail-pro" type="email" name="email_professionnel"
+                                   class="form-control @error('email_professionnel') is-invalid @enderror"
+                                   value="{{ old('email_professionnel', $user->email_professionnel) }}"
+                                   placeholder="agent@ministere.gouv.cg" autocomplete="email">
+                            <small class="text-muted d-block mt-1">Si renseigné, l’administration envoie les e-mails d’activation 2FA (codes, lien QR) à cette adresse plutôt qu’à l’e-mail du compte.</small>
+                            @error('email_professionnel')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                         <div class="mb-3 col-md-3">
                             <label class="form-label" for="pu-niv">Niveau d’instruction</label>
                             <select id="pu-niv" name="niveau_instruction" class="form-select">

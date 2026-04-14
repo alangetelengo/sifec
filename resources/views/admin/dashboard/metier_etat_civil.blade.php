@@ -12,21 +12,21 @@
     }
     .fs-stat-tbl thead th {
         font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
-        color:#5a5a5a; background:#f6f7f9; border-bottom:2px solid #009E49;
+        color:#5a5a5a; background:#f6f7f9; border-bottom:2px solid #8bc4a8;
     }
     .fs-stat-tbl tbody tr:hover { background:#fafcfb; }
     .fs-stat-lbl { color:#444; font-weight:500; }
     .fs-stat-val { font-weight:800; text-align:right; font-variant-numeric:tabular-nums; }
-    .fs-stat-val.na { color:#009E49; }
+    .fs-stat-val.na { color:#4a8f68; }
     .fs-stat-val.de { color:#DC241F; }
     .fs-hint { font-size:.72rem; color:#888; font-weight:400; display:block; margin-top:2px; }
     .fs-st-pill { font-size:.68rem; padding:3px 9px; border-radius:12px; font-weight:600; white-space:nowrap; }
     .fs-st-brouillon { background:#fff3cd; color:#856404; }
     .fs-st-transmis { background:#cce5ff; color:#004085; }
     .fs-st-valide { background:#d4edda; color:#155724; }
-    .fs-actions .mod-card .mc-ico.naissance { background:rgba(0,158,73,0.15); color:#009E49; }
+    .fs-actions .mod-card .mc-ico.naissance { background:rgba(74,143,104,0.14); color:#4a8f68; }
     .fs-actions .mod-card .mc-ico.deces { background:rgba(220,36,31,0.12); color:#DC241F; }
-    .fs-actions .mod-card .mc-ico.compte { background:rgba(39,129,213,0.12); color:#2781d5; }
+    .fs-actions .mod-card .mc-ico.compte { background:rgba(90,155,201,0.14); color:#5a9bc9; }
     .fs-btn-deces-tout {
         background: linear-gradient(135deg, #e05550, #c41e1a);
         color: #fff !important;
@@ -34,9 +34,9 @@
     }
     .fs-btn-deces-tout:hover { color: #fff !important; filter: brightness(1.06); }
     .fs-recap-deces .recap-tbl thead th { border-bottom-color: #DC241F; }
-    .fs-stat-val.ma { color: #b8860b; }
-    .fs-stat-tbl-mariage thead th { border-bottom-color: #c8960a; }
-    .fs-recap-mariage .recap-tbl thead th { border-bottom-color: #c8960a; }
+    .fs-stat-val.ma { color: #5c6d82; }
+    .fs-stat-tbl-mariage thead th { border-bottom-color: #a8b8c9; }
+    .fs-recap-mariage .recap-tbl thead th { border-bottom-color: #a8b8c9; }
     .db-row-kpi-dossiers .sec-card { height: 100%; }
     .db-row-kpi-dossiers .fait-card { height: 100%; }
 </style>
@@ -76,14 +76,14 @@
     </div>
 
     @if($noteParcoursDecesBrazzaville)
-    <div class="alert alert-info border-0 shadow-sm mb-3" style="background:#e8f4fd;border-left:4px solid #2781d5 !important;">
+    <div class="alert alert-info border-0 shadow-sm mb-3" style="background:#e8f4fd;border-left:4px solid #5a9bc9 !important;">
         <i class="fa fa-info-circle me-2"></i>{{ $noteParcoursDecesBrazzaville }}
     </div>
     @endif
 
     <div class="sec-card fs-actions mb-3">
         <div class="sc-head">
-            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#FBDE4A;"></i> Accès rapide</h5>
+            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#7e8fa3;"></i> Accès rapide</h5>
         </div>
         <div class="sc-body">
             <div class="row g-2">
@@ -96,7 +96,7 @@
                 </div>
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('acteNaissance.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(39,129,213,0.12);color:#2781d5;"><i class="fa fa-file-medical"></i></div>
+                        <div class="mc-ico" style="background:rgba(90,155,201,0.14);color:#5a9bc9;"><i class="fa fa-file-medical"></i></div>
                         <span class="mc-lbl">Actes naissance</span>
                     </a>
                 </div>
@@ -104,7 +104,7 @@
                 @can('module.menus.mariage')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('declarationMariage.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(251,222,74,0.25);color:#a07800;"><i class="fa fa-ring"></i></div>
+                        <div class="mc-ico" style="background:rgba(100,119,140,0.16);color:#5c6d82;"><i class="fa fa-ring"></i></div>
                         <span class="mc-lbl">Mariage</span>
                     </a>
                 </div>
@@ -122,7 +122,7 @@
                 @can('module.menus.tribunal')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('tribunal.document.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(251,222,74,0.2);color:#856404;"><i class="fa fa-gavel"></i></div>
+                        <div class="mc-ico" style="background:rgba(120,144,156,0.18);color:#546e7a;"><i class="fa fa-gavel"></i></div>
                         <span class="mc-lbl">Tribunal</span>
                     </a>
                 </div>
@@ -130,19 +130,19 @@
                 @can('module.menus.referentiel')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('localite.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(33,185,49,0.12);color:#006B31;"><i class="fa fa-map-marked-alt"></i></div>
+                        <div class="mc-ico" style="background:rgba(74,124,98,0.12);color:#4a7c62;"><i class="fa fa-map-marked-alt"></i></div>
                         <span class="mc-lbl">Localités</span>
                     </a>
                 </div>
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('typelocalite.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(0,158,73,0.12);color:#009E49;"><i class="fa fa-layer-group"></i></div>
+                        <div class="mc-ico" style="background:rgba(74,143,104,0.12);color:#4a8f68;"><i class="fa fa-layer-group"></i></div>
                         <span class="mc-lbl">Types localité</span>
                     </a>
                 </div>
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('institution.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(39,129,213,0.1);color:#2781d5;"><i class="fa fa-university"></i></div>
+                        <div class="mc-ico" style="background:rgba(90,155,201,0.12);color:#5a9bc9;"><i class="fa fa-university"></i></div>
                         <span class="mc-lbl">Institutions</span>
                     </a>
                 </div>
@@ -150,7 +150,7 @@
                 @can('module.menus.administration')
                 <div class="col-xl-2 col-md-3 col-6">
                     <a href="{{ route('utilisateur.index') }}" class="mod-card h-100">
-                        <div class="mc-ico" style="background:rgba(0,107,49,0.1);color:#006B31;"><i class="fa fa-users-cog"></i></div>
+                        <div class="mc-ico" style="background:rgba(74,124,98,0.12);color:#4a7c62;"><i class="fa fa-users-cog"></i></div>
                         <span class="mc-lbl">Administration</span>
                     </a>
                 </div>
@@ -197,7 +197,7 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="fs-stat-lbl">Enregistrés <span class="fs-hint">Total dossiers (certificats + déclarations)</span></td>
+                                <td class="fs-stat-lbl">Enregistrés <span class="fs-hint">Total dossiers (certificats médicaux, déclarations, pièces tribunal / transcription)</span></td>
                                 <td class="fs-stat-val na">{{ $kpi_naissance['enregistres'] }}</td>
                             </tr>
                             <tr>
@@ -207,6 +207,10 @@
                             <tr>
                                 <td class="fs-stat-lbl">Déclarations de naissance produites</td>
                                 <td class="fs-stat-val na">{{ $kpi_naissance['declarations_produites'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fs-stat-lbl">Dossiers tribunal / transcription <span class="fs-hint">CNI, destruction, fiche ou certificat de transcription</span></td>
+                                <td class="fs-stat-val na">{{ $kpi_naissance['dossiers_tribunal'] ?? 0 }}</td>
                             </tr>
                             <tr>
                                 <td class="fs-stat-lbl">Envoyés au CEC <span class="fs-hint">Au moins un mouvement « Envoyée »</span></td>
@@ -221,7 +225,7 @@
                                 <td class="fs-stat-val na">{{ $kpi_naissance['en_attente'] }}</td>
                             </tr>
                             <tr>
-                                <td class="fs-stat-lbl">Actes d’état civil produits <span class="fs-hint">Suite au parcours CEC</span></td>
+                                <td class="fs-stat-lbl">Actes signés <span class="fs-hint">Après validation OTP par l’officier d’état civil</span></td>
                                 <td class="fs-stat-val na">{{ $kpi_naissance['actes_produits'] }}</td>
                             </tr>
                         </tbody>
@@ -232,7 +236,7 @@
         <div class="col-12 col-xl-4 col-lg-5">
             <div class="sec-card h-100">
                 <div class="sc-head">
-                    <h5 class="sc-title mb-0"><i class="fa fa-clock" style="color:#009E49;"></i> Derniers dossiers — Naissance</h5>
+                    <h5 class="sc-title mb-0"><i class="fa fa-clock" style="color:#4a8f68;"></i> Derniers dossiers — Naissance</h5>
                     <a href="{{ route('declarationNaissance.index') }}" class="btn btn-sm btn-success text-white fw-semibold px-3">Voir tout</a>
                 </div>
                 <div class="sc-body tbl-scroll p-0">
@@ -317,7 +321,7 @@
                                 <td class="fs-stat-val de">{{ $kpi_deces['en_attente'] }}</td>
                             </tr>
                             <tr>
-                                <td class="fs-stat-lbl">Actes d’état civil produits</td>
+                                <td class="fs-stat-lbl">Actes signés <span class="fs-hint">Après validation OTP (signataire enregistré sur l’acte)</span></td>
                                 <td class="fs-stat-val de">{{ $kpi_deces['actes_produits'] }}</td>
                             </tr>
                         </tbody>
@@ -413,7 +417,7 @@
                                 <td class="fs-stat-val ma">{{ $kpi_mariage['en_attente'] }}</td>
                             </tr>
                             <tr>
-                                <td class="fs-stat-lbl">Actes de mariage produits</td>
+                                <td class="fs-stat-lbl">Actes signés <span class="fs-hint">Après validation OTP par l’officier d’état civil</span></td>
                                 <td class="fs-stat-val ma">{{ $kpi_mariage['actes_produits'] }}</td>
                             </tr>
                         </tbody>
@@ -424,8 +428,8 @@
         <div class="col-12 col-xl-4 col-lg-5">
             <div class="sec-card fs-recap-mariage h-100">
                 <div class="sc-head">
-                    <h5 class="sc-title mb-0"><i class="fa fa-clock" style="color:#b8860b;"></i> Derniers dossiers — Mariage</h5>
-                    <a href="{{ route('declarationMariage.index') }}" class="btn btn-sm fw-semibold px-3" style="background:#FBDE4A;border:none;color:#4a3200;">Voir tout</a>
+                    <h5 class="sc-title mb-0"><i class="fa fa-clock" style="color:#5c6d82;"></i> Derniers dossiers — Mariage</h5>
+                    <a href="{{ route('declarationMariage.index') }}" class="btn btn-sm fw-semibold px-3" style="background:#dde4ef;border:1px solid #c5d0e0;color:#3d4f5f;">Voir tout</a>
                 </div>
                 <div class="sc-body tbl-scroll p-0">
                     <table class="recap-tbl mb-0">

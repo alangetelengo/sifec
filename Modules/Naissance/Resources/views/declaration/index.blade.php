@@ -7,6 +7,9 @@ Déclaration
     <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+    <style>
+    @include('authentification::partials.sifec-swal-delete-styles')
+    </style>
 @endsection
 @section('sous-titre')
     {{ $title }}
@@ -26,7 +29,7 @@ Déclaration
                 <div class="card">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="example" class="display" style="min-width: 845px">
+                            <table id="example" class="display declaration-naissance-list" style="min-width: 845px">
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -113,20 +116,20 @@ Déclaration
                                         <td>{{ $dn->date_heure_declaration ? date('d-m-Y H:i', strtotime($dn->date_heure_declaration)) : '-' }}</td>
                                         <td>{{ $dn->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</td>
                                         <td style="width: 18%">
-                                            <div class="btn-group btn-group-xs">
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
                                                 {{-- Voir le détail --}}
-                                                <a href="{{ route('declarationNaissance.show',$dn->code_declaration_naissance) }}" class="btn btn-primary shadow btn-xs sharp me-1" title="Voir détail">
+                                                <a href="{{ route('declarationNaissance.show',$dn->code_declaration_naissance) }}" class="btn btn-primary shadow btn-xs sharp" title="Voir détail">
                                                     <i class="fas fa-user-check"></i>
                                                 </a>
                                                 {{-- Modifier --}}
                                                 @if($peutModifier)
-                                                    <a href="{{ route('declarationNaissance.edit',$dn->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier">
+                                                    <a href="{{ route('declarationNaissance.edit',$dn->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp" title="Modifier">
                                                         <i class="fas fa-pencil-alt"></i>
                                                     </a>
                                                 @endif
                                                 {{-- Envoyer --}}
                                                 @if($peutEnvoyer)
-                                                    <button class="btn btn-warning btn-envoyer-centre shadow btn-xs sharp me-1"
+                                                    <button class="btn btn-warning btn-envoyer-centre shadow btn-xs sharp"
                                                         title="Envoyer la déclaration au centre d'état civil"
                                                         data-code="{{ $dn->code_declaration_naissance }}"
                                                         data-piece-declarant="{{ $dn->piece_declarant }}"
@@ -143,27 +146,36 @@ Déclaration
 
                                                 {{-- Consulter le PDF --}}
                                                 @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE']))
-                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le certificat de naissance">
+                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp" title="Voir le certificat de naissance">
                                                         <i class="fas fa-file-medical"></i>
                                                     </a>
                                                     @if($dn->type_declaration == 'DECLARATION DE NAISSANCE')
-                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}" target="_blank" class="btn btn-success shadow btn-xs sharp me-1" title="Voir la déclaration de naissance">
+                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}" target="_blank" class="btn btn-success shadow btn-xs sharp" title="Voir la déclaration de naissance">
                                                         <i class="fas fa-file-alt"></i>
                                                     </a>
                                                     @endif
                                                 @else
-                                                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir le document (PDF)">
+                                                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp" title="Voir le document (PDF)">
                                                         <i class="fas fa-print"></i>
                                                     </a>
                                                 @endif
-                                                   {{-- Supprimer --}}
-                                                   @if($peutSupprimer)
-                                                   <form action="{{ route('declarationNaissance.destroy',$dn->code_declaration_naissance) }}" method="POST" style="display: inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette déclaration ?');">
-                                                       @csrf
-                                                       @method('DELETE')
-                                                       <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
-                                                   </form>
-                                               @endif
+                                                @if($peutSupprimer)
+                                                    @php
+                                                        $libelleSuppression = trim(($dn->enfant->prenom ?? '') . ' ' . ($dn->enfant->nom ?? ''));
+                                                        if ($libelleSuppression === '') {
+                                                            $libelleSuppression = $dn->code_declaration_naissance;
+                                                        }
+                                                    @endphp
+                                                    <form action="{{ route('declarationNaissance.destroy',$dn->code_declaration_naissance) }}" method="POST" class="d-inline" id="deleteForm{{ $dn->code_declaration_naissance }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="button" class="btn btn-danger shadow btn-xs sharp btn-delete" title="Supprimer"
+                                                            data-code="{{ $dn->code_declaration_naissance }}"
+                                                            data-libelle="{{ e($libelleSuppression) }}">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -474,6 +486,53 @@ Déclaration
                     error: function(xhr){
                         sifecBtnReset($btn[0], "Envoyer");
                         flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
+                    }
+                });
+            });
+
+            $(document).on('click', '.declaration-naissance-list .btn-delete', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var $btn = $(e.target).closest('.btn-delete');
+                var code = $btn.data('code');
+                var libelle = $btn.data('libelle');
+                var formId = 'deleteForm' + code;
+                var form = document.getElementById(formId);
+                if (!form) {
+                    return;
+                }
+                Swal.fire({
+                    title: 'Confirmer la suppression',
+                    html: 'Voulez-vous vraiment supprimer la déclaration <strong>' + $('<div>').text(code).html() + '</strong>' +
+                        (libelle ? ' concernant <strong>' + $('<div>').text(libelle).html() + '</strong>' : '') + ' ?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    focusCancel: true,
+                    reverseButtons: true,
+                    buttonsStyling: false,
+                    customClass: {
+                        popup: 'sifec-swal-delete',
+                        confirmButton: 'btn btn-danger shadow-sm px-4 fw-semibold',
+                        cancelButton: 'btn btn-outline-secondary shadow-sm px-4 fw-semibold'
+                    },
+                    confirmButtonText: 'Supprimer',
+                    cancelButtonText: 'Annuler',
+                    confirmButtonAriaLabel: 'Confirmer la suppression',
+                    cancelButtonAriaLabel: 'Annuler'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        if (typeof sifecSwalLoading === 'function') {
+                            sifecSwalLoading('Suppression en cours…');
+                        } else {
+                            Swal.fire({
+                                title: 'Suppression en cours…',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: false,
+                                didOpen: function () { Swal.showLoading(); }
+                            });
+                        }
+                        form.submit();
                     }
                 });
             });

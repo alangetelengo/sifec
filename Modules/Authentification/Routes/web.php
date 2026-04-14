@@ -22,7 +22,9 @@ Route::middleware('auth')->prefix('utilisateur')->group(function() {
     });
     Route::put('{id}/profile/signature', [UserController::class, 'signature'])->name('utilisateur.signature');//->middleware("can:module.users.edit");
     Route::put('{id}/profile/sceau', [UserController::class, 'sceau'])->name('utilisateur.sceau');//->middleware("can:module.users.edit");
-    Route::put('{id}/update', [UserController::class, 'update'])->name('utilisateur.update');//->middleware("can:module.users.edit");
+    Route::put('{id}/document', [UserController::class, 'updateDocument'])->name('utilisateur.update-document');
+    Route::put('{id}/affectation', [UserController::class, 'updateAffectation'])->name('utilisateur.update-affectation');
+    Route::put('{id}/compte', [UserController::class, 'updateCompte'])->name('utilisateur.update-compte');
     Route::delete('{id}/destroy', [UserController::class, 'destroy'])->name('utilisateur.destroy');//->middleware("can:module.users.delete");
     Route::get('search-user', [UserController::class,'searchUser'])->name('utilisateur.search');
 

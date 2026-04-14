@@ -132,6 +132,29 @@ class User extends Authenticatable
     // ==========================================
 
     /**
+     * Adresse utilisée pour les e-mails liés à la 2FA (activation en masse, codes, etc.).
+     * Priorité : e-mail professionnel s’il est renseigné et valide, sinon e-mail du compte.
+     */
+    public function emailForTwoFactorMail(): ?string
+    {
+        $pro = trim((string) ($this->email_professionnel ?? ''));
+        if ($pro !== '' && filter_var($pro, FILTER_VALIDATE_EMAIL)) {
+            return $pro;
+        }
+        $main = trim((string) ($this->email ?? ''));
+
+        return $main !== '' ? $main : null;
+    }
+
+    /**
+     * Libellé du compte dans l’URI otpauth / QR code (cohérent avec l’e-mail ciblé pour la 2FA).
+     */
+    public function twoFactorAccountLabel(): string
+    {
+        return $this->emailForTwoFactorMail() ?? $this->email ?? $this->code_user;
+    }
+
+    /**
      * Vérifier si l'utilisateur a la 2FA activée
      *
      * @return bool

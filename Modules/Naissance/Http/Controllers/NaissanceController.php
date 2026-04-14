@@ -94,7 +94,9 @@ class NaissanceController extends Controller
 
         $dummy = "XXXXXXXXXXXXXXXX";
         $typeDeclaration = $dn->libelleAffichageType();
-        $qrCode = $this->generateDeclarationQr($dn->code_declaration_naissance);
+        $qrCode = $dn->type_declaration === 'CERTIFICAT DE NAISSANCE'
+            ? $this->generateCertificatNaissanceVerificationQr($dn->code_declaration_naissance)
+            : $this->generateDeclarationQr($dn->code_declaration_naissance);
 
         if (in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'], true)) {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
@@ -1155,6 +1157,32 @@ class NaissanceController extends Controller
         return view('naissance::verification.declaration', compact('declaration'));
     }
 
+    /**
+     * Page publique (URL signée) : vérifie un certificat de naissance (formation sanitaire → centre d’état civil).
+     * Inclut les dossiers déjà transformés en « déclaration de naissance » après validation au CEC (QR imprimé sur l’ancien certificat).
+     */
+    public function verificationCertificatNaissance(Request $request, string $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $certificat = Declarationnaissance::query()
+            ->with(['enfant', 'pere', 'mere', 'declarant', 'mouvements', 'acte.retrait', 'institution', 'institutionDestinataire'])
+            ->where('code_declaration_naissance', $code)
+            ->where(function ($q) {
+                $q->where('type_declaration', 'CERTIFICAT DE NAISSANCE')
+                    ->orWhere('type_declaration_origine', 'CERTIFICAT DE NAISSANCE');
+            })
+            ->first();
+
+        if (!$certificat) {
+            abort(404);
+        }
+
+        return view('naissance::verification.certificat', compact('certificat'));
+    }
+
     public function verificationActe(Request $request, $niupp)
     {
         if ($request->filled('verif_email')) {
@@ -1175,5 +1203,10 @@ class NaissanceController extends Controller
     private function generateDeclarationQr(string $code): string
     {
         return URL::signedRoute('verification.declaration', ['code' => $code]);
+    }
+
+    private function generateCertificatNaissanceVerificationQr(string $code): string
+    {
+        return URL::signedRoute('verification.certificat.naissance', ['code' => $code]);
     }
 }

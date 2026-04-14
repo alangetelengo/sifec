@@ -1,37 +1,71 @@
-<div class="table-responsive">
-    <table class="table table-bordered table-striped verticle-middle table-responsive-sm" style="min-width: 845px">
-        <thead class="thead-success">
-            <tr>
-                <th>N° acte</th>
-                <th>Enfant</th>
-                <th>Père</th>
-                <th>Mère</th>
-                <th>Acte retiré par</th>
-                <th>Date du retrait</th>
-            </tr>
-        </thead>
-        <tbody>
-
-
-                <tr>
-                    <td>{{ $acte->niupp }}</td>
-                    <td>{{ $acte->declaration->enfant->nom }} <span style="text-transform: capitalize">{{ $acte->declaration->enfant->prenom }}</span> </td>
-                    <td>{{ $acte->declaration->pere->nom }} <span style="text-transform: capitalize">{{ $acte->declaration->pere->prenom }}</span> </td>
-                    <td>{{ $acte->declaration->mere->nom }} <span style="text-transform: capitalize">{{ $acte->declaration->mere->prenom }}</span> </td>
-                    <td>{{ $acte->retrait->retirer_par }} [TELEPHONE : <span style="color: red">{{ $acte->retrait->telephone }}</span>]</td>
-                    <td>{{ date("d-m-Y", strtotime($acte->retrait->created_at)) }}</td>
-                </tr>
-
-        </tbody>
-        {{-- <tfoot>
-            <tr>
-                <th>N°</th>
-                <th>Enfant</th>
-                <th>Père</th>
-                <th>Mère</th>
-                <th>Acte retiré par</th>
-                <th>Date du retrait</th>
-            </tr>
-        </tfoot> --}}
-    </table>
+<div class="card an-filter-card shadow-none border">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h2 class="card-title mb-0">
+            <i class="fas fa-clipboard-list me-2 text-secondary"></i> Résultat
+        </h2>
+        @if($acte->retrait)
+            <span class="badge bg-success rounded-pill px-3 py-2">Acte retiré</span>
+        @else
+            <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Aucun retrait enregistré</span>
+        @endif
+    </div>
+    <div class="card-body pt-3">
+        @if($acte->retrait)
+            <div class="an-table-wrap">
+                <table class="table table-hover an-data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>N° acte</th>
+                            <th>Enfant</th>
+                            <th>Père</th>
+                            <th>Mère</th>
+                            <th>Retiré par</th>
+                            <th>Contact</th>
+                            <th>Date du retrait</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code class="small">{{ $acte->niupp }}</code></td>
+                            <td>
+                                <strong>{{ $acte->declaration->enfant->nom }}</strong>
+                                <span class="text-capitalize">{{ $acte->declaration->enfant->prenom }}</span>
+                            </td>
+                            <td>
+                                @if($acte->declaration->pere)
+                                    {{ $acte->declaration->pere->nom }}
+                                    <span class="text-capitalize">{{ $acte->declaration->pere->prenom }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($acte->declaration->mere)
+                                    {{ $acte->declaration->mere->nom }}
+                                    <span class="text-capitalize">{{ $acte->declaration->mere->prenom }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>{{ $acte->retrait->retirer_par }}</td>
+                            <td><span class="font-monospace small">{{ $acte->retrait->telephone }}</span></td>
+                            <td>{{ $acte->retrait->created_at?->format('d/m/Y à H:i') ?? '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="cni-callout cni-callout--info mb-0">
+                <span class="cni-callout__icon" aria-hidden="true"><i class="fas fa-info-circle"></i></span>
+                <div class="cni-callout__body">
+                    <strong>Acte trouvé, sans enregistrement de retrait</strong>
+                    <span class="cni-callout__sub">
+                        N° acte <code>{{ $acte->niupp }}</code> — {{ $acte->declaration->enfant->nom }}
+                        <span class="text-capitalize">{{ $acte->declaration->enfant->prenom }}</span>.
+                        Si le retrait vient d’être effectué, les données peuvent prendre quelques instants à se mettre à jour.
+                    </span>
+                </div>
+            </div>
+        @endif
+    </div>
 </div>

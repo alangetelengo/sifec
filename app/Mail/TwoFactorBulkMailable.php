@@ -59,7 +59,7 @@ class TwoFactorBulkMailable extends Mailable
     {
         $nom    = strtoupper($this->user->personne->nom ?? 'N/A');
         $prenom = $this->user->personne->prenom ?? '';
-        $email  = $this->user->email;
+        $email  = $this->user->emailForTwoFactorMail() ?? $this->user->email;
         $date   = now()->format('d/m/Y à H:i');
 
         $lines   = [];

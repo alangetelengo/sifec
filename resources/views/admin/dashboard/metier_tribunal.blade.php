@@ -6,10 +6,10 @@
 @section('styles')
 @include('admin.dashboard._sifec_dashboard_theme')
 <style>
-    .tr-actions .mod-card .mc-ico.docs { background:rgba(251,222,74,0.2); color:#856404; }
+    .tr-actions .mod-card .mc-ico.docs { background:rgba(120,144,156,0.18); color:#546e7a; }
     .tr-actions .mod-card .mc-ico.rect { background:rgba(220,36,31,0.1); color:#DC241F; }
-    .tr-actions .mod-card .mc-ico.stats { background:rgba(0,158,73,0.12); color:#009E49; }
-    .tr-actions .mod-card .mc-ico.req { background:rgba(39,129,213,0.12); color:#2781d5; }
+    .tr-actions .mod-card .mc-ico.stats { background:rgba(74,143,104,0.14); color:#4a8f68; }
+    .tr-actions .mod-card .mc-ico.req { background:rgba(90,155,201,0.14); color:#5a9bc9; }
 </style>
 @endsection
 
@@ -45,7 +45,7 @@
 
     <div class="sec-card tr-actions mb-3">
         <div class="sc-head">
-            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#FBDE4A;"></i> Accès rapide — Tribunal</h5>
+            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#7e8fa3;"></i> Accès rapide — Tribunal</h5>
         </div>
         <div class="sc-body">
             <div class="row g-3">
@@ -107,7 +107,7 @@
                 </div>
                 <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('utilisateur.profile', $user->code_user) }}" class="mod-card h-100">
-                        <span class="mc-ico" style="background:rgba(39,129,213,0.12);color:#2781d5;"><i class="fa fa-id-card"></i></span>
+                        <span class="mc-ico" style="background:rgba(90,155,201,0.14);color:#5a9bc9;"><i class="fa fa-id-card"></i></span>
                         <span class="mc-lbl">Mon profil</span>
                     </a>
                 </div>
@@ -117,7 +117,7 @@
 
     <div class="sec-card">
         <div class="sc-head">
-            <h5 class="sc-title mb-0"><i class="fa fa-info-circle" style="color:#2781d5;"></i> Espace juridiction</h5>
+            <h5 class="sc-title mb-0"><i class="fa fa-info-circle" style="color:#5a9bc9;"></i> Espace juridiction</h5>
         </div>
         <div class="sc-body">
             <p class="mb-0 text-muted" style="font-size:.95rem;">

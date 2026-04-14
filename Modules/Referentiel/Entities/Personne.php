@@ -96,11 +96,11 @@ class Personne extends Model
         $out = [];
         $pro = trim((string) $c->email_professionnelle);
         $perso = trim((string) $c->email_personnelle);
-        if ($pro !== '') {
-            $out['Professionnel'] = $pro;
-        }
         if ($perso !== '') {
             $out['Personnel'] = $perso;
+        }
+        if ($pro !== '') {
+            $out['Professionnel'] = $pro;
         }
 
         return $out;

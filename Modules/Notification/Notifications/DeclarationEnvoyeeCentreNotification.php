@@ -117,6 +117,8 @@ class DeclarationEnvoyeeCentreNotification extends Notification
             $message = "Déclaration {$this->action} au {$categorie}.";
         }
 
+        $badgeLabel = $this->resolveBadgeLabelCentreEnvoi($isDeces, $isMariage, $typeDeclaration, $documentType);
+
         return [
             'message' => $message,
             'code_declaration' => $isDeces ? $this->declaration->code_declaration_deces : ($isMariage ? $this->declaration->code_declaration_mariage : $this->declaration->code_declaration_naissance),
@@ -126,7 +128,39 @@ class DeclarationEnvoyeeCentreNotification extends Notification
             'institution_type' => $categorie,
             'document_type' => $documentType,
             'document_details' => $documentDetails,
+            'badge_label' => $badgeLabel,
         ];
+    }
+
+    /**
+     * Libellé court pour le badge UI (liste / dropdown), aligné sur le type réel (certificat vs déclaration, etc.).
+     */
+    private function resolveBadgeLabelCentreEnvoi(bool $isDeces, bool $isMariage, ?string $typeDeclaration, ?string $documentType): string
+    {
+        if ($isMariage) {
+            return $typeDeclaration === 'DISPENSE' ? 'Dispense' : 'Déclaration';
+        }
+        if ($isDeces) {
+            if ($typeDeclaration === 'CERTIFICAT DE NON INSCRIPTION' || $typeDeclaration === 'CERTIFICAT DE CONSTATATION DE DECES') {
+                return 'Certificat';
+            }
+
+            return 'Déclaration';
+        }
+        if ($documentType !== null && $documentType !== '') {
+            return 'Tribunal';
+        }
+        $certificatNaissanceTypes = [
+            'CERTIFICAT DE NAISSANCE',
+            'CERTIFICAT DE NON INSCRIPTION',
+            "CERTIFICAT DE DESTRUCTION DE L'ACTE",
+            'FICHE DE TRANSCRIPTION',
+        ];
+        if ($typeDeclaration !== null && in_array($typeDeclaration, $certificatNaissanceTypes, true)) {
+            return 'Certificat';
+        }
+
+        return 'Déclaration';
     }
 
     public function toArray($notifiable)

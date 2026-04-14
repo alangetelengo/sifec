@@ -16,6 +16,33 @@ use Modules\Naissance\Entities\Declarationnaissance;
 
 class AuthentificationController extends Controller
 {
+    /**
+     * Types de dossier naissance comptés au tableau de bord (formation + pièces tribunal / transcription).
+     *
+     * @return list<string>
+     */
+    private static function typesDeclarationNaissanceDashboard(): array
+    {
+        return [
+            'DECLARATION DE NAISSANCE',
+            'CERTIFICAT DE NAISSANCE',
+            'CERTIFICAT DE NON INSCRIPTION',
+            "CERTIFICAT DE DESTRUCTION DE L'ACTE",
+            'FICHE DE TRANSCRIPTION',
+            'CERTIFICAT DE TRANSCRIPTION',
+        ];
+    }
+
+    private static function sqlInDeclarationNaissanceTypes(): string
+    {
+        $escaped = array_map(
+            static fn (string $t) => str_replace("'", "''", $t),
+            self::typesDeclarationNaissanceDashboard()
+        );
+
+        return "'".implode("','", $escaped)."'";
+    }
+
     public function index()
     {
         // ── Institution de l'utilisateur connecté ──────────────────────────
@@ -47,6 +74,19 @@ class AuthentificationController extends Controller
          */
         $vueGlobale = in_array($codeTypeCategorie, ['TCINS_0002', null]) || $codeInstitution === null;
         $ins        = $vueGlobale ? '' : "AND code_institution = '{$codeInstitution}'";
+        /*
+         * Déclarations rattachées au CEC : établissement d’origine OU destinataire du flux (formation → centre).
+         * Les actes sont filtrés via la déclaration liée pour le même périmètre.
+         */
+        $insDeclNaissancePerim = $vueGlobale
+            ? ''
+            : " AND (code_institution = '{$codeInstitution}' OR code_institution_destinataire = '{$codeInstitution}') ";
+        $insDeclDecesPerim = $vueGlobale
+            ? ''
+            : " AND (code_institution = '{$codeInstitution}' OR code_institution_destinataire = '{$codeInstitution}') ";
+        $insDeclMariagePerim = $vueGlobale
+            ? ''
+            : " AND (code_institution = '{$codeInstitution}' OR code_institution_destinataire = '{$codeInstitution}') ";
 
         // ── Calcul de la semaine ───────────────────────────────────────────
         $lun = date('Y-m-d', strtotime('last week monday'));
@@ -57,65 +97,178 @@ class AuthentificationController extends Controller
         $sam = date('Y-m-d', strtotime($lun.'+5 day'));
         $dim = date('Y-m-d', strtotime($lun.'+6 day'));
 
-        // ── Helper : requête quotidienne ───────────────────────────────────
-        $q = function(string $table, string $date, string $whereExtra = '') {
-            return DB::select("SELECT COUNT(*) AS TOTAL FROM {$table} WHERE date(created_at) = '{$date}' {$whereExtra}");
+        // ── Helper : requête quotidienne (table simple) ───────────────────
+        $q = function (string $table, string $date, string $whereExtra = '') {
+            return DB::select("SELECT COUNT(*) AS TOTAL FROM {$table} WHERE DATE(created_at) = '{$date}' {$whereExtra}");
+        };
+
+        /*
+         * Périmètre CEC / institution : décompte des déclarations « générées » (type métier final)
+         * et des actes effectivement signés par l’officier (CUI approbation renseigné), pas les seules créations en base.
+         */
+        $inTypesNaissance = self::sqlInDeclarationNaissanceTypes();
+        $filtreDeclNaissance = " AND type_declaration IN ({$inTypesNaissance}) AND (deleted_at IS NULL) ";
+        $filtreActeNaissance = " AND an.approbation_mairie IS NOT NULL AND an.approbation_mairie <> '' AND (an.deleted_at IS NULL) ";
+        $filtreDeclDeces = " AND type_declaration IN ('DECLARATION DE DECES', 'DECLARATION TARDIVE') AND (deleted_at IS NULL) ";
+        $filtreActeDeces = " AND ad.approbation_pompe_funebre IS NOT NULL AND ad.approbation_pompe_funebre <> '' AND (ad.deleted_at IS NULL) ";
+        $filtreDeclMariage = " AND type_declaration = 'DECLARATION DE MARIAGE' AND (deleted_at IS NULL) ";
+        $filtreActeMariage = " AND am.approbation_mairie IS NOT NULL AND am.approbation_mairie <> '' AND (am.deleted_at IS NULL) ";
+
+        $qActeNaissanceJour = function (string $date) use ($vueGlobale, $codeInstitution, $filtreActeNaissance, $inTypesNaissance) {
+            if ($vueGlobale) {
+                return DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_naissance an WHERE DATE(an.created_at) = '{$date}' {$filtreActeNaissance}");
+            }
+
+            return DB::select("
+                SELECT COUNT(*) AS TOTAL
+                FROM t_acte_naissance an
+                INNER JOIN t_declaration_naissance dn ON dn.code_declaration_naissance = an.code_declaration_naissance
+                WHERE DATE(an.created_at) = '{$date}'
+                {$filtreActeNaissance}
+                AND (dn.code_institution = '{$codeInstitution}' OR dn.code_institution_destinataire = '{$codeInstitution}')
+                AND dn.type_declaration IN ({$inTypesNaissance})
+                AND (dn.deleted_at IS NULL)
+            ");
+        };
+
+        $qActeDecesJour = function (string $date) use ($vueGlobale, $codeInstitution, $filtreActeDeces) {
+            if ($vueGlobale) {
+                return DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_deces ad WHERE DATE(ad.created_at) = '{$date}' {$filtreActeDeces}");
+            }
+
+            return DB::select("
+                SELECT COUNT(*) AS TOTAL
+                FROM t_acte_deces ad
+                INNER JOIN t_declaration_deces dd ON dd.code_declaration_deces = ad.code_declaration_deces
+                WHERE DATE(ad.created_at) = '{$date}'
+                {$filtreActeDeces}
+                AND (dd.code_institution = '{$codeInstitution}' OR dd.code_institution_destinataire = '{$codeInstitution}')
+                AND dd.type_declaration IN ('DECLARATION DE DECES', 'DECLARATION TARDIVE')
+                AND (dd.deleted_at IS NULL)
+            ");
+        };
+
+        $qActeMariageJour = function (string $date) use ($vueGlobale, $codeInstitution, $filtreActeMariage) {
+            if ($vueGlobale) {
+                return DB::select("SELECT COUNT(*) AS TOTAL FROM t_acte_mariage am WHERE DATE(am.created_at) = '{$date}' {$filtreActeMariage}");
+            }
+
+            return DB::select("
+                SELECT COUNT(*) AS TOTAL
+                FROM t_acte_mariage am
+                INNER JOIN t_declaration_mariage dm ON dm.code_declaration_mariage = am.code_declaration_mariage
+                WHERE DATE(am.created_at) = '{$date}'
+                {$filtreActeMariage}
+                AND (dm.code_institution = '{$codeInstitution}' OR dm.code_institution_destinataire = '{$codeInstitution}')
+                AND dm.type_declaration = 'DECLARATION DE MARIAGE'
+                AND (dm.deleted_at IS NULL)
+            ");
         };
 
         // ── Déclarations de naissance ──────────────────────────────────────
-        $pr  = $q('t_declaration_naissance', $lun, $ins);
-        $dx  = $q('t_declaration_naissance', $mar, $ins);
-        $tr  = $q('t_declaration_naissance', $mer, $ins);
-        $qt  = $q('t_declaration_naissance', $jeu, $ins);
-        $cq  = $q('t_declaration_naissance', $ven, $ins);
-        $sx  = $q('t_declaration_naissance', $sam, $ins);
-        $sp  = $q('t_declaration_naissance', $dim, $ins);
+        $pr  = $q('t_declaration_naissance', $lun, $insDeclNaissancePerim.$filtreDeclNaissance);
+        $dx  = $q('t_declaration_naissance', $mar, $insDeclNaissancePerim.$filtreDeclNaissance);
+        $tr  = $q('t_declaration_naissance', $mer, $insDeclNaissancePerim.$filtreDeclNaissance);
+        $qt  = $q('t_declaration_naissance', $jeu, $insDeclNaissancePerim.$filtreDeclNaissance);
+        $cq  = $q('t_declaration_naissance', $ven, $insDeclNaissancePerim.$filtreDeclNaissance);
+        $sx  = $q('t_declaration_naissance', $sam, $insDeclNaissancePerim.$filtreDeclNaissance);
+        $sp  = $q('t_declaration_naissance', $dim, $insDeclNaissancePerim.$filtreDeclNaissance);
 
         // ── Déclarations de décès ──────────────────────────────────────────
-        $prd = $q('t_declaration_deces', $lun, $ins);
-        $dxd = $q('t_declaration_deces', $mar, $ins);
-        $trd = $q('t_declaration_deces', $mer, $ins);
-        $qtd = $q('t_declaration_deces', $jeu, $ins);
-        $cqd = $q('t_declaration_deces', $ven, $ins);
-        $sxd = $q('t_declaration_deces', $sam, $ins);
-        $spd = $q('t_declaration_deces', $dim, $ins);
+        $prd = $q('t_declaration_deces', $lun, $insDeclDecesPerim.$filtreDeclDeces);
+        $dxd = $q('t_declaration_deces', $mar, $insDeclDecesPerim.$filtreDeclDeces);
+        $trd = $q('t_declaration_deces', $mer, $insDeclDecesPerim.$filtreDeclDeces);
+        $qtd = $q('t_declaration_deces', $jeu, $insDeclDecesPerim.$filtreDeclDeces);
+        $cqd = $q('t_declaration_deces', $ven, $insDeclDecesPerim.$filtreDeclDeces);
+        $sxd = $q('t_declaration_deces', $sam, $insDeclDecesPerim.$filtreDeclDeces);
+        $spd = $q('t_declaration_deces', $dim, $insDeclDecesPerim.$filtreDeclDeces);
 
         // ── Actes de naissance ─────────────────────────────────────────────
-        $pra = $q('t_acte_naissance', $lun, $ins);
-        $dxa = $q('t_acte_naissance', $mar, $ins);
-        $tra = $q('t_acte_naissance', $mer, $ins);
-        $qta = $q('t_acte_naissance', $jeu, $ins);
-        $cqa = $q('t_acte_naissance', $ven, $ins);
-        $sxa = $q('t_acte_naissance', $sam, $ins);
-        $spa = $q('t_acte_naissance', $dim, $ins);
+        $pra = $qActeNaissanceJour($lun);
+        $dxa = $qActeNaissanceJour($mar);
+        $tra = $qActeNaissanceJour($mer);
+        $qta = $qActeNaissanceJour($jeu);
+        $cqa = $qActeNaissanceJour($ven);
+        $sxa = $qActeNaissanceJour($sam);
+        $spa = $qActeNaissanceJour($dim);
 
         // ── Actes de décès ─────────────────────────────────────────────────
-        $prb = $q('t_acte_deces', $lun, $ins);
-        $dxb = $q('t_acte_deces', $mar, $ins);
-        $trb = $q('t_acte_deces', $mer, $ins);
-        $qtb = $q('t_acte_deces', $jeu, $ins);
-        $cqb = $q('t_acte_deces', $ven, $ins);
-        $sxb = $q('t_acte_deces', $sam, $ins);
-        $spb = $q('t_acte_deces', $dim, $ins);
+        $prb = $qActeDecesJour($lun);
+        $dxb = $qActeDecesJour($mar);
+        $trb = $qActeDecesJour($mer);
+        $qtb = $qActeDecesJour($jeu);
+        $cqb = $qActeDecesJour($ven);
+        $sxb = $qActeDecesJour($sam);
+        $spb = $qActeDecesJour($dim);
 
         // ── Déclarations de mariage ────────────────────────────────────────
-        $insMar = $vueGlobale ? '' : "AND cui IN (SELECT cui FROM tr_ins_user WHERE code_institution = '{$codeInstitution}')";
-        $prm  = $q('t_declaration_mariage', $lun, $insMar);
-        $dxm  = $q('t_declaration_mariage', $mar, $insMar);
-        $trm  = $q('t_declaration_mariage', $mer, $insMar);
-        $qtm  = $q('t_declaration_mariage', $jeu, $insMar);
-        $cqm  = $q('t_declaration_mariage', $ven, $insMar);
-        $sxm  = $q('t_declaration_mariage', $sam, $insMar);
-        $spm  = $q('t_declaration_mariage', $dim, $insMar);
+        $prm  = $q('t_declaration_mariage', $lun, $insDeclMariagePerim.$filtreDeclMariage);
+        $dxm  = $q('t_declaration_mariage', $mar, $insDeclMariagePerim.$filtreDeclMariage);
+        $trm  = $q('t_declaration_mariage', $mer, $insDeclMariagePerim.$filtreDeclMariage);
+        $qtm  = $q('t_declaration_mariage', $jeu, $insDeclMariagePerim.$filtreDeclMariage);
+        $cqm  = $q('t_declaration_mariage', $ven, $insDeclMariagePerim.$filtreDeclMariage);
+        $sxm  = $q('t_declaration_mariage', $sam, $insDeclMariagePerim.$filtreDeclMariage);
+        $spm  = $q('t_declaration_mariage', $dim, $insDeclMariagePerim.$filtreDeclMariage);
 
         // ── Actes de mariage ───────────────────────────────────────────────
-        $prma = $q('t_acte_mariage', $lun, $ins);
-        $dxma = $q('t_acte_mariage', $mar, $ins);
-        $trma = $q('t_acte_mariage', $mer, $ins);
-        $qtma = $q('t_acte_mariage', $jeu, $ins);
-        $cqma = $q('t_acte_mariage', $ven, $ins);
-        $sxma = $q('t_acte_mariage', $sam, $ins);
-        $spma = $q('t_acte_mariage', $dim, $ins);
+        $prma = $qActeMariageJour($lun);
+        $dxma = $qActeMariageJour($mar);
+        $trma = $qActeMariageJour($mer);
+        $qtma = $qActeMariageJour($jeu);
+        $cqma = $qActeMariageJour($ven);
+        $sxma = $qActeMariageJour($sam);
+        $spma = $qActeMariageJour($dim);
+
+        // ── Cumuls (cartes du haut : tout le périmètre, sans filtre sur la semaine) ──
+        $cumulDeclN = (int) (DB::select(
+            "SELECT COUNT(*) AS TOTAL FROM t_declaration_naissance WHERE 1=1 {$insDeclNaissancePerim}{$filtreDeclNaissance}"
+        )[0]->TOTAL ?? 0);
+        $cumulDeclD = (int) (DB::select(
+            "SELECT COUNT(*) AS TOTAL FROM t_declaration_deces WHERE 1=1 {$insDeclDecesPerim}{$filtreDeclDeces}"
+        )[0]->TOTAL ?? 0);
+        $cumulDeclM = (int) (DB::select(
+            "SELECT COUNT(*) AS TOTAL FROM t_declaration_mariage WHERE 1=1 {$insDeclMariagePerim}{$filtreDeclMariage}"
+        )[0]->TOTAL ?? 0);
+
+        if ($vueGlobale) {
+            $cumulActeN = (int) (DB::select(
+                "SELECT COUNT(*) AS TOTAL FROM t_acte_naissance an WHERE 1=1 {$filtreActeNaissance}"
+            )[0]->TOTAL ?? 0);
+            $cumulActeD = (int) (DB::select(
+                "SELECT COUNT(*) AS TOTAL FROM t_acte_deces ad WHERE 1=1 {$filtreActeDeces}"
+            )[0]->TOTAL ?? 0);
+            $cumulActeM = (int) (DB::select(
+                "SELECT COUNT(*) AS TOTAL FROM t_acte_mariage am WHERE 1=1 {$filtreActeMariage}"
+            )[0]->TOTAL ?? 0);
+        } else {
+            $cumulActeN = (int) (DB::select("
+                SELECT COUNT(*) AS TOTAL
+                FROM t_acte_naissance an
+                INNER JOIN t_declaration_naissance dn ON dn.code_declaration_naissance = an.code_declaration_naissance
+                WHERE 1=1 {$filtreActeNaissance}
+                AND (dn.code_institution = '{$codeInstitution}' OR dn.code_institution_destinataire = '{$codeInstitution}')
+                AND dn.type_declaration IN ({$inTypesNaissance})
+                AND (dn.deleted_at IS NULL)
+            ")[0]->TOTAL ?? 0);
+            $cumulActeD = (int) (DB::select("
+                SELECT COUNT(*) AS TOTAL
+                FROM t_acte_deces ad
+                INNER JOIN t_declaration_deces dd ON dd.code_declaration_deces = ad.code_declaration_deces
+                WHERE 1=1 {$filtreActeDeces}
+                AND (dd.code_institution = '{$codeInstitution}' OR dd.code_institution_destinataire = '{$codeInstitution}')
+                AND dd.type_declaration IN ('DECLARATION DE DECES', 'DECLARATION TARDIVE')
+                AND (dd.deleted_at IS NULL)
+            ")[0]->TOTAL ?? 0);
+            $cumulActeM = (int) (DB::select("
+                SELECT COUNT(*) AS TOTAL
+                FROM t_acte_mariage am
+                INNER JOIN t_declaration_mariage dm ON dm.code_declaration_mariage = am.code_declaration_mariage
+                WHERE 1=1 {$filtreActeMariage}
+                AND (dm.code_institution = '{$codeInstitution}' OR dm.code_institution_destinataire = '{$codeInstitution}')
+                AND dm.type_declaration = 'DECLARATION DE MARIAGE'
+                AND (dm.deleted_at IS NULL)
+            ")[0]->TOTAL ?? 0);
+        }
 
         return view('admin.dashboard.index', compact(
             'pr','dx','tr','qt','cq','sx','sp',
@@ -124,6 +277,7 @@ class AuthentificationController extends Controller
             'prb','dxb','trb','qtb','cqb','sxb','spb',
             'prm','dxm','trm','qtm','cqm','sxm','spm',
             'prma','dxma','trma','qtma','cqma','sxma','spma',
+            'cumulDeclN','cumulActeN','cumulDeclD','cumulActeD','cumulDeclM','cumulActeM',
             'lun','dim',
             'codeTypeCategorie','codeTypeInstitution','libInstitution','vueGlobale'
         ));

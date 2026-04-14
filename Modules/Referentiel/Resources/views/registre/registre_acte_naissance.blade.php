@@ -14,7 +14,7 @@
     <link rel="stylesheet" type="text/css" href="{{ URL::to('carte/css/demo1.css') }}" />
      <!-- css de la carte -->
      <script src="{{ URL::to('carte/js/modernizr.custom.js') }}"></script>
-    <link href="{{ asset('css/sifec-registre-livret.css') }}?v=4" rel="stylesheet">
+    <link href="{{ asset('css/sifec-registre-livret.css') }}?v=5" rel="stylesheet">
 
     <!-- Styles personnalisés pour l'amélioration UX -->
     <style>
@@ -556,7 +556,9 @@
                                         @endif
                                     </div><br><br>
                                     Le déclarant,
-                                    <div class="col-xl-12" style="margin-left: 100px">
+                                    <div class="col-xl-12 d-flex align-items-start" style="margin-left: 100px; gap: 12px;">
+                                        @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
+                                        <div>
                                         <p>Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
                                             @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
                                                 L'Officier de l'Etat Civil
@@ -568,6 +570,7 @@
                                             <img src='{{ asset("app/".$acte->signature_mairie) }}'><br>
                                             {{ $acte->signataire->user->personne->nomcomplet() }}
                                         @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -12,21 +12,21 @@
     }
     .fs-stat-tbl thead th {
         font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
-        color:#5a5a5a; background:#f6f7f9; border-bottom:2px solid #009E49;
+        color:#5a5a5a; background:#f6f7f9; border-bottom:2px solid #8bc4a8;
     }
     .fs-stat-tbl tbody tr:hover { background:#fafcfb; }
     .fs-stat-lbl { color:#444; font-weight:500; }
     .fs-stat-val { font-weight:800; text-align:right; font-variant-numeric:tabular-nums; }
-    .fs-stat-val.na { color:#009E49; }
+    .fs-stat-val.na { color:#4a8f68; }
     .fs-stat-val.de { color:#DC241F; }
     .fs-hint { font-size:.72rem; color:#888; font-weight:400; display:block; margin-top:2px; }
     .fs-st-pill { font-size:.68rem; padding:3px 9px; border-radius:12px; font-weight:600; white-space:nowrap; }
     .fs-st-brouillon { background:#fff3cd; color:#856404; }
     .fs-st-transmis { background:#cce5ff; color:#004085; }
     .fs-st-valide { background:#d4edda; color:#155724; }
-    .fs-actions .mod-card .mc-ico.naissance { background:rgba(0,158,73,0.15); color:#009E49; }
+    .fs-actions .mod-card .mc-ico.naissance { background:rgba(74,143,104,0.14); color:#4a8f68; }
     .fs-actions .mod-card .mc-ico.deces { background:rgba(220,36,31,0.12); color:#DC241F; }
-    .fs-actions .mod-card .mc-ico.compte { background:rgba(39,129,213,0.12); color:#2781d5; }
+    .fs-actions .mod-card .mc-ico.compte { background:rgba(90,155,201,0.14); color:#5a9bc9; }
     /* Bouton « Voir tout » décès : lisible sur fond clair */
     .fs-btn-deces-tout {
         background: linear-gradient(135deg, #e05550, #c41e1a);
@@ -80,7 +80,7 @@
     {{-- Actions rapides --}}
     <div class="sec-card fs-actions mb-3">
         <div class="sc-head">
-            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#FBDE4A;"></i> Actions rapides</h5>
+            <h5 class="sc-title mb-0"><i class="fa fa-bolt" style="color:#7e8fa3;"></i> Actions rapides</h5>
         </div>
         <div class="sc-body">
             <div class="row g-3">
@@ -162,7 +162,7 @@
                 </div>
                 <div class="sec-card">
                     <div class="sc-head">
-                        <h5 class="sc-title mb-0"><i class="fa fa-clock" style="color:#009E49;"></i> Derniers certificats de naissance</h5>
+                        <h5 class="sc-title mb-0"><i class="fa fa-clock" style="color:#4a8f68;"></i> Derniers certificats de naissance</h5>
                         <a href="{{ route('declarationNaissance.index') }}" class="btn btn-sm btn-success text-white fw-semibold px-3">Voir tout</a>
                     </div>
                     <div class="sc-body tbl-scroll p-0">

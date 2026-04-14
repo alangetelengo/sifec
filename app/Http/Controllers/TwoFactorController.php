@@ -175,10 +175,10 @@ class TwoFactorController extends Controller
             'app_name' => config('app.name'),
         ]);
 
-        // Générer le QR Code
+        // Générer le QR Code (libellé = e-mail ciblé pour la 2FA, pro prioritaire)
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
             config('app.name'),
-            $user->email,
+            $user->twoFactorAccountLabel(),
             $secret
         );
 

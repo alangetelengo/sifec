@@ -665,6 +665,7 @@
                             <th width="48" class="text-center">#</th>
                             <th>Agent</th>
                             <th>Identifiant</th>
+                            <th>E-mail professionnel</th>
                             <th>Centre d’état civil</th>
                             <th>Fonction</th>
                             <th class="text-center">Statut</th>
@@ -714,6 +715,9 @@
                                 </div>
                             </td>
                             <td class="cell-muted">{{ $user->email }}</td>
+                            <td class="cell-muted text-break">
+                                {{ $user->email_professionnel ? $user->email_professionnel : '—' }}
+                            </td>
                             <td class="cell-muted">
                                 @php $lib_ins = $user->affectationActive()?->institution?->lib_institution; @endphp
                                 {{ $lib_ins ?? '—' }}

@@ -1,15 +1,16 @@
 @extends('layout.app')
 @section('titre')
-Déclarations de mariage
+Formulaires types
 @endsection
 @section("styles")
 <!-- Datatable -->
     <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ asset('tpl/wizard/dist/css/style.min.css') }}" rel="stylesheet">
+    @include('mariage::partials._formulaire_type_header_ui')
 @endsection
 @section('sous-titre')
-    Liste des déclarations de mariage
+    Liste des formulaires types
 @endsection
 @section('corps')
 <div class="page-sifec-index">
@@ -17,10 +18,10 @@ Déclarations de mariage
 <div class="an-body">
 <div class="row">
     <div class="col-xl-12">
-        <div class="card">
-            <div class="card-header">
-                <h4>Liste des déclarations de mariage</h4>
-                <a href="{{ route("declarationMariage.create") }}"><button type="button" class="btn btn-info m-t-2 float-end text-white" >Créer une déclaration de mariage  <i class="fa fa-plus-circle"></i></button></a>
+        <div class="card mariage-ft-card">
+            <div class="card-header mariage-ft-head">
+                <h4>Liste des formulaires types</h4>
+                <a href="{{ route('declarationMariage.create') }}" class="btn btn-mariage-ft"><i class="fa fa-plus-circle" aria-hidden="true"></i> Créer un formulaire type</a>
             </div>
             <div class="col-12">
                 <div class="card">

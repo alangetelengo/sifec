@@ -63,13 +63,13 @@
             <label class="form-label">Type pièce d'identité</label>
             <select id="code_type_document_pere" class="form-control form-control wide">
                 @foreach ($typedocuments as $item)
-                    <option value="{{ $item->code_type_document }}" {{ (isset($dn->pere->document) && $dn->pere->document->code_type_document == $item->code_type_document) ? 'selected' : '' }}>{{ $item->lib_type_document  }}</option>
+                    <option value="{{ $item->code_type_document }}" {{ ($dn->pere?->document?->code_type_document == $item->code_type_document) ? 'selected' : '' }}>{{ $item->lib_type_document  }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-2 col-md-4">
             <label class="form-label">Numéro pièce d'identité</label>
-            <input type="text" id="numero_document_pere" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->pere->document->numero_document ?? '' }}">
+            <input type="text" id="numero_document_pere" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->pere?->document?->numero_document ?? '' }}">
         </div>
         <div class="ligne">
             <h4>ADRESSE</h4>
@@ -79,7 +79,7 @@
                 <label class="form-label">Pays<span class="text-danger"></span></label>
                 <select id="domicile_pays_pere" class="form-control">
                     @foreach ($countries as $countrie)
-                        <option value="{{ $countrie->name }}" {{ $dn->pere->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
+                        <option value="{{ $countrie->name }}" {{ optional($dn->pere?->adresses?->last())->lib_pays == $countrie->name ? 'selected' : '' }}>{{ $countrie->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -169,13 +169,10 @@
                 <input type="number" min="0" minlength="9" maxlength="15" id="telephone_pere" name="telephone_pere" class="form-control" placeholder="Téléphone père" value="{{ $dn->pere->telephone ?? '' }}">
             </div>
 
+            @php $contactPere = $dn->pere?->contacts?->first(); @endphp
             <div class="mb-2 col-md-4">
-                <label class="form-label">E-mail personnel</label>
-                <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail personnel du père" autocomplete="email" value="{{ optional($dn->pere ? $dn->pere->contacts->first() : null)->email_personnelle ?? '' }}">
-            </div>
-            <div class="mb-2 col-md-4">
-                <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
-                <input type="email" id="email_professionnel_pere" class="form-control" name="email_professionnel_pere" placeholder="E-mail professionnel du père" autocomplete="email" value="{{ optional($dn->pere ? $dn->pere->contacts->first() : null)->email_professionnelle ?? '' }}">
+                <label class="form-label">E-mail</label>
+                <input type="email" id="email_pere" class="form-control" name="email_pere" placeholder="E-mail du père" autocomplete="email" value="{{ trim((string) (optional($contactPere)->email_personnelle ?: optional($contactPere)->email_professionnelle ?: '')) }}">
             </div>
 
             <div class="ligne">
@@ -235,7 +232,7 @@
             <label class="form-label">Nationalité Mère<span class="text-danger">*</span></label>
             <select id="code_nationalite_mere" name="code_nationalite_mere" class="form-control required  @error('code_nationalite_mere') is-invalid @enderror ">
                 @foreach ($nationalites as $nationalite)
-                    <option value="{{ $nationalite->code_nationalite }}"  {{ $dn->mere->nationalite->code_nationalite == $nationalite->code_nationalite ? "selected" : "" }}>{{ $nationalite->lib_nationalite }}</option>
+                    <option value="{{ $nationalite->code_nationalite }}"  {{ ($dn->mere?->nationalite?->code_nationalite == $nationalite->code_nationalite) ? 'selected' : '' }}>{{ $nationalite->lib_nationalite }}</option>
                 @endforeach
             </select>
         </div>
@@ -243,7 +240,7 @@
             <label class="form-label">Profession Mère<span class="text-danger">*</span></label>
             <select id="profession_mere" class="form-control form-control wide">
                 @foreach ($professions as $item)
-                    <option value="{{ $item->code_profession }}"  {{ $dn->mere->profession->code_profession == $item->code_profession ? "selected" : "" }}>{{ $item->lib_profession }}</option>
+                    <option value="{{ $item->code_profession }}"  {{ ($dn->mere?->profession?->code_profession == $item->code_profession) ? 'selected' : '' }}>{{ $item->lib_profession }}</option>
                 @endforeach
             </select>
         </div>
@@ -262,21 +259,21 @@
             <label class="form-label">Type pièce d'identité</label>
             <select id="code_type_document_mere" class="form-control form-control wide">
                 @foreach ($typedocuments as $item)
-                    <option value="{{ $item->code_type_document }}" {{ $dn->mere->document->code_type_document == $item->code_type_document ? "selected" : "" }}>{{ $item->lib_type_document  }}</option>
+                    <option value="{{ $item->code_type_document }}" {{ ($dn->mere?->document?->code_type_document == $item->code_type_document) ? 'selected' : '' }}>{{ $item->lib_type_document  }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-2 col-md-4">
             <label class="form-label">Numéro pièce d'identité</label>
-            <input type="text" id="numero_document_mere" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->mere->document->numero_document }}">
+            <input type="text" id="numero_document_mere" class="form-control form-control wide" placeholder="Numéro du document" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->mere?->document?->numero_document ?? '' }}">
         </div>
     </div>
     <div class="ligne">
         <h4>ADRESSE
             ( <span style="color:red!important">
             <label class="radio-inline mr-3">Même adresse que le père ?</label></span>
-            <label class="radio-inline mr-3"><input type="radio" id="sameadress" name="adresse" value="1" {{ $dn->pere->adresse == $dn->mere->adresse ? "checked" : ""}}> OUI</label>
-            <label class="radio-inline mr-3"><input type="radio" id="otheradress" name="adresse" value="1" {{ $dn->pere->adresse != $dn->mere->adresse ? "checked" : ""}}> NON</label>)
+            <label class="radio-inline mr-3"><input type="radio" id="sameadress" name="adresse" value="1" {{ ($dn->pere?->adresse ?? null) == ($dn->mere?->adresse ?? null) ? 'checked' : '' }}> OUI</label>
+            <label class="radio-inline mr-3"><input type="radio" id="otheradress" name="adresse" value="1" {{ ($dn->pere?->adresse ?? null) != ($dn->mere?->adresse ?? null) ? 'checked' : '' }}> NON</label>)
          </h4>
     </div>
     <div class="row adressemere">
@@ -284,7 +281,7 @@
             <label class="form-label">Pays<span class="text-danger"></span></label>
             <select id="domicile_pays_mere" class="form-control">
                 @foreach ($countries as $countrie)
-                    <option value="{{ $countrie->name }}" {{ $dn->mere->adresses->last()->lib_pays == $countrie->name ? "selected" : "" }}>{{ $countrie->name }}</option>
+                    <option value="{{ $countrie->name }}" {{ optional($dn->mere?->adresses?->last())->lib_pays == $countrie->name ? 'selected' : '' }}>{{ $countrie->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -304,10 +301,10 @@
                 @endforeach
             </select>
         </div>
-        @if($dn->pere->adresses->last()->lib_pays != "Congo")
+        @if(optional($dn->pere?->adresses?->last())->lib_pays && optional($dn->pere?->adresses?->last())->lib_pays != 'Congo')
         <div class="mb-2 col-md-3 autredomicile_ville_mere">
             <label class="form-label">Ville<span class="text-danger"></span></label>
-            <input type="text" id="autredomicile_ville_mere" class="form-control form-control wide" placeholder="Libellé de la ville" onkeyup="this.value=this.value.toUpperCase()" value="{{ $dn->mere->adresses->last()->lib_ville }}">
+            <input type="text" id="autredomicile_ville_mere" class="form-control form-control wide" placeholder="Libellé de la ville" onkeyup="this.value=this.value.toUpperCase()" value="{{ optional($dn->mere?->adresses?->last())->lib_ville ?? '' }}">
         </div>
         @endif
 
@@ -347,20 +344,20 @@
         <div class="mb-2 col-md-3">
             <label class="form-label">Type voie<span class="text-danger"></span></label>
             <select class="form-control" id="domicile_typevoie_mere">
-                <option value="Avenue" {{ $dn->mere->adresses->last()->type_voie == "Avenue" ? "selected" : "" }}>Avenue</option>
-                    <option value="Boulevard" {{ $dn->mere->adresses->last()->type_voie == "Boulevard" ? "selected" : "" }}>Boulevard</option>
-                    <option value="Impasse" {{ $dn->mere->adresses->last()->type_voie == "Impasse" ? "selected" : "" }}>Impasse</option>
-                    <option value="Rue" {{ $dn->mere->adresses->last()->type_voie == "Rue" ? "selected" : "" }}>Rue</option>
-                    <option value="Autre" {{ $dn->mere->adresses->last()->type_voie == "Autre" ? "selected" : "" }}>Autre</option>
+                <option value="Avenue" {{ optional($dn->mere?->adresses?->last())->type_voie == 'Avenue' ? 'selected' : '' }}>Avenue</option>
+                    <option value="Boulevard" {{ optional($dn->mere?->adresses?->last())->type_voie == 'Boulevard' ? 'selected' : '' }}>Boulevard</option>
+                    <option value="Impasse" {{ optional($dn->mere?->adresses?->last())->type_voie == 'Impasse' ? 'selected' : '' }}>Impasse</option>
+                    <option value="Rue" {{ optional($dn->mere?->adresses?->last())->type_voie == 'Rue' ? 'selected' : '' }}>Rue</option>
+                    <option value="Autre" {{ optional($dn->mere?->adresses?->last())->type_voie == 'Autre' ? 'selected' : '' }}>Autre</option>
             </select>
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">N° voie<span class="text-danger"></span></label>
-            <input type="text" class="form-control" id="domicile_numero_mere" placeholder="N° voie" value="{{ $dn->mere->adresses->last()->numero_rue}}">
+            <input type="text" class="form-control" id="domicile_numero_mere" placeholder="N° voie" value="{{ optional($dn->mere?->adresses?->last())->numero_rue ?? '' }}">
         </div>
         <div class="mb-2 col-md-3">
             <label class="form-label">Nom voie<span class="text-danger"></span></label>
-            <input type="text" class="form-control" id="domicile_nomvoie_mere" placeholder="Nom voie" style="text-transform: capitalize" value="{{ $dn->mere->adresses->last()->nom_voie}}">
+            <input type="text" class="form-control" id="domicile_nomvoie_mere" placeholder="Nom voie" style="text-transform: capitalize" value="{{ optional($dn->mere?->adresses?->last())->nom_voie ?? '' }}">
         </div>
     </div>
     <div class="ligne">
@@ -371,7 +368,7 @@
             <label class="form-label">Indicatif<span class="text-danger">*</span></label>
             <select name="code_pays_mere" id="code_pays_mere" class="form-control">
                 @forelse ($countries as $code)
-                    <option value="{{ $code->dial_code }}" {{ $dn->mere->adresses->last()->lib_pays == $code->name ? "selected" : "" }}>({{ $code->dial_code }}) {{ $code->name }}</option>
+                    <option value="{{ $code->dial_code }}" {{ optional($dn->mere?->adresses?->last())->lib_pays == $code->name ? 'selected' : '' }}>({{ $code->dial_code }}) {{ $code->name }}</option>
                 @empty
                 @endforelse
             </select>
@@ -380,13 +377,10 @@
             <label class="form-label">Téléphone mère</label>
             <input type="number" min="0" minlength="9" maxlength="15" id="telephone_mere" name="telephone_mere" class="form-control @error('telephone_mere') is-invalid @enderror " placeholder="Téléphone mère" value="{{ $dn->mere->telephone }}">
         </div>
+        @php $contactMere = $dn->mere?->contacts?->first(); @endphp
         <div class="mb-2 col-md-3">
-            <label class="form-label">E-mail personnel</label>
-            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail personnel de la mère" autocomplete="email" value="{{ optional($dn->mere ? $dn->mere->contacts->first() : null)->email_personnelle ?? '' }}">
-        </div>
-        <div class="mb-2 col-md-3">
-            <label class="form-label">E-mail professionnel <span class="text-muted small">(optionnel)</span></label>
-            <input type="email" id="email_professionnel_mere" class="form-control" name="email_professionnel_mere" placeholder="E-mail professionnel de la mère" autocomplete="email" value="{{ optional($dn->mere ? $dn->mere->contacts->first() : null)->email_professionnelle ?? '' }}">
+            <label class="form-label">E-mail</label>
+            <input type="email" id="email_mere" class="form-control" name="email_mere" placeholder="E-mail de la mère" autocomplete="email" value="{{ trim((string) (optional($contactMere)->email_personnelle ?: optional($contactMere)->email_professionnelle ?: '')) }}">
         </div>
 
         <div class="ligne">

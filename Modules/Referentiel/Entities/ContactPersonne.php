@@ -25,14 +25,14 @@ class ContactPersonne extends Model
     }
 
     /**
-     * E-mails valides pour notifier le déclarant (professionnel en priorité, puis personnel — sans doublon).
+     * E-mails valides pour notifier le déclarant (personnel en priorité, puis professionnel si renseigné — sans doublon).
      *
      * @return list<string>
      */
     public function adressesEmailPourNotification(): array
     {
         $out = [];
-        foreach ([$this->email_professionnelle, $this->email_personnelle] as $e) {
+        foreach ([$this->email_personnelle, $this->email_professionnelle] as $e) {
             $e = trim((string) $e);
             if ($e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL)) {
                 $out[$e] = true;

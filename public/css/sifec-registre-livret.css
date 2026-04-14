@@ -220,3 +220,11 @@
 #main-wrapper .content-body .page-sifec-registre-livret .bb-custom-wrapper .bb-item .card[style*="border"] {
     border-color: rgba(146, 184, 133, 0.4) !important;
 }
+
+/* QR vérification acte (livret registre ; feuillet sans .page-sifec-registre-livret) */
+#main-wrapper .content-body .page-sifec-registre-livret .registre-acte-qrcode svg,
+.registre-acte-qrcode svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
