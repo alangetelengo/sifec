@@ -2,19 +2,21 @@
 
 namespace Modules\Referentiel\Http\Controllers;
 
-use Exception;
 use App\Sifec\Sifec;
+use Exception;
+use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\Log;
-use Modules\Referentiel\Entities\TypeInstitution;
 use Modules\Referentiel\Entities\TypeCategorieInstitution;
+use Modules\Referentiel\Entities\TypeInstitution;
 
 class TypeInstitutionController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Renderable
      */
     public function index()
@@ -24,17 +26,17 @@ class TypeInstitutionController extends Controller
             ->orderBy('created_at', 'desc')
             ->take(20)
             ->get();
-        
+
         // Charger toutes les catégories pour le formulaire
         $typeCategorieInstitutions = TypeCategorieInstitution::orderBy('lib_type_categorie_institution')->get();
-        
-        return view('referentiel::type-institution.index', compact("typeInstitutions", "typeCategorieInstitutions"));
+
+        return view('referentiel::type-institution.index', compact('typeInstitutions', 'typeCategorieInstitutions'));
     }
 
     /**
      * Filter type institutions
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function filterTypeInstitutions(Request $request)
     {
@@ -43,7 +45,7 @@ class TypeInstitutionController extends Controller
 
             // Filtre par libellé
             if ($request->filled('lib_type_institution')) {
-                $query->where('lib_type_institution', 'like', '%' . $request->lib_type_institution . '%');
+                $query->where('lib_type_institution', 'like', '%'.$request->lib_type_institution.'%');
             }
 
             // Filtre par catégorie
@@ -59,104 +61,110 @@ class TypeInstitutionController extends Controller
                 'success' => true,
                 'html' => $html,
                 'count' => $typeInstitutions->count(),
-                'message' => $typeInstitutions->count() . ' type(s) d\'institution trouvé(s)'
+                'message' => $typeInstitutions->count().' type(s) d\'institution trouvé(s)',
             ]);
 
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur lors du filtrage des types d\'institution: ' . $e->getMessage());
+            Log::channel('sifec')->error('Erreur lors du filtrage des types d\'institution: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors du filtrage: ' . $e->getMessage()
+                'message' => 'Erreur lors du filtrage: '.$e->getMessage(),
             ], 500);
         }
     }
 
-
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Renderable
      */
     public function store(Request $request)
     {
         $request->validate([
-            'lib_type_institution' => ['required','string','max:150'],
-            'code_type_categorie_ins' => ['required','string','exists:tr_type_categorie_ins,code_type_categorie_ins']
+            'lib_type_institution' => ['required', 'string', 'max:150'],
+            'code_type_categorie_ins' => ['required', 'string', 'exists:tr_type_categorie_ins,code_type_categorie_ins'],
         ]);
 
         try {
-            $typeInstitution = new TypeInstitution();
-            $typeInstitution->code_type_institution = Sifec::genererCodeUniqueReferentiel($typeInstitution,"code_type_institution",4,"TPINS_");
+            $typeInstitution = new TypeInstitution;
+            $typeInstitution->code_type_institution = Sifec::genererCodeUniqueReferentiel($typeInstitution, 'code_type_institution', 4, 'TPINS_');
             $typeInstitution->lib_type_institution = strtoupper(trim($request->lib_type_institution));
             $typeInstitution->code_type_categorie_ins = $request->code_type_categorie_ins;
             $typeInstitution->save();
-            
+
             Log::channel('sifec')->info('Type d\'institution créé avec succès', [
                 'code_type_institution' => $typeInstitution->code_type_institution,
-                'lib_type_institution' => $typeInstitution->lib_type_institution
+                'lib_type_institution' => $typeInstitution->lib_type_institution,
             ]);
-            
-            toastr()->success('Type d\'institution ajouté avec succès');
+
+            flash()->success('Type d\'institution ajouté avec succès');
+
             return redirect()->route('typeInstitution.index');
 
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur lors de la création d\'un type d\'institution: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::channel('sifec')->error('Erreur lors de la création d\'un type d\'institution: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
-
 
     public function update(Request $request, $id)
     {
         $typeInstitution = TypeInstitution::find($id);
 
-        if ($typeInstitution == null){
-            toastr()->error("Impossible de charger cette page");
+        if ($typeInstitution == null) {
+            flash()->error('Impossible de charger cette page');
+
             return redirect()->back();
         }
 
         $request->validate([
-            'lib_type_institution' => ['required','string','max:150'],
-            'code_type_categorie_ins' => ['required','string','exists:tr_type_categorie_ins,code_type_categorie_ins']
+            'lib_type_institution' => ['required', 'string', 'max:150'],
+            'code_type_categorie_ins' => ['required', 'string', 'exists:tr_type_categorie_ins,code_type_categorie_ins'],
         ]);
 
         try {
             $typeInstitution->lib_type_institution = strtoupper(trim($request->lib_type_institution));
             $typeInstitution->code_type_categorie_ins = $request->code_type_categorie_ins;
             $typeInstitution->save();
-            
+
             Log::channel('sifec')->info('Type d\'institution modifié avec succès', [
                 'code_type_institution' => $typeInstitution->code_type_institution,
-                'lib_type_institution' => $typeInstitution->lib_type_institution
+                'lib_type_institution' => $typeInstitution->lib_type_institution,
             ]);
-            
-            toastr()->success('Type d\'institution modifié avec succès');
+
+            flash()->success('Type d\'institution modifié avec succès');
+
             return redirect()->route('typeInstitution.index');
 
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur lors de la modification d\'un type d\'institution: ' . $e->getMessage(), [
+            Log::channel('sifec')->error('Erreur lors de la modification d\'un type d\'institution: '.$e->getMessage(), [
                 'code_type_institution' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function destroy($id)
     {
         $typeInstitution = TypeInstitution::find($id);
 
-        if ($typeInstitution == null){
-            toastr()->error("Impossible de charger cette page");
+        if ($typeInstitution == null) {
+            flash()->error('Impossible de charger cette page');
+
             return redirect()->back();
         }
 
@@ -164,26 +172,29 @@ class TypeInstitutionController extends Controller
             // Vérifier si des institutions utilisent ce type
             $institutionsCount = $typeInstitution->institutions()->count();
             if ($institutionsCount > 0) {
-                toastr()->error("Impossible de supprimer ce type d'institution : {$institutionsCount} institution(s) l'utilise(nt)");
+                flash()->error("Impossible de supprimer ce type d'institution : {$institutionsCount} institution(s) l'utilise(nt)");
+
                 return redirect()->back();
             }
 
             // Utiliser softDeletes() au lieu de supprimer=1
             $typeInstitution->delete();
-            
+
             Log::channel('sifec')->info('Type d\'institution supprimé (soft delete)', [
                 'code_type_institution' => $typeInstitution->code_type_institution,
-                'lib_type_institution' => $typeInstitution->lib_type_institution
+                'lib_type_institution' => $typeInstitution->lib_type_institution,
             ]);
-            
-            toastr()->success("Suppression effectuée avec succès");
-            return redirect()->route("typeInstitution.index");
+
+            flash()->success('Suppression effectuée avec succès');
+
+            return redirect()->route('typeInstitution.index');
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur lors de la suppression d\'un type d\'institution: ' . $e->getMessage(), [
+            Log::channel('sifec')->error('Erreur lors de la suppression d\'un type d\'institution: '.$e->getMessage(), [
                 'code_type_institution' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back();
         }
     }

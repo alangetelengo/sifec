@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use BaconQrCode\Writer;
-use Illuminate\Http\Request;
+use App\Models\User;
 use App\Models\UserAuditTrail;
-use PragmaRX\Google2FA\Google2FA;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use Illuminate\Validation\ValidationException;
+use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorController extends Controller
 {
@@ -37,7 +39,7 @@ class TwoFactorController extends Controller
             'regenerateRecoveryCodes',
             'disable',
         ]);
-        $this->google2fa = new Google2FA();
+        $this->google2fa = new Google2FA;
     }
 
     /**
@@ -49,7 +51,7 @@ class TwoFactorController extends Controller
 
         return view('auth.two-factor.index', [
             'user' => $user,
-            'twoFactorEnabled' => $user->hasTwoFactorEnabled()
+            'twoFactorEnabled' => $user->hasTwoFactorEnabled(),
         ]);
     }
 
@@ -61,7 +63,7 @@ class TwoFactorController extends Controller
         // Vérifier l'authentification avant tout
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             Log::channel('sifec')->error('=== ENABLE 2FA - UTILISATEUR NON AUTHENTIFIÉ ===', [
                 'session_id' => $request->session()?->getId(),
                 'url' => $request->fullUrl(),
@@ -92,8 +94,8 @@ class TwoFactorController extends Controller
             'user_authenticated' => auth()->check(),
             'auth_id' => auth()->id(),
             'google2fa_enabled' => $user->google2fa_enabled,
-            'has_secret' => !empty($user->google2fa_secret),
-            'has_recovery_codes' => !empty($user->recovery_codes),
+            'has_secret' => ! empty($user->google2fa_secret),
+            'has_recovery_codes' => ! empty($user->recovery_codes),
             'two_factor_verified_at' => $user->two_factor_verified_at,
         ]);
 
@@ -107,7 +109,7 @@ class TwoFactorController extends Controller
             || empty($user->google2fa_secret);
 
         if ($shouldGenerateNewSecret) {
-            $oldSecretExists = !empty($user->google2fa_secret);
+            $oldSecretExists = ! empty($user->google2fa_secret);
 
             Log::channel('sifec')->info('=== ENABLE 2FA - GÉNÉRATION NOUVEAU SECRET ===', [
                 'user_code' => $user->code_user,
@@ -157,7 +159,7 @@ class TwoFactorController extends Controller
                 'auth_id' => auth()->id(),
                 'google2fa_enabled' => $user->google2fa_enabled,
                 'secret_length' => strlen($existingSecret),
-                'secret_preview' => substr($existingSecret, 0, 10) . '...' . substr($existingSecret, -5),
+                'secret_preview' => substr($existingSecret, 0, 10).'...'.substr($existingSecret, -5),
                 'reason' => 'secret_exists_keep_for_activation',
             ]);
         }
@@ -171,7 +173,7 @@ class TwoFactorController extends Controller
             'user_authenticated' => auth()->check(),
             'auth_id' => auth()->id(),
             'secret_length' => strlen($secret),
-            'secret_preview' => substr($secret, 0, 10) . '...' . substr($secret, -5),
+            'secret_preview' => substr($secret, 0, 10).'...'.substr($secret, -5),
             'app_name' => config('app.name'),
         ]);
 
@@ -184,13 +186,13 @@ class TwoFactorController extends Controller
 
         Log::channel('sifec')->info('=== ENABLE 2FA - QR CODE URL GÉNÉRÉ ===', [
             'user_id' => $user->id,
-            'qr_code_url_preview' => substr($qrCodeUrl, 0, 100) . '...',
+            'qr_code_url_preview' => substr($qrCodeUrl, 0, 100).'...',
         ]);
 
         $writer = new Writer(
             new ImageRenderer(
                 new RendererStyle(200),
-                new SvgImageBackEnd()
+                new SvgImageBackEnd
             )
         );
 
@@ -198,7 +200,7 @@ class TwoFactorController extends Controller
 
         return view('auth.two-factor.enable', [
             'qrCodeImage' => $qrCodeImage,
-            'secret' => decrypt($user->google2fa_secret)
+            'secret' => decrypt($user->google2fa_secret),
         ]);
     }
 
@@ -225,7 +227,7 @@ class TwoFactorController extends Controller
         ]);
 
         return response()->json([
-            'token' => $newToken
+            'token' => $newToken,
         ]);
     }
 
@@ -236,7 +238,7 @@ class TwoFactorController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             Log::channel('sifec')->error('=== CONFIRM 2FA - UTILISATEUR NON AUTHENTIFIÉ ===', [
                 'session_id' => $request->session()?->getId(),
                 'has_session' => $request->hasSession(),
@@ -267,7 +269,7 @@ class TwoFactorController extends Controller
         ]);
 
         // Vérifier à nouveau l'authentification avant la validation
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::channel('sifec')->error('=== CONFIRM 2FA - DÉCONNEXION AVANT VALIDATION ===', [
                 'session_id' => $request->session()?->getId(),
                 'has_session' => $request->hasSession(),
@@ -278,10 +280,10 @@ class TwoFactorController extends Controller
         }
 
         try {
-        $request->validate([
-            'one_time_password' => 'required|numeric|digits:6'
+            $request->validate([
+                'one_time_password' => 'required|numeric|digits:6',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::channel('sifec')->warning('=== CONFIRM 2FA - ERREUR DE VALIDATION ===', [
                 'user_code' => $user->code_user,
                 'errors' => $e->errors(),
@@ -289,7 +291,7 @@ class TwoFactorController extends Controller
             ]);
 
             // Vérifier que l'utilisateur est toujours authentifié
-            if (!auth()->check()) {
+            if (! auth()->check()) {
                 Log::channel('sifec')->error('=== CONFIRM 2FA - DÉCONNEXION APRÈS ERREUR VALIDATION ===', [
                     'session_id' => $request->session()?->getId(),
                 ]);
@@ -301,7 +303,7 @@ class TwoFactorController extends Controller
         }
 
         // Vérifier à nouveau l'authentification après la validation
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::channel('sifec')->error('=== CONFIRM 2FA - DÉCONNEXION APRÈS VALIDATION ===', [
                 'session_id' => $request->session()?->getId(),
             ]);
@@ -323,7 +325,8 @@ class TwoFactorController extends Controller
                 'user_email' => $user->email,
             ]);
 
-            toastr()->error("Aucun secret 2FA trouvé. Veuillez reconfigurer la 2FA.");
+            flash()->error('Aucun secret 2FA trouvé. Veuillez reconfigurer la 2FA.');
+
             return redirect()->route('two-factor.enable', ['reset' => 1]);
         }
 
@@ -333,21 +336,21 @@ class TwoFactorController extends Controller
             'user_code' => $user->code_user,
             'user_email' => $user->email,
             'auth_check' => auth()->check(),
-            'has_secret' => !empty($secret),
+            'has_secret' => ! empty($secret),
             'secret_length' => strlen($secret),
-            'secret_preview' => !empty($secret) ? (substr($secret, 0, 10) . '...' . substr($secret, -5)) : 'empty',
+            'secret_preview' => ! empty($secret) ? (substr($secret, 0, 10).'...'.substr($secret, -5)) : 'empty',
             'code_received' => $request->one_time_password,
             'session_id' => $request->session()?->getId(),
         ]);
 
         // Vérifier à nouveau l'authentification avant la vérification du code
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::channel('sifec')->error('=== CONFIRM 2FA - DÉCONNEXION AVANT VÉRIFICATION CODE ===', [
                 'user_code' => $user->code_user,
                 'session_id' => $request->session()?->getId(),
             ]);
 
-            return redirect()->route('login')->with('error', 'Votre session a expiré. Veuillez vous reconnecter.');
+            return redirect()->route('login')->with('error', [], 'Votre session a expiré. Veuillez vous reconnecter.');
         }
 
         // Vérifier le code avec une fenêtre de tolérance de 2 périodes (60 secondes)
@@ -357,12 +360,12 @@ class TwoFactorController extends Controller
             'user_code' => $user->code_user,
             'code_valid' => $valid,
             'code_received' => $request->one_time_password,
-            'secret_preview' => substr($secret, 0, 10) . '...' . substr($secret, -5),
+            'secret_preview' => substr($secret, 0, 10).'...'.substr($secret, -5),
             'tolerance_window' => 2,
         ]);
 
         // Si le code est invalide, tester avec une fenêtre plus large pour debug
-        if (!$valid) {
+        if (! $valid) {
             $validWindow1 = $this->google2fa->verifyKey($secret, $request->one_time_password, 1);
             $validWindow2 = $this->google2fa->verifyKey($secret, $request->one_time_password, 3);
             $validWindow4 = $this->google2fa->verifyKey($secret, $request->one_time_password, 4);
@@ -373,7 +376,7 @@ class TwoFactorController extends Controller
                 'valid_window_1' => $validWindow1,
                 'valid_window_2' => $validWindow2,
                 'valid_window_4' => $validWindow4,
-                'secret_preview' => substr($secret, 0, 10) . '...' . substr($secret, -5),
+                'secret_preview' => substr($secret, 0, 10).'...'.substr($secret, -5),
             ]);
 
             // Si ça fonctionne avec une fenêtre plus large, accepter quand même
@@ -389,7 +392,7 @@ class TwoFactorController extends Controller
         if ($valid) {
             // Vérifier à nouveau l'authentification avant de sauvegarder
             $currentUser = auth()->user();
-            if (!$currentUser || $currentUser->code_user !== $user->code_user) {
+            if (! $currentUser || $currentUser->code_user !== $user->code_user) {
                 Log::channel('sifec')->error('=== CONFIRM 2FA - DÉCONNEXION OU CHANGEMENT UTILISATEUR ===', [
                     'user_code_original' => $user->code_user,
                     'user_code_current' => $currentUser?->code_user ?? 'null',
@@ -421,23 +424,23 @@ class TwoFactorController extends Controller
             ]);
 
             // Audit trail pour activation 2FA
-            UserAuditTrail::log($user->code_user, '2fa_enabled', "Double authentification activée");
+            UserAuditTrail::log($user->code_user, '2fa_enabled', 'Double authentification activée');
 
-            toastr()->success("Double authentification activée avec succès!");
+            flash()->success('Double authentification activée avec succès!');
 
             return redirect()->route('two-factor.recovery-codes')
                 ->with('recoveryCodes', $recoveryCodes);
         }
 
         // Vérifier à nouveau l'authentification avant de rediriger
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::channel('sifec')->error('=== CONFIRM 2FA - DÉCONNEXION AVANT REDIRECTION CODE INVALIDE ===', [
                 'user_code' => $user->code_user,
                 'session_id' => $request->session()?->getId(),
                 'code_received' => $request->one_time_password,
             ]);
 
-            return redirect()->route('login')->with('error', 'Votre session a expiré. Veuillez vous reconnecter.');
+            return redirect()->route('login')->with('error', [], 'Votre session a expiré. Veuillez vous reconnecter.');
         }
 
         Log::channel('sifec')->warning('=== CONFIRM 2FA - CODE INVALIDE ===', [
@@ -447,7 +450,7 @@ class TwoFactorController extends Controller
             'session_id' => $request->session()?->getId(),
         ]);
 
-        toastr()->error("Code invalide. Veuillez réessayer.");
+        flash()->error('Code invalide. Veuillez réessayer.');
 
         // Utiliser une redirection explicite au lieu de back() pour éviter les problèmes de session
         Log::channel('sifec')->info('=== CONFIRM 2FA - REDIRECTION VERS ENABLE (code invalide) ===', [
@@ -468,7 +471,7 @@ class TwoFactorController extends Controller
         $recoveryCodes = session('recoveryCodes', $user->getRecoveryCodes());
 
         return view('auth.two-factor.recovery-codes', [
-            'recoveryCodes' => $recoveryCodes
+            'recoveryCodes' => $recoveryCodes,
         ]);
     }
 
@@ -481,17 +484,18 @@ class TwoFactorController extends Controller
         $recoveryCodes = session('recoveryCodes', $user->getRecoveryCodes());
 
         if (empty($recoveryCodes)) {
-            toastr()->error('Aucun code de récupération disponible.');
+            flash()->error('Aucun code de récupération disponible.');
+
             return redirect()->route('two-factor.index');
         }
 
         $pdf = DomPDF::loadView('auth.two-factor.recovery-codes-pdf', [
             'recoveryCodes' => $recoveryCodes,
             'user' => $user,
-            'date' => now()->format('d/m/Y à H:i:s')
+            'date' => now()->format('d/m/Y à H:i:s'),
         ]);
 
-        $filename = 'codes-recuperation-2fa-' . $user->code_user . '-' . date('Ymd-His') . '.pdf';
+        $filename = 'codes-recuperation-2fa-'.$user->code_user.'-'.date('Ymd-His').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -505,17 +509,18 @@ class TwoFactorController extends Controller
         $recoveryCodes = session('recoveryCodes', $user->getRecoveryCodes());
 
         if (empty($recoveryCodes)) {
-            toastr()->error('Aucun code de récupération disponible.');
+            flash()->error('Aucun code de récupération disponible.');
+
             return redirect()->route('two-factor.index');
         }
 
         $pdf = DomPDF::loadView('auth.two-factor.recovery-codes-pdf', [
             'recoveryCodes' => $recoveryCodes,
             'user' => $user,
-            'date' => now()->format('d/m/Y à H:i:s')
+            'date' => now()->format('d/m/Y à H:i:s'),
         ]);
 
-        $filename = 'codes-recuperation-2fa-' . $user->code_user . '.pdf';
+        $filename = 'codes-recuperation-2fa-'.$user->code_user.'.pdf';
 
         return $pdf->stream($filename);
     }
@@ -527,31 +532,32 @@ class TwoFactorController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => "La 2FA doit être activée d'abord."
+                    'message' => "La 2FA doit être activée d'abord.",
                 ], 400);
             }
-            toastr()->error("La 2FA doit être activée d'abord.");
+            flash()->error("La 2FA doit être activée d'abord.");
+
             return back();
         }
 
         $recoveryCodes = $user->generateRecoveryCodes();
 
         // Audit trail pour régénération des codes
-        UserAuditTrail::log($user->code_user, 'recovery_codes_regenerated', "Codes de récupération régénérés");
+        UserAuditTrail::log($user->code_user, 'recovery_codes_regenerated', [], 'Codes de récupération régénérés');
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => "Codes de récupération régénérés avec succès!",
-                'recoveryCodes' => $recoveryCodes
+                'message' => 'Codes de récupération régénérés avec succès!',
+                'recoveryCodes' => $recoveryCodes,
             ]);
         }
 
-        toastr()->success("Codes de récupération régénérés avec succès!");
+        flash()->success('Codes de récupération régénérés avec succès!');
 
         return redirect()->route('two-factor.recovery-codes')
             ->with('recoveryCodes', $recoveryCodes);
@@ -563,12 +569,13 @@ class TwoFactorController extends Controller
     public function disable(Request $request)
     {
         $request->validate([
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         // Vérifier le mot de passe
-        if (!auth()->attempt(['email' => auth()->user()->email, 'password' => $request->password])) {
-            toastr()->error("Mot de passe incorrect.");
+        if (! auth()->attempt(['email' => auth()->user()->email, 'password' => $request->password])) {
+            flash()->error('Mot de passe incorrect.');
+
             return back();
         }
 
@@ -576,11 +583,11 @@ class TwoFactorController extends Controller
         $user->disableTwoFactor();
 
         // Audit trail pour désactivation 2FA
-        //utilise Log::channel('sifec')->info('Double authentification désactivée');
+        // utilise Log::channel('sifec')->info('Double authentification désactivée');
         Log::channel('sifec')->info('Double authentification désactivée');
-        UserAuditTrail::log($user->code_user, '2fa_disabled', "Double authentification désactivée");
+        UserAuditTrail::log($user->code_user, '2fa_disabled', [], 'Double authentification désactivée');
 
-        toastr()->success("Double authentification désactivée.");
+        flash()->success('Double authentification désactivée.');
 
         return redirect()->route('two-factor.index');
     }
@@ -590,7 +597,7 @@ class TwoFactorController extends Controller
      */
     public function showVerify()
     {
-        if (!session('2fa:user:id')) {
+        if (! session('2fa:user:id')) {
             return redirect()->route('login');
         }
 
@@ -603,14 +610,15 @@ class TwoFactorController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'one_time_password' => 'required|numeric|digits:6'
+            'one_time_password' => 'required|numeric|digits:6',
         ]);
 
         $userId = session('2fa:user:id');
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
 
-        if (!$user) {
-            toastr()->error("Session expirée. Veuillez vous reconnecter.");
+        if (! $user) {
+            flash()->error('Session expirée. Veuillez vous reconnecter.');
+
             return redirect()->route('login');
         }
 
@@ -633,11 +641,13 @@ class TwoFactorController extends Controller
                     ->with('first_login_notice', true);
             }
 
-            toastr()->success("Connexion réussie!");
+            flash()->success('Connexion réussie!');
+
             return redirect()->intended('/');
         }
 
-        toastr()->error("Code invalide. Veuillez réessayer.");
+        flash()->error('Code invalide. Veuillez réessayer.');
+
         return back();
     }
 
@@ -647,14 +657,15 @@ class TwoFactorController extends Controller
     public function verifyRecoveryCode(Request $request)
     {
         $request->validate([
-            'recovery_code' => 'required|string'
+            'recovery_code' => 'required|string',
         ]);
 
         $userId = session('2fa:user:id');
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
 
-        if (!$user) {
-            toastr()->error("Session expirée. Veuillez vous reconnecter.");
+        if (! $user) {
+            flash()->error('Session expirée. Veuillez vous reconnecter.');
+
             return redirect()->route('login');
         }
 
@@ -672,13 +683,13 @@ class TwoFactorController extends Controller
                     ->with('first_login_notice', true);
             }
 
-            toastr()->warning("Vous vous êtes connecté avec un code de récupération. Il vous reste " . $user->getRemainingRecoveryCodesCount() . " code(s) de récupération.");
+            flash()->warning('Vous vous êtes connecté avec un code de récupération. Il vous reste '.$user->getRemainingRecoveryCodesCount().' code(s) de récupération.');
 
             return redirect()->intended('/');
         }
 
-        toastr()->error("Code de récupération invalide.");
+        flash()->error('Code de récupération invalide.');
+
         return back();
     }
 }
-

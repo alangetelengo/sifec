@@ -2,9 +2,9 @@
 
 namespace Modules\Referentiel\Http\Controllers;
 
-use Exception;
 use App\Models\Appareil;
 use App\Sifec\Sifec;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -24,11 +24,11 @@ class AppareilController extends Controller
         $institutions = Institution::orderBy('lib_institution')->get();
 
         $stats = [
-            'total'    => Appareil::count(),
-            'actifs'   => Appareil::where('statut', true)->count(),
+            'total' => Appareil::count(),
+            'actifs' => Appareil::where('statut', true)->count(),
             'inactifs' => Appareil::where('statut', false)->count(),
             'ordinateurs' => Appareil::where('type_appareil', 'ordinateur')->count(),
-            'tablettes'   => Appareil::where('type_appareil', 'tablette')->count(),
+            'tablettes' => Appareil::where('type_appareil', 'tablette')->count(),
             'smartphones' => Appareil::where('type_appareil', 'smartphone')->count(),
         ];
 
@@ -41,10 +41,10 @@ class AppareilController extends Controller
             $query = Appareil::with('institution');
 
             if ($request->filled('nom_appareil')) {
-                $query->where('nom_appareil', 'LIKE', '%' . trim($request->nom_appareil) . '%');
+                $query->where('nom_appareil', 'LIKE', '%'.trim($request->nom_appareil).'%');
             }
             if ($request->filled('adresse_mac')) {
-                $query->where('adresse_mac', 'LIKE', '%' . trim($request->adresse_mac) . '%');
+                $query->where('adresse_mac', 'LIKE', '%'.trim($request->adresse_mac).'%');
             }
             if ($request->filled('type_appareil')) {
                 $query->where('type_appareil', $request->type_appareil);
@@ -60,11 +60,12 @@ class AppareilController extends Controller
 
             return response()->json([
                 'success' => true,
-                'html'    => view('referentiel::appareil.partials.table-appareils', compact('appareils'))->render(),
-                'count'   => $appareils->count(),
+                'html' => view('referentiel::appareil.partials.table-appareils', compact('appareils'))->render(),
+                'count' => $appareils->count(),
             ]);
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur filtrage appareils : ' . $e->getMessage());
+            Log::channel('sifec')->error('Erreur filtrage appareils : '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -72,11 +73,11 @@ class AppareilController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nom_appareil'    => ['required', 'string', 'max:100'],
-            'adresse_mac'     => ['required', 'string', 'max:50', 'unique:tr_appareils,adresse_mac'],
-            'type_appareil'   => ['required', 'in:ordinateur,tablette,smartphone,autre'],
-            'code_institution'=> ['nullable', 'string'],
-            'statut'          => ['nullable', 'boolean'],
+            'nom_appareil' => ['required', 'string', 'max:100'],
+            'adresse_mac' => ['required', 'string', 'max:50', 'unique:tr_appareils,adresse_mac'],
+            'type_appareil' => ['required', 'in:ordinateur,tablette,smartphone,autre'],
+            'code_institution' => ['nullable', 'string'],
+            'statut' => ['nullable', 'boolean'],
         ], [
             'adresse_mac.unique' => 'Cette adresse MAC est déjà enregistrée dans le système.',
         ]);
@@ -84,14 +85,14 @@ class AppareilController extends Controller
         try {
             DB::beginTransaction();
 
-            $appareil = new Appareil();
-            $appareil->code_appareil     = Sifec::genererCodeUniqueReferentiel($appareil, 'code_appareil', 4, 'APP_');
-            $appareil->nom_appareil      = $request->nom_appareil;
-            $appareil->adresse_mac       = strtoupper(trim($request->adresse_mac));
-            $appareil->type_appareil     = $request->type_appareil;
-            $appareil->code_institution  = $request->code_institution ?: null;
-            $appareil->enregistre_par    = Auth::user()->affectationActive()?->cui;
-            $appareil->statut            = $request->statut ?? true;
+            $appareil = new Appareil;
+            $appareil->code_appareil = Sifec::genererCodeUniqueReferentiel($appareil, 'code_appareil', 4, 'APP_');
+            $appareil->nom_appareil = $request->nom_appareil;
+            $appareil->adresse_mac = strtoupper(trim($request->adresse_mac));
+            $appareil->type_appareil = $request->type_appareil;
+            $appareil->code_institution = $request->code_institution ?: null;
+            $appareil->enregistre_par = Auth::user()->affectationActive()?->cui;
+            $appareil->statut = $request->statut ?? true;
             $appareil->date_enregistrement = now();
             $appareil->save();
 
@@ -99,12 +100,14 @@ class AppareilController extends Controller
 
             Log::channel('sifec')->info('Appareil enregistré', ['code' => $appareil->code_appareil, 'mac' => $appareil->adresse_mac]);
 
-            toastr()->success("{$appareil->nom_appareil} enregistré avec succès", "Gestion des appareils");
+            flash()->success("{$appareil->nom_appareil} enregistré avec succès", [], 'Gestion des appareils');
+
             return redirect()->route('appareil.index');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::channel('sifec')->error('Erreur création appareil : ' . $e->getMessage());
-            toastr()->error($e->getMessage());
+            Log::channel('sifec')->error('Erreur création appareil : '.$e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
@@ -113,36 +116,39 @@ class AppareilController extends Controller
     {
         $appareil = Appareil::find($id);
 
-        if (!$appareil) {
-            toastr()->error("Appareil introuvable.");
+        if (! $appareil) {
+            flash()->error('Appareil introuvable.');
+
             return redirect()->back();
         }
 
         $request->validate([
-            'nom_appareil'    => ['required', 'string', 'max:100'],
-            'adresse_mac'     => ['required', 'string', 'max:50', "unique:tr_appareils,adresse_mac,{$id},code_appareil"],
-            'type_appareil'   => ['required', 'in:ordinateur,tablette,smartphone,autre'],
-            'code_institution'=> ['nullable', 'string'],
-            'statut'          => ['nullable', 'boolean'],
+            'nom_appareil' => ['required', 'string', 'max:100'],
+            'adresse_mac' => ['required', 'string', 'max:50', "unique:tr_appareils,adresse_mac,{$id},code_appareil"],
+            'type_appareil' => ['required', 'in:ordinateur,tablette,smartphone,autre'],
+            'code_institution' => ['nullable', 'string'],
+            'statut' => ['nullable', 'boolean'],
         ], [
             'adresse_mac.unique' => 'Cette adresse MAC est déjà utilisée par un autre appareil.',
         ]);
 
         try {
-            $appareil->nom_appareil     = $request->nom_appareil;
-            $appareil->adresse_mac      = strtoupper(trim($request->adresse_mac));
-            $appareil->type_appareil    = $request->type_appareil;
+            $appareil->nom_appareil = $request->nom_appareil;
+            $appareil->adresse_mac = strtoupper(trim($request->adresse_mac));
+            $appareil->type_appareil = $request->type_appareil;
             $appareil->code_institution = $request->code_institution ?: null;
-            $appareil->statut           = $request->statut ?? $appareil->statut;
+            $appareil->statut = $request->statut ?? $appareil->statut;
             $appareil->save();
 
             Log::channel('sifec')->info('Appareil modifié', ['code' => $appareil->code_appareil]);
 
-            toastr()->success("{$appareil->nom_appareil} modifié avec succès", "Gestion des appareils");
+            flash()->success("{$appareil->nom_appareil} modifié avec succès", [], 'Gestion des appareils');
+
             return redirect()->route('appareil.index');
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur modification appareil : ' . $e->getMessage());
-            toastr()->error($e->getMessage());
+            Log::channel('sifec')->error('Erreur modification appareil : '.$e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
@@ -151,7 +157,7 @@ class AppareilController extends Controller
     {
         try {
             $appareil = Appareil::findOrFail($id);
-            $appareil->statut = !$appareil->statut;
+            $appareil->statut = ! $appareil->statut;
             $appareil->save();
 
             $libStatut = $appareil->statut ? 'activé' : 'désactivé';
@@ -159,7 +165,7 @@ class AppareilController extends Controller
 
             return response()->json([
                 'success' => true,
-                'statut'  => $appareil->statut,
+                'statut' => $appareil->statut,
                 'message' => "Appareil {$libStatut} avec succès.",
             ]);
         } catch (Exception $e) {
@@ -172,8 +178,9 @@ class AppareilController extends Controller
         try {
             $appareil = Appareil::find($id);
 
-            if (!$appareil) {
-                toastr()->error("Appareil introuvable.");
+            if (! $appareil) {
+                flash()->error('Appareil introuvable.');
+
                 return redirect()->back();
             }
 
@@ -182,11 +189,13 @@ class AppareilController extends Controller
 
             Log::channel('sifec')->info('Appareil supprimé', ['code' => $id]);
 
-            toastr()->success("Suppression de « {$nom} » effectuée avec succès", "Gestion des appareils");
+            flash()->success("Suppression de « {$nom} » effectuée avec succès", [], 'Gestion des appareils');
+
             return redirect()->route('appareil.index');
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur suppression appareil : ' . $e->getMessage());
-            toastr()->error("Erreur lors de la suppression : " . $e->getMessage());
+            Log::channel('sifec')->error('Erreur suppression appareil : '.$e->getMessage());
+            flash()->error('Erreur lors de la suppression : '.$e->getMessage());
+
             return redirect()->back();
         }
     }

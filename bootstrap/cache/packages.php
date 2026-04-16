@@ -11,24 +11,6 @@
       0 => 'Barryvdh\\DomPDF\\ServiceProvider',
     ),
   ),
-  'facade/ignition' => 
-  array (
-    'aliases' => 
-    array (
-      'Flare' => 'Facade\\Ignition\\Facades\\Flare',
-    ),
-    'providers' => 
-    array (
-      0 => 'Facade\\Ignition\\IgnitionServiceProvider',
-    ),
-  ),
-  'fruitcake/laravel-cors' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Fruitcake\\Cors\\CorsServiceProvider',
-    ),
-  ),
   'kalnoy/nestedset' => 
   array (
     'providers' => 
@@ -85,6 +67,13 @@
       0 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     ),
   ),
+  'nunomaduro/termwind' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    ),
+  ),
   'nwidart/laravel-modules' => 
   array (
     'aliases' => 
@@ -107,6 +96,17 @@
       0 => 'Flasher\\Laravel\\FlasherServiceProvider',
     ),
   ),
+  'php-flasher/flasher-toastr-laravel' => 
+  array (
+    'aliases' => 
+    array (
+      'Toastr' => 'Flasher\\Toastr\\Laravel\\Facade\\Toastr',
+    ),
+    'providers' => 
+    array (
+      0 => 'Flasher\\Toastr\\Laravel\\FlasherToastrServiceProvider',
+    ),
+  ),
   'simplesoftwareio/simple-qrcode' => 
   array (
     'aliases' => 
@@ -118,33 +118,29 @@
       0 => 'SimpleSoftwareIO\\QrCode\\QrCodeServiceProvider',
     ),
   ),
+  'spatie/laravel-ignition' => 
+  array (
+    'aliases' => 
+    array (
+      'Flare' => 'Spatie\\LaravelIgnition\\Facades\\Flare',
+    ),
+    'providers' => 
+    array (
+      0 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
+    ),
+  ),
+  'staudenmeir/laravel-adjacency-list' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Staudenmeir\\LaravelAdjacencyList\\IdeHelperServiceProvider',
+    ),
+  ),
   'staudenmeir/laravel-cte' => 
   array (
     'providers' => 
     array (
       0 => 'Staudenmeir\\LaravelCte\\DatabaseServiceProvider',
-    ),
-  ),
-  'webpatser/laravel-uuid' => 
-  array (
-    'aliases' => 
-    array (
-      'Uuid' => 'Webpatser\\Uuid\\Uuid',
-    ),
-    'providers' => 
-    array (
-      0 => 'Webpatser\\Uuid\\UuidServiceProvider',
-    ),
-  ),
-  'yoeunes/toastr' => 
-  array (
-    'aliases' => 
-    array (
-      'Toastr' => 'Yoeunes\\Toastr\\Facades\\Toastr',
-    ),
-    'providers' => 
-    array (
-      0 => 'Yoeunes\\Toastr\\ToastrServiceProvider',
     ),
   ),
 );

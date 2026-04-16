@@ -1223,9 +1223,7 @@ html:
                     if (e.value === true)
                     {
                         let token = $('meta[name="csrf-token"]').attr('content');
-                        if (typeof sifecSwalLoading === 'function') {
-                            sifecSwalLoading('Enregistrement...');
-                        }
+                        if (typeof Swal !== 'undefined') { Swal.close(); }
 
                         //information du défunt
                         var type_declaration = $("#type_declaration");

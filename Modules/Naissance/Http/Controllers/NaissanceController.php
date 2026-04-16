@@ -2,66 +2,64 @@
 
 namespace Modules\Naissance\Http\Controllers;
 
-use Exception;
-use Carbon\Carbon;
-use App\Sifec\Sifec;
-use App\Models\Jugement;
-use App\Models\Requisition;
-use Illuminate\Http\Request;
-use Spipu\Html2Pdf\Html2Pdf;
 use App\Helpers\LocaliteHelper;
-use App\Models\InstitutionUser;
+use App\Models\Jugement;
+use App\Sifec\Sifec;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
-use Modules\Referentiel\Entities\Document;
-use Modules\Referentiel\Entities\Localite;
-use Modules\Referentiel\Entities\Personne;
-use Modules\Referentiel\Entities\Filiation;
-use Illuminate\Contracts\Support\Renderable;
-use Modules\Referentiel\Entities\Profession;
 use Modules\Naissance\Entities\ActeNaissance;
-use Modules\Referentiel\Entities\Departement;
-use Modules\Referentiel\Entities\Institution;
-use Modules\Referentiel\Entities\Nationalite;
-use Modules\Referentiel\Entities\TypeDocument;
-use Modules\Referentiel\Entities\Arrondissement;
-use Modules\Referentiel\Entities\LieuSurvenance;
-use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Entities\Declarationnaissance;
-use Modules\Notification\Services\NotificationService;
-use Modules\Referentiel\Entities\SituationMatrimoniale;
+use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Http\Requests\StoreAdoptionRequest;
-use Modules\Naissance\Services\DeclarationNaissanceService;
 use Modules\Naissance\Http\Requests\StoreDeclarationNaissanceRequest;
 use Modules\Naissance\Http\Requests\UpdateDeclarationNaissanceRequest;
+use Modules\Naissance\Services\DeclarationNaissanceService;
 use Modules\Naissance\Services\MouvementService;
-use Illuminate\Support\Facades\URL;
+use Modules\Notification\Notifications\DeclarationEnvoyeeCentreNotification;
+use Modules\Notification\Services\NotificationService;
+use Modules\Referentiel\Entities\Arrondissement;
+use Modules\Referentiel\Entities\Departement;
+use Modules\Referentiel\Entities\Document;
+use Modules\Referentiel\Entities\Filiation;
+use Modules\Referentiel\Entities\Institution;
+use Modules\Referentiel\Entities\LieuSurvenance;
+use Modules\Referentiel\Entities\Localite;
+use Modules\Referentiel\Entities\Nationalite;
+use Modules\Referentiel\Entities\Personne;
+use Modules\Referentiel\Entities\Profession;
+use Modules\Referentiel\Entities\SituationMatrimoniale;
+use Modules\Referentiel\Entities\TypeDocument;
+use Spipu\Html2Pdf\Html2Pdf;
 
 class NaissanceController extends Controller
 {
-
     public function index()
     {
         $user = Auth::user();
-        $title = "Liste des déclarations de naissance";
-        $button = "Enregistrer un certificat de naissance";
+        $title = 'Liste des déclarations de naissance';
+        $button = 'Enregistrer un certificat de naissance';
         $institution = $user->institution();
 
         $codeCategorie = optional(optional(optional($user->affectationActive())->institution)->typeInstitution)->typeCategorieInstitution;
         $codeCategorie = $codeCategorie ? $codeCategorie->code_type_categorie_ins : null;
 
         if ($codeCategorie == 'TCINS_0003') {
-            $title = "Liste des certificats et déclarations de naissance";
-            $button = "Enregistrer un certificat de naissance";
+            $title = 'Liste des certificats et déclarations de naissance';
+            $button = 'Enregistrer un certificat de naissance';
         } elseif ($codeCategorie == 'TCINS_0001') {
-            $title = "Liste des déclarations de naissance";
-            $button = "Enregistrer un certificat de naissance";
+            $title = 'Liste des déclarations de naissance';
+            $button = 'Enregistrer un certificat de naissance';
         }
-
 
         $declarations = Declarationnaissance::query()
             ->with(['enfant', 'declarant', 'pere', 'mere', 'mouvements'])
@@ -79,7 +77,7 @@ class NaissanceController extends Controller
     public function etat(Request $request, $id)
     {
         $contexteForcage = $request->query('contexte');
-        if ($contexteForcage && !in_array($contexteForcage, ['formation_sanitaire', 'centre_etat_civil'])) {
+        if ($contexteForcage && ! in_array($contexteForcage, ['formation_sanitaire', 'centre_etat_civil'])) {
             $contexteForcage = null;
         }
 
@@ -88,11 +86,11 @@ class NaissanceController extends Controller
             abort(404);
         }
 
-        view()->share("tester", "Alange");
+        view()->share('tester', 'Alange');
         $html2pdf = new Html2Pdf('P', 'A4', 'fr');
         $html2pdf->setDefaultFont('Arial');
 
-        $dummy = "XXXXXXXXXXXXXXXX";
+        $dummy = 'XXXXXXXXXXXXXXXX';
         $typeDeclaration = $dn->libelleAffichageType();
         $qrCode = $dn->type_declaration === 'CERTIFICAT DE NAISSANCE'
             ? $this->generateCertificatNaissanceVerificationQr($dn->code_declaration_naissance)
@@ -101,7 +99,7 @@ class NaissanceController extends Controller
         if (in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'], true)) {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance . '.pdf');
+            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE NON INSCRIPTION') {
@@ -110,64 +108,59 @@ class NaissanceController extends Controller
             $ageEnfant = $dateNow->diffInYears($dateNaissEnfant);
             $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact('dummy', 'ageEnfant', 'qrCode'), ['certificat' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance . '.pdf');
+            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE TRANSCRIPTION' && ($dn->type_declaration_origine ?? '') === 'DECLARATION DE PATERNITE') {
             $html2pdf->writeHTML(view('naissance::etats.certificat_de_transcription', compact('dummy', 'qrCode'), ['certificat' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance . '.pdf');
+            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
         }
 
         if ($dn->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
             $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact('dummy', 'qrCode'), ['certificat' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance . '.pdf');
+            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
         }
 
         if ($dn->type_declaration === 'FICHE DE TRANSCRIPTION') {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance . '.pdf');
+            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE TRANSCRIPTION') {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance . '.pdf');
+            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
         }
     }
 
     // Recherche d'une personne
     public function recherchePersonne(Request $request)
     {
-        if($request->ajax()){
+        if ($request->ajax()) {
 
-        if($request->nom==null)
-        {
-            $nom="";
-        }else{
-            $nom=$request->nom;
-        }
+            if ($request->nom == null) {
+                $nom = '';
+            } else {
+                $nom = $request->nom;
+            }
 
-        if($request->prenom==null)
-        {
-            $prenom="";
-        }else{
-            $prenom=$request->prenom;
-        }
+            if ($request->prenom == null) {
+                $prenom = '';
+            } else {
+                $prenom = $request->prenom;
+            }
 
-        if($request->telephone==null)
-        {
-            $telephone="";
-        }else{
-            $telephone=$request->telephone;
-        }
+            if ($request->telephone == null) {
+                $telephone = '';
+            } else {
+                $telephone = $request->telephone;
+            }
 
-
-        if(empty($request->statut))
-        {
-            $personnes =   DB::select('SELECT *, c.telephone as phone, c.email_personnelle AS cp_email_perso, c.email_professionnelle AS cp_email_pro FROM `tr_identification_personne` t
+            if (empty($request->statut)) {
+                $personnes = DB::select('SELECT *, c.telephone as phone, c.email_personnelle AS cp_email_perso, c.email_professionnelle AS cp_email_pro FROM `tr_identification_personne` t
                                        LEFT JOIN t_document d  ON t.code_personne=d.code_personne
                                        LEFT JOIN t_adresse_personne a on t.code_personne=a.code_personne
                                        LEFT JOIN t_contact_personne c on t.code_personne=c.code_personne
@@ -178,9 +171,8 @@ class NaissanceController extends Controller
                                                and c.telephone like "%'.$telephone.'%"
            ');
 
-        }else
-        {
-            $personnes =   DB::select('SELECT *, c.telephone as phone, c.email_personnelle AS cp_email_perso, c.email_professionnelle AS cp_email_pro FROM `tr_identification_personne` t
+            } else {
+                $personnes = DB::select('SELECT *, c.telephone as phone, c.email_personnelle AS cp_email_perso, c.email_professionnelle AS cp_email_pro FROM `tr_identification_personne` t
                                         LEFT JOIN t_document d  ON t.code_personne=d.code_personne
                                         LEFT JOIN t_adresse_personne a on t.code_personne=a.code_personne
                                         LEFT JOIN t_contact_personne c on t.code_personne=c.code_personne
@@ -190,47 +182,45 @@ class NaissanceController extends Controller
                                                 and t.statut_personne = "'.$request->statut.'"
                                                 and c.telephone like "%'.$telephone.'%"
            ');
-        }
+            }
 
-        $personnes = collect($personnes)->map(static function ($row) {
-            $r = (array) $row;
-            $r['email_personnelle'] = $r['cp_email_perso'] ?? $r['email_personnelle'] ?? null;
-            $r['email_professionnelle'] = $r['cp_email_pro'] ?? $r['email_professionnelle'] ?? null;
-            unset($r['cp_email_perso'], $r['cp_email_pro']);
+            $personnes = collect($personnes)->map(static function ($row) {
+                $r = (array) $row;
+                $r['email_personnelle'] = $r['cp_email_perso'] ?? $r['email_personnelle'] ?? null;
+                $r['email_professionnelle'] = $r['cp_email_pro'] ?? $r['email_professionnelle'] ?? null;
+                unset($r['cp_email_perso'], $r['cp_email_pro']);
 
-            return (object) $r;
-        })->values()->all();
+                return (object) $r;
+            })->values()->all();
 
-        return response()->json([
-               "personnes" => $personnes
+            return response()->json([
+                'personnes' => $personnes,
             ]);
 
-       }
+        }
     }
-
 
     /**
      * Show the form for creating a new resource.
+     *
      * @return Renderable
      */
     public function create()
     {
         $user = Auth::user();
-        $title = "Enregistrer un certificat de naissance";
-        $type_declaration = "DECLARATION DE NAISSANCE";
+        $title = 'Enregistrer un certificat de naissance';
+        $type_declaration = 'DECLARATION DE NAISSANCE';
         $ageEnfant = 0;
-        $dateNaissance = request("date_naissance_enfant");
+        $dateNaissance = request('date_naissance_enfant');
 
-        if($user->affectationActive()->fonction->code_fonction == "FONC_0006") //si c'est un agent de formation sanitaire
-        {
-            $title = "Enregistrer un certificat de naissance";
-            $type_declaration = "CERTIFICAT DE NAISSANCE";
+        if ($user->affectationActive()->fonction->code_fonction == 'FONC_0006') { // si c'est un agent de formation sanitaire
+            $title = 'Enregistrer un certificat de naissance';
+            $type_declaration = 'CERTIFICAT DE NAISSANCE';
         }
 
-        if($user->affectationActive()->fonction->code_fonction == "FONC_0014") //si c'est un agent de la mairie centrale
-        {
+        if ($user->affectationActive()->fonction->code_fonction == 'FONC_0014') { // si c'est un agent de la mairie centrale
             $title = "Créer un certificat de transcription de l'acte";
-            $type_declaration = "CERTIFICAT DE TRANSCRIPTION";
+            $type_declaration = 'CERTIFICAT DE TRANSCRIPTION';
         }
 
         $instructions = Sifec::niveauInstructions();
@@ -245,8 +235,9 @@ class NaissanceController extends Controller
         $communes = $localites;
         $arrondissements = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartiers = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
+
         return view('naissance::declaration.create', compact(
             'title',
             'ageEnfant',
@@ -282,13 +273,12 @@ class NaissanceController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
+        $dummy = 'XXXXXXXXXXXXXXXX';
 
-        $dummy = "XXXXXXXXXXXXXXXX";
-
-        return view('naissance::enfant-abandonne.create ',compact("dummy","departements","countries","arrondissement","quartierVillages","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances"));
+        return view('naissance::enfant-abandonne.create ', compact('dummy', 'departements', 'countries', 'arrondissement', 'quartierVillages', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances'));
 
     }
 
@@ -304,19 +294,19 @@ class NaissanceController extends Controller
         $typedocuments = TypeDocument::all();
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = Arrondissement::all();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
-        $dummy = "XXXXXXXXXXXXXXXX";
+        $dummy = 'XXXXXXXXXXXXXXXX';
 
-        return view('naissance::enfant-trouver.create',compact("dummy","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances"));
+        return view('naissance::enfant-trouver.create', compact('dummy', 'departements', 'countries', 'arrondissement', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances'));
 
     }
 
-
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
+     * @param  Request  $request
      * @return Renderable
      */
     public function store(StoreDeclarationNaissanceRequest $request, DeclarationNaissanceService $service)
@@ -328,13 +318,14 @@ class NaissanceController extends Controller
             $resultatEnregistrement = $service->enregistrer($request, Auth::user());
 
             // Si le service retourne une réponse JSON (erreur), on la logue et on la retourne
-            if ($resultatEnregistrement instanceof \Illuminate\Http\JsonResponse) {
+            if ($resultatEnregistrement instanceof JsonResponse) {
                 $data = $resultatEnregistrement->getData(true);
                 Log::channel('sifec')->warning('Erreur enregistrement déclaration naissance', [
                     'code' => $data['code'] ?? null,
                     'message' => $data['message'] ?? null,
                     'personne_declaree' => $request->personne_declaree ?? null,
                 ]);
+
                 return $resultatEnregistrement;
             }
 
@@ -347,15 +338,16 @@ class NaissanceController extends Controller
             }
 
             return response()->json([
-                "code" => "200",
-                "message" => "La déclaration a été enregistrée avec succès"
+                'code' => '200',
+                'message' => 'La déclaration a été enregistrée avec succès',
             ]);
 
         } catch (Exception $e) {
-            Log::channel("sifec")->error("Erreur dans le contrôleur de déclaration de naissance: " . $e->getMessage());
+            Log::channel('sifec')->error('Erreur dans le contrôleur de déclaration de naissance: '.$e->getMessage());
+
             return response()->json([
-                "code" => "90",
-                "message" => "Une erreur inattendue s'est produite lors de l'enregistrement"
+                'code' => '90',
+                'message' => "Une erreur inattendue s'est produite lors de l'enregistrement",
             ]);
         }
     }
@@ -385,48 +377,49 @@ class NaissanceController extends Controller
             $mouvementService = app(MouvementService::class);
             $result = $mouvementService->ajouterEvenementDeclaration(Auth::user(), $declaration, $typeEvenement);
 
-            if (!$result[0]) {
+            if (! $result[0]) {
                 return response()->json([
-                    "code" => "91",
-                    "message" => "Erreur lors de l'enregistrement du mouvement: " . $result[1]
+                    'code' => '91',
+                    'message' => "Erreur lors de l'enregistrement du mouvement: ".$result[1],
                 ]);
             }
 
             return true;
 
         } catch (Exception $e) {
-            Log::channel("sifec")->error("Erreur lors de la gestion du mouvement: " . $e->getMessage());
+            Log::channel('sifec')->error('Erreur lors de la gestion du mouvement: '.$e->getMessage());
+
             return response()->json([
-                "code" => "91",
-                "message" => "Erreur lors de l'enregistrement du mouvement"
+                'code' => '91',
+                'message' => "Erreur lors de l'enregistrement du mouvement",
             ]);
         }
     }
 
-
     public function show($id)
     {
         $declaration = Declarationnaissance::find($id);
-        if($declaration == null){
-            toastr()->error("Impossible de charger cette page");
+        if ($declaration == null) {
+            flash()->error('Impossible de charger cette page');
+
             return back();
         }
 
-        return view('naissance::declaration.show', compact("declaration"));
+        return view('naissance::declaration.show', compact('declaration'));
     }
 
     public function edit($id)
     {
         $dn = Declarationnaissance::find($id);
-        if($dn==null)
-        {
-            toastr()->error("Impossible de charger cette page");
+        if ($dn == null) {
+            flash()->error('Impossible de charger cette page');
+
             return back();
         }
         $fnUser = Auth::user()->affectationActive()->fonction->code_fonction;
         $typeDeclaration = $dn->type_declaration;
         $title = ' MODIFICATION '.$dn->libelleAffichageType();
-        $date = Carbon::create(date("Y-m-y"));
+        $date = Carbon::create(date('Y-m-y'));
         $dateNaissEnfant = Carbon::create($dn->enfant->date_naissance);
         $ageEnfant = $date->diffInYears($dateNaissEnfant);
         $instructions = Sifec::niveauInstructions();
@@ -435,7 +428,7 @@ class NaissanceController extends Controller
         $lieuSurvenances = LieuSurvenance::all();
         $typedocuments = TypeDocument::all();
         $situationMatrimoniales = SituationMatrimoniale::all();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $localites = LocaliteHelper::communesEtDistricts();
         $arrondissements = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
@@ -444,7 +437,7 @@ class NaissanceController extends Controller
         $arrondissementsDropdown = LocaliteHelper::getLocalitesDropdown('TPLOC_0004');
         $quartiersDropdown = LocaliteHelper::getLocalitesDropdown('TPLOC_0007');
         $adressePere = $dn->pere ? $dn->pere->adresses->last() : null;
-        $commune = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, 'TPLOC_0003') : null;
+        $commune = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, [], 'TPLOC_0003') : null;
         $arrondissement = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, 'TPLOC_0004') : null;
         $quartier = $adressePere ? LocaliteHelper::getLocaliteByType($adressePere->code_localite, 'TPLOC_0007') : null;
         $adresseMere = $dn->mere ? $dn->mere->adresses->last() : null;
@@ -456,20 +449,20 @@ class NaissanceController extends Controller
         $arrondissementDeclarant = $adresseDeclarant ? LocaliteHelper::getLocaliteByType($adresseDeclarant->code_localite, 'TPLOC_0004') : null;
         $quartierDeclarant = $adresseDeclarant ? LocaliteHelper::getLocaliteByType($adresseDeclarant->code_localite, 'TPLOC_0007') : null;
         $filiations = Filiation::all();
+
         return view('naissance::declaration.edit', compact(
-            "typeDeclaration",
-            "ageEnfant","dn","title","countries",
-            "typedocuments","instructions","professions","nationalites",
-            "situationMatrimoniales","lieuSurvenances",
-            "localites","arrondissements",
-            "departementsDropdown","communesDropdown","arrondissementsDropdown","quartiersDropdown",
-            "commune","arrondissement","quartier",
-            "communeMere","arrondissementMere","quartierMere",
-            "communeDeclarant","arrondissementDeclarant","quartierDeclarant",
-            "filiations"
+            'typeDeclaration',
+            'ageEnfant', 'dn', 'title', 'countries',
+            'typedocuments', 'instructions', 'professions', 'nationalites',
+            'situationMatrimoniales', 'lieuSurvenances',
+            'localites', 'arrondissements',
+            'departementsDropdown', 'communesDropdown', 'arrondissementsDropdown', 'quartiersDropdown',
+            'commune', 'arrondissement', 'quartier',
+            'communeMere', 'arrondissementMere', 'quartierMere',
+            'communeDeclarant', 'arrondissementDeclarant', 'quartierDeclarant',
+            'filiations'
         ));
     }
-
 
     public function update(UpdateDeclarationNaissanceRequest $request, $id, DeclarationNaissanceService $service)
     {
@@ -477,50 +470,51 @@ class NaissanceController extends Controller
         // dd($request->all());
         try {
             $declaration = $service->update($request, $id, Auth::user());
-        return response()->json([
-                "code" => "200",
-                "message" => "Document modifié avec succès"
+
+            return response()->json([
+                'code' => '200',
+                'message' => 'Document modifié avec succès',
             ]);
         } catch (Exception $e) {
-        return response()->json([
-                "code" => "150",
-                "message" => $e->getMessage()
+            return response()->json([
+                'code' => '150',
+                'message' => $e->getMessage(),
             ]);
         }
     }
 
-    public function mouvement(MouvementService $mouvement ,Request $request)
+    public function mouvement(MouvementService $mouvement, Request $request)
     {
         $dn = Declarationnaissance::find($request->code_declaration_naissance);
-        if($dn == null){
+        if ($dn == null) {
             return response()->json([
-                "code"=>"183",
-                "message"=>["error" => "Aucun document trouvé pour ce code"]
+                'code' => '183',
+                'message' => ['error' => 'Aucun document trouvé pour ce code'],
             ]);
         }
         $statut = 'Envoyée';
         $observation = $request->observation;
 
         try {
-            DB::transaction(function () use ($mouvement, $dn, $observation, $request) {
+            DB::transaction(function () use ($mouvement, $dn, $observation) {
                 $codeMouvementEnvoi = $dn->type_declaration === 'CERTIFICAT DE NAISSANCE'
                     ? 'MOUV_0035'
                     : 'MOUV_0001';
                 [$ok, $statutResult] = $mouvement->envoyerDeclaration(Auth::user(), $dn, $codeMouvementEnvoi, 'Envoyée', $observation);
 
-                if(!$ok){
+                if (! $ok) {
                     Log::channel('sifec')->info($statutResult);
-                    throw new Exception($statutResult ?: "Opération a échouée");
+                    throw new Exception($statutResult ?: 'Opération a échouée');
                 }
 
-                //recuperer le code_institution_destinataire pour la notification de l'envoi de la déclaration
+                // recuperer le code_institution_destinataire pour la notification de l'envoi de la déclaration
                 $codeInstitutionDestinataire = $dn->code_institution_destinataire;
                 $institutionDestinataire = Institution::find($codeInstitutionDestinataire);
 
                 // Notification centralisée via le module Notification
                 NotificationService::notifierAgentsInstitution(
                     $institutionDestinataire,
-                    new \Modules\Notification\Notifications\DeclarationEnvoyeeCentreNotification(
+                    new DeclarationEnvoyeeCentreNotification(
                         $dn,
                         $institutionDestinataire,
                         'envoyée'
@@ -534,14 +528,15 @@ class NaissanceController extends Controller
                 : "Cette déclaration a été $statut avec succès";
 
             return response()->json([
-                "code"=>"200",
-                "message"=>$libelleSucces
+                'code' => '200',
+                'message' => $libelleSucces,
             ]);
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur transaction mouvement : ' . $e->getMessage());
+            Log::channel('sifec')->error('Erreur transaction mouvement : '.$e->getMessage());
+
             return response()->json([
-                "code"=>"500",
-                "message"=>"Erreur lors de l'envoi au centre d'état civil : " . $e->getMessage()
+                'code' => '500',
+                'message' => "Erreur lors de l'envoi au centre d'état civil : ".$e->getMessage(),
             ]);
         }
     }
@@ -550,11 +545,10 @@ class NaissanceController extends Controller
     {
         $mvtn = MouvementNaissance::find($id);
 
-
-        if($mvtn =="" || $mvtn == null){
+        if ($mvtn == '' || $mvtn == null) {
             return response()->json([
-                "code"=>"183",
-                "message"=>["Aucune donnée trouvée"]
+                'code' => '183',
+                'message' => ['Aucune donnée trouvée'],
             ]);
         }
 
@@ -565,21 +559,23 @@ class NaissanceController extends Controller
             $mvtn->observation = trim($request->observation);
             $mvtn->save();
 
-            //update (lu et approuve) du déclarant
+            // update (lu et approuve) du déclarant
             $dn = Declarationnaissance::find($mvtn->code_declaration_naissance);
-            $dn->approuver = "NON";
+            $dn->approuver = 'NON';
             $dn->save();
             DB::commit();
+
             return response()->json([
-                "code"=>"200",
-                "message"=>"Modification effectuée avec succès"
+                'code' => '200',
+                'message' => 'Modification effectuée avec succès',
             ]);
 
         } catch (Exception $e) {
             DB::rollBack();
+
             return response()->json([
-                "code"=>"183",
-                "message"=>["error"=>$e->getMessage()]
+                'code' => '183',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
 
@@ -589,26 +585,27 @@ class NaissanceController extends Controller
     {
         $mvtn = MouvementNaissance::find($id);
 
-
-        if($mvtn =="" || $mvtn == null){
+        if ($mvtn == '' || $mvtn == null) {
             return response()->json([
-                "code"=>"183",
-                "message"=>["Aucune donnée trouvée"]
+                'code' => '183',
+                'message' => ['Aucune donnée trouvée'],
             ]);
         }
 
         try {
             $mvtn->delete();
+
             return response()->json([
-                "code"=>"200",
-                "message"=>"Opération effectuée avec succès"
+                'code' => '200',
+                'message' => 'Opération effectuée avec succès',
             ]);
 
-        }  catch (Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
+
             return response()->json([
-                "code"=>"183",
-                "message"=>["error"=>$e->getMessage()]
+                'code' => '183',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
     }
@@ -621,7 +618,7 @@ class NaissanceController extends Controller
         foreach ($declarations as $key) {
             $liste[] = $key->code_declaration_naissance;
         }
-        $array = implode("','",$liste);
+        $array = implode("','", $liste);
 
         $datas = DB::select("SELECT tr_identification_personne.sexe, COUNT(*) AS TOTAL
         FROM t_declaration_naissance
@@ -640,7 +637,7 @@ class NaissanceController extends Controller
         foreach ($declarations as $key) {
             $liste[] = $key->code_declaration_naissance;
         }
-        $array = implode("','",$liste);
+        $array = implode("','", $liste);
 
         $datas = DB::select("SELECT tr_identification_personne.sexe, COUNT(*) AS TOTAL
         FROM t_declaration_naissance
@@ -649,12 +646,12 @@ class NaissanceController extends Controller
         AND MONTH(t_declaration_naissance.date_heure_declaration) = MONTH(CURDATE())
         GROUP BY tr_identification_personne.sexe");
 
-        view()->share("tester", "Alange");
+        view()->share('tester', 'Alange');
         $html2pdf = new Html2Pdf('P', 'A4', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('naissance::etats.statistiques.declarationParsexe', compact("datas"))->render());
+        $html2pdf->writeHTML(view('naissance::etats.statistiques.declarationParsexe', compact('datas'))->render());
 
-        return $html2pdf->output("declarationParsexe.pdf");
+        return $html2pdf->output('declarationParsexe.pdf');
     }
 
     public function statParSexeActe()
@@ -665,7 +662,7 @@ class NaissanceController extends Controller
         foreach ($declarations as $key) {
             $liste[] = $key->code_institution;
         }
-        $array = implode("','",$liste);
+        $array = implode("','", $liste);
 
         $datas = DB::select("SELECT sexe, COUNT(*) AS TOTAL
         FROM t_acte_naissance
@@ -680,13 +677,14 @@ class NaissanceController extends Controller
         return view('naissance::statistiques.acteNaissanceSexe', compact('datas'));
     }
 
-    public function statParSexeActeEtat(){
+    public function statParSexeActeEtat()
+    {
         $declarations = Auth::user()->affectations()->get();
         $liste = [];
         foreach ($declarations as $key) {
             $liste[] = $key->code_institution;
         }
-        $array = implode("','",$liste);
+        $array = implode("','", $liste);
 
         $datas = DB::select("SELECT sexe, COUNT(*) AS TOTAL
         FROM t_acte_naissance
@@ -699,17 +697,18 @@ class NaissanceController extends Controller
         AND MONTH(t_acte_naissance.date_emission) = MONTH(CURDATE())
         GROUP BY tr_identification_personne.sexe");
 
-        view()->share("tester", "Vincent");
+        view()->share('tester', 'Vincent');
         $html2pdf = new Html2Pdf('P', 'A4', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('naissance::etats.statistiques.acteNaissanceSexeEtat', compact("datas"))->render());
+        $html2pdf->writeHTML(view('naissance::etats.statistiques.acteNaissanceSexeEtat', compact('datas'))->render());
 
-        return $html2pdf->output("declarationParsexe.pdf");
+        return $html2pdf->output('declarationParsexe.pdf');
     }
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function destroy($id)
@@ -720,17 +719,18 @@ class NaissanceController extends Controller
     public function searchLocalite($id)
     {
         $qv = Sifec::communesDistricts($id);
+
         // return $qv->flatten();
         return response()->json([
-            "localites" => $qv->flatten()
+            'localites' => $qv->flatten(),
         ]);
     }
 
-
     public function searchArrondissement()
     {
-        $id =request('id');
+        $id = request('id');
         $arrond = Sifec::ArrondissementComUrb($id);
+
         return response()->json($arrond->flatten());
     }
 
@@ -738,6 +738,7 @@ class NaissanceController extends Controller
     {
         $id = request('id');
         $quartiers = Sifec::Quartier($id);
+
         return response()->json($quartiers->flatten());
     }
 
@@ -745,19 +746,19 @@ class NaissanceController extends Controller
     {
         $id = request('id');
 
-        $institutions = Sifec::institutions($id,"TPINS_0002");
-        //cas de owando
+        $institutions = Sifec::institutions($id, 'TPINS_0002');
+        // cas de owando
         // $institutions = Institution::where("code_localite",$id)->get();
-        Log::channel("sifec")->info($institutions);
+        Log::channel('sifec')->info($institutions);
+
         return response()->json($institutions);
     }
 
-
     public function tardive()
     {
-        $title = "Créer une déclaration tardive de naissance";
+        $title = 'Créer une déclaration tardive de naissance';
 
-        $type_declaration = "DECLARATION TARDIVE DE NAISSANCE";
+        $type_declaration = 'DECLARATION TARDIVE DE NAISSANCE';
         $instructions = Sifec::niveauInstructions();
         $localites = LocaliteHelper::communesEtDistricts();
         $professions = Profession::all();
@@ -768,17 +769,18 @@ class NaissanceController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
-        return view('naissance::declaration.create',compact("title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","type_declaration"));
+        return view('naissance::declaration.create', compact('title', 'departements', 'countries', 'arrondissement', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances', 'quartierVillages', 'type_declaration'));
 
     }
+
     public function paternite()
     {
-        $title = "Créer une déclaration de paternité";
+        $title = 'Créer une déclaration de paternité';
 
-        $type_declaration = "DECLARATION DE PATERNITE";
+        $type_declaration = 'DECLARATION DE PATERNITE';
         $instructions = Sifec::niveauInstructions();
         $localites = LocaliteHelper::communesEtDistricts();
         $professions = Profession::all();
@@ -789,67 +791,68 @@ class NaissanceController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
-        return view('naissance::declaration.create',compact("title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","type_declaration"));
+        return view('naissance::declaration.create', compact('title', 'departements', 'countries', 'arrondissement', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances', 'quartierVillages', 'type_declaration'));
 
     }
-
 
     public function storeImporter(Request $request)
     {
-        $validator = Validator::make($request->all(),[
+        $validator = Validator::make($request->all(), [
             'file' => 'required|mimes:pdf|max:2048',
-            'code_type_document'=>'required|string',
-            'codeparent'=>'required|string',
-            'numero_document'=>'required|string'
+            'code_type_document' => 'required|string',
+            'codeparent' => 'required|string',
+            'numero_document' => 'required|string',
         ]);
-        if(!$validator->fails()){
-            return response()->json(['code'=>0,'error'=>$validator->errors()->toArray()]);
+        if (! $validator->fails()) {
+            return response()->json(['code' => 0, 'error' => $validator->errors()->toArray()]);
         }
-        $fdoc = Document::where("numero_document", $request->numero_document)->first();
+        $fdoc = Document::where('numero_document', $request->numero_document)->first();
         if ($fdoc == null) {
-            return response()->json(['code'=>1,'msg'=>'Le système ne retrouve pas ce document']);
+            return response()->json(['code' => 1, 'msg' => 'Le système ne retrouve pas ce document']);
         }
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             if ($file->isValid()) {
                 DB::beginTransaction();
-                try{
-                    $chemin_document = $file->store("document");
+                try {
+                    $chemin_document = $file->store('document');
                     $fdoc->image_document = $chemin_document;
                     $fdoc->save();
                     DB::commit();
-                    return response()->json(['code'=>2,"codeparent"=>$request->codeparent, 'msg'=>'Enregistement de la pièce effectué avec succès']);
-                }catch(Exception $e){
+
+                    return response()->json(['code' => 2, 'codeparent' => $request->codeparent, 'msg' => 'Enregistement de la pièce effectué avec succès']);
+                } catch (Exception $e) {
                     DB::rollBack();
-                    return response()->json(['code'=>1, 'msg'=> $e->getMessage()]);
+
+                    return response()->json(['code' => 1, 'msg' => $e->getMessage()]);
                 }
             } else {
-                return response()->json(['code'=>1, 'msg'=> 'Le fichier importé est corrompu ou inaccessible.']);
+                return response()->json(['code' => 1, 'msg' => 'Le fichier importé est corrompu ou inaccessible.']);
             }
         } else {
-            return response()->json(['code'=>1, 'msg'=> 'Aucun fichier importé reçu.']);
+            return response()->json(['code' => 1, 'msg' => 'Aucun fichier importé reçu.']);
         }
     }
 
     // Retrouver le document de la personne par son code
     public function getDocument($id)
     {
-        $documents = Document::where("code_personne",$id)->get();
-        $out = "";
+        $documents = Document::where('code_personne', $id)->get();
+        $out = '';
         $count = 1;
-        foreach($documents as $document){
+        foreach ($documents as $document) {
             $out .= "
                 <tr style='width: 100px;'>
-                <td>".$count ++. "</td>
-                <td>".($document->numero_document)."</td>
-                <td>".$document->typeDocument->lib_type_document."</td>
+                <td>".$count++.'</td>
+                <td>'.($document->numero_document).'</td>
+                <td>'.$document->typeDocument->lib_type_document."</td>
                 <td>
                     <div class='btn-group btn-group-xs'>
-                    <a href='".route("declarationNaissance.show.document",$document->code_document)."' class='btn btn-success shadow btn-xs sharp me-1' title='Voir la pièce'><i class='fas fa-eye'></i></a>
-                        <form action='".route("declarationNaissance.destroy.document",$document->code_document)."' method='post'>
+                    <a href='".route('declarationNaissance.show.document', $document->code_document)."' class='btn btn-success shadow btn-xs sharp me-1' title='Voir la pièce'><i class='fas fa-eye'></i></a>
+                        <form action='".route('declarationNaissance.destroy.document', $document->code_document)."' method='post'>
 
                             <button class='btn btn-danger shadow btn-xs sharp' type='submit'><i class='fa fa-trash'></i></button>
                         </form>
@@ -862,59 +865,62 @@ class NaissanceController extends Controller
         return $out;
     }
 
-
     public function showDocument($id)
     {
         $doc = Document::find($id);
 
-        if($doc == null){
-            toastr()->error("Document indisponible");
+        if ($doc == null) {
+            flash()->error('Document indisponible');
+
             return back();
         }
 
-        if(Document::find($id)->image_document == ""){
+        if (Document::find($id)->image_document == '') {
 
-            toastr()->warning("Image de la pièce est indisponible dans le système.<br> Veuillez Scanner la pièce","Gestion des documents");
+            flash()->warning('Image de la pièce est indisponible dans le système.<br> Veuillez Scanner la pièce', [], 'Gestion des documents');
+
             return back();
         }
+
         return Storage::download(Document::find($id)->image_document, Document::find($id)->typeDocument->lib_type_document);
     }
-
 
     public function deleteDocument($id)
     {
         return $id;
     }
 
-    //enfant a adopter
-    public function adoption(Request $request,$id)
+    // enfant a adopter
+    public function adoption(Request $request, $id)
     {
 
         $request->validate([
-            "code_jugement"=> ["required"],
-            "numero_acte_naissance"=> ["required"]
+            'code_jugement' => ['required'],
+            'numero_acte_naissance' => ['required'],
         ]);
 
         $dn = Declarationnaissance::find($id);
 
-        if($dn == null){
-            toastr()->error("Document indisponible");
+        if ($dn == null) {
+            flash()->error('Document indisponible');
+
             return back();
         }
-        //enfant déjà adopté
-        if($dn->code_adoptant != null || $dn->code_adoptant != ""){
-            toastr()->error("Cet enfant a déjà été adopté, veuiller contacter l'administrateur");
+        // enfant déjà adopté
+        if ($dn->code_adoptant != null || $dn->code_adoptant != '') {
+            flash()->error("Cet enfant a déjà été adopté, veuiller contacter l'administrateur");
+
             return back();
         }
 
         $title = "Adoption d'un enfant";
         $dateNaissanceConvertis = Carbon::create($dn->enfant->date_naissance);
-        $date = date("Y-m-d");
+        $date = date('Y-m-d');
         $dateNaissanceNow = Carbon::create($date);
         $ageEnfant = $dateNaissanceConvertis->diffInYears($dateNaissanceNow);
-        $tgis = Institution::where("code_type_institution","TPINS_0001")->get();
+        $tgis = Institution::where('code_type_institution', [], 'TPINS_0001')->get();
 
-        $typeDeclaration = "DECLARATION DE NAISSANCE";
+        $typeDeclaration = 'DECLARATION DE NAISSANCE';
         $instructions = Sifec::niveauInstructions();
         $localites = LocaliteHelper::communesEtDistricts();
         $professions = Profession::all();
@@ -925,71 +931,72 @@ class NaissanceController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
-        return view('naissance::adoption.adopter',compact("dn","tgis","title","departements","ageEnfant","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","typeDeclaration"));
+        return view('naissance::adoption.adopter', compact('dn', 'tgis', 'title', 'departements', 'ageEnfant', 'countries', 'arrondissement', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances', 'quartierVillages', 'typeDeclaration'));
 
     }
 
-    //enregistrement adoption pleniere d'un enfant
+    // enregistrement adoption pleniere d'un enfant
     public function storeAdoptionPleniere(StoreAdoptionRequest $request, DeclarationNaissanceService $service)
     {
         try {
             $declaration = $service->adopter($request, Auth::user());
+
             return response()->json([
-                "code" => "200",
-                "message" => "La déclaration enregistrée avec succès"
+                'code' => '200',
+                'message' => 'La déclaration enregistrée avec succès',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
-                "code" => "99",
-                "message" => ["error" => $e->getMessage()]
+                'code' => '99',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
     }
 
-
-    //on va creer un certificat de non inscription à partir du jugement venant du tribunal de ressort
+    // on va creer un certificat de non inscription à partir du jugement venant du tribunal de ressort
     public function createDeclarationJugement($code_jugement)
     {
 
-        //rechercher le jugement
+        // rechercher le jugement
         $jugement = Jugement::find($code_jugement);
-        if($jugement == null){
-            toastr()->error("Impossible de charger cette page");
+        if ($jugement == null) {
+            flash()->error('Impossible de charger cette page');
+
             return back();
         }
 
         $user = Auth::user();
-        $title = "";
-        $type_declaration = "";
-        if($jugement->type_jugement == "JUGEMENT SUPPLETIF"){
-            $title = "Créer un certificat de non inscription/jugement supplétif";
+        $title = '';
+        $type_declaration = '';
+        if ($jugement->type_jugement == 'JUGEMENT SUPPLETIF') {
+            $title = 'Créer un certificat de non inscription/jugement supplétif';
             $type_declaration = $jugement->type_jugement;
         }
-        if($jugement->type_jugement == "JUGEMENT D'HOMOLOGATION"){
+        if ($jugement->type_jugement == "JUGEMENT D'HOMOLOGATION") {
             $title = "Créer déclaration/jugement d'homologation ou de paternité";
             $type_declaration = $jugement->type_jugement;
         }
-        if($jugement->type_jugement == "JUGEMENT D'ANNULATION D'ACTE"){
+        if ($jugement->type_jugement == "JUGEMENT D'ANNULATION D'ACTE") {
             $title = "Créer déclaration/jugement d'annulation de l'acte";
             $type_declaration = $jugement->type_jugement;
 
-            //vérification de l'acte
+            // vérification de l'acte
             $an = ActeNaissance::findByIdentifier($jugement->numero_ancien_acte);
-            return view('naissance::acte.annuler',compact("jugement","an"));
+
+            return view('naissance::acte.annuler', compact('jugement', [], 'an'));
         }
-        if($jugement->type_jugement == "JUGEMENT D'ADOPTION"){
-            $title = "";
+        if ($jugement->type_jugement == "JUGEMENT D'ADOPTION") {
+            $title = '';
             $type_declaration = $jugement->type_jugement;
 
-            //vérification de l'acte
+            // vérification de l'acte
             $an = ActeNaissance::findByIdentifier($jugement->numero_ancien_acte);
-            return view('naissance::adoption.indentification_acte',compact("jugement","an"));
+
+            return view('naissance::adoption.indentification_acte', compact('jugement', 'an'));
         }
-
-
 
         $instructions = Sifec::niveauInstructions();
         $localites = LocaliteHelper::communesEtDistricts();
@@ -1001,12 +1008,12 @@ class NaissanceController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
-        $tgis = Institution::where("code_type_institution","TPINS_0001")->get();
+        $tgis = Institution::where('code_type_institution', 'TPINS_0001')->get();
 
-        return view('naissance::jugementsupletif.create',compact("tgis","jugement","type_declaration","title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages"));
+        return view('naissance::jugementsupletif.create', compact('tgis', 'jugement', 'type_declaration', 'title', 'departements', 'countries', 'arrondissement', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances', 'quartierVillages'));
     }
 
     public function jugementhomologation()
@@ -1025,34 +1032,32 @@ class NaissanceController extends Controller
         $situationMatrimoniales = SituationMatrimoniale::all();
         $arrondissement = LocaliteHelper::arrondissementsEtCommunautesUrbaines();
         $quartierVillages = LocaliteHelper::quartiersEtVillages();
-        $countries = collect(json_decode(file_get_contents(public_path("codes_pays.json"))));
+        $countries = collect(json_decode(file_get_contents(public_path('codes_pays.json'))));
         $departements = Departement::all();
 
-        $tgis = Institution::where("code_type_institution","TPINS_0001")->get();
+        $tgis = Institution::where('code_type_institution', 'TPINS_0001')->get();
 
         // return view('naissance::jugementsupletif.create',compact("tgis","title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","type_declaration"));
 
-        return view('naissance::jugementhomologation.create',compact("tgis","title","departements","countries","arrondissement","typedocuments","instructions","filiations","localites","professions","nationalites","situationMatrimoniales","lieuSurvenances","quartierVillages","type_declaration"));
+        return view('naissance::jugementhomologation.create', compact('tgis', 'title', 'departements', 'countries', 'arrondissement', 'typedocuments', 'instructions', 'filiations', 'localites', 'professions', 'nationalites', 'situationMatrimoniales', 'lieuSurvenances', 'quartierVillages', 'type_declaration'));
     }
-
-
 
     public function storeJugementHomologation(Request $request, DeclarationNaissanceService $service)
     {
         $rules = [
-            "nom_enfant"=>["required"],
-            "date_naissance_enfant"=>["required","date"],
-            "code_situation_matrimoniale"=>["required"],
-            "sexe_enfant"=>["required"],
-            "heure_naissance_enfant"=>["required","max:5","min:5"],
-            "nombre_enfant"=>["required","numeric"]
+            'nom_enfant' => ['required'],
+            'date_naissance_enfant' => ['required', 'date'],
+            'code_situation_matrimoniale' => ['required'],
+            'sexe_enfant' => ['required'],
+            'heure_naissance_enfant' => ['required', 'max:5', 'min:5'],
+            'nombre_enfant' => ['required', 'numeric'],
         ];
 
-        $validator = Validator::make($request->all(),$rules);
-        if($validator->fails()){
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
             return response()->json([
-                "code"=>"150",
-                "message"=>$validator->errors()
+                'code' => '150',
+                'message' => $validator->errors(),
             ]);
         }
 
@@ -1062,38 +1067,38 @@ class NaissanceController extends Controller
         $dateNaissanceMere = Carbon::create($request->date_naissance_mere);
         $differenceAgeEnfantPere = $dateNaissancePere->diffInYears($dateNaissanceEnfant);
         $differenceAgeEnfantMere = $dateNaissanceMere->diffInYears($dateNaissanceEnfant);
-        if($differenceAgeEnfantPere < 14){
+        if ($differenceAgeEnfantPere < 14) {
             return response()->json([
-                "code"=>"99",
-                "message"=>["age_pere"=>"La différence d'age entre père et enfant doit être supérieure ou égale à 14 ans"]
+                'code' => '99',
+                'message' => ['age_pere' => "La différence d'age entre père et enfant doit être supérieure ou égale à 14 ans"],
             ]);
         }
-        if($differenceAgeEnfantMere < 12){
+        if ($differenceAgeEnfantMere < 12) {
             return response()->json([
-                "code"=>"99",
-                "message"=>["age_mere"=>"La différence d'age entre mère et enfant doit être supérieure ou égale à 12 ans"]
+                'code' => '99',
+                'message' => ['age_mere' => "La différence d'age entre mère et enfant doit être supérieure ou égale à 12 ans"],
             ]);
         }
 
         try {
             $user = Auth::user();
             $dn = $service->creerViaJugement($request, $user);
+
             return response()->json([
-                "code"=>"200",
-                "message"=>"Le document enregistré avec succès"
+                'code' => '200',
+                'message' => 'Le document enregistré avec succès',
             ]);
-        } catch (\Exception $e) {
-            \Log::channel("sifec")->error($e->getMessage());
+        } catch (Exception $e) {
+            \Log::channel('sifec')->error($e->getMessage());
+
             return response()->json([
-                "code"=>"99",
-                "message"=>["error" =>$e->getMessage()]
+                'code' => '99',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
     }
 
-
-
-    //juste
+    // juste
     public function storePiece(Request $request, $code, $type)
     {
         $request->validate([
@@ -1102,40 +1107,42 @@ class NaissanceController extends Controller
 
         $declaration = Declarationnaissance::where('code_declaration_naissance', $code)->firstOrFail();
         $uploadPath = public_path('app/pieces');
-        if (!file_exists($uploadPath)) {
+        if (! file_exists($uploadPath)) {
             mkdir($uploadPath, 0755, true);
         }
         try {
             if ($request->hasFile('piece') && $request->file('piece')->isValid()) {
                 $file = $request->file('piece');
                 $extension = $file->getClientOriginalExtension();
-                $imageName = $declaration->code_declaration_naissance . '_' . $type . '_' . time() . '.' . $extension;
+                $imageName = $declaration->code_declaration_naissance.'_'.$type.'_'.time().'.'.$extension;
 
                 // Supprimer l'ancienne pièce si elle existe
-                $oldPath = $declaration->{'piece_' . $type};
+                $oldPath = $declaration->{'piece_'.$type};
                 if ($oldPath && file_exists(public_path($oldPath))) {
                     @unlink(public_path($oldPath));
                 }
 
                 $file->move($uploadPath, $imageName);
-                $declaration->{'piece_' . $type} = 'app/pieces/' . $imageName;
+                $declaration->{'piece_'.$type} = 'app/pieces/'.$imageName;
                 $declaration->save();
+
                 return response()->json([
                     'code' => '200',
                     'message' => 'Pièce enregistrée avec succès.',
-                    'file_path' => 'app/pieces/' . $imageName
+                    'file_path' => 'app/pieces/'.$imageName,
                 ]);
             } else {
                 return response()->json([
                     'code' => '400',
-                    'message' => 'Erreur lors de l\'upload du fichier.'
+                    'message' => 'Erreur lors de l\'upload du fichier.',
                 ], 400);
             }
         } catch (Exception $e) {
-            Log::error('Erreur upload pièce: ' . $e->getMessage());
+            Log::error('Erreur upload pièce: '.$e->getMessage());
+
             return response()->json([
                 'code' => '500',
-                'message' => 'Erreur lors de l\'enregistrement de la pièce: ' . $e->getMessage()
+                'message' => 'Erreur lors de l\'enregistrement de la pièce: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1150,7 +1157,7 @@ class NaissanceController extends Controller
             ->where('code_declaration_naissance', $code)
             ->first();
 
-        if (!$declaration) {
+        if (! $declaration) {
             abort(404);
         }
 
@@ -1176,7 +1183,7 @@ class NaissanceController extends Controller
             })
             ->first();
 
-        if (!$certificat) {
+        if (! $certificat) {
             abort(404);
         }
 
@@ -1193,7 +1200,7 @@ class NaissanceController extends Controller
             ->where('niupp', $niupp)
             ->first();
 
-        if (!$acte) {
+        if (! $acte) {
             abort(404);
         }
 

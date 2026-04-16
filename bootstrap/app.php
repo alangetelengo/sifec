@@ -1,55 +1,71 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Create The Application
-|--------------------------------------------------------------------------
-|
-| The first thing we will do is create a new Laravel application instance
-| which serves as the "glue" for all the components of Laravel, and is
-| the IoC container for the system binding all of the various parts.
-|
-*/
+use App\Http\Middleware\AppendSifecFlashQueryToRedirects;
+use App\Http\Middleware\EnsureBusinessModuleIsActive;
+use App\Http\Middleware\EnsureCentreEtatCivilForMariage;
+use App\Http\Middleware\EnsureInitialPasswordChanged;
+use App\Http\Middleware\ForgetSifecTransientFlashCookie;
+use App\Http\Middleware\TwoFactorMiddleware;
+use App\Sifec\Sifec;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\Route;
 
-$app = new Illuminate\Foundation\Application(
-    $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
-);
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+        then: function () {
+            Route::middleware('api')
+                ->prefix('api/v1')
+                ->group(base_path('routes/v1/api.php'));
+        },
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            EnsureInitialPasswordChanged::class,
+            ForgetSifecTransientFlashCookie::class,
+            AppendSifecFlashQueryToRedirects::class,
+            EnsureBusinessModuleIsActive::class,
+        ]);
 
-/*
-|--------------------------------------------------------------------------
-| Bind Important Interfaces
-|--------------------------------------------------------------------------
-|
-| Next, we need to bind some important interfaces into the container so
-| we will be able to resolve them when needed. The kernels serve the
-| incoming requests to this application from both the web and CLI.
-|
-*/
+        $middleware->api(append: [
+            EnsureBusinessModuleIsActive::class,
+        ]);
 
-$app->singleton(
-    Illuminate\Contracts\Http\Kernel::class,
-    App\Http\Kernel::class
-);
+        $middleware->alias([
+            '2fa' => TwoFactorMiddleware::class,
+            'mariage.cec' => EnsureCentreEtatCivilForMariage::class,
+        ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->call(function () {
+            (new Sifec)->pushDataTo();
+        })->everyMinute();
 
-$app->singleton(
-    Illuminate\Contracts\Console\Kernel::class,
-    App\Console\Kernel::class
-);
+        $schedule->call(function () {
+            (new Sifec)->checkMatching();
+        })->everyMinute();
 
-$app->singleton(
-    Illuminate\Contracts\Debug\ExceptionHandler::class,
-    App\Exceptions\Handler::class
-);
+        $schedule->call(function () {
+            (new Sifec)->validiteCodeOtpRegistre();
+        })->everyMinute();
 
-/*
-|--------------------------------------------------------------------------
-| Return The Application
-|--------------------------------------------------------------------------
-|
-| This script returns the application instance. The instance is given to
-| the calling script so we can separate the building of the instances
-| from the actual running of the application and sending responses.
-|
-*/
+        $schedule->call(function () {
+            (new Sifec)->validiteCodeOtpActeNaissance();
+        })->everyMinute();
 
-return $app;
+        $schedule->call(function () {
+            (new Sifec)->validiteCodeOtpActeMariage();
+        })->everyMinute();
+
+        $schedule->call(function () {
+            (new Sifec)->validiteCodeOtpActeDeces();
+        })->everyMinute();
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();

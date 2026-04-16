@@ -16,49 +16,53 @@ class FonctionnaliteController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Renderable
      */
     public function index()
     {
         $fonctionnalites = Fonctionnalite::all();
         $modules = Module::all();
-        return view('authentification::fonctionnalite.index',compact("fonctionnalites","modules"));
+
+        return view('authentification::fonctionnalite.index', compact('fonctionnalites', 'modules'));
     }
 
     /**
      * Show the form for creating a new resource.
+     *
      * @return Renderable
      */
     public function create()
     {
-        $fonctionnalites = Fonctionnalite::where('code_fonctionnalite_parent',null)->get();
+        $fonctionnalites = Fonctionnalite::where('code_fonctionnalite_parent', null)->get();
         $modules = Module::all();
-        return view('authentification::fonctionnalite.create',compact("fonctionnalites","modules"));
+
+        return view('authentification::fonctionnalite.create', compact('fonctionnalites', 'modules'));
     }
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Renderable
      */
     public function store(Request $request)
     {
 
-        //code_fonctionnalite	lib_fonctionnalite	lib_technique	description_fonctionnalite	code_module	etat_fonctionnalite
+        // code_fonctionnalite	lib_fonctionnalite	lib_technique	description_fonctionnalite	code_module	etat_fonctionnalite
         $request->validate([
-            "lib_fonctionnalite"=>["required","string","unique:tr_fonctionnalite"],
-            "lib_technique"=>["required","string","min:3"],
-            "description_fonctionnalite"=>["required","string","min:15"],
-            "code_module"=>["required","string"],
+            'lib_fonctionnalite' => ['required', 'string', 'unique:tr_fonctionnalite'],
+            'lib_technique' => ['required', 'string', 'min:3'],
+            'description_fonctionnalite' => ['required', 'string', 'min:15'],
+            'code_module' => ['required', 'string'],
 
-            "etat_fonctionnalite"=>["required","string"]
+            'etat_fonctionnalite' => ['required', 'string'],
         ]);
 
         DB::beginTransaction();
-        try{
+        try {
             $fonctionalite = new Fonctionnalite;
 
-            $code = Sifec::genererCodeUniqueReferentiel($fonctionalite,"code_fonctionnalite",4,"FNC_");
+            $code = Sifec::genererCodeUniqueReferentiel($fonctionalite, 'code_fonctionnalite', 4, 'FNC_');
 
             $fonctionalite->code_fonctionnalite = $code;
             $fonctionalite->lib_fonctionnalite = $request->lib_fonctionnalite;
@@ -69,30 +73,33 @@ class FonctionnaliteController extends Controller
             $fonctionalite->code_fonctionnalite_parent = $request->code_fonctionnalite_parent;
             $fonctionalite->save();
 
-
             DB::commit();
-            toastr()->success("Fonctionnalité créée avec succès","Gestion des fonctionnalités");
+            flash()->success('Fonctionnalité créée avec succès', [], 'Gestion des fonctionnalités');
+
             return back();
 
-        }catch(Exception $e){
+        } catch (Exception $e) {
             DB::rollBack();
-            Log::channel("sifec")->error($e->getMessage());
-            toastr()->error($e->getMessage());
+            Log::channel('sifec')->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
 
     /**
      * Show the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function show($id)
     {
         $fonctionalite = Fonctionnalite::find($id);
 
-        if($fonctionalite != null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des modules");
+        if ($fonctionalite != null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des modules');
+
             return back();
         }
 
@@ -101,55 +108,56 @@ class FonctionnaliteController extends Controller
 
     /**
      * Show the form for editing the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function edit($id)
     {
 
-
         $fonctionnalite = Fonctionnalite::find($id);
-        //dd($fonctionalite);
-        if($fonctionnalite == null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des modules");
+        // dd($fonctionalite);
+        if ($fonctionnalite == null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des modules');
+
             return back();
         }
 
         $modules = Module::all();
-        $fonctionnalites = Fonctionnalite::where('code_fonctionnalite_parent',null)->get();
+        $fonctionnalites = Fonctionnalite::where('code_fonctionnalite_parent', null)->get();
 
-        return view('authentification::fonctionnalite.edit',compact("fonctionnalite","modules","fonctionnalites"));
+        return view('authentification::fonctionnalite.edit', compact('fonctionnalite', 'modules', 'fonctionnalites'));
     }
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function update(Request $request, $id)
     {
-        //code_fonctionnalite	lib_fonctionnalite	lib_technique	description_fonctionnalite	code_module	etat_fonctionnalite
+        // code_fonctionnalite	lib_fonctionnalite	lib_technique	description_fonctionnalite	code_module	etat_fonctionnalite
         $request->validate([
-           // "lib_fonctionnalite"=>["required","string","unique:tr_fonctionnalite"],
-            "lib_technique"=>["required","string"],
-            "description_fonctionnalite"=>["required","string"],
-            "code_module"=>["required","string"],
+            // "lib_fonctionnalite"=>["required","string","unique:tr_fonctionnalite"],
+            'lib_technique' => ['required', 'string'],
+            'description_fonctionnalite' => ['required', 'string'],
+            'code_module' => ['required', 'string'],
 
-            "etat_fonctionnalite"=>["required","string"]
+            'etat_fonctionnalite' => ['required', 'string'],
         ]);
-
 
         $fonctionalite = Fonctionnalite::find($id);
 
-        if($fonctionalite == null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des fonctionnalités");
+        if ($fonctionalite == null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des fonctionnalités');
+
             return back();
         }
 
         DB::beginTransaction();
 
-        try{
+        try {
             $fonctionalite->lib_fonctionnalite = $request->lib_fonctionnalite;
             $fonctionalite->code_module = $request->code_module;
             $fonctionalite->description_fonctionnalite = $request->description_fonctionnalite;
@@ -158,35 +166,42 @@ class FonctionnaliteController extends Controller
             $fonctionalite->code_fonctionnalite_parent = $request->code_fonctionnalite_parent;
             $fonctionalite->save();
             DB::commit();
-            toastr()->success("Fonctionnalité modifiée avec succès","Gestion des fonctionnalités");
-            return redirect()->route("fonctionnalite.index");
+            flash()->success('Fonctionnalité modifiée avec succès', [], 'Gestion des fonctionnalités');
 
-        }catch(Exception $e){
+            return redirect()->route('fonctionnalite.index');
+
+        } catch (Exception $e) {
             DB::rollBack();
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return back();
         }
     }
+
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function destroy($id)
     {
         $fonctionalite = Fonctionnalite::find($id);
 
-        if($fonctionalite == null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des modules");
+        if ($fonctionalite == null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des modules');
+
             return back();
         }
 
-        try{
+        try {
             $fonctionalite->delete();
-            toastr()->success("Fonctionnalité supprimée avec succès","Gestion des modules");
-            return redirect()->route("fonctionnalite.index");
-        }catch(Exception $e){
-            toastr()->error($e->getMessage());
+            flash()->success('Fonctionnalité supprimée avec succès', [], 'Gestion des modules');
+
+            return redirect()->route('fonctionnalite.index');
+        } catch (Exception $e) {
+            flash()->error($e->getMessage());
+
             return back();
         }
 

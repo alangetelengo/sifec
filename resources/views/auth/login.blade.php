@@ -7,10 +7,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title> SIFEC | Authentification</title>
+    @include('partials.sifec-strip-flash-query')
 	<link href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="{{asset('assets-login/images/fav.png')}}">
     <link rel="stylesheet" href="{{asset('assets-login/css/bootstrap.min.css')}}">
 	<link rel="stylesheet" href="{{asset('assets-login/css/style.css')}}">
+    @include('partials.flasher-assets-head')
 	<style>
 	.sifec-login-spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sifec-spin 0.6s linear infinite; vertical-align: -0.2em; margin-right: 0.35rem; }
 	@keyframes sifec-spin { to { transform: rotate(360deg); } }
@@ -61,7 +63,9 @@
 	.form-login .form-control.is-invalid:focus {
 		box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
 	}
-	.form-login .invalid-feed-back {
+	.form-login .invalid-feed-back,
+	.form-login .invalid-feedback {
+		display: block;
 		margin-top: 0.35rem;
 		font-size: 0.8125rem;
 	}
@@ -122,29 +126,24 @@
                                    </div>
                                     <div class="form-cover" style="width: 100%">
 										<h1 style="color:green; border-bottom: 2px solid green; margin-bottom:20px">Authentification </h1>
+										@include('partials.session-flash')
 										<form id="form-login-sifec" class="form-login" action="{{ route("dashboard.login") }}" method="POST" autocomplete="off">
                                         @csrf
 
 
                                         <div class="form-group">
-											<h6>Nom utilisateur <br>
-												<input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" autocomplete="off">
-											</h6>
-											 @error('email')
-                                                <div class="invalid-feed-back">
-                                                <span class="text-danger">{{ $message }}</span>
-                                                </div>
-                                             @enderror
+											<h6>Nom utilisateur</h6>
+											<input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" autocomplete="off" id="login-email">
+											@error('email')
+												<div class="invalid-feedback d-block text-danger" role="alert">{{ $message }}</div>
+											@enderror
 										</div>
 
 										 <div class="form-group">
-											<h6>Mot de passe <br>
-												<input type="password" class="form-control @error('email') is-invalid @enderror" name="password" autocomplete="new-password">
-                                           </h6>
+											<h6>Mot de passe</h6>
+											<input type="password" class="form-control @error('password') is-invalid @enderror" name="password" id="login-password" autocomplete="new-password">
 											@error('password')
-												<div class="invalid-feed-back">
-												<span class="text-danger">{{ $message }}</span>
-												</div>
+												<div class="invalid-feedback d-block text-danger" role="alert">{{ $message }}</div>
 											@enderror
 										</div>
                                          <div class="row form-footer">
@@ -173,10 +172,12 @@
         </div>
     </div>
 
-</body>
 <script src="{{ asset('assets-login/js/jquery-3.2.1.min.js')}}"></script>
 <script src="{{ asset('assets-login/js/popper.min.js')}}"></script>
-<script src="{{asset('assets-login/js/bootstrap.min.js')}}"></script>
+<script src="{{ asset('assets-login/js/bootstrap.min.js')}}"></script>
+@include('partials.flasher-assets-scripts')
+@include('partials.session-toastr')
+@flasher_render
 <script>
 document.getElementById('form-login-sifec').addEventListener('submit', function() {
     var btn = document.getElementById('btn-connexion-sifec');
@@ -184,4 +185,5 @@ document.getElementById('form-login-sifec').addEventListener('submit', function(
     btn.innerHTML = '<span class="sifec-login-spinner"></span> Connexion...';
 });
 </script>
+</body>
 </html>

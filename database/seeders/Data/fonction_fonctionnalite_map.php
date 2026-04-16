@@ -2,18 +2,17 @@
 
 /**
  * Attachements tr_ff : code_fonction (FONC_*) → codes fonctionnalité (FNC_*).
- * Aligné sur FonctionSeeder (ordre des libellés) et FonctionnaliteSeeder.
+ * Aligné sur FonctionSeeder et database/seeders/Data/fonctionnalites_definitions.php.
  * Les FNC_0035–FNC_0037 (visa d’acte) peuvent rester absents : ils sont « Désactivé » et filtrés côté Gate.
  */
-
 $cecEtatCivil = [
     'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034',
     'FNC_0002', 'FNC_0003', 'FNC_0029',
     'FNC_0012', 'FNC_0013', 'FNC_0014', 'FNC_0015',
     'FNC_0016', 'FNC_0017', 'FNC_0019', 'FNC_0020',
     'FNC_0023', 'FNC_0024', 'FNC_0025', 'FNC_0026', 'FNC_0027',
-    'FNC_0028', 'FNC_0030', 'FNC_0031',
-    'FNC_0040', 'FNC_0041', 'FNC_0044',
+    'FNC_0028', 'FNC_0030', 'FNC_0031', 'FNC_0046',
+    'FNC_0040', 'FNC_0041', 'FNC_0044', 'FNC_0047',
     'FNC_0021', 'FNC_0022', 'FNC_0045',
 ];
 
@@ -43,12 +42,14 @@ $pompesFunebres = [
 $tribunal = [
     'FNC_0010',
     'FNC_0042', 'FNC_0022', 'FNC_0045',
+    'FNC_0047',
 ];
 
 $tribunalPresident = [
     'FNC_0010',
     'FNC_0021', 'FNC_0028',
     'FNC_0042', 'FNC_0022',
+    'FNC_0047',
 ];
 
 $ambassade = [
@@ -63,8 +64,8 @@ $ambassade = [
 $hautFonctionnaire = array_values(array_unique(array_merge(
     ['FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034', 'FNC_0002', 'FNC_0003', 'FNC_0029'],
     ['FNC_0012', 'FNC_0013', 'FNC_0014', 'FNC_0015', 'FNC_0016', 'FNC_0017', 'FNC_0019', 'FNC_0020'],
-    ['FNC_0023', 'FNC_0024', 'FNC_0025', 'FNC_0026', 'FNC_0027', 'FNC_0028', 'FNC_0030', 'FNC_0031'],
-    ['FNC_0042', 'FNC_0044', 'FNC_0022']
+    ['FNC_0023', 'FNC_0024', 'FNC_0025', 'FNC_0026', 'FNC_0027', 'FNC_0028', 'FNC_0030', 'FNC_0031', 'FNC_0046'],
+    ['FNC_0042', 'FNC_0044', 'FNC_0022', 'FNC_0047']
 )));
 
 return [
@@ -100,7 +101,7 @@ return [
     'FONC_0014' => [
         'FNC_0043', 'FNC_0032', 'FNC_0002',
         'FNC_0012', 'FNC_0024', 'FNC_0014',
-        'FNC_0029', 'FNC_0030', 'FNC_0033', 'FNC_0031',
+        'FNC_0029', 'FNC_0030', 'FNC_0033', 'FNC_0031', 'FNC_0046',
         'FNC_0028',
     ],
     // 17 Agent bureau d'enregistrement de décès

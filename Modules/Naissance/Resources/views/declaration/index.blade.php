@@ -520,18 +520,7 @@ Déclaration
                     confirmButtonAriaLabel: 'Confirmer la suppression',
                     cancelButtonAriaLabel: 'Annuler'
                 }).then(function (result) {
-                    if (result.isConfirmed) {
-                        if (typeof sifecSwalLoading === 'function') {
-                            sifecSwalLoading('Suppression en cours…');
-                        } else {
-                            Swal.fire({
-                                title: 'Suppression en cours…',
-                                allowOutsideClick: false,
-                                allowEscapeKey: false,
-                                showConfirmButton: false,
-                                didOpen: function () { Swal.showLoading(); }
-                            });
-                        }
+                    if (result && (result.value === true || result.isConfirmed === true)) {
                         form.submit();
                     }
                 });

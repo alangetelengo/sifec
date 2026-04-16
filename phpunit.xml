@@ -22,6 +22,8 @@
         </include>
     </coverage>
     <php>
+        <!-- URL racine sans sous-chemin : MakesHttpRequests utilise url() et doit matcher les URIs enregistrées -->
+        <server name="APP_URL" value="http://localhost"/>
         <server name="APP_ENV" value="testing"/>
         <server name="BCRYPT_ROUNDS" value="4"/>
         <server name="CACHE_DRIVER" value="array"/>

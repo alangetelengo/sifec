@@ -8,10 +8,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SIFEC | Première connexion</title>
+    @include('partials.sifec-strip-flash-query')
 	<link href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="{{asset('assets-login/images/fav.png')}}">
     <link rel="stylesheet" href="{{asset('assets-login/css/bootstrap.min.css')}}">
 	<link rel="stylesheet" href="{{asset('assets-login/css/style.css')}}">
+    @include('partials.flasher-assets-head')
 	<style>
 	.sifec-login-spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sifec-spin 0.6s linear infinite; vertical-align: -0.2em; margin-right: 0.35rem; }
 	@keyframes sifec-spin { to { transform: rotate(360deg); } }
@@ -131,6 +133,7 @@
                                    </div>
                                     <div class="form-cover" style="width: 100%">
 										<h1 style="color:green; border-bottom: 2px solid green; margin-bottom:20px">Première connexion</h1>
+										@include('partials.session-flash')
 										<p class="text-center text-muted small mb-2" style="font-size: 0.875rem;">
 											Compte : <strong>{{ Auth::user()->email }}</strong>
 										</p>
@@ -216,10 +219,12 @@
         </div>
     </div>
 
-</body>
 <script src="{{ asset('assets-login/js/jquery-3.2.1.min.js')}}"></script>
 <script src="{{ asset('assets-login/js/popper.min.js')}}"></script>
-<script src="{{asset('assets-login/js/bootstrap.min.js')}}"></script>
+<script src="{{ asset('assets-login/js/bootstrap.min.js')}}"></script>
+@include('partials.flasher-assets-scripts')
+@include('partials.session-toastr')
+@flasher_render
 <script>
 document.getElementById('form-first-login-sifec').addEventListener('submit', function() {
     var btn = document.getElementById('btn-first-login-sifec');
@@ -227,4 +232,5 @@ document.getElementById('form-first-login-sifec').addEventListener('submit', fun
     btn.innerHTML = '<span class="sifec-login-spinner"></span> Enregistrement...';
 });
 </script>
+</body>
 </html>

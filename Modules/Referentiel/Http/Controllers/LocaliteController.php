@@ -2,19 +2,20 @@
 
 namespace Modules\Referentiel\Http\Controllers;
 
-use Exception;
 use App\Sifec\Sifec;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Routing\Controller;
-use Modules\Referentiel\Entities\Localite;
+use Exception;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
+use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\TypeLocalite;
 
 class LocaliteController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Renderable
      */
     public function index()
@@ -34,7 +35,7 @@ class LocaliteController extends Controller
 
         $typeLocalites = TypeLocalite::query()->orderBy('lib_type_localite')->get();
 
-        return view('referentiel::localite.index', compact("localites", "localitesRacines", "typeLocalites"));
+        return view('referentiel::localite.index', compact('localites', 'localitesRacines', 'typeLocalites'));
     }
 
     /**
@@ -46,7 +47,7 @@ class LocaliteController extends Controller
             $query = Localite::with(['typelocalite', 'localiteParent']);
 
             if ($request->filled('lib_localite') && strlen(trim($request->lib_localite)) > 0) {
-                $query->where('lib_localite', 'LIKE', '%' . strtoupper(trim($request->lib_localite)) . '%');
+                $query->where('lib_localite', 'LIKE', '%'.strtoupper(trim($request->lib_localite)).'%');
             }
 
             if ($request->filled('code_type_localite') && strlen(trim($request->code_type_localite)) > 0) {
@@ -79,17 +80,17 @@ class LocaliteController extends Controller
                 'count_affiché' => $localites->count(),
                 'limite_atteinte' => $limiteAtteinte,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::channel('sifec')->error('=== ERREUR RECHERCHE LOCALITÉS ===', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'criteres' => $request->only(['lib_localite', 'code_type_localite', 'code_localite_parent', 'pompes_funebres'])
+                'criteres' => $request->only(['lib_localite', 'code_type_localite', 'code_localite_parent', 'pompes_funebres']),
             ]);
 
             return response()->json([
                 'code' => '500',
                 'message' => 'Erreur lors de la recherche des localités',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -120,47 +121,51 @@ class LocaliteController extends Controller
             'lib_localite' => ['required', 'string', 'max:150'],
             'code_type_localite' => ['required', 'string'],
             'code_localite_parent' => ['nullable', 'string'],
-            'pompes_funebres' => ['nullable', 'boolean']
+            'pompes_funebres' => ['nullable', 'boolean'],
         ]);
 
         try {
             // Valider la hiérarchie
             $validation = $this->validateHierarchy($request->code_type_localite, $request->code_localite_parent);
-            if (!$validation['valid']) {
-                toastr()->error($validation['message']);
+            if (! $validation['valid']) {
+                flash()->error($validation['message']);
+
                 return redirect()->back()->withInput();
             }
 
             // Vérifier que pompes_funebres n'est activé que pour Commune ou Arrondissement
             if ($request->has('pompes_funebres') && $request->pompes_funebres) {
-                if (!in_array($request->code_type_localite, ['TPLOC_0003', 'TPLOC_0004'])) {
-                    toastr()->error("Les pompes funèbres ne peuvent être activées que pour une Commune ou un Arrondissement");
+                if (! in_array($request->code_type_localite, ['TPLOC_0003', 'TPLOC_0004'])) {
+                    flash()->error('Les pompes funèbres ne peuvent être activées que pour une Commune ou un Arrondissement');
+
                     return redirect()->back()->withInput();
                 }
             }
 
-            $localite = new Localite();
-            $localite->code_localite = Sifec::genererCodeUniqueReferentiel($localite, "code_localite", 4, "LOC_");
+            $localite = new Localite;
+            $localite->code_localite = Sifec::genererCodeUniqueReferentiel($localite, 'code_localite', 4, [], 'LOC_');
             $localite->lib_localite = strtoupper($request->lib_localite);
             $localite->code_type_localite = $request->code_type_localite;
             $localite->code_localite_parent = $request->code_localite_parent ?: null;
             $localite->pompes_funebres = ($request->has('pompes_funebres') && in_array($request->code_type_localite, ['TPLOC_0003', 'TPLOC_0004'])) ? true : false;
             $localite->save();
 
-            toastr()->success("$localite->lib_localite créée avec succès");
+            flash()->success("$localite->lib_localite créée avec succès");
+
             return redirect()->route('localite.index');
 
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur lors de la création de localité: ' . $e->getMessage());
-            toastr()->error($e->getMessage());
+            Log::channel('sifec')->error('Erreur lors de la création de localité: '.$e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function update(Request $request, $id)
@@ -168,7 +173,8 @@ class LocaliteController extends Controller
         $localite = Localite::find($id);
 
         if ($localite == null) {
-            toastr()->error("Impossible de charger cette page");
+            flash()->error('Impossible de charger cette page');
+
             return redirect()->back();
         }
 
@@ -176,14 +182,15 @@ class LocaliteController extends Controller
             'code_type_localite' => ['required', 'string'],
             'lib_localite' => ['required', 'string', 'max:150'],
             'code_localite_parent' => ['nullable', 'string'],
-            'pompes_funebres' => ['nullable', 'boolean']
+            'pompes_funebres' => ['nullable', 'boolean'],
         ]);
 
         try {
             // Valider la hiérarchie
             $validation = $this->validateHierarchy($request->code_type_localite, $request->code_localite_parent);
-            if (!$validation['valid']) {
-                toastr()->error($validation['message']);
+            if (! $validation['valid']) {
+                flash()->error($validation['message']);
+
                 return redirect()->back()->withInput();
             }
 
@@ -192,7 +199,8 @@ class LocaliteController extends Controller
                 // descendants() inclut la localité elle-même
                 $descendants = $localite->descendants()->pluck('code_localite')->toArray();
                 if (in_array($request->code_localite_parent, $descendants)) {
-                    toastr()->error("Une localité ne peut pas être son propre parent ou avoir un de ses descendants comme parent");
+                    flash()->error('Une localité ne peut pas être son propre parent ou avoir un de ses descendants comme parent');
+
                     return redirect()->back()->withInput();
                 }
             }
@@ -200,8 +208,9 @@ class LocaliteController extends Controller
             // Vérifier que pompes_funebres n'est activé que pour Commune ou Arrondissement
             $pompesFunebres = false;
             if ($request->has('pompes_funebres') && $request->pompes_funebres) {
-                if (!in_array($request->code_type_localite, ['TPLOC_0003', 'TPLOC_0004'])) {
-                    toastr()->error("Les pompes funèbres ne peuvent être activées que pour une Commune ou un Arrondissement");
+                if (! in_array($request->code_type_localite, ['TPLOC_0003', 'TPLOC_0004'])) {
+                    flash()->error('Les pompes funèbres ne peuvent être activées que pour une Commune ou un Arrondissement');
+
                     return redirect()->back()->withInput();
                 }
                 $pompesFunebres = true;
@@ -213,67 +222,76 @@ class LocaliteController extends Controller
             $localite->pompes_funebres = $pompesFunebres;
             $localite->save();
 
-            toastr()->success("Localité modifiée avec succès");
+            flash()->success('Localité modifiée avec succès');
+
             return redirect()->route('localite.index');
 
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur lors de la modification de localité: ' . $e->getMessage());
-            toastr()->error($e->getMessage());
+            Log::channel('sifec')->error('Erreur lors de la modification de localité: '.$e->getMessage());
+            flash()->error($e->getMessage());
+
             return redirect()->back()->withInput();
         }
     }
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function destroy($id)
     {
         try {
-            Log::channel('sifec')->info("Tentative de suppression de la localité: " . $id);
+            Log::channel('sifec')->info('Tentative de suppression de la localité: '.$id);
 
             $localite = Localite::find($id);
 
             if ($localite == null) {
-                Log::channel('sifec')->error("Localité non trouvée: " . $id);
-                toastr()->error("Impossible de charger cette page");
+                Log::channel('sifec')->error('Localité non trouvée: '.$id);
+                flash()->error('Impossible de charger cette page');
+
                 return redirect()->back();
             }
 
             // Vérifier si la localité a des enfants directs
             $countEnfants = $localite->localitesEnfants()->count();
             if ($countEnfants > 0) {
-                Log::channel('sifec')->warning("Impossible de supprimer la localité " . $id . " car elle a " . $countEnfants . " localité(s) enfant(s)");
-                toastr()->error("Impossible de supprimer cette localité car elle a des localités enfants");
+                Log::channel('sifec')->warning('Impossible de supprimer la localité '.$id.' car elle a '.$countEnfants.' localité(s) enfant(s)');
+                flash()->error('Impossible de supprimer cette localité car elle a des localités enfants');
+
                 return redirect()->back();
             }
 
             // Vérifier si des institutions utilisent cette localité
             $countInstitutions = $localite->institutions()->count();
             if ($countInstitutions > 0) {
-                Log::channel('sifec')->warning("Impossible de supprimer la localité " . $id . " car elle est utilisée par " . $countInstitutions . " institution(s)");
-                toastr()->error("Impossible de supprimer cette localité car elle est utilisée par des institutions");
+                Log::channel('sifec')->warning('Impossible de supprimer la localité '.$id.' car elle est utilisée par '.$countInstitutions.' institution(s)');
+                flash()->error('Impossible de supprimer cette localité car elle est utilisée par des institutions');
+
                 return redirect()->back();
             }
 
             // Vérifier si des personnes utilisent cette localité
             $countPersonnes = $localite->personnes()->count();
             if ($countPersonnes > 0) {
-                Log::channel('sifec')->warning("Impossible de supprimer la localité " . $id . " car elle est utilisée par " . $countPersonnes . " personne(s)");
-                toastr()->error("Impossible de supprimer cette localité car elle est utilisée par des personnes");
+                Log::channel('sifec')->warning('Impossible de supprimer la localité '.$id.' car elle est utilisée par '.$countPersonnes.' personne(s)');
+                flash()->error('Impossible de supprimer cette localité car elle est utilisée par des personnes');
+
                 return redirect()->back();
             }
 
             // Suppression logique avec SoftDeletes
             $localite->delete();
-            Log::channel('sifec')->info("Localité supprimée avec succès: " . $id);
-            toastr()->success("Suppression effectuée avec succès");
-            return redirect()->route("localite.index");
+            Log::channel('sifec')->info('Localité supprimée avec succès: '.$id);
+            flash()->success('Suppression effectuée avec succès');
+
+            return redirect()->route('localite.index');
         } catch (Exception $e) {
-            Log::channel('sifec')->error("Erreur lors de la suppression de la localité " . $id . ": " . $e->getMessage());
-            Log::channel('sifec')->error("Stack trace: " . $e->getTraceAsString());
-            toastr()->error($e->getMessage());
+            Log::channel('sifec')->error('Erreur lors de la suppression de la localité '.$id.': '.$e->getMessage());
+            Log::channel('sifec')->error('Stack trace: '.$e->getTraceAsString());
+            flash()->error($e->getMessage());
+
             return redirect()->back();
         }
     }
@@ -304,37 +322,38 @@ class LocaliteController extends Controller
     private function validateHierarchy($codeTypeLocalite, $codeLocaliteParent = null)
     {
         // Si pas de parent, vérifier que le type peut être racine
-        if (!$codeLocaliteParent) {
+        if (! $codeLocaliteParent) {
             $authorizedTypes = $this->getAuthorizedParentTypes($codeTypeLocalite);
             // Seul le DEPARTEMENT peut être racine (pas de parent)
             if ($codeTypeLocalite !== 'TPLOC_0001') {
                 return [
                     'valid' => false,
-                    'message' => 'Ce type de localité doit avoir un parent. Seul le Département peut être une localité racine.'
+                    'message' => 'Ce type de localité doit avoir un parent. Seul le Département peut être une localité racine.',
                 ];
             }
+
             return ['valid' => true];
         }
 
         // Vérifier que le parent existe
         $parent = Localite::find($codeLocaliteParent);
-        if (!$parent) {
+        if (! $parent) {
             return [
                 'valid' => false,
-                'message' => 'La localité parent sélectionnée n\'existe pas.'
+                'message' => 'La localité parent sélectionnée n\'existe pas.',
             ];
         }
 
         // Vérifier que le type de parent est autorisé
         $authorizedTypes = $this->getAuthorizedParentTypes($codeTypeLocalite);
-        if (!in_array($parent->code_type_localite, $authorizedTypes)) {
+        if (! in_array($parent->code_type_localite, $authorizedTypes)) {
             $parentType = $parent->typelocalite ? $parent->typelocalite->lib_type_localite : 'inconnu';
             $currentType = TypeLocalite::find($codeTypeLocalite);
             $currentTypeName = $currentType ? $currentType->lib_type_localite : 'inconnu';
 
             return [
                 'valid' => false,
-                'message' => "Un(e) {$currentTypeName} ne peut pas avoir un(e) {$parentType} comme parent."
+                'message' => "Un(e) {$currentTypeName} ne peut pas avoir un(e) {$parentType} comme parent.",
             ];
         }
 
@@ -352,7 +371,7 @@ class LocaliteController extends Controller
         // Si un type de localité est fourni, filtrer selon la hiérarchie
         if ($codeTypeLocalite) {
             $authorizedTypes = $this->getAuthorizedParentTypes($codeTypeLocalite);
-            if (!empty($authorizedTypes)) {
+            if (! empty($authorizedTypes)) {
                 $query->whereIn('code_type_localite', $authorizedTypes);
             } else {
                 // Si aucun type autorisé, retourner un tableau vide
@@ -392,5 +411,4 @@ class LocaliteController extends Controller
 
         return response()->json($localites);
     }
-
 }

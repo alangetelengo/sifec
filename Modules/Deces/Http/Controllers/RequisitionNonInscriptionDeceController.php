@@ -2,44 +2,45 @@
 
 namespace Modules\Deces\Http\Controllers;
 
-use Exception;
 use App\Sifec\Sifec;
-use Illuminate\Http\Request;
-use Spipu\Html2Pdf\Html2Pdf;
-use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Modules\Referentiel\Entities\Registre;
+use Exception;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Modules\Deces\Entities\ActeDeces;
 use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Referentiel\Entities\Registre;
+use Spipu\Html2Pdf\Html2Pdf;
 
 class RequisitionNonInscriptionDeceController extends Controller
 {
     public function index()
     {
-        $typeDeclaration = "CERTIFICAT DE NON INSCRIPTION";
-        $requisitions = DeclarationDeces::where(["type_declaration"=>$typeDeclaration])->get();
-        $registre = Registre::where(["statut"=>1,"code_type_registre"=>"TPRG_0004"])->first();
+        $typeDeclaration = 'CERTIFICAT DE NON INSCRIPTION';
+        $requisitions = DeclarationDeces::where(['type_declaration' => $typeDeclaration])->get();
+        $registre = Registre::where(['statut' => 1, 'code_type_registre' => 'TPRG_0004'])->first();
 
-        return view('deces::requisition_non_inscription.index', compact('requisitions','registre'));
+        return view('deces::requisition_non_inscription.index', compact('requisitions', 'registre'));
     }
 
     public function etat($id)
     {
         $requisition = DeclarationDeces::find($id);
 
-        if($requisition == null){
-            toastr()->error("Requisition indisponible");
+        if ($requisition == null) {
+            flash()->error('Requisition indisponible');
+
             return back();
         }
 
-        view()->share("tester", "Vincent");
+        view()->share('tester', [], 'Vincent');
         $html2pdf = new Html2Pdf('P', 'A4', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('deces::etats.requisitions.requisition_non_inscription', compact("requisition"))->render());
+        $html2pdf->writeHTML(view('deces::etats.requisitions.requisition_non_inscription', compact('requisition'))->render());
 
-        return $html2pdf->output($requisition->code_declaration_deces.".pdf");
+        return $html2pdf->output($requisition->code_declaration_deces.'.pdf');
 
     }
 
@@ -47,30 +48,33 @@ class RequisitionNonInscriptionDeceController extends Controller
     {
         $certificat = DeclarationDeces::find($id);
 
-        if($certificat == null){
-            toastr()->error("Certificat indisponible");
+        if ($certificat == null) {
+            flash()->error('Certificat indisponible');
+
             return back();
         }
-        if( $certificat->top_requisition == 1){
-            toastr()->error("Cette réquisition existe déjà pour ce certificat de destruction");
+        if ($certificat->top_requisition == 1) {
+            flash()->error('Cette réquisition existe déjà pour ce certificat de destruction');
+
             return back();
         }
 
-
-        try{
+        try {
             DB::beginTransaction();
 
             $certificat->top_requisition = 1;
-            $certificat->numero_req = Sifec::genererCodeUniqueReferentiel($certificat,"numero_req",4,"");
+            $certificat->numero_req = Sifec::genererCodeUniqueReferentiel($certificat, 'numero_req', 4, [], '');
             $certificat->save();
 
             DB::commit();
-            toastr()->success("La réquisition a été créee avec succès");
+            flash()->success('La réquisition a été créee avec succès');
+
             return back();
 
-        }catch(Exception $e){
+        } catch (Exception $e) {
             DB::rollBack();
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return back();
 
         }
@@ -78,6 +82,7 @@ class RequisitionNonInscriptionDeceController extends Controller
 
     /**
      * Show the form for creating a new resource.
+     *
      * @return Renderable
      */
     public function create()
@@ -89,49 +94,49 @@ class RequisitionNonInscriptionDeceController extends Controller
     {
 
         $dn = DeclarationDeces::find($request->code_declaration_deces);
-        $rn = Registre::where("cui",Auth::user()->affectationActive()->cui)->where("code_type_registre","TPRG_0001")->first();
+        $rn = Registre::where('cui', Auth::user()->affectationActive()->cui)->where('code_type_registre', [], 'TPRG_0001')->first();
 
-        if($dn == null){
+        if ($dn == null) {
 
             return response()->json([
-                "code"=>"180",
-                "message"=>["error"=>"Cette déclaration de naisance n'est pas reconnue"]
+                'code' => '180',
+                'message' => ['error' => "Cette déclaration de naisance n'est pas reconnue"],
             ]);
         }
 
-        if($rn == null){
+        if ($rn == null) {
             return response()->json([
-                "code"=>"181",
-                "message"=>["error"=>"Aucun registre disponible"]
+                'code' => '181',
+                'message' => ['error' => 'Aucun registre disponible'],
             ]);
         }
 
-        if($rn->statut == 0){
+        if ($rn->statut == 0) {
             return response()->json([
-                "code"=>"182",
-                "message"=>["error"=>"Ce registre est déjà clôturé"]
+                'code' => '182',
+                'message' => ['error' => 'Ce registre est déjà clôturé'],
             ]);
         }
 
-        if($rn->nombre_acte_prevu == $rn->nombre_acte_transcrit){
+        if ($rn->nombre_acte_prevu == $rn->nombre_acte_transcrit) {
             return response()->json([
-                "code"=>"183",
-                "message"=>["error"=>"Ce registre a déjà atteint le nombre d'actes prévu"]
+                'code' => '183',
+                'message' => ['error' => "Ce registre a déjà atteint le nombre d'actes prévu"],
             ]);
         }
 
         DB::beginTransaction();
-        try{
+        try {
 
-            $acteDeces = new ActeDeces();
-            $acteDeces->niupp = Sifec::genererCodeUniqueReferentiel($acteDeces,"niupp",8,"AN_");
+            $acteDeces = new ActeDeces;
+            $acteDeces->niupp = Sifec::genererCodeUniqueReferentiel($acteDeces, 'niupp', 8, 'AN_');
             $acteDeces->date_emission = now();
             $acteDeces->code_declaration_deces = $request->code_declaration_deces;
             $acteDeces->code_registre = $rn->code_registre;
             $acteDeces->cui = Auth::user()->affectationActive()->cui;
             $acteDeces->save();
 
-            if(($rn->nombre_acte_transcrit + 1) == $rn->nombre_acte_prevu){
+            if (($rn->nombre_acte_transcrit + 1) == $rn->nombre_acte_prevu) {
                 $rn->statut = 0;
             }
             $rn->nombre_acte_transcrit = $rn->nombre_acte_transcrit + 1;
@@ -140,26 +145,26 @@ class RequisitionNonInscriptionDeceController extends Controller
 
             DB::commit();
 
-            toastr()->success("Acte deces généré avec succès");
+            flash()->success('Acte deces généré avec succès');
 
             return response()->json([
-                "code"=>"200",
-                "message"=>["reponse"=>"Acte deces généré avec succès"]
+                'code' => '200',
+                'message' => ['reponse' => 'Acte deces généré avec succès'],
             ]);
 
-
-        }catch(Exception $e){
+        } catch (Exception $e) {
             DB::rollBack();
+
             return response()->json([
-                "code"=>"201",
-                "message"=>["error"=> $e->getMessage()]
+                'code' => '201',
+                'message' => ['error' => $e->getMessage()],
             ]);
         }
     }
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Renderable
      */
     public function store(Request $request)
@@ -169,7 +174,8 @@ class RequisitionNonInscriptionDeceController extends Controller
 
     /**
      * Show the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function show($id)
@@ -179,7 +185,8 @@ class RequisitionNonInscriptionDeceController extends Controller
 
     /**
      * Show the form for editing the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function edit($id)
@@ -189,8 +196,8 @@ class RequisitionNonInscriptionDeceController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function update(Request $request, $id)

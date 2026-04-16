@@ -4,63 +4,70 @@ namespace Modules\Authentification\Http\Controllers;
 
 use App\Sifec\Sifec;
 use Exception;
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use Modules\Referentiel\Entities\Fonction;
-use Illuminate\Contracts\Support\Renderable;
 use Modules\Authentification\Entities\Module;
+use Modules\Referentiel\Entities\Fonction;
 
 class FonctionController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Renderable
      */
     public function index()
     {
-        $fonctions = Fonction::all();
-        return view('authentification::fonction.index',compact("fonctions"));
+        $fonctions = Fonction::query()
+            ->where(function ($q): void {
+                $q->where('supprimer', 0)->orWhereNull('supprimer');
+            })
+            ->orderBy('lib_fonction')
+            ->get();
+
+        return view('authentification::fonction.index', compact('fonctions'));
     }
-
-
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Renderable
      */
     public function store(Request $request)
     {
         $request->validate([
-            'lib_fonction' =>  ["required","string"]
+            'lib_fonction' => ['required', 'string'],
         ]);
 
         DB::beginTransaction();
 
         try {
 
-            $fonctions = new Fonction();
-            $code = Sifec::genererCodeUniqueReferentiel($fonctions,"code_fonction",4,"FONC_");
+            $fonctions = new Fonction;
+            $code = Sifec::genererCodeUniqueReferentiel($fonctions, 'code_fonction', 4, 'FONC_');
 
             $fonctions->code_fonction = $code;
             $fonctions->lib_fonction = $request->lib_fonction;
             $fonctions->save();
 
             DB::commit();
-            toastr()->success("Fonction créée avec succès","Gestion des fonctions");
-            return redirect()->route("fonction.index");
+
+            return redirect()->to(route('fonction.index', [], false))
+                ->with('success', 'La fonction a été créée avec succès.');
         } catch (Exception $e) {
             DB::rollBack();
-            toastr()->error($e->getMessage());
-            return back()->withInput();
+
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
     }
 
     /**
      * Show the form for editing the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function edit($id)
@@ -70,68 +77,65 @@ class FonctionController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function update(Request $request, $id)
     {
         $fonction = Fonction::find($id);
 
-        if($fonction == null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des fonctions");
-            return back();
+        if ($fonction === null) {
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $request->validate([
-            'lib_fonction' =>  ["required","string"]
+            'lib_fonction' => ['required', 'string'],
         ]);
 
         DB::beginTransaction();
 
         try {
-
             $fonction->lib_fonction = $request->lib_fonction;
             $fonction->save();
 
             DB::commit();
-            toastr()->success("Fonction modifiée avec succès","Gestion des fonctions");
-            return redirect()->route("fonction.index");
+
+            return redirect()->to(route('fonction.index', [], false))
+                ->with('success', 'La modification a été effectuée avec succès.');
         } catch (Exception $e) {
             DB::rollBack();
-            toastr()->error($e->getMessage());
-            return back()->withInput();
+
+            return back()->withInput()->with('error', $e->getMessage());
         }
     }
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function destroy($id)
     {
         $fonction = Fonction::find($id);
 
-        if($fonction == null){
-            toastr()->error("Impossible d'effectuer cette opération","Gestion des fonctions");
-            return back();
+        if ($fonction === null) {
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
-        Fonction::where("code_fonction",$id)->update(['supprimer'=>1]);
-        toastr()->success("Fonction supprimée avec succès","Gestion des fonctions");
-        return redirect()->route("fonction.index");
-    }
+        Fonction::where('code_fonction', $id)->update(['supprimer' => 1]);
 
+        return redirect()->to(route('fonction.index', [], false))
+            ->with('success', 'La fonction a été supprimée avec succès.');
+    }
 
     public function assigner($id)
     {
         $fonction = Fonction::with('fonctionnalites')->find($id);
 
-        if ($fonction == null) {
-            toastr()->error('Impossible de charger cette page');
-
-            return back();
+        if ($fonction === null) {
+            return back()->with('error', 'Impossible de charger cette page.');
         }
 
         $modules = Module::with('fonctionnalites')->get();
@@ -158,11 +162,9 @@ class FonctionController extends Controller
     {
         $fonction = Fonction::find($id);
 
-        if($fonction == null){
-            toastr()->error("Impossible de charger cette page");
-            return back();
+        if ($fonction === null) {
+            return back()->with('error', 'Impossible de charger cette page.');
         }
-
 
         DB::beginTransaction();
         try {
@@ -174,14 +176,12 @@ class FonctionController extends Controller
 
             DB::commit();
 
-            toastr()->success('Fonctionnalités enregistrées avec succès', 'Gestion des fonctions');
-
-            return redirect()->route('fonction.index');
+            return redirect()->to(route('fonction.index', [], false))
+                ->with('success', 'Les fonctionnalités ont été enregistrées avec succès.');
         } catch (Exception $e) {
             DB::rollBack();
-            toastr()->error($e->getMessage());
 
-            return back()->withInput();
+            return back()->withInput()->with('error', $e->getMessage());
         }
     }
 }

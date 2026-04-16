@@ -1052,9 +1052,7 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
 
 
                         let token = $('meta[name="csrf-token"]').attr('content');
-                        if (typeof sifecSwalLoading === 'function') {
-                            sifecSwalLoading('Enregistrement...');
-                        }
+                        if (typeof Swal !== 'undefined') { Swal.close(); }
 
                         //récupération du code déclaration décès
                         var code_declaration = $("#code_declaration_deces").val();
@@ -1422,9 +1420,7 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                     if (e.value === true)
                     {
                         let token = $('meta[name="csrf-token"]').attr('content');
-                        if (typeof sifecSwalLoading === 'function') {
-                            sifecSwalLoading('Enregistrement...');
-                        }
+                        if (typeof Swal !== 'undefined') { Swal.close(); }
 
                         //information du défunt
                         var type_declaration = $("#type_declaration");

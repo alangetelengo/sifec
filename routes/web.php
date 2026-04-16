@@ -1,74 +1,65 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\HomeController;
-use App\Mail\ValidationRegistreMailable;
 use App\Http\Controllers\CartesController;
-use App\Http\Controllers\QrcodeController;
-use App\Http\Controllers\DashbordGouvController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PersonneSearchController;
-use Modules\Notification\Jobs\CreationRegistreJob;
-use App\Http\Controllers\PaiementDocumentController;
-use Modules\Notification\Jobs\ValidationRegistreJob;
-use Modules\Notification\Jobs\ValidationacteNaissanceJob;
-use Modules\Notification\Http\Controllers\NotificationController;
+use App\Http\Controllers\QrcodeController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Modules\Authentification\Http\Controllers\AuthentificationController;
 use Modules\Naissance\Http\Controllers\NaissanceController;
+use Modules\Notification\Http\Controllers\NotificationController;
+use Modules\Notification\Jobs\ValidationacteNaissanceJob;
 
-Route::get('/', [AuthentificationController::class,'index'])->name('dashboard.index')->middleware(['auth']);
+Route::get('/', [AuthentificationController::class, 'index'])->name('dashboard.index')->middleware(['auth']);
 // Route::get('/', [AuthentificationController::class,'home'])->name('home.index')->middleware(['auth']);
 
-Route::get("testmail",function(){
-    dispatch(new ValidationacteNaissanceJob("MAKELEKELE","AN0001","14F52","alangetelengo87@gmail.com"));
-    return "le traitement sera fait";
+Route::get('testmail', function () {
+    dispatch(new ValidationacteNaissanceJob('MAKELEKELE', 'AN0001', '14F52', 'alangetelengo87@gmail.com'));
+
+    return 'le traitement sera fait';
 });
 
-Route::put('{id}/update', [AuthentificationController::class,'update'])->name('dashboard.update')->middleware(['auth']);
-Route::post('store', [AuthentificationController::class,'authentification'])->name("dashboard.login");
-Route::get('carteducongo', [AuthentificationController::class,'carte'])->name('dashboard.carteducongo');
-Route::get('statgenredep', [AuthentificationController::class,'statGenreDep'])->name('dashboard.statgenredep');
+Route::put('{id}/update', [AuthentificationController::class, 'update'])->name('dashboard.update')->middleware(['auth']);
+Route::post('store', [AuthentificationController::class, 'authentification'])->name('dashboard.login');
+Route::get('carteducongo', [AuthentificationController::class, 'carte'])->name('dashboard.carteducongo');
+Route::get('statgenredep', [AuthentificationController::class, 'statGenreDep'])->name('dashboard.statgenredep');
 
-
-Route::prefix("qrcode")->group(function() {
-    Route::get("/", [QrcodeController::class,'index'])->name('qrcode.index');
-    Route::get("naissance/certificat", [QrcodeController::class,'certificatNaissance'])->name('qrcode.naissanceCertificat');
-    Route::get("naissance/requisition", [QrcodeController::class,'requisitionNaissance'])->name('qrcode.naissanceRequisition');
-    Route::get("naissance/duplicata", [QrcodeController::class,'duplicata'])->name('qrcode.duplicata');
-    Route::get("deces", [QrcodeController::class,'deces'])->name('qrcode.deces');
-    Route::get("deces/certificat", [QrcodeController::class,'certificatDeces'])->name('qrcode.decesCertificat');
-    Route::get("deces/requisition", [QrcodeController::class,'requisitionDeces'])->name('qrcode.decesRequisition');
+Route::prefix('qrcode')->group(function () {
+    Route::get('/', [QrcodeController::class, 'index'])->name('qrcode.index');
+    Route::get('naissance/certificat', [QrcodeController::class, 'certificatNaissance'])->name('qrcode.naissanceCertificat');
+    Route::get('naissance/requisition', [QrcodeController::class, 'requisitionNaissance'])->name('qrcode.naissanceRequisition');
+    Route::get('naissance/duplicata', [QrcodeController::class, 'duplicata'])->name('qrcode.duplicata');
+    Route::get('deces', [QrcodeController::class, 'deces'])->name('qrcode.deces');
+    Route::get('deces/certificat', [QrcodeController::class, 'certificatDeces'])->name('qrcode.decesCertificat');
+    Route::get('deces/requisition', [QrcodeController::class, 'requisitionDeces'])->name('qrcode.decesRequisition');
 });
 
-Route::middleware('auth')->prefix('cartes')->group(function() {
+Route::middleware('auth')->prefix('cartes')->group(function () {
     // Route::get('/', [CartesController::class,'index'])->name('cartes.index');
-    Route::get('cumuleNationale', [CartesController::class,'cumuleNationale'])->name('cartes.cumule.nationale');
-    Route::get('cumuleNationaleYear', [CartesController::class,'cumuleNationaleYear'])->name('cartes.cumule.nationale.year');
-    Route::get('cumuleNationaleMonth', [CartesController::class,'cumuleNationaleMonth'])->name('cartes.cumule.nationale.month');
-    Route::get('cumuleNationaleWeek', [CartesController::class,'cumuleNationaleWeek'])->name('cartes.cumule.nationale.week');
-    Route::get('cumuleNationaleDate', [CartesController::class,'cumuleNationaleDate'])->name('cartes.cumule.nationale.date');
+    Route::get('cumuleNationale', [CartesController::class, 'cumuleNationale'])->name('cartes.cumule.nationale');
+    Route::get('cumuleNationaleYear', [CartesController::class, 'cumuleNationaleYear'])->name('cartes.cumule.nationale.year');
+    Route::get('cumuleNationaleMonth', [CartesController::class, 'cumuleNationaleMonth'])->name('cartes.cumule.nationale.month');
+    Route::get('cumuleNationaleWeek', [CartesController::class, 'cumuleNationaleWeek'])->name('cartes.cumule.nationale.week');
+    Route::get('cumuleNationaleDate', [CartesController::class, 'cumuleNationaleDate'])->name('cartes.cumule.nationale.date');
 
-    Route::post('departementGet',[CartesController::class,'departementGet'])->name("carte.departement.get");
-    Route::post('cumuleDepartement', [CartesController::class,'cumuleDepartement'])->name('cartes.cumule.departement');
-    Route::post('cumuleDepartementYear', [CartesController::class,'cumuleDepartementYear'])->name('cartes.cumule.departement.year');
-    Route::post('cumuleDepartementMonth', [CartesController::class,'cumuleDepartementMonth'])->name('cartes.cumule.departement.month');
-    Route::post('cumuleDepartementWeek', [CartesController::class,'cumuleDepartementWeek'])->name('cartes.cumule.departement.week');
-    Route::post('cumuleDepartementDate', [CartesController::class,'cumuleDepartementDate'])->name('cartes.cumule.departement.date');
+    Route::post('departementGet', [CartesController::class, 'departementGet'])->name('carte.departement.get');
+    Route::post('cumuleDepartement', [CartesController::class, 'cumuleDepartement'])->name('cartes.cumule.departement');
+    Route::post('cumuleDepartementYear', [CartesController::class, 'cumuleDepartementYear'])->name('cartes.cumule.departement.year');
+    Route::post('cumuleDepartementMonth', [CartesController::class, 'cumuleDepartementMonth'])->name('cartes.cumule.departement.month');
+    Route::post('cumuleDepartementWeek', [CartesController::class, 'cumuleDepartementWeek'])->name('cartes.cumule.departement.week');
+    Route::post('cumuleDepartementDate', [CartesController::class, 'cumuleDepartementDate'])->name('cartes.cumule.departement.date');
 });
 
-Route::middleware('auth')->prefix('tableau')->group(function() {
-    Route::get('/', [HomeController::class,'tableaudebord'])->name('tableau.index');
-    Route::get('impression', [HomeController::class,'impressiontableau'])->name('tableau.impression');
-    Route::get('impression/prefet', [HomeController::class,'impressiontableauprefet'])->name('tableau.impressionprefet');
-    Route::get('{id}/impression/details', [HomeController::class,'impressiondetails'])->name('tableau.details');
+Route::middleware('auth')->prefix('tableau')->group(function () {
+    Route::get('/', [HomeController::class, 'tableaudebord'])->name('tableau.index');
+    Route::get('impression', [HomeController::class, 'impressiontableau'])->name('tableau.impression');
+    Route::get('impression/prefet', [HomeController::class, 'impressiontableauprefet'])->name('tableau.impressionprefet');
+    Route::get('{id}/impression/details', [HomeController::class, 'impressiondetails'])->name('tableau.details');
     // Route::get('cumuleNationale', [HomeController::class,'cumuleNationale'])->name('cartes.cumule.nationale');
 });
 
 Route::get('/personnes/recherche', [PersonneSearchController::class, 'recherche'])->name('personnes.recherche');
-
-
 
 Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 Route::get('/notifications/read/{id}', [NotificationController::class, 'read'])->name('notifications.read');
@@ -78,7 +69,6 @@ Route::get('/notifications/unread-count', [NotificationController::class, 'unrea
 Route::get('/notifications/unread-list', [NotificationController::class, 'unreadList'])->name('notifications.unreadList');
 Route::get('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 
-
 Auth::routes();
 
 // ==========================================
@@ -86,6 +76,8 @@ Auth::routes();
 // ==========================================
 
 use App\Http\Controllers\TwoFactorController;
+use Modules\Deces\Http\Controllers\DecesController;
+use Modules\Mariage\Http\Controllers\MariageController;
 
 // Routes de configuration 2FA (nécessite authentification)
 Route::middleware(['auth'])->group(function () {
@@ -124,19 +116,19 @@ Route::middleware(['auth'])->group(function () {
         ->name('first-login-password.update');
 });
 
-Route::middleware(['signed','throttle:10,1'])
+Route::middleware(['signed', 'throttle:10,1'])
     ->get('/verification/acte/{niupp}', [NaissanceController::class, 'verificationActe'])
     ->name('verification.acte');
 
-Route::middleware(['signed','throttle:10,1'])
-    ->get('/verification/acte/deces/{code}', [\Modules\Deces\Http\Controllers\DecesController::class, 'verificationActe'])
+Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/acte/deces/{code}', [DecesController::class, 'verificationActe'])
     ->name('verification.acte.deces');
 
-Route::middleware(['signed','throttle:10,1'])
-    ->get('/verification/acte/mariage/{code}', [\Modules\Mariage\Http\Controllers\MariageController::class, 'verificationActe'])
+Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/acte/mariage/{code}', [MariageController::class, 'verificationActe'])
     ->name('verification.acte.mariage');
 
-Route::middleware(['signed','throttle:10,1'])
+Route::middleware(['signed', 'throttle:10,1'])
     ->get('/verification/declaration/{code}', [NaissanceController::class, 'verificationDeclaration'])
     ->name('verification.declaration');
 
@@ -144,9 +136,24 @@ Route::middleware(['signed', 'throttle:10,1'])
     ->get('/verification/certificat-naissance/{code}', [NaissanceController::class, 'verificationCertificatNaissance'])
     ->name('verification.certificat.naissance');
 
-Route::middleware(['signed','throttle:10,1'])
-    ->get('/verification/declaration/mariage/{code}', [\Modules\Mariage\Http\Controllers\MariageController::class, 'verificationDeclaration'])
+Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/declaration/mariage/{code}', [MariageController::class, 'verificationDeclaration'])
     ->name('verification.declaration.mariage');
 
-
-
+/*
+|--------------------------------------------------------------------------
+| Routes de test PHPUnit (flash + redirection) — uniquement pendant les tests
+|--------------------------------------------------------------------------
+*/
+if (app()->runningUnitTests()) {
+    Route::middleware('web')->get('/__sifec_flash_src', static function () {
+        return redirect('/__sifec_flash_tgt')->with('success', 'Flash ok');
+    });
+    Route::middleware('web')->get('/__sifec_flash_tgt', static function () {
+        return response(
+            '<html><body>'.e((string) session('success', 'missing')).'</body></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8']
+        );
+    });
+}

@@ -1,12 +1,13 @@
 <?php
+
 namespace Modules\Naissance\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Services\MouvementNaissanceService;
-use Illuminate\Support\Facades\Auth;
 
 class MouvementNaissanceController extends Controller
 {
@@ -15,12 +16,14 @@ class MouvementNaissanceController extends Controller
         $declaration = Declarationnaissance::findOrFail($id);
         $mouvements = app(MouvementNaissanceService::class)
             ->mouvementsPourDeclaration($declaration->code_declaration_naissance);
+
         return view('naissance::mouvements.historique_mouvements', compact('declaration', 'mouvements'));
     }
 
     public function create($id)
     {
         $declaration = Declarationnaissance::findOrFail($id);
+
         return view('naissance::mouvements.ajouter_mouvement', compact('declaration'));
     }
 
@@ -37,13 +40,15 @@ class MouvementNaissanceController extends Controller
             Auth::user()->cui,
             $data['observation'] ?? null
         );
-        toastr()->success('Mouvement ajouté avec succès !');
+        flash()->success('Mouvement ajouté avec succès !');
+
         return redirect()->route('naissance.mouvements.historique', $declaration->id);
     }
 
     public function edit($id)
     {
         $mouvement = MouvementNaissance::findOrFail($id);
+
         return view('naissance::mouvements.edit_mouvement', compact('mouvement'));
     }
 
@@ -54,8 +59,9 @@ class MouvementNaissanceController extends Controller
             'observation' => 'nullable|string',
         ]);
         app(MouvementNaissanceService::class)->modifierMouvement($id, $data);
-        toastr()->success('Mouvement modifié avec succès !');
+        flash()->success('Mouvement modifié avec succès !');
         $mouvement = MouvementNaissance::findOrFail($id);
+
         return redirect()->route('naissance.mouvements.historique', $mouvement->code_declaration_naissance);
     }
 
@@ -64,7 +70,8 @@ class MouvementNaissanceController extends Controller
         $mouvement = MouvementNaissance::findOrFail($id);
         $codeDeclaration = $mouvement->code_declaration_naissance;
         app(MouvementNaissanceService::class)->supprimerMouvement($id);
-        toastr()->success('Mouvement supprimé avec succès !');
+        flash()->success('Mouvement supprimé avec succès !');
+
         return redirect()->route('naissance.mouvements.historique', $codeDeclaration);
     }
 }

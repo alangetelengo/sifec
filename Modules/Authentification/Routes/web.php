@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Authentification\Http\Controllers\UserController;
 use Modules\Authentification\Http\Controllers\FonctionController;
 use Modules\Authentification\Http\Controllers\FonctionnaliteController;
+use Modules\Authentification\Http\Controllers\MenuItemController;
 use Modules\Authentification\Http\Controllers\ModuleController;
 
 
@@ -73,6 +74,15 @@ Route::middleware('auth')->prefix('module')->group(function() {
     Route::get('{id}/fonctionnalites', [ModuleController::class, 'fonctionnalites'])->name('module.fonctionnalites');
     Route::put('{id}/update', [ModuleController::class, 'update'])->name('module.update');
     Route::delete('{id}/destroy', [ModuleController::class, 'destroy'])->name('module.destroy');
+});
+
+Route::middleware(['auth', 'can:module.menuItems.manage'])->prefix('menu-item')->name('menu-item.')->group(function () {
+    Route::get('/', [MenuItemController::class, 'index'])->name('index');
+    Route::get('create', [MenuItemController::class, 'create'])->name('create');
+    Route::post('/', [MenuItemController::class, 'store'])->name('store');
+    Route::get('{id}/edit', [MenuItemController::class, 'edit'])->name('edit');
+    Route::put('{id}', [MenuItemController::class, 'update'])->name('update');
+    Route::delete('{id}', [MenuItemController::class, 'destroy'])->name('destroy');
 });
 
 

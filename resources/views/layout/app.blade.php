@@ -17,6 +17,7 @@
 	<meta property="og:description" content="tixia : tixia School Admission Admin  Bootstrap 5 Template" />
 	<meta name="format-detection" content="telephone=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('partials.sifec-strip-flash-query')
     <title>sifec | @yield('titre')</title>
 
     <!-- Favicon icon -->
@@ -43,6 +44,8 @@
     <link href="{{ asset('css/sifec-index-pages.css') }}?v=11" rel="stylesheet">
     <link href="{{ asset('css/sifec-modals.css') }}?v=1" rel="stylesheet">
     <link href="{{ asset('css/sifec-crud-forms.css') }}?v=6" rel="stylesheet">
+
+    @include('partials.flasher-assets-head')
 
     @yield('styles')
     <style>
@@ -85,8 +88,9 @@
         .wizard-content .wizard>.steps>ul>li>a{
             color: #000!important;
         }
-        a{
-            color: #FFF!important;
+        /* Liens blancs : uniquement le menu latéral (la règle globale `a{color:#fff}` rendait les liens invisibles sur fond blanc) */
+        .deznav a {
+            color: #FFF !important;
         }
         /* Correction visibilité btn-secondary sur les liens <a> */
         a.btn-secondary,
@@ -552,8 +556,10 @@
             Content body start
         ***********************************-->
         <div class="content-body" style="min-height:450px">
-            <!-- row -->
-
+            {{-- Bandeau session hors du .container-fluid du corps : évite d’être masqué par .page-sifec-index (marge négative) --}}
+            <div class="container-fluid px-3 pt-3 pb-0 sifec-session-flash-wrap" style="position:relative;z-index:2147483000;">
+                @include('partials.session-flash')
+            </div>
 			<div class="container-fluid" style="min-height:450px">
 				@yield('corps')
             </div>
@@ -594,13 +600,14 @@
 
     <!-- Required vendors -->
     <script src="{{ asset('tpl/vendor/global/global.min.js') }}"></script>
+    {{-- Toastr JS (le layout charge déjà le CSS) : nécessaire pour notification() et pour les messages session --}}
+    <script src="{{ asset('tpl/vendor/toastr/js/toastr.min.js') }}"></script>
 	<script src="{{ asset('tpl/vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}"></script>
     <script src="{{ asset('tpl/vendor/chart.js/Chart.bundle.min.js') }}"></script>
     <script src="{{ asset('tpl/js/moment.min.js') }}"></script>
 	<script src="{{ asset('tpl/vendor/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js') }}"></script>
     <script src="{{ asset('tpl/js/custom.min.js') }}"></script>
 	<script src="{{ asset('tpl/js/deznav-init.js') }}"></script>
-    <script src="{{asset('tpl/vendor/toastr/js/toastr.min.js')}}"></script>
     <script src="{{asset('sweetalert2.all.min.js')}}"></script>
 
     <script>
@@ -828,6 +835,10 @@
             });
         });
     </script>
+
+    @include('partials.flasher-assets-scripts')
+    @include('partials.session-toastr')
+    @flasher_render
 
 </body>
 </html>

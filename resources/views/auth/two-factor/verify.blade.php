@@ -7,10 +7,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>SIFEC | Vérification 2FA</title>
+    @include('partials.sifec-strip-flash-query')
 	<link href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="{{ asset('assets-login/images/fav.png') }}">
     <link rel="stylesheet" href="{{ asset('assets-login/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" href="{{ asset('assets-login/css/style.css') }}">
+    @include('partials.flasher-assets-head')
 	<style>
 	.sifec-2fa-spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sifec-2fa-spin 0.6s linear infinite; vertical-align: -0.2em; margin-right: 0.35rem; }
 	@keyframes sifec-2fa-spin { to { transform: rotate(360deg); } }
@@ -218,6 +220,7 @@
                             </div>
                             <div class="form-cover">
                                 <h1 style="color:green; border-bottom: 2px solid green; margin-bottom: 20px;">Vérification 2FA</h1>
+                                @include('partials.session-flash')
                                 <form id="form-2fa-verify-sifec" class="form-login" action="{{ route('two-factor.verify.post') }}" method="POST" autocomplete="off">
                                     @csrf
 
@@ -344,5 +347,8 @@ if (document.getElementById('recovery_code')) {
     });
 }
 </script>
+@include('partials.flasher-assets-scripts')
+@include('partials.session-toastr')
+@flasher_render
 </body>
 </html>

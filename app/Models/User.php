@@ -99,15 +99,30 @@ class User extends Authenticatable
         return $this->belongsToMany(Fonctionnalite::class, 'tr_uf', 'code_user', 'code_fonctionnalite');
     }
 
-    public function toutesfonctionnalites(){
-        $userFonctionnalites = $this->fonctionnalites;
+    /**
+     * Fonctionnalités effectives pour droits (Gate) : actives et rattachées à un module activé.
+     */
+    public function toutesfonctionnalites()
+    {
+        $userFonctionnalites = $this->fonctionnalites()->with('module')->get();
         $fonction = $this->fonction();
-        $fonctionFonctionnalites = $fonction ? $fonction->fonctionnalites : collect();
+        $fonctionFonctionnalites = $fonction
+            ? $fonction->fonctionnalites()->with('module')->get()
+            : collect();
+
         return $userFonctionnalites
             ->merge($fonctionFonctionnalites)
             ->flatten()
-            ->filter(function ($f) {
-                return ($f->etat_fonctionnalite ?? 'Activé') === 'Activé';
+            ->filter(function (Fonctionnalite $f) {
+                if (($f->etat_fonctionnalite ?? 'Activé') !== 'Activé') {
+                    return false;
+                }
+                $module = $f->module;
+                if ($module === null) {
+                    return false;
+                }
+
+                return ($module->etat_module ?? 'Désactivé') === 'Activé';
             })
             ->values();
     }

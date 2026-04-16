@@ -2,16 +2,17 @@
 
 namespace Modules\Notification\Http\Controllers;
 
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Contracts\Support\Renderable;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class NotificationController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Renderable
      */
     public function index(Request $request)
@@ -27,6 +28,7 @@ class NotificationController extends Controller
             $currentPage,
             ['path' => $request->url(), 'query' => $request->query()]
         );
+
         return view('notification::index', ['notifications' => $paginated]);
     }
 
@@ -34,7 +36,7 @@ class NotificationController extends Controller
     {
         $notification = Auth::user()->notifications->find($id);
         if (! $notification) {
-            toastr()->warning('Notification introuvable ou déjà supprimée.');
+            flash()->warning('Notification introuvable ou déjà supprimée.');
 
             return redirect()->route('notifications.index');
         }
@@ -47,6 +49,7 @@ class NotificationController extends Controller
 
     /**
      * Show the form for creating a new resource.
+     *
      * @return Renderable
      */
     public function create()
@@ -56,7 +59,7 @@ class NotificationController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Renderable
      */
     public function store(Request $request)
@@ -66,7 +69,8 @@ class NotificationController extends Controller
 
     /**
      * Show the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function show($id)
@@ -76,7 +80,8 @@ class NotificationController extends Controller
 
     /**
      * Show the form for editing the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function edit($id)
@@ -86,8 +91,8 @@ class NotificationController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function update(Request $request, $id)
@@ -97,7 +102,8 @@ class NotificationController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function destroy($id)
@@ -108,6 +114,7 @@ class NotificationController extends Controller
     public function unreadCount()
     {
         $count = Auth::user()->unreadNotifications->count();
+
         return response()->json(['count' => $count]);
     }
 
@@ -115,13 +122,15 @@ class NotificationController extends Controller
     {
         $notifications = Auth::user()->unreadNotifications->take(8);
         $html = view('notification::partials.dropdown', compact('notifications'))->render();
+
         return response()->json(['html' => $html]);
     }
 
     public function markAllAsRead()
     {
         Auth::user()->unreadNotifications->markAsRead();
-        toastr()->success('Toutes les notifications ont été marquées comme lues');
+        flash()->success('Toutes les notifications ont été marquées comme lues');
+
         return redirect()->route('notifications.index');
     }
 }

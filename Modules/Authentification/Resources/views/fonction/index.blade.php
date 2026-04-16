@@ -329,7 +329,6 @@
 </style>
 @endsection
 @section('corps')
-
 <div class="page-sifec-index">
 <div class="an-shell">
 <div class="an-body">
@@ -512,10 +511,13 @@
             if (!btn.getAttribute('data-sifec-html')) {
                 btn.setAttribute('data-sifec-html', btn.innerHTML);
             }
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            btn.classList.add('sifec-btn-loading');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>Enregistrement…';
+            // Ne pas désactiver le bouton dans le même tick que submit : certains navigateurs n’envoient pas le POST.
+            setTimeout(function () {
+                btn.disabled = true;
+                btn.setAttribute('aria-busy', 'true');
+                btn.classList.add('sifec-btn-loading');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>Enregistrement…';
+            }, 0);
         });
 
         $(document).on('hidden.bs.modal', '.modal-fonction-sifec', function () {
@@ -524,7 +526,7 @@
             resetFonctionModalSubmit(form.querySelector('button[type="submit"]'));
         });
 
-        // Confirmation avant suppression (style SIFEC + chargement pendant l’envoi)
+        // Confirmation avant suppression (SweetAlert) puis envoi natif du formulaire DELETE
         $(document).on('submit', '.form-delete-fonction', function (e) {
             e.preventDefault();
             var form = this;
@@ -542,18 +544,8 @@
                 confirmButtonAriaLabel: 'Confirmer la suppression',
                 cancelButtonAriaLabel: 'Annuler'
             }).then(function (result) {
-                if (result.isConfirmed) {
-                    if (typeof sifecSwalLoading === 'function') {
-                        sifecSwalLoading('Suppression en cours…');
-                    } else {
-                        Swal.fire({
-                            title: 'Suppression en cours…',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: false,
-                            didOpen: function () { Swal.showLoading(); }
-                        });
-                    }
+                // SweetAlert2 v7 (public/sweetalert2.all.min.js) : confirm → result.value === true. v8+ : result.isConfirmed.
+                if (result && (result.value === true || result.isConfirmed === true)) {
                     form.submit();
                 }
             });

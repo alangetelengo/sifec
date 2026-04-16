@@ -2,20 +2,26 @@
 
 namespace Modules\Tribunal\Http\Controllers;
 
-use Exception;
+use App\Models\TypeJugement;
+use App\Models\TypeRequisition;
 use Carbon\Carbon;
-use App\Sifec\Sifec;
+use Exception;
 use Illuminate\Http\Request;
-use Spipu\Html2Pdf\Html2Pdf;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
+use Modules\Deces\Entities\ActeDeces;
 use Modules\Deces\Entities\DeclarationDeces;
+use Modules\Mariage\Entities\ActeMariage;
 use Modules\Mariage\Entities\DeclarationMariage;
+use Modules\Mariage\Services\MouvementMariageService;
+use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Naissance\Entities\Declarationnaissance;
+use Modules\Naissance\Services\MouvementService;
+use Modules\Rectification\Entities\Rectification;
 use Modules\Tribunal\Services\TribunalDeclarationService;
-
+use Spipu\Html2Pdf\Html2Pdf;
 
 class TribunalController extends Controller
 {
@@ -26,9 +32,9 @@ class TribunalController extends Controller
     {
         $codeInstitution = Auth::user()->affectationActive()->code_institution;
 
-        $dossiersNaissance = Declarationnaissance::where("code_institution_destinataire", $codeInstitution)->get();
-        $dossiersDeces = DeclarationDeces::where("code_institution_destinataire", $codeInstitution)->get();
-        $dossiersMariage = DeclarationMariage::where("code_institution_destinataire", $codeInstitution)->get();
+        $dossiersNaissance = Declarationnaissance::where('code_institution_destinataire', $codeInstitution)->get();
+        $dossiersDeces = DeclarationDeces::where('code_institution_destinataire', $codeInstitution)->get();
+        $dossiersMariage = DeclarationMariage::where('code_institution_destinataire', $codeInstitution)->get();
         // Suppression de la gestion des rectifications
         // $dossiersRectification = \Modules\Rectification\Entities\Rectification::where("code_institution", $codeInstitution)->get();
 
@@ -46,17 +52,18 @@ class TribunalController extends Controller
 
         // Optionnel : trier par date de création, du plus récent au plus ancien
         $dossiers = $dossiers->sortByDesc('created_at')->values();
+
         return view('tribunal::documents.index', compact('dossiers'));
     }
 
-    //recuperer les dossiers de rectification
+    // recuperer les dossiers de rectification
     public function dossiersRectification()
     {
         $codeInstitution = Auth::user()->affectationActive()->code_institution;
-        $rectifications = \Modules\Rectification\Entities\Rectification::where("code_institution_destinataire", $codeInstitution)->get();
+        $rectifications = Rectification::where('code_institution_destinataire', $codeInstitution)->get();
 
         // Préparer les données enrichies pour la vue
-        $rectificationsData = $rectifications->map(function($rectification) {
+        $rectificationsData = $rectifications->map(function ($rectification) {
             $dernierMouvement = $rectification->mouvementRectification && $rectification->mouvementRectification->count() > 0
                 ? $rectification->mouvementRectification->sortBy('created_at')->last()
                 : null;
@@ -92,55 +99,58 @@ class TribunalController extends Controller
         });
 
         return view('tribunal::documents.rectification', [
-            'rectificationsData' => $rectificationsData
+            'rectificationsData' => $rectificationsData,
         ]);
     }
 
-      /**
+    /**
      * Affiche le formulaire d'import de document
      */
     public function create($type, $id)
     {
 
         if ($type === 'naissance') {
-            $objet = \Modules\Naissance\Entities\Declarationnaissance::find($id);
+            $objet = Declarationnaissance::find($id);
         } elseif ($type === 'mariage') {
-            $objet = \Modules\Mariage\Entities\DeclarationMariage::find($id);
+            $objet = DeclarationMariage::find($id);
         } elseif ($type === 'deces') {
-            $objet = \Modules\Deces\Entities\DeclarationDeces::find($id);
+            $objet = DeclarationDeces::find($id);
         } else {
-            toastr()->error("Type de déclaration inconnu");
+            flash()->error('Type de déclaration inconnu');
+
             return back();
         }
 
         if ($objet == null) {
-            toastr()->error("Impossible de charger cette page");
+            flash()->error('Impossible de charger cette page');
+
             return back();
         }
 
-        $typeRequisitions = \App\Models\TypeRequisition::all();
-        $typeJugements = \App\Models\TypeJugement::all();
+        $typeRequisitions = TypeRequisition::all();
+        $typeJugements = TypeJugement::all();
         $mode = 'declaration';
 
-        return view('tribunal::documents.importer', compact("objet", "type", "typeRequisitions", "typeJugements", "mode"));
+        return view('tribunal::documents.importer', compact('objet', 'type', 'typeRequisitions', 'typeJugements', [], 'mode'));
     }
 
     /**
      * Enregistre l'import d'un document (réquisition ou jugement)
      */
-    public function store(Request $request, $type, $id, \Modules\Tribunal\Services\TribunalDeclarationService $service)
+    public function store(Request $request, $type, $id, TribunalDeclarationService $service)
     {
         if ($type === 'naissance') {
-            $declaration = \Modules\Naissance\Entities\Declarationnaissance::findOrFail($id);
+            $declaration = Declarationnaissance::findOrFail($id);
             $module = 'naissance';
         } elseif ($type === 'mariage') {
-            $declaration = \Modules\Mariage\Entities\DeclarationMariage::findOrFail($id);
+            $declaration = DeclarationMariage::findOrFail($id);
             $module = 'mariage';
         } elseif ($type === 'deces') {
-            $declaration = \Modules\Deces\Entities\DeclarationDeces::findOrFail($id);
+            $declaration = DeclarationDeces::findOrFail($id);
             $module = 'deces';
         } else {
-            toastr()->error("Type de déclaration inconnu");
+            flash()->error('Type de déclaration inconnu');
+
             return back();
         }
 
@@ -149,24 +159,26 @@ class TribunalController extends Controller
             'date_document' => 'required|date',
             'document_importer' => 'required|file|mimes:pdf,jpg,png|max:2048',
             'code_type_requisition' => 'required_if:type_document,requisition',
-            'code_type_jugement'    => 'required_if:type_document,jugement',
+            'code_type_jugement' => 'required_if:type_document,jugement',
         ]);
 
         try {
             $documentPath = null;
-            DB::transaction(function () use ($declaration, $request, $module, $type, $service, &$documentPath) {
+            DB::transaction(function () use ($declaration, $request, $module, $service, &$documentPath) {
                 $user = Auth::user();
                 [$ok, $message, $documentPath] = $service->importerDocument($declaration, $request, $module, $user);
-                if (!$ok) {
-                    throw new \Exception($message);
+                if (! $ok) {
+                    throw new Exception($message);
                 }
             });
-            toastr()->success("Document importé, mouvement tracé !");
+            flash()->success('Document importé, mouvement tracé !');
+
             // Rediriger vers la même page avec le chemin du document importé
             return redirect()->back()->with('document_importe', $documentPath);
         } catch (Exception $e) {
             Log::channel('sifec')->error($e->getMessage());
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
+
             return back()->withInput();
         }
     }
@@ -174,13 +186,13 @@ class TribunalController extends Controller
     private function formatDossier($dossier, $module)
     {
         if ($module === 'naissance') {
-            $identite = $dossier->enfant ? $dossier->enfant->nom . ' ' . $dossier->enfant->prenom : '';
+            $identite = $dossier->enfant ? $dossier->enfant->nom.' '.$dossier->enfant->prenom : '';
             $type_declaration = $dossier->type_declaration ?? $dossier->lib_mouvement ?? 'N/A';
         } elseif ($module === 'deces') {
-            $identite = $dossier->defunt ? $dossier->defunt->nom . ' ' . $dossier->defunt->prenom : '';
+            $identite = $dossier->defunt ? $dossier->defunt->nom.' '.$dossier->defunt->prenom : '';
             $type_declaration = $dossier->type_declaration ?? $dossier->lib_mouvement ?? 'N/A';
         } elseif ($module === 'mariage') {
-            $identite = $dossier->epoux ? $dossier->epoux->nom . ' ' . $dossier->epoux->prenom : '';
+            $identite = $dossier->epoux ? $dossier->epoux->nom.' '.$dossier->epoux->prenom : '';
             $type_declaration = $dossier->type_declaration ?? $dossier->lib_mouvement ?? 'N/A';
         } else {
             $identite = '';
@@ -224,16 +236,17 @@ class TribunalController extends Controller
         } elseif ($type === 'deces') {
             $declaration = DeclarationDeces::findOrFail($id);
         } else {
-            toastr()->error('Type de déclaration inconnu');
+            flash()->error('Type de déclaration inconnu');
+
             return redirect()->back();
         }
 
         // dd($type);
 
         // Exemple : message de succès si besoin
-        // toastr()->success('Déclaration chargée avec succès !');
+        // flash()->success('Déclaration chargée avec succès !');
 
-        return view('tribunal::documents.show', compact('declaration', 'type'));
+        return view('tribunal::documents.show', compact('declaration', [], 'type'));
     }
 
     /**
@@ -247,22 +260,26 @@ class TribunalController extends Controller
         if ($type === 'naissance') {
             $certificat = Declarationnaissance::findOrFail($id);
 
-            //vérifier si le certificat est un certificat de destruction de l'acte
-            if($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-                $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact( 'certificat'))->render());
-                return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
+            // vérifier si le certificat est un certificat de destruction de l'acte
+            if ($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
+                $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact('certificat'))->render());
+
+                return $html2pdf->output($certificat->code_declaration_naissance.'.pdf');
             }
 
-            $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact( 'certificat'))->render());
-            return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
+            $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact('certificat'))->render());
+
+            return $html2pdf->output($certificat->code_declaration_naissance.'.pdf');
         } elseif ($type === 'deces') {
             $certificat = DeclarationDeces::findOrFail($id);
             $html2pdf->writeHTML(view('deces::etats.certificats.certificat_non_inscription', compact('certificat'))->render());
-            return $html2pdf->output($certificat->code_declaration_deces . '.pdf');
-        }elseif("mariage"){
+
+            return $html2pdf->output($certificat->code_declaration_deces.'.pdf');
+        } elseif ('mariage') {
             $dm = DeclarationMariage::findOrFail($id);
             $html2pdf->writeHTML(view('mariage::etats.DeclarationMariage', compact('dm'))->render());
-            return $html2pdf->output($dm->code_declaration_deces . '.pdf');
+
+            return $html2pdf->output($dm->code_declaration_deces.'.pdf');
         } else {
             abort(404);
         }
@@ -274,11 +291,11 @@ class TribunalController extends Controller
     public function voirDocument($type, $id)
     {
         if ($type === 'naissance') {
-            $declaration = \Modules\Naissance\Entities\Declarationnaissance::findOrFail($id);
+            $declaration = Declarationnaissance::findOrFail($id);
         } elseif ($type === 'mariage') {
-            $declaration = \Modules\Mariage\Entities\DeclarationMariage::findOrFail($id);
+            $declaration = DeclarationMariage::findOrFail($id);
         } elseif ($type === 'deces') {
-            $declaration = \Modules\Deces\Entities\DeclarationDeces::findOrFail($id);
+            $declaration = DeclarationDeces::findOrFail($id);
         } else {
             abort(404);
         }
@@ -292,41 +309,43 @@ class TribunalController extends Controller
         abort(404);
     }
 
-    //affiche le détail d'un certificat
+    // affiche le détail d'un certificat
     public function detailCertificat($type, $id)
     {
         if ($type === 'naissance') {
             $certificat = Declarationnaissance::findOrFail($id);
-            if($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+            if ($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
                 return view('naissance::certificat-destruction.show', compact('certificat'));
             }
-            if($certificat->type_declaration === "CERTIFICAT DE NON INSCRIPTION"){
+            if ($certificat->type_declaration === 'CERTIFICAT DE NON INSCRIPTION') {
                 return view('naissance::certificat-non-inscription.show', compact('certificat'));
             }
-            if($certificat->type_declaration === "FICHE DE TRANSCRIPTION"){
+            if ($certificat->type_declaration === 'FICHE DE TRANSCRIPTION') {
                 return view('naissance::certificat-destruction.show', compact('certificat'));
             }
 
-        }elseif($type === 'mariage'){
-            $declaration  = DeclarationMariage::findOrFail($id);
-            if($declaration ->type_declaration === "DISPENSE"){
+        } elseif ($type === 'mariage') {
+            $declaration = DeclarationMariage::findOrFail($id);
+            if ($declaration->type_declaration === 'DISPENSE') {
                 return view('mariage::declaration.show', compact('declaration'));
             }
+
             return view('mariage::declaration.show', compact('declaration'));
-        }elseif($type === 'deces'){
+        } elseif ($type === 'deces') {
             $certificat = DeclarationDeces::findOrFail($id);
-            if($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-                return "en cours de traitement";
-                //return view('deces::certificat-destruction.show', compact('certificat'));
+            if ($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
+                return 'en cours de traitement';
+                // return view('deces::certificat-destruction.show', compact('certificat'));
             }
-            if($certificat->type_declaration === "CERTIFICAT DE NON INSCRIPTION"){
-                return "en cours de traitement";
-                //return view('deces::certificat-destruction.show', compact('certificat'));
+            if ($certificat->type_declaration === 'CERTIFICAT DE NON INSCRIPTION') {
+                return 'en cours de traitement';
+                // return view('deces::certificat-destruction.show', compact('certificat'));
             }
 
             return view('deces::certificat-non-inscription.show', compact('certificat'));
-        }else{
-            toastr()->error("Impossible de charger cette page");
+        } else {
+            flash()->error('Impossible de charger cette page');
+
             return back();
         }
     }
@@ -341,20 +360,20 @@ class TribunalController extends Controller
         $module = $request->input('module');
         $observation = $request->input('observation') ?? "Le dossier du certificat de $module a été renvoyé à votre institution.";
         if ($module === 'naissance') {
-            $declaration = \Modules\Naissance\Entities\Declarationnaissance::findOrFail($id);
+            $declaration = Declarationnaissance::findOrFail($id);
         } elseif ($module === 'deces') {
-            $declaration = \Modules\Deces\Entities\DeclarationDeces::findOrFail($id);
-        }
-         elseif ($module === 'mariage') {
-            $declaration = \Modules\Mariage\Entities\DeclarationMariage::findOrFail($id);
+            $declaration = DeclarationDeces::findOrFail($id);
+        } elseif ($module === 'mariage') {
+            $declaration = DeclarationMariage::findOrFail($id);
         } else {
             return response()->json(['code' => '400', 'message' => 'Module inconnu']);
         }
         $user = Auth::user();
         [$ok, $result] = $service->renvoyerCertificat($declaration, $user, $observation);
-        if (!$ok) {
+        if (! $ok) {
             return response()->json(['code' => '400', 'message' => $result]);
         }
+
         return response()->json(['code' => '200', 'message' => 'Certificat renvoyé au centre d\'état civil avec succès']);
     }
 
@@ -372,16 +391,14 @@ class TribunalController extends Controller
             $declaration = DeclarationDeces::findOrFail($id);
         } elseif ($module === 'mariage') {
             $declaration = DeclarationMariage::findOrFail($id);
-        }
-
-        else {
+        } else {
             return response()->json(['code' => '400', 'message' => 'Module inconnu']);
         }
 
         $user = Auth::user();
         [$ok, $result] = $service->envoyerOfficiel($declaration, $user, $typeDocument);
 
-        if (!$ok) {
+        if (! $ok) {
             return response()->json(['code' => '400', 'message' => $result]);
         }
 
@@ -408,14 +425,15 @@ class TribunalController extends Controller
             }
 
             if ($declaration->requisition) {
-                $nomDocument = "Réquisition N° " . $declaration->requisition->num_requisition;
+                $nomDocument = 'Réquisition N° '.$declaration->requisition->num_requisition;
                 if ($declaration->requisition->typeRequisition) {
-                    $nomDocument .= " - " . $declaration->requisition->typeRequisition->lib_type_requisition;
+                    $nomDocument .= ' - '.$declaration->requisition->typeRequisition->lib_type_requisition;
                 }
+
                 return response()->json([
                     'success' => true,
                     'nom_document' => $nomDocument,
-                    'type_document' => $declaration->requisition->typeRequisition ? $declaration->requisition->typeRequisition->lib_type_requisition : 'Réquisition'
+                    'type_document' => $declaration->requisition->typeRequisition ? $declaration->requisition->typeRequisition->lib_type_requisition : 'Réquisition',
                 ]);
             } else {
                 return response()->json(['success' => false, 'message' => 'Aucune réquisition trouvée']);
@@ -445,14 +463,15 @@ class TribunalController extends Controller
             }
 
             if ($declaration->jugement) {
-                $nomDocument = "Jugement N° " . $declaration->jugement->num_jugement;
+                $nomDocument = 'Jugement N° '.$declaration->jugement->num_jugement;
                 if ($declaration->jugement->typeJugement) {
-                    $nomDocument .= " - " . $declaration->jugement->typeJugement->lib_type_jugement;
+                    $nomDocument .= ' - '.$declaration->jugement->typeJugement->lib_type_jugement;
                 }
+
                 return response()->json([
                     'success' => true,
                     'nom_document' => $nomDocument,
-                    'type_document' => $declaration->jugement->typeJugement ? $declaration->jugement->typeJugement->lib_type_jugement : 'Jugement'
+                    'type_document' => $declaration->jugement->typeJugement ? $declaration->jugement->typeJugement->lib_type_jugement : 'Jugement',
                 ]);
             } else {
                 return response()->json(['success' => false, 'message' => 'Aucun jugement trouvé']);
@@ -462,13 +481,14 @@ class TribunalController extends Controller
         }
     }
 
-     /**
+    /**
      * Confirme un document (déclaration ou acte) pour un module donné
-     * @param \Illuminate\Http\Request $request
-     *   - code_document : l'ID de la déclaration ou de l'acte
-     *   - module : naissance|mariage|deces
-     *   - mode : 'declaration' (par défaut) ou 'acte'
-     *   - observation : (optionnel)
+     *
+     * @param  Request  $request
+     *                            - code_document : l'ID de la déclaration ou de l'acte
+     *                            - module : naissance|mariage|deces
+     *                            - mode : 'declaration' (par défaut) ou 'acte'
+     *                            - observation : (optionnel)
      */
     public function confirmerDocument(Request $request)
     {
@@ -480,72 +500,72 @@ class TribunalController extends Controller
             // 'observation' => 'nullable|string',
         ]);
 
-        $mode = $request->input('mode', 'declaration');
+        $mode = $request->input('mode', [], 'declaration');
         $module = $request->input('module');
         $id = $request->input('code_document');
         $user = Auth::user();
         $affectation = $user->affectationActive();
         $observation = $request->observation;
-        $statut= "Confirmée";
+        $statut = 'Confirmée';
 
         // Récupération de l'objet selon le module et le mode
         if ($module === 'naissance') {
             $objet = $mode === 'acte'
-                ? \Modules\Naissance\Entities\ActeNaissance::findByIdentifier($id)
-                :  \Modules\Naissance\Entities\Declarationnaissance::find($id);
-            if(!$objet){
+                ? ActeNaissance::findByIdentifier($id)
+                : Declarationnaissance::find($id);
+            if (! $objet) {
                 return response()->json([
                     'code' => '404',
-                    'message' => ['Document non trouvé.']
+                    'message' => ['Document non trouvé.'],
                 ]);
             }
 
-            [$ok, $result] = app(\Modules\Naissance\Services\MouvementService::class)->confirmerDeclarationNaissance(
+            [$ok, $result] = app(MouvementService::class)->confirmerDeclarationNaissance(
                 $affectation,
                 $objet,
                 $statut,
                 $observation
             );
 
-            if (!$ok) {
+            if (! $ok) {
                 return response()->json([
                     'code' => '400',
-                    'message' => $result
+                    'message' => $result,
                 ]);
             }
         } elseif ($module === 'mariage') {
             $objet = $mode === 'acte'
-                ? \Modules\Mariage\Entities\ActeMariage::find($id)
-                : \Modules\Mariage\Entities\DeclarationMariage::find($id);
+                ? ActeMariage::find($id)
+                : DeclarationMariage::find($id);
 
-                if(!$objet){
-                    return response()->json([
-                        'code' => '404',
-                        'message' => ['Document non trouvé.']
-                    ]);
-                }
-                [$ok, $result] = app(\Modules\Mariage\Services\MouvementMariageService::class)->confirmerDeclaration(
-                    $affectation,
-                    $objet,
-                    $statut,
-                    $observation
-                );
-
-                if (!$ok) {
-                    return response()->json([
-                        'code' => '400',
-                        'message' => $result
-                    ]);
-                }
-        } elseif ($module === 'deces') {
-            $objet = $mode === 'acte'
-                ? \Modules\Deces\Entities\ActeDeces::find($id)
-                : \Modules\Deces\Entities\DeclarationDeces::find($id);
-
-            if (!$objet) {
+            if (! $objet) {
                 return response()->json([
                     'code' => '404',
-                    'message' => ['Document non trouvé.']
+                    'message' => ['Document non trouvé.'],
+                ]);
+            }
+            [$ok, $result] = app(MouvementMariageService::class)->confirmerDeclaration(
+                $affectation,
+                $objet,
+                $statut,
+                $observation
+            );
+
+            if (! $ok) {
+                return response()->json([
+                    'code' => '400',
+                    'message' => $result,
+                ]);
+            }
+        } elseif ($module === 'deces') {
+            $objet = $mode === 'acte'
+                ? ActeDeces::find($id)
+                : DeclarationDeces::find($id);
+
+            if (! $objet) {
+                return response()->json([
+                    'code' => '404',
+                    'message' => ['Document non trouvé.'],
                 ]);
             }
 
@@ -556,27 +576,26 @@ class TribunalController extends Controller
                 $observation
             );
 
-            if (!$ok) {
+            if (! $ok) {
                 return response()->json([
                     'code' => '400',
-                    'message' => $result
+                    'message' => $result,
                 ]);
             }
         } else {
             return response()->json([
                 'code' => '400',
-                'message' => ['Module inconnu.']
+                'message' => ['Module inconnu.'],
             ]);
         }
 
         return response()->json([
             'code' => '200',
-            'message' => ['Document confirmé avec succès.']
+            'message' => ['Document confirmé avec succès.'],
         ]);
     }
 
-
-    //ajouter les nouvelles methodes ici
+    // ajouter les nouvelles methodes ici
 
     /**
      * Affiche l'historique des imports de documents
@@ -613,50 +632,52 @@ class TribunalController extends Controller
 
         try {
             $module = $request->input('module');
-            //rechercher la déclaration selon le module et le type de déclaration
-            if($module === 'naissance'){
+            // rechercher la déclaration selon le module et le type de déclaration
+            if ($module === 'naissance') {
                 $certificat = Declarationnaissance::findOrFail($id);
-                if($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+                if ($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
                     $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                     $html2pdf->setDefaultFont('Arial');
                     $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact('certificat'))->render());
-                    return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
+
+                    return $html2pdf->output($certificat->code_declaration_naissance.'.pdf');
                 }
-                if($certificat->type_declaration === "FICHE DE TRANSCRIPTION" || $certificat->type_declaration === "CERTIFICAT DE TRANSCRIPTION"){
+                if ($certificat->type_declaration === 'FICHE DE TRANSCRIPTION' || $certificat->type_declaration === 'CERTIFICAT DE TRANSCRIPTION') {
                     $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                     $html2pdf->setDefaultFont('Arial');
                     $html2pdf->writeHTML(view('naissance::etats.certificat_de_transcription', compact('certificat'))->render());
-                    return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
+
+                    return $html2pdf->output($certificat->code_declaration_naissance.'.pdf');
                 }
-                if($certificat->type_declaration === "CERTIFICAT DE NON INSCRIPTION"){
+                if ($certificat->type_declaration === 'CERTIFICAT DE NON INSCRIPTION') {
                     $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                     $html2pdf->setDefaultFont('Arial');
                     $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact('certificat'))->render());
-                    return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
+
+                    return $html2pdf->output($certificat->code_declaration_naissance.'.pdf');
                 }
 
                 abort(404, 'Aucun modèle PDF pour ce type de déclaration naissance.');
 
-            }elseif($module === 'mariage'){
+            } elseif ($module === 'mariage') {
                 $dm = DeclarationMariage::findOrFail($id);
 
-                if($dm->type_declaration === "DISPENSE"){
+                if ($dm->type_declaration === 'DISPENSE') {
                     $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                     $html2pdf->setDefaultFont('Arial');
                     $html2pdf->writeHTML(view('mariage::etats.DeclarationMariage', compact('dm'))->render());
-                    return $html2pdf->output($dm->code_declaration_mariage . '.pdf');
+
+                    return $html2pdf->output($dm->code_declaration_mariage.'.pdf');
                 }
 
-
-
-
-            }elseif($module === 'deces'){
+            } elseif ($module === 'deces') {
                 $certificat = DeclarationDeces::findOrFail($id);
-                if($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
+                if ($certificat->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
                     $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                     $html2pdf->setDefaultFont('Arial');
                     $html2pdf->writeHTML(view('deces::etats.certificat_destruction', compact('certificat'))->render());
-                    return $html2pdf->output($certificat->code_declaration_deces . '.pdf');
+
+                    return $html2pdf->output($certificat->code_declaration_deces.'.pdf');
                 }
                 $dateDeceEnfant = Carbon::create($certificat->date_heure_deces);
                 $dateNow = Carbon::now();
@@ -664,55 +685,59 @@ class TribunalController extends Controller
                 $html2pdf = new Html2Pdf('P', 'A4', 'fr');
                 $html2pdf->setDefaultFont('Arial');
                 $html2pdf->writeHTML(view('deces::etats.certificats.certificat_non_inscription', compact('certificat', 'ageDeceEnfant'))->render());
-                return $html2pdf->output($certificat->code_declaration_deces . '.pdf');
-            }else{
-                toastr()->error('Type de déclaration inconnu');
+
+                return $html2pdf->output($certificat->code_declaration_deces.'.pdf');
+            } else {
+                flash()->error('Type de déclaration inconnu');
+
                 return back();
             }
-
-
 
             // $dateNaissEnfant = Carbon::create($certificat->enfant->date_naissance);
             // $dateNow = Carbon::now();
             // $ageEnfant = $dateNow->diffInYears($dateNaissEnfant);
-            // $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+            // $html2pdf = new Html2Pdf('P', 'A4', [], 'fr');
             // $html2pdf->setDefaultFont('Arial');
             // $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact('certificat', 'ageEnfant'))->render());
             // return $html2pdf->output($certificat->code_declaration_naissance . '.pdf');
         } catch (Exception $e) {
             Log::error($e->getMessage());
+
             return response('Erreur lors de la génération du PDF', 500);
         }
     }
 
     /**
      * Affiche le formulaire d'import d'un document du tribunal à partir d'un code de déclaration ou d'acte
-     * @param string $type (naissance|mariage|deces)
-     * @param string $code (code de déclaration ou code d'acte)
-     * @param string $mode ('declaration' ou 'acte')
+     *
+     * @param  string  $type  (naissance|mariage|deces)
+     * @param  string  $code  (code de déclaration ou code d'acte)
+     * @param  string  $mode  ('declaration' ou 'acte')
      */
     public function importDocumentTribunal($type, $code)
     {
 
         // Récupération de la déclaration ou de l'acte selon le mode
         if ($type === 'naissance') {
-            $objet = \Modules\Naissance\Entities\Declarationnaissance::find($code);
+            $objet = Declarationnaissance::find($code);
         } elseif ($type === 'mariage') {
-            $objet = \Modules\Mariage\Entities\DeclarationMariage::find($code);
+            $objet = DeclarationMariage::find($code);
         } elseif ($type === 'deces') {
-            $objet = \Modules\Deces\Entities\DeclarationDeces::find($code);
+            $objet = DeclarationDeces::find($code);
         } else {
-            toastr()->error('Type inconnu');
+            flash()->error('Type inconnu');
+
             return back();
         }
 
-        if (!$objet) {
-            toastr()->error('Aucun enregistrement trouvé pour ce code');
+        if (! $objet) {
+            flash()->error('Aucun enregistrement trouvé pour ce code');
+
             return back();
         }
 
-        $typeRequisitions = \App\Models\TypeRequisition::all();
-        $typeJugements = \App\Models\TypeJugement::all();
+        $typeRequisitions = TypeRequisition::all();
+        $typeJugements = TypeJugement::all();
 
         return view('tribunal::documents.importer', [
             'objet' => $objet,
@@ -722,6 +747,4 @@ class TribunalController extends Controller
             'typeJugements' => $typeJugements,
         ]);
     }
-
-
 }

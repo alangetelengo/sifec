@@ -55,6 +55,9 @@ class DatabaseSeeder extends Seeder
             FonctionSeeder::class,
             FonctionFonctionnaliteSeeder::class,
 
+            // ── Menu latéral (tr_menu_item) — après migrations dédiées ────
+            MenuItemSeeder::class,
+
             // ── Mouvements ───────────────────────────────────────────────────
             TrMouvementSeeder::class,
             TrMouvementCertificatsNaissanceDecesSeeder::class,

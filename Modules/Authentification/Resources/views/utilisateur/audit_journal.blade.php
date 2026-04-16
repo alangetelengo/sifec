@@ -493,6 +493,25 @@
     }
     .page-audit-sifec .audit-pagination .pagination {
         margin-bottom: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.15rem;
+    }
+    .page-audit-sifec .audit-pagination .page-link {
+        border-radius: 8px;
+        margin: 0 2px;
+        color: var(--a-green-mid);
+        border-color: var(--a-line);
+        font-size: 0.875rem;
+    }
+    .page-audit-sifec .audit-pagination .page-item.active .page-link {
+        background: var(--a-green-mid);
+        border-color: var(--a-green-mid);
+        color: #fff;
+    }
+    .page-audit-sifec .audit-pagination .page-item.disabled .page-link {
+        color: var(--a-ink-muted);
+        background: #f8faf9;
     }
 </style>
 @endsection
@@ -672,7 +691,7 @@
 
         @if($rows->hasPages())
             <div class="audit-pagination">
-                {{ $rows->links() }}
+                {{ $rows->links('pagination::bootstrap-4') }}
             </div>
         @endif
     </div>

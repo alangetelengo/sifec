@@ -1403,9 +1403,6 @@ $(function(){
             if (result.value==true)
             {
                 Swal.close();
-                if (typeof sifecSwalLoading === 'function') {
-                    sifecSwalLoading('Enregistrement...');
-                }
                 $.post("{{route('declarationNaissance.store')}}",data,function(response)
                 {
                     if (typeof Swal !== 'undefined') { Swal.close(); }

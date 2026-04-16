@@ -1443,9 +1443,6 @@ $(function(){
             if (result.value==true)
             {
                 Swal.close();
-                if (typeof sifecSwalLoading === 'function') {
-                    sifecSwalLoading('Enregistrement...');
-                }
                 var typeDeclaration = $("#type_declaration").val();
                 var url = "{{ route('declarationNaissance.index') }}";
                 var codeDeclarationNaissance =  $("#code_declaration_naissance").val();
