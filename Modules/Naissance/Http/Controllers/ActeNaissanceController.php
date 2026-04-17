@@ -417,7 +417,7 @@ class ActeNaissanceController extends Controller
                 }
             }
 
-            // Compter le nombre total de mentions
+            // Compter les mentions réellement affichées dans la marge (etats/acte.blade.php) : pas d’incrément pour un jugement sans bloc marge ni pour acte annulé (non rendu dans la marge).
             $nombreMentions = 0;
             if ($mariage != null) {
                 $nombreMentions++;
@@ -425,11 +425,15 @@ class ActeNaissanceController extends Controller
             if ($declarationDeces != null) {
                 $nombreMentions++;
             }
-            if ($acte->declaration->jugement != null) {
-                $nombreMentions++;
-            }
-            if ($acteannuler != null) {
-                $nombreMentions++;
+            $jugement = $acte->declaration->jugement;
+            if ($jugement !== null) {
+                if (filled($acte->declaration->code_adoptant) || filled(optional($acte->declaration->adoptant)->code_personne)) {
+                    $nombreMentions++;
+                }
+                $typeJg = (string) ($jugement->type_jugement ?? '');
+                if (in_array($typeJg, ['JUGEMENT SUPPLETIF', "JUGEMENT D'HOMOLOGATION"], true)) {
+                    $nombreMentions++;
+                }
             }
             // Charger les rectifications si nécessaire pour le comptage
             if (! $acte->relationLoaded('rectifications')) {
@@ -440,8 +444,11 @@ class ActeNaissanceController extends Controller
             }
 
             view()->share('tester', 'Alange');
-            $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+            // Marges [L,T,R,B] mm — bas légèrement réduit pour gagner de la hauteur utile sur A4.
+            $html2pdf = new Html2Pdf('P', 'A4', 'fr', true, 'UTF-8', [5, 5, 5, 5]);
             $html2pdf->setDefaultFont('Arial');
+            // Acte : une grande TD (colonne texte) contient tout le corps ; le test « TD sur une page » provoque souvent un saut page 2 inutile (cf. exemple 11 Html2Pdf).
+            $html2pdf->setTestTdInOnePage(false);
 
             $verificationUrl = $acte->niupp
                 ? URL::signedRoute('verification.acte', ['niupp' => $acte->niupp])
@@ -521,12 +528,19 @@ class ActeNaissanceController extends Controller
             $dummy = 'XXXXXXXXXXXXXXXX';
 
             if ($acte == null) {
+                Log::channel('sifec')->warning('[ActeNaissance][PDF][Copie] Acte introuvable', [
+                    'code_declaration_naissance' => $id,
+                ]);
                 flash()->error('Vous ne pouvez pas généré un acte de naissance');
 
                 return back();
             }
 
             if (! $acte->niupp) {
+                Log::channel('sifec')->warning('[ActeNaissance][PDF][Copie] Copie demandée sans NIUPP (signature officier requise)', [
+                    'code_declaration_naissance' => $acte->code_declaration_naissance,
+                    'code_acte_naissance' => $acte->code_acte_naissance,
+                ]);
                 flash()->error('La copie d’acte n’est disponible qu’après signature par l’officier d’état civil.');
 
                 return back();
@@ -549,8 +563,18 @@ class ActeNaissanceController extends Controller
             $qrCode = $verificationUrl;
             $html2pdf->writeHTML(view('naissance::etats.copieActeNaissance', compact('acte', 'dummy', 'declarationDeces', 'mariage', 'qrCode'))->render());
 
-            return $html2pdf->output($acte->code_acte_naissance.'.pdf');
+            $pdfBinary = $html2pdf->output($acte->code_acte_naissance.'.pdf');
+
+            return $this->pdfInlineResponse($pdfBinary, $acte->code_acte_naissance.'.pdf');
         } catch (Exception $e) {
+            Log::channel('sifec')->error('[ActeNaissance][PDF][Copie] Échec génération', [
+                'identifiant_url' => $id,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             flash()->error("Une erreur est survenue lors de la génération de la copie d'acte de naissance: ".$e->getMessage());
 
             return back();
@@ -1154,7 +1178,6 @@ class ActeNaissanceController extends Controller
 
     public function displayExtrait($id)
     {
-
         $acte = ActeNaissance::with(array_merge(
             Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance(),
             [
@@ -1167,28 +1190,50 @@ class ActeNaissanceController extends Controller
         $numExtrait = substr(time(), 2);
 
         if ($acte == null) {
+            Log::channel('sifec')->warning('[ActeNaissance][PDF][Extrait] Acte introuvable', [
+                'code_declaration_naissance' => $id,
+            ]);
             flash()->error("Vous ne pouvez pas généré un extrait d'acte de naissance");
 
             return back();
         }
 
         if (! $acte->niupp) {
+            Log::channel('sifec')->warning('[ActeNaissance][PDF][Extrait] Extrait demandé sans NIUPP', [
+                'code_declaration_naissance' => $acte->code_declaration_naissance,
+                'code_acte_naissance' => $acte->code_acte_naissance,
+            ]);
             flash()->error('L’extrait n’est disponible qu’après signature par l’officier d’état civil.');
 
             return back();
         }
 
-        view()->share('tester', [], 'extrait');
-        $html2pdf = new Html2Pdf('L', 'A5', 'fr');
-        $html2pdf->setDefaultFont('Arial');
+        try {
+            view()->share('tester', [], 'extrait');
+            // $html2pdf = new Html2Pdf('L', 'A5', 'fr');
+            $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+            $html2pdf->setDefaultFont('Arial');
 
-        // contrôle de contexte
-        $code_institution = Auth::user()->affectationActive()->institution->code_institution;
+            $qrCode = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
 
-        // contexte Congo
-        $html2pdf->writeHTML(view('naissance::etats.extrait', compact('acte', 'dummy', 'numExtrait'))->render());
+            $html2pdf->writeHTML(view('naissance::etats.extrait', compact('acte', 'dummy', 'numExtrait', 'qrCode'))->render());
 
-        return $html2pdf->output($acte->code_acte_naissance.'.pdf');
+            $pdfBinary = $html2pdf->output($acte->code_acte_naissance.'.pdf');
+
+            return $this->pdfInlineResponse($pdfBinary, $acte->code_acte_naissance.'.pdf');
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('[ActeNaissance][PDF][Extrait] Échec génération', [
+                'code_declaration_naissance' => $id,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            flash()->error("Erreur lors de la génération de l'extrait : ".$e->getMessage());
+
+            return back();
+        }
     }
 
     public function findActe(Request $request)
@@ -1247,6 +1292,11 @@ class ActeNaissanceController extends Controller
     public function printCopie($id)
     {
         $acte = ActeNaissance::where('code_declaration_naissance', $id)->first();
+        if ($acte === null) {
+            Log::channel('sifec')->warning('[ActeNaissance][Copie] Page copie : déclaration / acte introuvable', [
+                'code_declaration_naissance' => $id,
+            ]);
+        }
 
         return view('naissance::acte.copie', compact('acte'));
         // return view('naissance::acte.acte',compact("acte"));
@@ -1255,6 +1305,11 @@ class ActeNaissanceController extends Controller
     public function printExtrait($id)
     {
         $acte = ActeNaissance::where('code_declaration_naissance', $id)->first();
+        if ($acte === null) {
+            Log::channel('sifec')->warning('[ActeNaissance][Extrait] Page extrait : déclaration / acte introuvable', [
+                'code_declaration_naissance' => $id,
+            ]);
+        }
 
         return view('naissance::acte.extrait', compact('acte'));
     }

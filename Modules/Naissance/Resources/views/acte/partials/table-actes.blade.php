@@ -95,14 +95,14 @@
                        title="Voir l'acte">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <a href="{{ route('acteNaissance.copie',$dn->code_declaration_naissance) }}"
+                    {{-- <a href="{{ route('acteNaissance.print.copie', $dn->code_declaration_naissance) }}"
                        target="_blank"
                        rel="noopener"
                        class="btn btn-sm btn-info"
                        title="Voir copie">
                         <i class="fas fa-copy"></i>
-                    </a>
-                    <a href="{{ route('acteNaissance.displayExtrait',$dn->code_declaration_naissance) }}"
+                    </a> --}}
+                    <a href="{{ route('acteNaissance.print.extrait', $dn->code_declaration_naissance) }}"
                        target="_blank"
                        rel="noopener"
                        class="btn btn-sm btn-warning"
@@ -126,14 +126,14 @@
                        title="Voir l'acte">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <a href="{{ route('acteNaissance.copie',$dn->code_declaration_naissance) }}"
+                    <a href="{{ route('acteNaissance.print.copie', $dn->code_declaration_naissance) }}"
                        target="_blank"
                        rel="noopener"
                        class="btn btn-sm btn-info"
                        title="Voir copie">
                         <i class="fas fa-copy"></i>
                     </a>
-                    <a href="{{ route('acteNaissance.displayExtrait',$dn->code_declaration_naissance) }}"
+                    <a href="{{ route('acteNaissance.print.extrait', $dn->code_declaration_naissance) }}"
                        target="_blank"
                        rel="noopener"
                        class="btn btn-sm btn-warning"

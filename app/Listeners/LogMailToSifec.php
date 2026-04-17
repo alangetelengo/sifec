@@ -6,6 +6,7 @@ use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Mime\Address;
 
 /**
  * Trace centralisée des e-mails dans storage/logs/sifec.log (canal « sifec »).
@@ -23,7 +24,7 @@ class LogMailToSifec
     }
 
     /**
-     * @param  \Swift_Message  $message
+     * @param  object  $message  Symfony Email (Laravel 9+), plus Swift_Message historique
      */
     private function writeLog(string $phase, $message, array $data): void
     {
@@ -59,17 +60,38 @@ class LogMailToSifec
     {
         $out = [];
         foreach ($addresses as $email => $name) {
+            if ($name instanceof Address) {
+                $out[] = [
+                    'email_masque' => $this->maskEmail($name->getAddress()),
+                    'name' => $this->optionalDisplayName($name->getName()),
+                ];
+
+                continue;
+            }
             if (is_int($email)) {
                 $email = $name;
                 $name = null;
             }
+            if ($email instanceof Address) {
+                $out[] = [
+                    'email_masque' => $this->maskEmail($email->getAddress()),
+                    'name' => $this->optionalDisplayName($email->getName()),
+                ];
+
+                continue;
+            }
             $out[] = [
                 'email_masque' => $this->maskEmail((string) $email),
-                'name' => $name !== null && $name !== '' ? (string) $name : null,
+                'name' => is_string($name) && $name !== '' ? $name : null,
             ];
         }
 
         return $out;
+    }
+
+    private function optionalDisplayName(string $name): ?string
+    {
+        return $name !== '' ? $name : null;
     }
 
     private function maskEmail(string $email): string

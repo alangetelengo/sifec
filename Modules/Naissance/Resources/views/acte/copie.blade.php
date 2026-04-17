@@ -14,16 +14,34 @@ Copie d'acte de naissance
             <div class="card-header">
                 <h4></h4>
                 <div class="row">
-                    <div id="dupcreer">
-                        <button class="btn btn-sm btn-primary mb-2  chercheacte">Imprimer</button>
+                    <div id="dupcreer" class="d-flex flex-wrap align-items-center gap-2 justify-content-between w-100 px-1">
+                        <a href="{{ route('acteNaissance.index') }}" class="btn btn-sm btn-info text-white mb-2">
+                            <i class="fas fa-arrow-left me-1"></i> Liste des actes
+                        </a>
+                        <div class="d-flex gap-2">
+                            @if($acte)
+                                <button type="button"
+                                        class="btn btn-sm btn-success mb-2"
+                                        id="btn-imprimer-copie"
+                                        title="Imprimer la copie d'acte">
+                                    <i class="fas fa-print me-1"></i> Imprimer
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-                        <input type="hidden" value="{{ $acte->code_declaration_naissance }}" id="cdn">
-                        <div id="pdfViewer"></div>
+                        @if($acte)
+                            <input type="hidden" value="{{ $acte->code_declaration_naissance }}" id="cdn">
+                            <div id="pdfViewer"></div>
+                        @else
+                            <div class="alert alert-warning mb-0" role="alert">
+                                Aucun acte à afficher pour cette demande.
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -43,19 +61,60 @@ Copie d'acte de naissance
 
  <!---- fin inclusion kendoUi --->
  <script>
-    $(function() {
+    /**
+     * Impression d’un PDF servi en session (même origine) : fetch → blob → iframe → print().
+     */
+    function sifecPrintAuthenticatedPdf(url) {
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/pdf,*/*' } })
+            .then(function (res) {
+                var ct = (res.headers.get('Content-Type') || '').toLowerCase();
+                if (!res.ok || ct.indexOf('application/pdf') === -1) {
+                    return res.text().then(function (body) {
+                        var msg = (body || '').trim().substring(0, 300) || ('Erreur HTTP ' + res.status);
+                        throw new Error(msg);
+                    });
+                }
+                return res.blob();
+            })
+            .then(function (blob) {
+                var blobUrl = URL.createObjectURL(blob);
+                var iframe = document.createElement('iframe');
+                iframe.setAttribute('style', 'position:fixed;width:0;height:0;border:0;right:0;bottom:0;opacity:0;pointer-events:none');
+                iframe.setAttribute('title', 'Impression PDF');
+                iframe.src = blobUrl;
+                document.body.appendChild(iframe);
+                iframe.onload = function () {
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (e) {
+                        console.warn('[sifecPrintAuthenticatedPdf]', e);
+                    }
+                    setTimeout(function () {
+                        if (iframe.parentNode) {
+                            iframe.parentNode.removeChild(iframe);
+                        }
+                        URL.revokeObjectURL(blobUrl);
+                    }, 120000);
+                };
+            })
+            .catch(function (err) {
+                alert('Impossible d’imprimer le document : ' + (err && err.message ? err.message : String(err)));
+            });
+    }
 
+    $(function () {
+        @if($acte)
         var cdn = $("#cdn").val();
-        // kendo.alert("ok");
         var route = "{{ route('acteNaissance.copie', ':id') }}";
-        route = route.replace(':id',cdn);
+        route = route.replace(':id', cdn);
         $.when(
             $.getScript("{{ asset('kendo-library/pdf.js') }}"),
             $.getScript("{{ asset('kendo-library/kendo-style/worker.js') }}")
         )
         .done(function () {
             window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('kendo-library/kendo-style/worker.js') }}";
-        }).then(function(){
+        }).then(function () {
             $("#pdfViewer").kendoPDFViewer({
                 pdfjsProcessing: {
                     file: route
@@ -67,8 +126,12 @@ Copie d'acte de naissance
             $('a[title="Download"]').hide();
             $('a[title="Open"]').hide();
             $(".k-toolbar").hide();
-
         });
+
+        $("#btn-imprimer-copie").on("click", function () {
+            sifecPrintAuthenticatedPdf(route);
+        });
+        @endif
     });
 </script>
 @endsection

@@ -41,6 +41,7 @@ class CertificatDestructionController extends Controller
     {
         $user = Auth::user();
         $affectationActive = (is_object($user) && method_exists($user, 'affectationActive')) ? $user->affectationActive() : null;
+
         $certificats = collect();
         $institution = $affectationActive ? $affectationActive->institution : null;
         if (! $institution || $institution->code_type_institution !== 'TPINS_0002') {
@@ -48,7 +49,7 @@ class CertificatDestructionController extends Controller
 
             return back();
         }
-        $certificats = Declarationnaissance::where('type_declaration', [], 'CERTIFICAT DE DESTRUCTION DE L\'ACTE')
+        $certificats = Declarationnaissance::where('type_declaration', "CERTIFICAT DE DESTRUCTION DE L'ACTE")
             ->where('code_user_institution', $affectationActive ? $affectationActive->cui : null)
             ->get();
 

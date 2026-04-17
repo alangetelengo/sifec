@@ -84,8 +84,8 @@
         <br><br>
         <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;margin-bottom:-50px">
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>Le: <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong> à <br>
-                    <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong>
+                <td>Le: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong> à <br>
+                    <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ \App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong>
                 </td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
@@ -108,6 +108,14 @@
             </tr>
 
            </table>
+
+                @if ($acte->approbation_mairie != "" && ! empty($qrCode ?? null))
+                <div style="position:absolute; left: 12px; top: 228px; width: 32mm;">
+                    <div style="width: 30mm;">
+                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
+                    </div>
+                </div>
+                @endif
 
                 <div style="text-align:right">
                     <p style="margin-right:150px;margin-top:70px">L’officier de l’état civil</p><br>

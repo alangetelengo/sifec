@@ -1,9 +1,9 @@
 <style>
     td{
-        font-size: 14px;
+        font-size: 12px;
     }
     b{
-        font-size: 14px;
+        font-size: 12px;
     }
     small{
         color: red;
@@ -35,17 +35,17 @@
     table.acte-bi-colonne td.acte-texte {
         width: 82%;
         vertical-align: top;
-        padding-left: 3mm;
-        font-size: 14px;
+        padding-left: 2mm;
+        font-size: 12px;
         text-align: left;
     }
-    /* Corps un peu plus compact : limite les sauts à 2 pages sur actes longs (pied en absolute) */
+    /* Corps compact : tient sur une page A4 avec pied absolu (Html2Pdf) */
     table.acte-bi-colonne td.acte-texte table td {
-        font-size: 13px;
-        line-height: 1.2;
+        font-size: 11.5px;
+        line-height: 1.1;
     }
     table.acte-bi-colonne td.acte-texte b {
-        font-size: 13px;
+        font-size: 11.5px;
     }
     td.acte-ligne-institution {
         overflow-wrap: anywhere;
@@ -53,7 +53,7 @@
         word-break: normal;
     }
 </style>
-  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="22mm" style="font-size: 14px">
+  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="52%" backimgw="55%" backtop="0" backbottom="34mm" style="font-size: 12px">
     @php
     $infos = "";
     // Tribunal : t_declaration_naissance → réquisition/jugement (code_* ou code_declaration) → tr_institution
@@ -73,20 +73,31 @@
         }
     }
 
+    // Numéro : declaration.numero_req souvent vide ; t_requisition.num_requisition via code_requisition ou code_declaration
+    $numeroRequisitionAffiche = trim((string) ($acte->declaration->numero_req ?? ''));
+    if ($numeroRequisitionAffiche === '') {
+        $numeroRequisitionAffiche = trim((string) (optional($acte->declaration->requisitionParCode)->num_requisition ?? ''));
+    }
+    if ($numeroRequisitionAffiche === '') {
+        $numeroRequisitionAffiche = trim((string) (optional($acte->declaration->requisition)->num_requisition ?? ''));
+    }
+
     if($acte->declaration->type_declaration == "CERTIFICAT DE DESTRUCTION DE L'ACTE"){
-        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
+        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DU PROCUREUR DE LA REPUBLIQUE N° '.$numeroRequisitionAffiche." ".$num;
     }
 
     if($acte->declaration->type_declaration == "CERTIFICAT DE NON INSCRIPTION"){
-        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
+        $infos = 'ACTE RECONSTITUE SUIVANT REQUISITION DE DECLARATION TARDIVE N° '.$numeroRequisitionAffiche." ".$num;
     }
 
     if($acte->declaration->type_declaration == "CERTIFICAT DE TRANSCRIPTION"){
-        $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$acte->declaration->numero_req.'/'.date("Y", strtotime($acte->declaration->date_heure_declaration))." ".$num;
+        $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$numeroRequisitionAffiche." ".$num;
     }
 
 
     @endphp
+    {{-- Html2Pdf : regroupe en-tête + corps + pied sur une page si la hauteur le permet (évite 2e page quasi vide avec seul le filigrane). --}}
+    <nobreak>
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
         <tr>
             <td style="width:40%; text-align: center;">
@@ -123,14 +134,14 @@
                 Unit&eacute; - Travail - Progr&egrave;s
             </td>
         </tr>
-  </table><br><br>
+  </table><br>
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
                 @if ((int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
-                    <img src="{{ public_path('app/'.$acte->sceau_tribunal) }}" alt="" width="100" height="100" style="display: block; margin: 0 auto 3mm auto;">
+                    <img src="{{ public_path('app/'.$acte->sceau_tribunal) }}" alt="" width="80" height="80" style="display: block; margin: 0 auto 2mm auto;">
                 @endif
-                <p><strong style="font-size: 18px;">ACTE DE NAISSANCE</strong>
+                <p style="margin: 0;"><strong style="font-size: 16px;">ACTE DE NAISSANCE</strong>
                     {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
                     <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong></p>
             </td>
@@ -141,11 +152,15 @@
         </tr><br>
     </table>
     {{-- Bi-colonne en flux (pas en position:absolute) : évite le chevauchement avec le sceau / titre sous Html2Pdf --}}
-    <div style="margin-top: 5mm; margin-left: 5%; margin-right: 5%;">
+    <div style="margin-top: 2mm; margin-left: 4%; margin-right: 4%; padding-bottom: 1mm;">
         <table class="acte-bi-colonne" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="acte-marge" style="text-align: center; border-right: 0.5mm solid #000;">
-            <p style="margin: 0 0 4px 0; line-height: 1.2;"><strong>Marge réservée aux mentions <br> d'officier ({{ $nombreMentions ?? 0 }})</strong></p>
+            <p style="margin: 0 0 4px 0; line-height: 1.2;"><strong>Marge réservée aux mentions <br> d&#39;officier
+                @if(($nombreMentions ?? 0) > 0)
+                    ({{ $nombreMentions }})
+                @endif
+            </strong></p>
 
             @if ($mariage != null)
                 <small>Marié(e) le: <br> {{ date("d-m-Y", strtotime($mariage->date_prevue_mariage))}}</small><br>
@@ -227,12 +242,12 @@
                 <td class="acte-texte acte-corps-principal">
             <table align="left" style="width: 100%; border-radius: 1mm; border: none; table-layout: fixed;">
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                    <td class="acte-ligne-institution">L'Officier du centre d'état civil principal de: <strong>{!! Sifec::wrapLibInstitutionPourActePdf($acte->institutionUser->institution->lib_institution ?? null, 30) !!}</strong></td>
+                    <td class="acte-ligne-institution">L'Officier du centre d'état civil principal de: <strong>{!! \App\Sifec\Sifec::wrapLibInstitutionPourActePdf($acte->institutionUser->institution->lib_institution ?? null, 30) !!}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>Est informé le: <br> <strong>
 
-                        {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong>
+                        {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong>
 
                     </td>
                 </tr>
@@ -240,10 +255,10 @@
                     <td>Est né(e), un enfant de sexe: <strong>{{ $acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong> à </td>
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong> à </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td style=""> <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
+                    <td style=""> <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ \App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td>A: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td>
@@ -291,7 +306,7 @@
                 <tr style="width:100%; text-align: left;">
                     <td>Né le : <strong>
                         @if ($acte->declaration->pere != NULL)
-                            {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->pere->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) }}
+                            {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->pere->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) }}
                         @endif
                     </strong></td>
                 </tr>
@@ -317,7 +332,7 @@
                 <tr style="width:100%; text-align: left;">
                     <td>Née le : <strong>
                         @if ($acte->declaration->mere != NULL)
-                            {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->mere->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) }}
+                            {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->mere->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) }}
                         @endif
                     </strong></td>
                 </tr>
@@ -348,9 +363,9 @@
         </table>
     </div>
 
-    {{-- Pied hors flux : bottom:0 uniquement (valeur négative → débordement Html2Pdf et retour à 2 pages) --}}
-    <div style="position:absolute; bottom:0; margin-left:10px;">
-        <table class="historique" cellspacing="0" style="width: 95%; font-size: 14px;">
+    {{-- Pied en flux : l’absolute bottom:0 faisait souvent une 2e page fantôme (filigrane seul) avec Html2Pdf/TCPDF. --}}
+    <div style="margin-top: 4mm; margin-left: 8px; margin-right: 8px;">
+        <table class="historique" cellspacing="0" style="width: 100%; font-size: 12px;">
             <col style="width: 35%">
             <col style="width: 25%">
             <col style="width: 40%">
@@ -368,7 +383,7 @@
                          @if($acte->approbation_mairie != "")
                          <div style="margin-bottom:0;">
                              @isset($qrCode)
-                                <div style="width: 30mm;">
+                                <div style="width: 24mm;">
                                     <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
                                 </div>
                              @endisset
@@ -378,7 +393,7 @@
                         {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
                     <td style="text-align: left;">
-                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
+                     <p style="font-size: 12px; margin: 0 0 1mm 0;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
                          @if ($acte->approbation_mairie != "")
                              <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
                              <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
@@ -388,4 +403,5 @@
             </tbody>
         </table>
     </div>
+    </nobreak>
 </page>

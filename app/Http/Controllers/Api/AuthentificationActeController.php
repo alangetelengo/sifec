@@ -551,12 +551,24 @@ class AuthentificationActeController extends Controller
             return back();
         }
 
+        $dummy = 'XXXXXXXXXXXXXXXX';
+        $qrCode = $acte->niupp
+            ? URL::signedRoute('verification.acte', ['niupp' => $acte->niupp])
+            : null;
+
         view()->share('tester', [], 'Alange');
         $html2pdf = new Html2Pdf('L', 'A5', 'fr');
         $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('naissance::etats.extrait', compact('acte', 'numExtrait'))->render());
+        $html2pdf->writeHTML(view('naissance::etats.extrait', compact('acte', 'numExtrait', 'dummy', 'qrCode'))->render());
 
-        return $html2pdf->output($acte->code_acte_naissance.'.pdf');
+        $pdfBinary = $html2pdf->output($acte->code_acte_naissance.'.pdf');
+        $safeName = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $acte->code_acte_naissance.'.pdf') ?: 'extrait.pdf';
+
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$safeName.'"',
+            'Cache-Control' => 'private, must-revalidate',
+        ]);
 
     }
 
