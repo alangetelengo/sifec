@@ -48,7 +48,7 @@
     <div style="margin-top: 0%;margin-left: 4%;margin-right: 6%;border-radius: 2mm;">
         <div style="right:11px; left: 15px; top: 100px; width: 800px; height: 760px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:20px;">
             <p style="margin-right: 15%;text-align: justify;font-size: 80%;">
-                Vu la requête introduite en date du {{strftime("%d %B %Y", strtotime(date($requisition->created_at)))}}, par {{$requisition->declarant->nom ." ".$requisition->declarant->prenom}}, domicilié au {{ Sifec::adressepersonne($requisition->declarant->code_personne) }} <br><br>
+                Vu la requête introduite en date du {{strftime("%d %B %Y", strtotime(date($requisition->created_at)))}}, par {{$requisition->declarant->nom ." ".$requisition->declarant->prenom}}, domicilié au {{ \App\Sifec\Sifec::adressepersonne($requisition->declarant->code_personne) }} <br><br>
 
                 Attendu que le requérant expose qu’en date du {{ strftime("%d %B %Y", strtotime($requisition->date_heure_deces)) }} à {{ $requisition->lieu_deces }} est {{ $requisition->defunt->sexe=="M" ? "décédé le nommé" : "décédée la nommée"  }} {{$requisition->defunt->nom}} {{$requisition->defunt->prenom}}  <br><br>
 

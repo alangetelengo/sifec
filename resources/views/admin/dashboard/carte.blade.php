@@ -1,70 +1,147 @@
 @extends('layout.app')
 @section('titre')
-    Accueil
+    Carte du Congo
 @endsection
 @section('styles')
-<link rel="stylesheet" type="text/css" href="{{asset('carte/css/map.css')}}">
+@include('admin.dashboard._sifec_dashboard_theme')
+<link rel="stylesheet" type="text/css" href="{{ asset('carte/css/map.css') }}">
 @endsection
 @section('corps')
 
 <div class="card">
-    {{-- <div class="card-header"> <h4> Créer une fonction</h4> </div> --}}
     <div class="card-body">
-        <div class="row">
 
-            <h5>
-                Statistiques en territoires etrangers
-            </h1>
-            <hr>
-            <div class="col-sm-12">
-                NAISSANCES
-            <table width="100%">
-                <tr>
-                    <td><strong>CUMULE</strong>
-                    <BR>
-                    <strong>{{ $statnais }}</strong>
-                    </td>
-                    <td><strong>ANNEE </strong>
-                        <BR>
-
-                        <strong>{{ $statnaisannuel }}</strong>
-                    </td>
-                    <td><strong>MOIS </strong>
-                        <BR>
-                        <strong>{{ $statnaismois }}</strong>
-                    </td>
-
-                </tr>
-            </table>
-            <HR>
-            DECES
-            <table width="100%">
-                <tr>
-                    <td><strong>CUMULE</strong>
-                    <BR>
-                    <strong>{{ $statdeces }}</strong>
-                    </td>
-                    <td><strong>ANNEE </strong>
-                        <BR>
-
-                        <strong>{{ $statannuel }}</strong>
-                    </td>
-                    <td><strong>MOIS </strong>
-                        <BR>
-                        <strong>{{ $statmois }}</strong>
-                    </td>
-
-                </tr>
-            </table>
+        <div class="row g-2 mb-3 align-items-center">
+            <div class="col-md-8">
+                <h4 class="mb-1">Carte du Congo</h4>
+                <p class="text-muted small mb-0">Filtres de période, graphiques et synthèses (comme l’écran d’origine, carte à gauche, tableau à droite à partir du format large).</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="#" class="btn btn-outline-primary btn-sm" id="carte-btn-pdf"><i class="fa fa-file-pdf-o me-1"></i>Export PDF</a>
             </div>
         </div>
+
+        <section class="mb-4" id="carte-transcriptions" aria-labelledby="carte-etranger-title"
+            data-ssr-nais-cumul="{{ $statnais }}" data-ssr-nais-annee="{{ $statnaisannuel }}" data-ssr-nais-mois="{{ $statnaismois }}"
+            data-ssr-deces-cumul="{{ $statdeces }}" data-ssr-deces-annee="{{ $statannuel }}" data-ssr-deces-mois="{{ $statmois }}">
+            <h2 id="carte-etranger-title" class="h6 text-secondary text-uppercase fw-semibold mb-2" style="letter-spacing: .04em;">Hors territoire national</h2>
+            <p class="small text-muted mb-3">Certificats de transcription d’actes (naissances et décès) pour des évènements survenus à l’étranger.</p>
+
+            <div class="row g-3 mb-1">
+                <div class="col-12">
+                    <span class="fw-semibold text-body">Naissances</span>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100 shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="small text-muted text-uppercase mb-1">Cumul</div>
+                            <div class="fs-2 fw-bold text-primary mb-0" id="trx-nais-cumul">{{ $statnais }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100 shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="small text-muted text-uppercase mb-1">Année en cours</div>
+                            <div class="fs-2 fw-bold text-primary mb-0" id="trx-nais-annee">{{ $statnaisannuel }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100 shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="small text-muted text-uppercase mb-1">Mois en cours</div>
+                            <div class="fs-2 fw-bold text-primary mb-0" id="trx-nais-mois">{{ $statnaismois }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 mt-2">
+                    <span class="fw-semibold text-body">Décès</span>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100 shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="small text-muted text-uppercase mb-1">Cumul</div>
+                            <div class="fs-2 fw-bold text-danger mb-0" id="trx-deces-cumul">{{ $statdeces }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100 shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="small text-muted text-uppercase mb-1">Année en cours</div>
+                            <div class="fs-2 fw-bold text-danger mb-0" id="trx-deces-annee">{{ $statannuel }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100 shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="small text-muted text-uppercase mb-1">Mois en cours</div>
+                            <div class="fs-2 fw-bold text-danger mb-0" id="trx-deces-mois">{{ $statmois }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <hr>
-        <h5>
-            Statistiques en territoire national
-        </h1>
+
+        <div class="sec-card mb-3 border">
+            <div class="sc-head">
+                <h3 class="sc-title mb-0"><i class="fa fa-calendar me-2 text-secondary"></i>Période d’analyse</h3>
+            </div>
+            <div class="sc-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-label small text-muted mb-1" for="carte-debut">Du</label>
+                        <input type="date" class="form-control form-control-sm" id="carte-debut" value="{{ $defaultChartDebut }}">
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-label small text-muted mb-1" for="carte-fin">Au</label>
+                        <input type="date" class="form-control form-control-sm" id="carte-fin" value="{{ $defaultChartFin }}">
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-primary btn-sm" id="carte-appliquer"><i class="fa fa-filter me-1"></i>Appliquer au tableau et aux transcriptions</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm ms-1" id="carte-reset">Réinitialiser</button>
+                        <span class="small text-muted ms-2 d-none" id="carte-filtre-actif"><i class="fa fa-circle text-success me-1" style="font-size:.45rem;vertical-align:middle;"></i>Période active sur les chiffres ci-dessous</span>
+                    </div>
+                </div>
+                <p class="small text-muted mt-3 mb-0">Par défaut, le graphique couvre les 30 derniers jours. Les synthèses nationales et départementales du tableau utilisent la logique habituelle jusqu’à ce que vous appliquiez une période.</p>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-xl-8">
+                <div class="sec-card h-100">
+                    <div class="sc-head"><h3 class="sc-title mb-0"><i class="fa fa-line-chart me-2 text-secondary"></i>Évolution journalière des actes (national)</h3></div>
+                    <div class="sc-body">
+                        <div class="carte-chart-wrap" style="min-height:260px;position:relative;">
+                            <canvas id="chartCarteSerie"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="sec-card h-100">
+                    <div class="sc-head"><h3 class="sc-title mb-0"><i class="fa fa-pie-chart me-2 text-secondary"></i>Répartition (période du graphique)</h3></div>
+                    <div class="sc-body d-flex align-items-center justify-content-center carte-chart-wrap" style="min-height:260px;">
+                        <canvas id="chartCarteDonut" width="220" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <h5 class="mb-0">Statistiques en territoire national</h5>
         <br><br>
-        <div class="row" id="carte">
-            <div class="col-lg-5 text-left carte__image"
+
+        <div class="row g-0 g-lg-3 align-items-start" id="carte">
+            <div class="col-12 col-md-5 col-lg-5 text-left carte__image"
                 style="background-color:white;padding-left:20px;padding-right:20px;margin-top:-15px;">
                 <svg version="1.1" id="Layer_1" xmlns:amcharts="http://amcharts.com/ammap" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 612 792" style="enable-background:new 0 0 612 792;" xml:space="preserve">
                         <style type="text/css">
@@ -430,52 +507,52 @@
 
             </div>
 
-            <div class="col-lg-7 text-left carte__list" style="background-color:white;">
+            <div class="col-12 col-md-7 col-lg-7 text-left carte__list" style="background-color:white;">
 
                 <div class="table-responsive">
 
                     <table class="table table-striped table-bordered">
                         <tbody>
                         <tr>
-                            <td colspan="5" style="background-color: #fff0f5; color: #1E88E5" class="text-center"><strong> SYNTHESE NATIONALE </strong></td>
+                            <td colspan="5" class="text-center table-primary fw-semibold">Synthèse nationale</td>
+                        </tr>
+                        <tr class="table-light small">
+                            <td class="text-center">Situation</td>
+                            <td class="text-center">Naissance</td>
+                            <td class="text-center">Mariage</td>
+                            <td class="text-center">Divorce</td>
+                            <td class="text-center">Décès</td>
                         </tr>
                         <tr>
-                            <td class="text-center">SITUATION</td>
-                            <td class="text-center">NAISSANCE</td>
-                            <td class="text-center">MARIAGE</td>
-                            <td class="text-center">DIVORCE</td>
-                            <td class="text-center">DECES</td>
-                        </tr>
-                        <tr>
-                            <td> CUMULEE</td>
+                            <td>Cumulée</td>
                             <td class="text-center"> <strong><span id="natTOTALNAISSANCE"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALMARIAGE"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDIVORCE"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDECES"></span></strong> </td>
                         </tr>
                         <tr>
-                            <td>L'ANNEE</td>
+                            <td>Année</td>
                             <td class="text-center"> <strong><span id="natTOTALNAISSANCEY"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALMARIAGEY"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDIVORCEY"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDECESY"></span></strong> </td>
                             </tr>
                         <tr>
-                            <td>DU MOIS</td>
+                            <td>Mois</td>
                             <td class="text-center"> <strong><span id="natTOTALNAISSANCEM"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALMARIAGEM"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDIVORCEM"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDECESM"></span></strong> </td>
                         </tr>
                         <tr>
-                            <td>DE LA SEMAINE</td>
+                            <td>Semaine</td>
                             <td class="text-center"> <strong><span id="natTOTALNAISSANCEW"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALMARIAGEW"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDIVORCEW"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDECESW"></span></strong> </td>
                             </tr>
                         <tr>
-                            <td>DU JOUR</td>
+                            <td>Jour</td>
                             <td class="text-center"> <strong><span id="natTOTALNAISSANCED"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALMARIAGED"></span></strong> </td>
                             <td class="text-center"> <strong><span id="natTOTALDIVORCED"></span></strong> </td>
@@ -483,51 +560,51 @@
                         </tr>
 
                         <tr>
-                            <td colspan="5" style="background-color: #fff0f5; color: #1E88E5" class="text-center"><strong> SYNTHESE DU DEPARTEMENT : &ensp; </strong> <strong><span class="text-success" id="libelleDepartement"></span> </strong>  </td>
+                            <td colspan="5" class="text-center table-info fw-semibold">Synthèse du département&nbsp;: <span class="text-success" id="libelleDepartement"></span></td>
+                        </tr>
+                        <tr class="table-light small">
+                            <td class="text-center">Situation</td>
+                            <td class="text-center">Naissance</td>
+                            <td class="text-center">Mariage</td>
+                            <td class="text-center">Divorce</td>
+                            <td class="text-center">Décès</td>
                         </tr>
                         <tr>
-                            <td class="text-center">SITUATION</td>
-                            <td class="text-center">NAISSANCE</td>
-                            <td class="text-center">MARIAGE</td>
-                            <td class="text-center">DIVORCE</td>
-                            <td class="text-center">DECES</td>
-                        </tr>
-                        <tr>
-                            <td> CUMULEE</td>
+                            <td>Cumulée</td>
                             <td class="text-center"> <strong><span id="depTOTALNAISSANCE"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALMARIAGE"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDIVORCE"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDECES"></span></strong> </td>
                         </tr>
                         <tr>
-                            <td>L'ANNEE</td>
+                            <td>Année</td>
                             <td class="text-center"> <strong><span id="depTOTALNAISSANCEY"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALMARIAGEY"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDIVORCEY"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDECESY"></span></strong> </td>
                         </tr>
                         <tr>
-                            <td>DU MOIS</td>
+                            <td>Mois</td>
                             <td class="text-center"> <strong><span id="depTOTALNAISSANCEM"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALMARIAGEM"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDIVORCEM"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDECESM"></span></strong> </td>
                          </tr>
                         <tr>
-                            <td>DE LA SEMAINE</td>
+                            <td>Semaine</td>
                             <td class="text-center"> <strong><span id="depTOTALNAISSANCEW"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALMARIAGEW"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDIVORCEW"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDECESW"></span></strong> </td>
                          </tr>
                         <tr>
-                            <td>DU JOUR</td>
+                            <td>Jour</td>
                             <td class="text-center"> <strong><span id="depTOTALNAISSANCED"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALMARIAGED"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDIVORCED"></span></strong> </td>
                             <td class="text-center"> <strong><span id="depTOTALDECESD"></span></strong> </td>
                          </tr>
-                        <tbody>
+                        </tbody>
                     </table>
 
                 </div>
@@ -535,8 +612,6 @@
             </div>
 
         </div>
-
-
 
     </div>
 </div>
@@ -619,6 +694,9 @@
 
         // departement par defaut (BRAZZAVILLE)
         var id = 'DPT_0001';
+        window.carteDepartementCourant = id;
+        window.carteFiltrePeriodeActif = false;
+
         var url = '{{route("carte.departement.get")}}';
         $.post(url, {id: id}, function (data) {
             // alert(data.details.lib_departement);
@@ -719,12 +797,200 @@
             }
         }, 'json');
 
+        window.carteInitCharts();
     });
 
+    window.carteLoadNationPeriode = function (debut, fin) {
+        $.get('{{ route("cartes.periode.synthese.nationale") }}', { debut: debut, fin: fin }, function (d) {
+            $('#natTOTALNAISSANCE').html(d.cumule.TOTALNAISSANCE);
+            $('#natTOTALDECES').html(d.cumule.TOTALDECES);
+            $('#natTOTALMARIAGE').html(d.cumule.TOTALMARIAGE);
+            $('#natTOTALDIVORCE').html(d.cumule.TOTALDIVORCE);
+            $('#natTOTALNAISSANCEY').html(d.annee.TOTALNAISSANCE);
+            $('#natTOTALDECESY').html(d.annee.TOTALDECES);
+            $('#natTOTALMARIAGEY').html(d.annee.TOTALMARIAGE);
+            $('#natTOTALDIVORCEY').html(d.annee.TOTALDIVORCE);
+            $('#natTOTALNAISSANCEM').html(d.mois.TOTALNAISSANCE);
+            $('#natTOTALDECESM').html(d.mois.TOTALDECES);
+            $('#natTOTALMARIAGEM').html(d.mois.TOTALMARIAGE);
+            $('#natTOTALDIVORCEM').html(d.mois.TOTALDIVORCE);
+            $('#natTOTALNAISSANCEW').html(d.semaine.TOTALNAISSANCE);
+            $('#natTOTALDECESW').html(d.semaine.TOTALDECES);
+            $('#natTOTALMARIAGEW').html(d.semaine.TOTALMARIAGE);
+            $('#natTOTALDIVORCEW').html(d.semaine.TOTALDIVORCE);
+            $('#natTOTALNAISSANCED').html(d.jour.TOTALNAISSANCE);
+            $('#natTOTALDECESD').html(d.jour.TOTALDECES);
+            $('#natTOTALMARIAGED').html(d.jour.TOTALMARIAGE);
+            $('#natTOTALDIVORCED').html(d.jour.TOTALDIVORCE);
+        }, 'json');
+    };
+
+    window.carteLoadDeptPeriode = function (depId, debut, fin) {
+        $.ajax({
+            url: '{{ route("cartes.periode.synthese.departement") }}',
+            type: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                id: depId,
+                debut: debut,
+                fin: fin
+            },
+            success: function (d) {
+                $('#depTOTALNAISSANCE').html(d.cumule.TOTALNAISSANCE);
+                $('#depTOTALDECES').html(d.cumule.TOTALDECES);
+                $('#depTOTALMARIAGE').html(d.cumule.TOTALMARIAGE);
+                $('#depTOTALDIVORCE').html(d.cumule.TOTALDIVORCE);
+                $('#depTOTALNAISSANCEY').html(d.annee.TOTALNAISSANCE);
+                $('#depTOTALDECESY').html(d.annee.TOTALDECES);
+                $('#depTOTALMARIAGEY').html(d.annee.TOTALMARIAGE);
+                $('#depTOTALDIVORCEY').html(d.annee.TOTALDIVORCE);
+                $('#depTOTALNAISSANCEM').html(d.mois.TOTALNAISSANCE);
+                $('#depTOTALDECESM').html(d.mois.TOTALDECES);
+                $('#depTOTALMARIAGEM').html(d.mois.TOTALMARIAGE);
+                $('#depTOTALDIVORCEM').html(d.mois.TOTALDIVORCE);
+                $('#depTOTALNAISSANCEW').html(d.semaine.TOTALNAISSANCE);
+                $('#depTOTALDECESW').html(d.semaine.TOTALDECES);
+                $('#depTOTALMARIAGEW').html(d.semaine.TOTALMARIAGE);
+                $('#depTOTALDIVORCEW').html(d.semaine.TOTALDIVORCE);
+                $('#depTOTALNAISSANCED').html(d.jour.TOTALNAISSANCE);
+                $('#depTOTALDECESD').html(d.jour.TOTALDECES);
+                $('#depTOTALMARIAGED').html(d.jour.TOTALMARIAGE);
+                $('#depTOTALDIVORCED').html(d.jour.TOTALDIVORCE);
+            },
+            dataType: 'json'
+        });
+    };
+
+    window.carteInitCharts = function () {
+        var ctxL = document.getElementById('chartCarteSerie');
+        var ctxD = document.getElementById('chartCarteDonut');
+        if (!ctxL || !window.Chart) return;
+
+        window._chartCarteSerie = new Chart(ctxL.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Naissances', data: [], borderColor: '#4a8f68', backgroundColor: 'rgba(74,143,104,0.08)', fill: true, pointRadius: 0, tension: 0.2 },
+                    { label: 'Décès', data: [], borderColor: '#c44742', backgroundColor: 'rgba(196,71,66,0.06)', fill: true, pointRadius: 0, tension: 0.2 },
+                    { label: 'Mariages', data: [], borderColor: '#5a9bc9', backgroundColor: 'rgba(90,155,201,0.06)', fill: true, pointRadius: 0, tension: 0.2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: { position: 'bottom' },
+                scales: {
+                    yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
+                    xAxes: [{ ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 } }]
+                }
+            }
+        });
+
+        window._chartCarteDonut = new Chart(ctxD.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Naissances', 'Décès', 'Mariages'],
+                datasets: [{ data: [0, 0, 0], backgroundColor: ['#4a8f68', '#c44742', '#5a9bc9'], borderWidth: 0 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                legend: { position: 'bottom' }
+            }
+        });
+
+        function majCharts(debut, fin) {
+            $.get('{{ route("cartes.periode.serie.journaliere") }}', { debut: debut, fin: fin }, function (res) {
+                var labels = [];
+                var n = [], dec = [], m = [];
+                $.each(res.points || [], function (i, p) {
+                    labels.push(p.jour);
+                    n.push(p.naissance);
+                    dec.push(p.deces);
+                    m.push(p.mariage);
+                });
+                window._chartCarteSerie.data.labels = labels;
+                window._chartCarteSerie.data.datasets[0].data = n;
+                window._chartCarteSerie.data.datasets[1].data = dec;
+                window._chartCarteSerie.data.datasets[2].data = m;
+                window._chartCarteSerie.update();
+            }, 'json');
+
+            $.get('{{ route("cartes.periode.synthese.nationale") }}', { debut: debut, fin: fin }, function (d) {
+                var c = d.cumule;
+                window._chartCarteDonut.data.datasets[0].data = [
+                    parseInt(c.TOTALNAISSANCE, 10) || 0,
+                    parseInt(c.TOTALDECES, 10) || 0,
+                    parseInt(c.TOTALMARIAGE, 10) || 0
+                ];
+                window._chartCarteDonut.update();
+            }, 'json');
+        }
+
+        var d0 = $('#carte-debut').val();
+        var f0 = $('#carte-fin').val();
+        majCharts(d0, f0);
+
+        $('#carte-appliquer').on('click', function () {
+            var debut = $('#carte-debut').val();
+            var fin = $('#carte-fin').val();
+            if (!debut || !fin) return;
+            window.carteFiltrePeriodeActif = true;
+            $('#carte-filtre-actif').removeClass('d-none');
+            window.carteLoadNationPeriode(debut, fin);
+            window.carteLoadDeptPeriode(window.carteDepartementCourant, debut, fin);
+            $.get('{{ route("cartes.periode.transcriptions") }}', { debut: debut, fin: fin }, function (t) {
+                $('#trx-nais-cumul').html(t.naissance.cumul);
+                $('#trx-nais-annee').html(t.naissance.annee);
+                $('#trx-nais-mois').html(t.naissance.mois);
+                $('#trx-deces-cumul').html(t.deces.cumul);
+                $('#trx-deces-annee').html(t.deces.annee);
+                $('#trx-deces-mois').html(t.deces.mois);
+            }, 'json');
+            majCharts(debut, fin);
+        });
+
+        $('#carte-reset').on('click', function () {
+            window.carteFiltrePeriodeActif = false;
+            $('#carte-filtre-actif').addClass('d-none');
+            $('#carte-debut').val('{{ $defaultChartDebut }}');
+            $('#carte-fin').val('{{ $defaultChartFin }}');
+            var $trx = $('#carte-transcriptions');
+            $('#trx-nais-cumul').html($trx.data('ssr-nais-cumul'));
+            $('#trx-nais-annee').html($trx.data('ssr-nais-annee'));
+            $('#trx-nais-mois').html($trx.data('ssr-nais-mois'));
+            $('#trx-deces-cumul').html($trx.data('ssr-deces-cumul'));
+            $('#trx-deces-annee').html($trx.data('ssr-deces-annee'));
+            $('#trx-deces-mois').html($trx.data('ssr-deces-mois'));
+            location.reload();
+        });
+
+        $('#carte-btn-pdf').on('click', function (e) {
+            e.preventDefault();
+            var debut = $('#carte-debut').val();
+            var fin = $('#carte-fin').val();
+            var dep = window.carteDepartementCourant || 'DPT_0001';
+            if (!debut || !fin) return;
+            var q = $.param({ debut: debut, fin: fin, departement_id: dep });
+            window.location.href = '{{ route("cartes.periode.export.pdf") }}?' + q;
+        });
+    };
 
     // Departement
     function selectionDepart(dept) {
         var id = dept.id;
+        window.carteDepartementCourant = id;
+
+        if (window.carteFiltrePeriodeActif) {
+            var debut = $('#carte-debut').val();
+            var fin = $('#carte-fin').val();
+            $.post('{{route("carte.departement.get")}}', {id: id}, function (data) {
+                $("#libelleDepartement").html(data.details.lib_departement);
+            });
+            window.carteLoadDeptPeriode(id, debut, fin);
+            return;
+        }
 
         var url = '{{route("carte.departement.get")}}';
         $.post(url, {id: id}, function (data) {

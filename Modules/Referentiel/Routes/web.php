@@ -115,6 +115,10 @@ Route::middleware("auth")->prefix("registre")->group(function() {
 
 Route::middleware('auth')->prefix('retrait')->group(function() {
     Route::get('/', [RetraitActeController::class,'index'])->name('retrait.index');
+    /** PRG : affichage du résultat en GET après recherche POST (évite re-soumission navigateur au F5). */
+    Route::get('naissance/{cdn}', [RetraitActeController::class, 'consultationNaissanceResult'])
+        ->where('cdn', '[A-Za-z0-9_]+')
+        ->name('retrait.consultation.naissance');
     // Route::post("search/acte/retire", [RetraitActeController::class, 'searchActeRetire'])->name("retrait.search.acte");
     Route::post("/", [RetraitActeController::class, 'searchActeRetire'])->name("retrait.search.acte");
 });

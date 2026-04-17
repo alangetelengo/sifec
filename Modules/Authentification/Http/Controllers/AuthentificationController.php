@@ -304,7 +304,19 @@ class AuthentificationController extends Controller
             ->where('created_at', 'like', '%'.date('Y-m').'%')
             ->count('code_declaration_naissance');
 
-        return view('admin.dashboard.carte', compact('statdeces', 'statannuel', 'statmois', 'statnais', 'statnaisannuel', 'statnaismois'));
+        $defaultChartDebut = now()->subDays(30)->format('Y-m-d');
+        $defaultChartFin = now()->format('Y-m-d');
+
+        return view('admin.dashboard.carte', compact(
+            'statdeces',
+            'statannuel',
+            'statmois',
+            'statnais',
+            'statnaisannuel',
+            'statnaismois',
+            'defaultChartDebut',
+            'defaultChartFin'
+        ));
     }
 
     public function authentification(Request $request)

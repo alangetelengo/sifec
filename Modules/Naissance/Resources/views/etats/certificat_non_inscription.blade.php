@@ -118,7 +118,7 @@
                     <td style="height: 14px;">Profession: <strong>{{$certificat->mere->code_profession != NULL ? $certificat->mere->profession->lib_profession :""}}</strong>, Nationalité: <strong>{{ $certificat->mere->nationalite->lib_nationalite }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    {{-- <td style="height: 14px;">Domicilié au: <strong>{{ Sifec::adressepersonne($certificat->mere->code_personne) }}</strong></td> --}}
+                    {{-- <td style="height: 14px;">Domicilié au: <strong>{{ \App\Sifec\Sifec::adressepersonne($certificat->mere->code_personne) }}</strong></td> --}}
                     <td style="height: 14px;">Domicilié au: <strong>{{ $certificat->mere->adresse }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">

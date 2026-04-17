@@ -66,6 +66,23 @@
                     </span>
                 </div>
             </div>
+            @can('module.acteNaissance.retrait.depuisConsultationCEC')
+                @if($acte->signature_mairie)
+                    <div class="mt-3 pt-2 border-top" style="border-color: var(--si-line, #e2e8e4) !important;">
+                        <button type="button"
+                                class="btn btn-warning text-white"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modal-retrait-acte"
+                                title="Enregistrer le retrait au guichet (habilitation CEC)">
+                            <i class="fas fa-file-export me-1"></i>
+                            Enregistrer le retrait
+                        </button>
+                        <p class="small text-muted mb-0 mt-2">
+                            Action réservée aux agents disposant de l’habilitation «&nbsp;Enregistrer un retrait depuis la consultation&nbsp;» (CEC).
+                        </p>
+                    </div>
+                @endif
+            @endcan
         @endif
     </div>
 </div>

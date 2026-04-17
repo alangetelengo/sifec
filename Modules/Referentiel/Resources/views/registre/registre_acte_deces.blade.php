@@ -418,7 +418,7 @@
             <!-- page 3 -->
             @foreach ($actesRegistre as $acteReg)
             {{-- @php
-            $acte = App\Sifec\Sifec::acteNaissance($acteReg->declaration->code_declaration_naissance);
+            $acte = \App\Sifec\Sifec::acteNaissance($acteReg->declaration->code_declaration_naissance);
             @endphp --}}
             <div class="bb-item">
                 <div class="row position-relative">
@@ -494,7 +494,7 @@
                                     </div>
                                     <div class="col-xl-12" style="text-align:left; font-size:14px">
                                         Centre d'état civil secondaire :  <strong> {{ $acteReg->institutionUser->institution->lib_institution }}</strong><br>
-                                        le <strong> {{ Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
+                                        le <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
                                         S'est présenté(e) <strong> {{ $acteReg->declaration->declarant->nom.' '.$acteReg->declaration->declarant->prenom }}</strong>, &ensp; Filiation: <strong>{{ $acteReg->declaration->filiation->lib_filiation }} </strong><br>
                                         Domicilié(e) : <strong>{{ $acteReg->declaration->declarant->adresse }}</strong><br>
                                         qui a déclaré le décès de : <strong style="color: red">{{ $acteReg->declaration->defunt->nomComplet() }} </strong><br>
@@ -576,8 +576,8 @@
                            <h2>
                                Nous <strong>{{ $nomcompletcec }}</strong>, officier de l'état-civil de <strong>{{ $registre->institutionUser->institution->lib_institution }}</strong><br>
                                arrêtons et clôturons le présent registre de <strong>{{ $registre->typeRegistre->lib_type_registre }}</strong><br>
-                               comprenant <strong>{{ Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong> actes  inscrits du numero <strong>1</strong> au numero <strong>{{ Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong>
-                               inclus et <strong>{{ Sifec::format_nombre(($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit),2) }}</strong> feuillets restants.<br><br>
+                               comprenant <strong>{{ \App\Sifec\Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong> actes  inscrits du numero <strong>1</strong> au numero <strong>{{ \App\Sifec\Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong>
+                               inclus et <strong>{{ \App\Sifec\Sifec::format_nombre(($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit),2) }}</strong> feuillets restants.<br><br>
                                A <strong>{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->updated_at)) }}</strong><br><br>
                                {{-- (Signature de l'officier d'état civil). --}}
                                <img src='{{ asset("app/".$registre->signature_cloture_cec) }}' alt="signature_clôture">

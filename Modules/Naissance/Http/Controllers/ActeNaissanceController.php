@@ -1117,8 +1117,15 @@ class ActeNaissanceController extends Controller
 
     public function retraitActe(Request $request)
     {
-        // Log::channel("sifec")->info($request->all());
-        // dd($request->all());
+        $peutDepuisConsultationCec = Gate::allows('module.acteNaissance.retrait.depuisConsultationCEC');
+        $peutDepuisProduction = Gate::allows('module.acteNaissance.generate');
+        $peutSigner = Gate::allows('module.acteNaissance.signature');
+        if (! $peutDepuisConsultationCec && ! $peutDepuisProduction && ! $peutSigner) {
+            return response()->json([
+                'code' => '403',
+                'message' => ['error' => 'Vous n\'avez pas l\'autorisation d\'enregistrer le retrait de cet acte.'],
+            ], 403);
+        }
 
         $retire_par = $request->nominteresse.' '.$request->prenominteresse;
         $acte = ActeNaissance::findByIdentifierOrFail($request->niupp);

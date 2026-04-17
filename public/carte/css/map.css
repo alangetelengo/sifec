@@ -1,56 +1,64 @@
-.carte__image{
-    width: 50%;
-    float:left;
-}
-
-.carte__image path{
-
-    stroke:#2f1004;
+/* Carte SVG : interaction */
+.carte__image path {
+    stroke: #2f1004;
     stroke-width: 1px;
-    transition:fill 0.3s;
+    transition: fill 0.3s;
 }
 
-.carte__image path:hover{
+.carte__image path:hover {
     fill: #c6ccc3;
-    stroke:#FFF;
+    stroke: #fff;
     stroke-width: 1px;
-    transition:fill 0.3s;
+    transition: fill 0.3s;
 }
 
-.carte__image .actived path{
+.carte__image .actived path {
     fill: #fbfffb;
-    stroke:#FFF;
+    stroke: #fff;
     stroke-width: 1px;
-    transition:fill 0.3s;
+    transition: fill 0.3s;
 }
 
-.carte__list{
-    float:right;
-    width:50%;
-}
-
-.carte__list a{
-    color:inherit;
+.carte__list a {
+    color: inherit;
     text-decoration: none;
 }
 
-.carte__list a.actived{
+.carte__list a.actived {
     fill: #53d612;
     font-weight: bold;
-    font-size:15px;
-    text-decoration:underline;
-}
-
-@keyframes blink{
-    0%{opacity: 0;}
-    50%{opacity: .5;}
-    100%{opacity: 1;}
-}
-
-.clignote
-{
     font-size: 15px;
-    font-family: cursive;
-    color: red;
+    text-decoration: underline;
+}
+
+/*
+ * Grille Bootstrap (#carte) : carte à gauche, synthèse à droite.
+ * Ne surtout pas mettre width:100% sur les colonnes — en flexbox ça force chaque
+ * colonne à prendre toute la ligne et empile la carte au-dessus du tableau.
+ */
+#carte .carte__image,
+#carte .carte__list {
+    float: none;
+    min-width: 0; /* évite le débordement flex des colonnes */
+}
+
+/* Taille initiale du SVG : pleine largeur de la colonne gauche, hauteur proportionnelle au viewBox */
+#carte .carte__image svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+}
+
+@keyframes blink {
+    0% { opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.clignote {
+    font-size: 15px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #c62828;
     animation: blink 1s linear infinite;
 }

@@ -6,6 +6,20 @@ Fiche de rectification reçues
 
 <link href="{{ asset('tpl/vendor/jquery-smartwizard/dist/css/smart_wizard.min.css')}}" rel="stylesheet">
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css')}}" rel="stylesheet">
+<style>
+    .rectification-fiches-dt td.rectif-col-action,
+    .rectification-fiches-dt th.rectif-col-action {
+        vertical-align: middle;
+        min-width: 12rem;
+    }
+    .rectification-fiches-dt .rectif-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.35rem;
+    }
+</style>
 
 @endsection
 
@@ -21,7 +35,7 @@ Fiche de rectification reçues
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="example" class="display" style="min-width: 845px">
+                                <table id="example" class="display rectification-fiches-dt" style="min-width: 845px">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -31,7 +45,7 @@ Fiche de rectification reçues
                                             <th>Réquisition</th>
                                             <th>Réquerant</th>
                                             <th>Statut</th>
-                                            <th>Action</th>
+                                            <th class="text-end rectif-col-action">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -128,18 +142,6 @@ Fiche de rectification reçues
                                             </tr>
                                         @endforeach
                                     </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Numéro</th>
-                                            <th>Numéro d'acte à rectifier</th>
-                                            <th>Type acte</th>
-                                            <th>Réquisition</th>
-                                            <th>Réquerant</th>
-                                            <th>Statut</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </tfoot>
                                 </table>
                             </div>
                         </div>

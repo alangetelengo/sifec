@@ -82,7 +82,7 @@
                 </td>
             </tr>
             {{-- <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>A: <strong>{{ Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
+                <td>A: <strong>{{ \App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
             </tr> --}}
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
                 <td>Est {{ $acte->declaration->enfant->sexe=="M" ? "né " : "née "  }} à: <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td>

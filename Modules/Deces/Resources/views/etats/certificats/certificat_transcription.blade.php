@@ -135,7 +135,7 @@
                 <td style="border: none; padding:5px 0px;text-align: " >&nbsp;</td>
             </tr>
             <tr>
-            <td style="border: none; padding:5px 0px;text-align: " colspan="3">Adresse: <span style="font-size: 13px;font-weight:bold;">{{ Sifec::adressepersonne($certificat->defunt->code_personne) }} </span></td>
+            <td style="border: none; padding:5px 0px;text-align: " colspan="3">Adresse: <span style="font-size: 13px;font-weight:bold;">{{ \App\Sifec\Sifec::adressepersonne($certificat->defunt->code_personne) }} </span></td>
             <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
         </tr>
         </table>
@@ -236,7 +236,7 @@
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de naissance : <span style="font-size: 13px;font-weight:bold;"> {{ $certificat->declarant->lieu_naissance }} </span>&nbsp;&nbsp;&nbsp;Domicile : <span style="font-size: 13px;font-weight:bold;">{{ Sifec::adressepersonne($certificat->declarant->code_personne) }} </span>  </td>
+                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de naissance : <span style="font-size: 13px;font-weight:bold;"> {{ $certificat->declarant->lieu_naissance }} </span>&nbsp;&nbsp;&nbsp;Domicile : <span style="font-size: 13px;font-weight:bold;">{{ \App\Sifec\Sifec::adressepersonne($certificat->declarant->code_personne) }} </span>  </td>
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>

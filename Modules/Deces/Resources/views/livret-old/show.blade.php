@@ -26,7 +26,7 @@
 
             <!-- page 2 -->
             @php
-            $acte = App\Sifec\Sifec::acteNaissance($acteReg->declaration->code_declaration_naissance);
+            $acte = \App\Sifec\Sifec::acteNaissance($acteReg->declaration->code_declaration_naissance);
             @endphp
             <div class="bb-item">
                 <div class="row">
@@ -118,7 +118,7 @@
 
                                     <div class="col-xl-12" style="text-align:left; font-size:14px">
                                     Centre d'état civil communal :  <strong> {{ $acteReg->institutionUser->institution->lib_institution }}</strong><br>
-                                    le: <strong> {{ Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
+                                    le: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
                                     S'est présenté(e) <strong> {{ $acteReg->declaration->declarant->nom.' '.$acteReg->declaration->declarant->prenom }}</strong>, &ensp; Filiation: <strong>{{ $acteReg->declaration->filiation->lib_filiation }} </strong><br>
                                     Domicilié(e) : <strong>{{ $acteReg->declaration->declarant->adresse }}</strong><br>
                                     qui a déclaré le décès de : <b>{{ $acteReg->declaration->defunt->nom." ".$acteReg->declaration->defunt->prenom }} </b><br>
@@ -150,7 +150,7 @@
                                     Lieu de survenance : <strong>{{ $acteReg->declaration->lieuSurvenance->lib_lieu_survenance }}</strong><br>
                                     Réligion: <strong>{{ $acteReg->declaration->religion->lib_religion }}</strong><br>
                                     N° acte de naissance : <strong>{{ $acteReg->declaration->num_acte_naissance }}</strong><br>
-                                    Date de naissance : <strong> {{ Sifec::asLetters((int)date("d", strtotime($acteReg->declaration->defunt->date_naissance)))}} {{ Sifec::mois(date("m", strtotime($acteReg->declaration->defunt->date_naissance))) }} {{ Sifec::asLetters(date("Y", strtotime($acteReg->declaration->defunt->date_naissance))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acteReg->declaration->defunt->date_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acteReg->declaration->defunt->date_naissance))) }} minute(s)</strong><br>
+                                    Date de naissance : <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acteReg->declaration->defunt->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acteReg->declaration->defunt->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acteReg->declaration->defunt->date_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acteReg->declaration->defunt->date_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acteReg->declaration->defunt->date_naissance))) }} minute(s)</strong><br>
                                     </div>
 
                                 </div>

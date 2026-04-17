@@ -129,7 +129,7 @@ $localisation = $localisationData['localisation'];
     </table>
     <div style="width: 100%;">
         <p style="font-size: 13px;"> <strong>Centre d’état civil principal de : </strong>{!! nl2br(e(wordwrap($inst ?? '', 55, "\n", true))) !!}<br>
-             Le <strong>{{ Sifec::asLetters((int)date("d", strtotime($dm->date_declaration_mariage)))." ".Sifec::mois(date("m", strtotime($dm->date_declaration_mariage)))." ".Sifec::asLetters(date("Y", strtotime($dm->date_declaration_mariage))) }}</strong> <br>
+             Le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->date_declaration_mariage)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->date_declaration_mariage)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->date_declaration_mariage))) }}</strong> <br>
              Par devant nous, </p>
             <br>
             <legend>Les futurs époux</legend>
@@ -142,7 +142,7 @@ $localisation = $localisationData['localisation'];
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;;"> {{ Sifec::asLetters((int)date("d", strtotime($dm->epoux->date_naissance)))." ".Sifec::mois(date("m", strtotime($dm->epoux->date_naissance)))." ".Sifec::asLetters(date("Y", strtotime($dm->epoux->date_naissance))) }} </span>  </td>
+                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;;"> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epoux->date_naissance))) }} </span>  </td>
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
@@ -220,7 +220,7 @@ $localisation = $localisationData['localisation'];
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;"> {{ Sifec::asLetters((int)date("d", strtotime($dm->epouse->date_naissance)))." ".Sifec::mois(date("m", strtotime($dm->epouse->date_naissance)))." ".Sifec::asLetters(date("Y", strtotime($dm->epouse->date_naissance))) }} </span>  </td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;"> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epouse->date_naissance))) }} </span>  </td>
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
@@ -481,13 +481,13 @@ $localisation = $localisationData['localisation'];
                 <strong>A-Les témoins du futur époux </strong><br>
                 1-	Premier témoin <br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->nom ." ". ucfirst($dm->temoinHommeEpoux->prenom) }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpoux->date_naissance)) ." à ".$dm->temoinHommeEpoux->lieu_naissance }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpoux->date_naissance)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($dm->temoinHommeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpoux->date_naissance)) ." à ".$dm->temoinHommeEpoux->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpoux->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à : </strong>&nbsp;&nbsp;<span style="">{!! nl2br(e(wordwrap(optional($dm->temoinHommeEpoux)->adresse ?? '', 55, "\n", true))) !!}</span><br><br>
 
                 2-	Deuxième témoin <br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";"> {{ $dm->temoinFemmeEpoux->nom.' '.ucfirst($dm->temoinFemmeEpoux->prenom) }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." à ".$dm->temoinFemmeEpoux->lieu_naissance }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($dm->temoinFemmeEpoux->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpoux->date_naissance)) ." à ".$dm->temoinFemmeEpoux->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpoux->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style="">{!! nl2br(e(wordwrap(optional($dm->temoinFemmeEpoux)->adresse ?? '', 55, "\n", true))) !!}</span><br><br>
 
@@ -495,13 +495,13 @@ $localisation = $localisationData['localisation'];
                 <strong>B-Les témoins du futur épouse </strong><br>
                 1-	Premier témoin <br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms :</strong> &nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->nom ." ". ucfirst($dm->temoinHommeEpouse->prenom) }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpouse->date_naissance)) ." à ".$dm->temoinHommeEpouse->lieu_naissance }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinHommeEpouse->date_naissance)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($dm->temoinHommeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinHommeEpouse->date_naissance)) ." à ".$dm->temoinHommeEpouse->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à :</strong> &nbsp;&nbsp;<span style="">{!! nl2br(e(wordwrap(optional($dm->temoinHommeEpouse)->adresse ?? '', 55, "\n", true))) !!}</span><br><br>
 
                 2-	Deuxième témoin <br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Noms et Prénoms : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpouse->nom.' '.ucfirst($dm->temoinFemmeEpouse->prenom) }}</span><br>
-                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpouse->date_naissance)) ." ". Sifec::mois(date("m", strtotime($dm->temoinFemmeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpouse->date_naissance)) ." à ".$dm->temoinFemmeEpouse->lieu_naissance }}</span><br>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Né le : </strong>&nbsp;&nbsp;<span style=";">{{ date("d", strtotime($dm->temoinFemmeEpouse->date_naissance)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($dm->temoinFemmeEpouse->date_naissance))) ." ".date("Y", strtotime($dm->temoinFemmeEpouse->date_naissance)) ." à ".$dm->temoinFemmeEpouse->lieu_naissance }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Profession : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinFemmeEpouse->profession->lib_profession }}</span><br>
                 <strong>&nbsp;&nbsp;&nbsp;&nbsp;Domicilié à : </strong>&nbsp;&nbsp;<span style=";">{{ $dm->temoinHommeEpouse->adresse }}</span><br><br><br>
 

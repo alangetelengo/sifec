@@ -181,7 +181,7 @@
                 </tr>
 
                 <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3"> Domicile : <span style="font-size: 14px;font-weight:bold;">{{ Sifec::adressepersonne($certificat->pere->code_personne) }} </span>
+                    <td style="border: none; padding:5px 0px;text-align: " colspan="3"> Domicile : <span style="font-size: 14px;font-weight:bold;">{{ \App\Sifec\Sifec::adressepersonne($certificat->pere->code_personne) }} </span>
                     </td>
                 </tr>
                 <tr>
@@ -218,7 +218,7 @@
                 </tr>
 
                 <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3"> Domicile : <span style="font-size: 14px;font-weight:bold;"> {{ Sifec::adressepersonne($certificat->mere->code_personne) }} </span>
+                    <td style="border: none; padding:5px 0px;text-align: " colspan="3"> Domicile : <span style="font-size: 14px;font-weight:bold;"> {{ \App\Sifec\Sifec::adressepersonne($certificat->mere->code_personne) }} </span>
                     </td>
                 </tr>
                 <tr>
@@ -251,7 +251,7 @@
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de naissance : <span style="font-size: 14px;font-weight:bold;"> {{ $certificat->declarant->lieu_naissance}} </span>&nbsp;&nbsp;&nbsp;Domicile : <span style="font-size: 14px;font-weight:bold;"> {{ Sifec::adressepersonne($certificat->declarant->code_personne) }} </span> </td>
+                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Lieu de naissance : <span style="font-size: 14px;font-weight:bold;"> {{ $certificat->declarant->lieu_naissance}} </span>&nbsp;&nbsp;&nbsp;Domicile : <span style="font-size: 14px;font-weight:bold;"> {{ \App\Sifec\Sifec::adressepersonne($certificat->declarant->code_personne) }} </span> </td>
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>

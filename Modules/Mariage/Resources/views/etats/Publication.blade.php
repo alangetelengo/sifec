@@ -75,7 +75,7 @@
             <tr style="margin-right: 10px;">
                 <td style="border-top: 1px solid #000;padding: 10px;">
                     Mr: <strong>{{ $dm->epoux->nomcomplet()  }}</strong><br>
-                    Né le : <strong>{{ Sifec::asLetters((int)date("d", strtotime($dm->epoux->date_naissance)))." ".Sifec::mois(date("m", strtotime($dm->epoux->date_naissance)))." ".Sifec::asLetters(date("Y", strtotime($dm->epoux->date_naissance))) }}</strong> à <strong> {{ $dm->epoux->lieu_naissance }}</strong><br>
+                    Né le : <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epoux->date_naissance))) }}</strong> à <strong> {{ $dm->epoux->lieu_naissance }}</strong><br>
                     Nationalité: <strong>{{  $dm->epoux->nationalite->lib_nationalite  }}</strong><br>
                     Profession: <strong>{{  $dm->epoux->profession->lib_profession  }}</strong><br>
                     Domicilié: <strong>{{ $dm->epoux->adresse }}</strong><br>
@@ -107,7 +107,7 @@
             <tr style="margin-right: 10px;">
                 <td style="border-top: 1px solid #000;padding: 10px;">
                     Mlle: <strong>{{ $dm->epouse->nomcomplet()  }}</strong><br>
-                    Née le : <strong>{{ Sifec::asLetters((int)date("d", strtotime($dm->epouse->date_naissance)))." ".Sifec::mois(date("m", strtotime($dm->epouse->date_naissance)))." ".Sifec::asLetters(date("Y", strtotime($dm->epouse->date_naissance))) }}</strong> à <strong> {{ $dm->epouse->lieu_naissance }}</strong><br>
+                    Née le : <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epouse->date_naissance))) }}</strong> à <strong> {{ $dm->epouse->lieu_naissance }}</strong><br>
                     Nationalité: <strong>{{  $dm->epouse->nationalite->lib_nationalite  }}</strong><br>
                     Profession: <strong>{{  $dm->epouse->profession->lib_profession  }}</strong><br>
                     Domiciliée: <strong>{{  $dm->epouse->adresse }}</strong><br>

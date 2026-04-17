@@ -3,6 +3,7 @@
 namespace Modules\Referentiel\Http\Controllers;
 
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Naissance\Entities\ActeNaissance;
@@ -19,6 +20,30 @@ class RetraitActeController extends Controller
     public function index()
     {
         return view('referentiel::retrait-acte.index');
+    }
+
+    /**
+     * Affiche le résultat de consultation naissance (GET, PRG après {@see searchActeRetire}).
+     */
+    public function consultationNaissanceResult(string $cdn): Renderable|RedirectResponse
+    {
+        $acte = ActeNaissance::where('code_declaration_naissance', $cdn)
+            ->with(['retrait', 'declaration.enfant', 'declaration.pere', 'declaration.mere'])
+            ->first();
+
+        if ($acte === null) {
+            flash()->error('Acte introuvable ou lien expiré. Effectuez une nouvelle recherche.');
+
+            return redirect()->route('retrait.index');
+        }
+
+        if ($acte->signature_mairie === null) {
+            flash()->error('Acte de naissance en cours de production !');
+
+            return redirect()->route('retrait.index');
+        }
+
+        return view('referentiel::retrait-acte.index', compact('acte'));
     }
 
     /**
@@ -77,32 +102,26 @@ class RetraitActeController extends Controller
                     ->with(['retrait', 'declaration.enfant', 'declaration.pere', 'declaration.mere'])
                     ->first();
 
+                if ($acte === null) {
+                    flash()->error('Acte de naissance introuvable pour cette déclaration.');
+
+                    return back()->withInput();
+                }
+
                 if ($acte->signature_mairie == null) {
 
                     flash()->error('Acte de naissance en cours de production !');
 
                     return back()->withInput();
-                } else {
-                    // $resultatRecherche =
-                    // dd($acte);
-                    return view('referentiel::retrait-acte.index', compact('acte'));
                 }
+
+                return redirect()->route('retrait.consultation.naissance', ['cdn' => $acte->code_declaration_naissance]);
             }
         }
-        // if($personne == null){
-        //     flash()->error("Aucune personne trouvée avec ces informations !");
-        //     return back()->withInput();
-        // }
 
-        // if($dm == null){
-        //     flash()->error("Il n'y a aucun formulaire type enregistré portant cette identité !");
-        //     return back()->withInput();
-        // }
-        // if($dn == null){
-        //     flash()->error("Il n'y a aucune déclaration de naissance  de l'enfant !");
-        //     return back()->withInput();
-        // }
+        flash()->error('Aucun acte exploitable pour cette recherche.');
 
+        return back()->withInput();
     }
 
     /**

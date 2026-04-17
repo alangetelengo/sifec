@@ -145,6 +145,11 @@
                 <div class="mt-4">
                     @include('referentiel::retrait-acte.resultat')
                 </div>
+                @can('module.acteNaissance.retrait.depuisConsultationCEC')
+                    @if(! $acte->retrait && $acte->signature_mairie)
+                        @include('naissance::acte.partials.modal-retrait-acte')
+                    @endif
+                @endcan
             @endisset
         </div>
     </div>
@@ -171,4 +176,11 @@
     });
 })();
 </script>
+@isset($acte)
+    @can('module.acteNaissance.retrait.depuisConsultationCEC')
+        @if(! $acte->retrait && $acte->signature_mairie)
+            @include('naissance::acte.partials.retrait-acte-form-scripts', ['acte' => $acte])
+        @endif
+    @endcan
+@endisset
 @endsection

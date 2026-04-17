@@ -60,7 +60,7 @@
     </table>
     <div style="margin-top: 0%;margin-left: 4%;margin-right: 6%;border-radius: 2mm;">
         <div style="position: absolute; right:11px; left: 15px; top: 200px; width: 800px; height: 750px; padding: 0px; overflow: hidden; text-align: left; font-weight: normal; font-size:14px;">
-            <p class="para">Vu la requête en date du {{strftime("%d %B %Y", strtotime(date($requisition->date_heure_declaration)))}}, à {{-- $requisition->institutionUser->institution->localite->localiteParent->lib_localite --}}, introduite par {{$requisition->declarant->nom}} {{$requisition->declarant->prenom}}, {{ $requisition->declarant->nationalite->lib_nationalite }}, {{ $requisition->enfant->sexe=="M" ? "domicilié" : "domiciliée"  }} {{ Sifec::adressepersonne($requisition->declarant->code_personne) }}, agissant en qualité de {{$requisition->filiation->lib_filiation}} ;
+            <p class="para">Vu la requête en date du {{strftime("%d %B %Y", strtotime(date($requisition->date_heure_declaration)))}}, à {{-- $requisition->institutionUser->institution->localite->localiteParent->lib_localite --}}, introduite par {{$requisition->declarant->nom}} {{$requisition->declarant->prenom}}, {{ $requisition->declarant->nationalite->lib_nationalite }}, {{ $requisition->enfant->sexe=="M" ? "domicilié" : "domiciliée"  }} {{ \App\Sifec\Sifec::adressepersonne($requisition->declarant->code_personne) }}, agissant en qualité de {{$requisition->filiation->lib_filiation}} ;
             </p>
             <p class="para">Tendant à la transcription dans les registres de la Commune de Brazzaville, de la copie intégrale de l’acte de naissance de {{ $requisition->enfant->sexe=="M" ? "le nommé" : "la nommée"  }} {{$requisition->enfant->nom}} {{$requisition->enfant->prenom}} dressé par l’Officier d’Etat de {{ $requisition->cec_naissance }};</p>
             <p class="para">Attendu que le requérant expose au soutien de sa requête que {{$requisition->enfant->nom}} {{$requisition->enfant->prenom}} {{ $requisition->enfant->sexe=="M" ? "né" : "née"  }} le {{strftime("%d %B %Y", strtotime(date($requisition->enfant->date_naissance)))}}  à {{$requisition->enfant->lieu_naissance}};</p>
@@ -84,7 +84,7 @@
                     <td>Né le : <strong>{{strftime("%d %B %Y", strtotime(date($requisition->pere->date_naissance)))}}</strong> à <strong>{{$requisition->pere->lieu_naissance}}</strong></td>
                 </tr>
                 <tr>
-                    <td>Profession: <strong>{{ $requisition->pere->profession->lib_profession }}</strong>, Nationalité: <strong>{{ $requisition->pere->nationalite->lib_nationalite }}</strong>,Domicile: <strong>{{ Sifec::adressepersonne($requisition->pere->code_personne) }}</strong></td>
+                    <td>Profession: <strong>{{ $requisition->pere->profession->lib_profession }}</strong>, Nationalité: <strong>{{ $requisition->pere->nationalite->lib_nationalite }}</strong>,Domicile: <strong>{{ \App\Sifec\Sifec::adressepersonne($requisition->pere->code_personne) }}</strong></td>
                 </tr>
                 <tr>
                     <td>Et de: <strong>{{$requisition->mere->nom}} {{$requisition->mere->prenom}}</strong></td>
@@ -93,7 +93,7 @@
                     <td>Née le : <strong>{{strftime("%d %B %Y", strtotime(date($requisition->mere->date_naissance)))}}</strong> à <strong>{{$requisition->mere->lieu_naissance}}</strong></td>
                 </tr>
                 <tr>
-                    <td>Profession: <strong>{{ $requisition->mere->profession->lib_profession }}</strong>, Nationalité: <strong>{{ $requisition->mere->nationalite->lib_nationalite }}</strong>,Domicile: <strong>{{ Sifec::adressepersonne($requisition->mere->code_personne) }}</strong></td>
+                    <td>Profession: <strong>{{ $requisition->mere->profession->lib_profession }}</strong>, Nationalité: <strong>{{ $requisition->mere->nationalite->lib_nationalite }}</strong>,Domicile: <strong>{{ \App\Sifec\Sifec::adressepersonne($requisition->mere->code_personne) }}</strong></td>
                 </tr>
             </table>
             <p style="text-align: justify;margin-right: 15%;font-size: 14px;">Requiert qu'en tête de l'acte ainsi dressé sera portée la mention <span style="color: red;">&lsaquo;&lsaquo; ACTE TRANSCRIT SUIVANT REQUISITION N° {{ $requisition->numero_req}}/{{$num}}{{--date("Y", strtotime($requisition->created_at))--}} ET TRANSCRIT DANS LES REGISTRES D'ETAT CIVIL EN COURS &rsaquo;&rsaquo;</span>./</p>

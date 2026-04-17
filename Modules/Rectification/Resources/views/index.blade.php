@@ -6,6 +6,25 @@ Fiche de rectification
 
 <link href="{{ asset('tpl/vendor/jquery-smartwizard/dist/css/smart_wizard.min.css')}}" rel="stylesheet">
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css')}}" rel="stylesheet">
+<style>
+    /* Évite le chevauchement visuel entre la ligne d’actions et un éventuel pied de tableau DataTables */
+    .rectification-fiches-dt td.rectif-col-action,
+    .rectification-fiches-dt th.rectif-col-action {
+        vertical-align: middle;
+        min-width: 10.5rem;
+    }
+    .rectification-fiches-dt .rectif-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.35rem;
+    }
+    .rectification-fiches-dt .rectif-actions form {
+        display: inline-flex;
+        margin: 0;
+    }
+</style>
 
 @endsection
 
@@ -24,7 +43,7 @@ Fiche de rectification
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="example" class="display" style="min-width: 845px">
+                                <table id="example" class="display rectification-fiches-dt" style="min-width: 845px">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -34,7 +53,7 @@ Fiche de rectification
                                             <th>Réquisition</th>
                                             <th>Réquerant</th>
                                             <th>Statut</th>
-                                            <th>Action</th>
+                                            <th class="text-end rectif-col-action">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -53,34 +72,23 @@ Fiche de rectification
                                                     <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">{{ $rectification->statut }} </span>
                                                     @endif
                                                 </td>
-                                                <td>
-                                                    <a href="{{ route('rectification.etat',$rectification->numero_acte) }}" target="_blank" class="btn btn-sm btn-primary" title="Voir la fiche de rectification"><i class="fas fa-eye"></i></a>
-                                                    {{-- envoyer la rectification --}}
-                                                    @if ($rectification->statut == 'En cours de traitement')
-                                                    <a href="{{ $rectification->code_rectification }}" numerefiche="{{ $rectification->numero_rectification }}" requerant={{$rectification->nom_prenom_requerant }} class="btn btn-sm btn-info show-to-send" title="Envoyer la fiche de rectification au tribunal"><i class="fas fa-plane"></i></a>
-                                                    <a href="{{ route('rectification.edit', $rectification->code_rectification) }}" class="btn btn-sm btn-success" title="Modifier la fiche de rectification"><i class="fas fa-pencil-alt"></i></a>
-                                                    <form action="{{ route('rectification.destroy', $rectification->code_rectification) }}" method="POST" style="display:inline;">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-danger" title="Supprimer la fiche de rectification"><i class="fas fa-trash"></i></button>
-                                                    </form>
-                                                    @endif
+                                                <td class="text-end rectif-col-action">
+                                                    <div class="rectif-actions">
+                                                        <a href="{{ route('rectification.etat',$rectification->numero_acte) }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary" title="Voir la fiche de rectification" aria-label="Voir la fiche de rectification"><i class="fas fa-eye" aria-hidden="true"></i></a>
+                                                        @if ($rectification->statut == 'En cours de traitement')
+                                                            <a href="{{ $rectification->code_rectification }}" numerefiche="{{ $rectification->numero_rectification }}" requerant="{{ $rectification->nom_prenom_requerant }}" class="btn btn-sm btn-info show-to-send text-white" title="Envoyer la fiche de rectification au tribunal" aria-label="Envoyer la fiche au tribunal"><i class="fas fa-plane" aria-hidden="true"></i></a>
+                                                            <a href="{{ route('rectification.edit', $rectification->code_rectification) }}" class="btn btn-sm btn-success" title="Modifier la fiche de rectification" aria-label="Modifier la fiche"><i class="fas fa-pencil-alt" aria-hidden="true"></i></a>
+                                                            <form action="{{ route('rectification.destroy', $rectification->code_rectification) }}" method="POST" class="d-inline">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-danger" title="Supprimer la fiche de rectification" aria-label="Supprimer la fiche"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                                                            </form>
+                                                        @endif
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @endforeach
                                     </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Numéro</th>
-                                            <th>Numéro d'acte à rectifier</th>
-                                            <th>Type acte</th>
-                                            <th>Réquisition</th>
-                                            <th>Réquerant</th>
-                                            <th>Statut</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </tfoot>
                                 </table>
                             </div>
                         </div>

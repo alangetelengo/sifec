@@ -49,6 +49,12 @@ Route::middleware('auth')->prefix('cartes')->group(function () {
     Route::post('cumuleDepartementMonth', [CartesController::class, 'cumuleDepartementMonth'])->name('cartes.cumule.departement.month');
     Route::post('cumuleDepartementWeek', [CartesController::class, 'cumuleDepartementWeek'])->name('cartes.cumule.departement.week');
     Route::post('cumuleDepartementDate', [CartesController::class, 'cumuleDepartementDate'])->name('cartes.cumule.departement.date');
+
+    Route::get('periode/synthese-nationale', [CartesController::class, 'syntheseNationalePeriode'])->name('cartes.periode.synthese.nationale');
+    Route::post('periode/synthese-departement', [CartesController::class, 'syntheseDepartementPeriode'])->name('cartes.periode.synthese.departement');
+    Route::get('periode/serie-journaliere', [CartesController::class, 'serieNationaleJournaliere'])->name('cartes.periode.serie.journaliere');
+    Route::get('periode/transcriptions', [CartesController::class, 'transcriptionsHorsTerritoire'])->name('cartes.periode.transcriptions');
+    Route::get('periode/export-pdf', [CartesController::class, 'exportCartePdf'])->name('cartes.periode.export.pdf');
 });
 
 Route::middleware('auth')->prefix('tableau')->group(function () {

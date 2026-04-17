@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Source unique des lignes tr_fonctionnalite (FNC_0001 … FNC_0048).
+ * Source unique des lignes tr_fonctionnalite (FNC_0001 … FNC_0049).
  * lib_technique aligné sur les @can() et Gate::before (AuthServiceProvider).
  */
 return [
@@ -52,4 +52,5 @@ return [
     ['code_fonctionnalite' => 'FNC_0046', 'lib_fonctionnalite' => 'Annuler un acte de mariage', 'lib_technique' => 'module.acteMariage.annuler', 'description_fonctionnalite' => "Permet d'annuler un acte de mariage enregistré (motif, date d'annulation).", 'code_module' => 'MOD_0004', 'etat_fonctionnalite' => 'Activé', 'code_fonctionnalite_parent' => 'FNC_0029'],
     ['code_fonctionnalite' => 'FNC_0047', 'lib_fonctionnalite' => 'Annuler un acte de naissance (jugement / suivi judiciaire)', 'lib_technique' => 'module.ActeNaissance.annulerActe', 'description_fonctionnalite' => "Permet d'annuler un acte de naissance dans le cadre du circuit jugements / CEC.", 'code_module' => 'MOD_0002', 'etat_fonctionnalite' => 'Activé', 'code_fonctionnalite_parent' => 'FNC_0002'],
     ['code_fonctionnalite' => 'FNC_0048', 'lib_fonctionnalite' => 'Gestion du menu latéral (CRUD)', 'lib_technique' => 'module.menuItems.manage', 'description_fonctionnalite' => "Réservé au super administrateur : créer, modifier ou supprimer les entrées de tr_menu_item.", 'code_module' => 'MOD_0001', 'etat_fonctionnalite' => 'Activé', 'code_fonctionnalite_parent' => 'FNC_0011'],
+    ['code_fonctionnalite' => 'FNC_0049', 'lib_fonctionnalite' => 'Enregistrer un retrait depuis la consultation actes retirés (CEC)', 'lib_technique' => 'module.acteNaissance.retrait.depuisConsultationCEC', 'description_fonctionnalite' => "Permet d'enregistrer le retrait d'un acte de naissance depuis l'écran Consultation des actes retirés (guichet CEC), sans passer par la fiche d'impression.", 'code_module' => 'MOD_0002', 'etat_fonctionnalite' => 'Activé', 'code_fonctionnalite_parent' => 'FNC_0002'],
 ];

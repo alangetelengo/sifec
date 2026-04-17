@@ -63,7 +63,7 @@
                     <td style="height: 18px;">Profession: <strong>{{$certificat->pere->profession->lib_profession}}</strong>, Nationalité: <strong>{{ $certificat->pere->nationalite->lib_nationalite }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td style="height: 18px;">Domicilié à :<strong>{{ Sifec::adressepersonne($certificat->pere->code_personne) }}</strong></td>
+                    <td style="height: 18px;">Domicilié à :<strong>{{ \App\Sifec\Sifec::adressepersonne($certificat->pere->code_personne) }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 18px;">Et de :<strong>{{$certificat->mere->nom}} {{$certificat->mere->prenom}}</strong></td>
@@ -76,7 +76,7 @@
                     <td style="height: 18px;">Profession: <strong>{{$certificat->mere->code_profession != NULL ? $certificat->mere->profession->lib_profession :""}}</strong>, Nationalité: <strong>{{ $certificat->mere->nationalite->lib_nationalite }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td style="height: 18px;">Domicilié à : <strong>{{ Sifec::adressepersonne($certificat->mere->code_personne) }}</strong></td>
+                    <td style="height: 18px;">Domicilié à : <strong>{{ \App\Sifec\Sifec::adressepersonne($certificat->mere->code_personne) }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 18px;">Ne nous a été présenté que ce jour : <strong>{{date("d/M/Y")}}</strong></td>

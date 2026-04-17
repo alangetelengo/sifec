@@ -198,7 +198,7 @@
                                     </div>
                                     <div class="col-xl-12" style="text-align:left; font-size:14px">
                                         L'Officier du centre d'état civil de: <strong> {{ $acte->declaration->institutionUser->institution->lib_institution }}</strong><br>
-                                        Est informé que le : <strong> {{ Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong><br>
+                                        Est informé que le : <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong><br>
                                         Est né(e), un enfant de sexe: <strong>{{$acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin" }}</strong><br>
                                         Nom(s): <strong>{{ $acte->declaration->enfant->nom }}</strong><br>
                                         Prénom(s): <strong>{{ $acte->declaration->enfant->prenom }}</strong><br>
@@ -207,7 +207,7 @@
                                         Filiation: <strong>{{$acte->declaration->declarant ? $acte->declaration->filiation->lib_filiation : $dummy }}</strong><br>
                                         Situation matrimoniale des parents: <strong>{{$acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy }}</strong><br>
                                         Fils de:<strong> {{$acte->declaration->pere ? $acte->declaration->pere->nom." ".$acte->declaration->pere->prenom : $dummy }}</strong><br>
-                                        Né le : <strong> {{ $acte->declaration->pere ?  Sifec::asLetters((int)date("d",strtotime($acte->declaration->pere->date_naissance)))." ".Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) : $dummy }}</strong><br>
+                                        Né le : <strong> {{ $acte->declaration->pere ?  \App\Sifec\Sifec::asLetters((int)date("d",strtotime($acte->declaration->pere->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) : $dummy }}</strong><br>
                                         A : <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->lieu_naissance : $dummy }}</strong><br>
                                         Nationalité: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->nationalite->lib_nationalite : $dummy}}</strong><br>
                                         Niveau d'instruction: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->niveau_instruction : $dummy}}</strong><br>
@@ -224,7 +224,7 @@
                                 <div class="row">
                                     <div class="col-xl-12" style="text-align:left; font-size:14px"><br><br>
                                         Et de :<strong> {{ $acte->declaration->mere ? $acte->declaration->mere->nom." ".$acte->declaration->mere->prenom : $dummy }}</strong><br>
-                                        Né le : <strong> {{ $acte->declaration->mere ?  Sifec::asLetters((int)date("d",strtotime($acte->declaration->mere->date_naissance)))." ".Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) ." ". Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) : $dummy }}</strong><br>
+                                        Né le : <strong> {{ $acte->declaration->mere ?  \App\Sifec\Sifec::asLetters((int)date("d",strtotime($acte->declaration->mere->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) : $dummy }}</strong><br>
                                         A : <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->lieu_naissance : $dummy }}</strong><br>
                                         Nationalité: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->nationalite->lib_nationalite : $dummy }}</strong><br>
                                         Niveau d'instruction: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->niveau_instruction : $dummy }}</strong><br>
@@ -265,8 +265,8 @@
                            <h2>
                                Nous <strong>{{ $nomcompletcec }}</strong>, officier de l'Etat-civil de <strong>{{ $registre->institutionUser->institution->lib_institution }}</strong><br>
                                arrêtons et clôturons le présent registre de <strong>{{ $registre->typeRegistre->lib_type_registre }}</strong><br>
-                               comprenant <strong>{{ Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong> actes  inscrits du numero <strong>01</strong> au numero <strong>{{ Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong><br>
-                               inclus et <strong>{{ Sifec::format_nombre(($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit),2) }}</strong> feuilles perdus ou annulés.<br><br>
+                               comprenant <strong>{{ \App\Sifec\Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong> actes  inscrits du numero <strong>01</strong> au numero <strong>{{ \App\Sifec\Sifec::format_nombre($registre->nombre_acte_transcrit,2) }}</strong><br>
+                               inclus et <strong>{{ \App\Sifec\Sifec::format_nombre(($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit),2) }}</strong> feuilles perdus ou annulés.<br><br>
                                A <strong>{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->updated_at)) }}</strong><br><br>
                                {{-- (Signature de l'officier d'état civil). --}}
                                <img src='{{ asset("app/".$registre->signature_cloture_cec) }}' alt="signature_clôture">

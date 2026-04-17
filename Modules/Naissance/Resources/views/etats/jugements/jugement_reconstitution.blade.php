@@ -91,7 +91,7 @@
             </p>
             <p class="para">POUR:
             </p>
-            <p class="para">{{ $jugement->enfant->sexe=="M" ? "Monsieur" : "Madame"  }} {{$jugement->enfant->nom}} {{$jugement->enfant->prenom}}, {{ $jugement->enfant->nationalite ? $jugement->enfant->nationalite->lib_nationalite : "" }}, {{ $jugement->enfant->profession ? $jugement->enfant->profession->lib_profession :""}}, domicilié au {{ Sifec::adressepersonne($jugement->enfant->code_personne) }}
+            <p class="para">{{ $jugement->enfant->sexe=="M" ? "Monsieur" : "Madame"  }} {{$jugement->enfant->nom}} {{$jugement->enfant->prenom}}, {{ $jugement->enfant->nationalite ? $jugement->enfant->nationalite->lib_nationalite : "" }}, {{ $jugement->enfant->profession ? $jugement->enfant->profession->lib_profession :""}}, domicilié au {{ \App\Sifec\Sifec::adressepersonne($jugement->enfant->code_personne) }}
             </p>
             <p class="para" style="text-align: center">DEMANDEUR
             </p>
@@ -127,7 +127,7 @@
                     <td>Profession: <strong>{{ $jugement->pere->profession->lib_profession }}</strong>, Nationalité: <strong>{{ $jugement->pere->nationalite->lib_nationalite }}</strong></td>
                 </tr>
                 <tr>
-                    <td>Domicilié: <strong>{{ Sifec::adressepersonne($jugement->pere->code_personne) }} </strong></td>
+                    <td>Domicilié: <strong>{{ \App\Sifec\Sifec::adressepersonne($jugement->pere->code_personne) }} </strong></td>
                 </tr>
                 <tr>
                     <td>Et de: <strong>{{$jugement->mere->nom}} {{$jugement->mere->prenom}}</strong></td>
@@ -139,7 +139,7 @@
                     <td>Profession: <strong>{{ $jugement->mere->profession->lib_profession }}</strong>, Nationalité: <strong>{{ $jugement->mere->nationalite->lib_nationalite }}</strong></td>
                 </tr>
                 <tr>
-                    <td>Domiciliée: <strong>{{ Sifec::adressepersonne($jugement->mere->code_personne) }} </strong></td>
+                    <td>Domiciliée: <strong>{{ \App\Sifec\Sifec::adressepersonne($jugement->mere->code_personne) }} </strong></td>
                 </tr>
             </table>
             <p style="text-align: justify;margin-right: 15%;font-size: 80%;">Dit qu'il sera porté en marge la mention  <span style="color: red;">&lsaquo;&lsaquo; ACTE RECONSTITUE&rsaquo;&rsaquo;</span>. Met les dépens à la charge de la requérante.

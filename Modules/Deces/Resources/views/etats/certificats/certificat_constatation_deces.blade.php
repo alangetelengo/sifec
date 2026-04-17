@@ -247,7 +247,7 @@
                     <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Domicile : <span style="font-size: 15px;font-weight:bold;">{{ Sifec::adressepersonne($ddc->declarant->code_personne) }} </span> </td>
+                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Domicile : <span style="font-size: 15px;font-weight:bold;">{{ \App\Sifec\Sifec::adressepersonne($ddc->declarant->code_personne) }} </span> </td>
                     <td style="border: none; padding:5px 0px;text-align: " >&nbsp;</td>
                 </tr>
                 <tr>
