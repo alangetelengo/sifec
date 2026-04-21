@@ -3,22 +3,13 @@
   	Creation date: 25/04/2017 09:15
   	*/
 
+/* Seul Flaticon.svg est présent dans le dépôt : évite les 404 sur .eot/.woff/.ttf.
+   Note : les polices SVG en @font-face ne sont plus prises en charge par Firefox ; pour un rendu partout, ajouter Flaticon.woff2 depuis le pack Flaticon d’origine. */
 @font-face {
   font-family: "Flaticon";
-  src: url("./Flaticon.eot");
-  src: url("./Flaticon.eot?#iefix") format("embedded-opentype"),
-       url("./Flaticon.woff") format("woff"),
-       url("./Flaticon.ttf") format("truetype"),
-       url("./Flaticon.svg#Flaticon") format("svg");
+  src: url("./Flaticon.svg#Flaticon") format("svg");
   font-weight: normal;
   font-style: normal;
-}
-
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-  @font-face {
-    font-family: "Flaticon";
-    src: url("./Flaticon.svg#Flaticon") format("svg");
-  }
 }
 
 [class^="flaticon-"]:before, [class*=" flaticon-"]:before,

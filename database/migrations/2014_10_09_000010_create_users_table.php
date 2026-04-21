@@ -59,6 +59,9 @@ class CreateUsersTable extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            // Requis pour les FK qui référencent uniquement `cui` (la PK composite ne suffit pas pour MySQL).
+            $table->unique('cui');
+
             $table->foreign("code_institution")->references("code_institution")->on("tr_institution")->onDelete("cascade")->onUpdate('cascade');
             $table->foreign("code_user")->references("code_user")->on("tr_user")->onDelete("cascade")->onUpdate('cascade');
             $table->foreign("code_fonction")->references("code_fonction")->on("tr_fonction")->onDelete("cascade")->onUpdate('cascade');

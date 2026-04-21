@@ -411,8 +411,14 @@
     padding: 1.25rem 1.35rem 1.5rem;
 }
 
+.page-sifec-form > .row > [class*="col-"] > .card.wizard-content {
+    /* Le wizard (jquery.steps) déborde souvent des onglets ; overflow:hidden rogne l’UI */
+    overflow: visible;
+}
+
 .page-sifec-form > .row > [class*="col-"] > .card.wizard-content > .card-body {
     padding: 1.25rem 1.35rem 1.5rem;
+    overflow: visible;
 }
 
 /**

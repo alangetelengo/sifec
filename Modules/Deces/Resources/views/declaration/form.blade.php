@@ -1,7 +1,12 @@
 <section>
+    @isset($type_declaration)
+    <div class="d-none">
+        <input type="text" value="{{ $type_declaration }}" id="type_declaration" autocomplete="off">
+    </div>
+    @endisset
     <div class="d-flex justify-content-end align-items-center">
-        <button type="button" id="clear_defunt" class="btn btn-danger  text-white" ></i> Vider </button>
-        <button type="button" class="btn btn-info  text-white"  data-bs-toggle="modal" data-bs-target=".defunt-search-modal-lg"  ><i class="fa fa-search"></i> Faire une recherche du défunt</button>
+        <button type="button" id="clear_defunt" class="btn btn-danger text-white"><i class="fa fa-eraser"></i> Vider</button>
+        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target=".defunt-search-modal-lg"><i class="fa fa-search"></i> Faire une recherche du défunt</button>
     </div>
     <hr>
     <div class="ligne">

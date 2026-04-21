@@ -151,7 +151,6 @@
 
 
                         }
-                        }
                         table += "</tbody><thead><tr><th>#</th><th>Nom et prénom</th><th>Sexe</th><th>Naissance</th><th>Téléphone</th><th></th></tr></thead></table></div>";
                         $("#resultatDefunt").html(table);
 
@@ -518,7 +517,6 @@
 
                                 '</tr>';
                            }
-                        }
                         table += "</tbody><thead><tr><th>#</th><th>Nom et prénom</th><th>Sexe</th><th>Naissance</th><th>Téléphone</th><th></th></tr></thead></table></div>";
                         $("#resultatConjoint").html(table);
 
@@ -707,7 +705,6 @@
 
 
                            }
-                        }
                         table += "</tbody><thead><tr><th>#</th><th>Nom et prénom</th><th>Sexe</th><th>Naissance</th><th>Téléphone</th><th></th></tr></thead></table></div>";
                         $("#resultatPere").html(table);
 
@@ -885,7 +882,6 @@
 
 
                            }
-                        }
                         table += "</tr></tbody></table></div>";
                         $("#resultatMere").html(table);
 
@@ -1063,7 +1059,6 @@
 
 
                            }
-                        }
                         table += "</tr></tbody></table></div>";
                         $("#resultatDeclarant").html(table);
 
@@ -1192,27 +1187,13 @@ if(($('#code_situation_matrimoniale_defunt').val()==="SMAT_0001"))
                     title: "Enregistrer le document ?",
                     icon: 'question',
                     //text: "Assurez-vous, puis confirmez ! \n\n",
-html:
-     "<input type='button' value='Imprimer cette page' class=\"btn btn-primary\" onClick='printDiv(\"printcontent\")'><div id='printcontent'><br><table style='border:1px solid black; width:100%; padding:10px; text-align:left'>"
-
-//DECLARATION
-    +"<tr><td style='padding:5px'>Date décès</td><td style='padding:5px'><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_deces").value)+" </span></td><td style='padding:5px'>Heure</td><td style='padding:5px'><span style='font-weight:bold;'> "+document.getElementById("heure_deces").value+"</span></td><td style='padding:5px'>Lieu de décès</td><td style='padding:5px'> <span style='font-weight:bold;'>"+document.getElementById("lieu_deces").value+"</span></td></tr>"
-
-//DEFUNT
-    +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:5px'>1)DEFUNT<br></td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_defunt").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_defunt").value+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'>"+document.getElementById( "sexe_defunt" ).options[ document.getElementById( "sexe_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_defunt").value)+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Acte naissance<BR><span style='font-weight:bold;'>"+document.getElementById("num_acte_naissance").value+"</span></td><td style='padding:5px'>Mairie<br><span style='font-weight:bold;'>"+document.getElementById("cec_naissance_defunt").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_defunt" ).options[ document.getElementById( "code_profession_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_defunt").value+"</span></td><td style='padding:5px'></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Sit. Matrimoniale<br><span style='font-weight:bold;'>"+document.getElementById( "code_situation_matrimoniale_defunt" ).options[document.getElementById( "code_situation_matrimoniale_defunt" ).selectedIndex].text +" </span></td><td style='padding:5px'>Réligion<br><span style='font-weight:bold;'> "+document.getElementById( "code_religion_defunt" ).options[ document.getElementById( "code_religion_defunt" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalité<br><span style='font-weight:bold;'>"+document.getElementById( "code_nationalite_defunt" ).options[ document.getElementById( "code_nationalite_defunt" ).selectedIndex ].text+"</span></td></tr>"
-
-
-//Conjoint
-// +conjoint
-// +"<tr><td style='font-weight:bold; padding:5px'>3)PERE : </td><td style='padding:5px'>Nom et prénom <br><span style='font-weight:bold;'>"+document.getElementById("nom_pere").value+" "+document.getElementById("prenom_pere").value+"</span></td><td style='font-weight:bold; padding:5px'>4)MERE </td><td style='padding:5px'>Nom et prenom <br><span style='font-weight:bold;'>"+document.getElementById("nom_mere").value+" "+document.getElementById("prenom_mere").value+"</span></td></tr>"
-
-  //DECLARANT
-    +"<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:5px'>3)DECLARANT</td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>"+ document.getElementById("nom_declarant").value +" </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> "+document.getElementById("prenom_declarant").value+"</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>"+dateFrench(document.getElementById("date_naissance_declarant").value)+"</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'> "+document.getElementById( "sexe_declarant" ).options[ document.getElementById( "sexe_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>"+document.getElementById("lieu_naissance_declarant").value+"</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>"+document.getElementById("domicile_nomvoie_declarant").value+"</span></td><tr>"
-    +"<tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Cause de décès <br><span style='font-weight:bold;'>"+selected+"</span></td><td style='padding:5px'>Filiation<br><span style='font-weight:bold;'>"+document.getElementById( "code_filiation_declarant" ).options[ document.getElementById( "code_filiation_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Téléphone<br><span style='font-weight:bold;'>"+document.getElementById("telephone_declarant").value+"</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>"+document.getElementById( "code_profession_declarant" ).options[ document.getElementById( "code_profession_declarant" ).selectedIndex ].text+"</span></td><td style='padding:5px'>Nationalite<br><span style='font-weight:bold;'>"+document.getElementById("code_nationalite_declarant").options[ document.getElementById( "code_nationalite_declarant" ).selectedIndex ].text+"</span></tr>"
-
-
-    +"<tr><td style='padding:5px;' colspan=11><hr style='border:none;'></td></tr></table><bR><br>Assurez-vous, puis confirmez !</div> ",
-                    type: "warning",
+                    html:
+                        "<input type='button' value='Imprimer cette page' class=\"btn btn-primary\" onClick='printDiv(\"printcontent\")'><div id='printcontent'><br><table style='border:1px solid black; width:100%; padding:10px; text-align:left'>"
+                        + "<tr><td style='padding:5px'>Date décès</td><td style='padding:5px'><span style='font-weight:bold;'>" + dateFrench(document.getElementById("date_deces").value) + " </span></td><td style='padding:5px'>Heure</td><td style='padding:5px'><span style='font-weight:bold;'> " + document.getElementById("heure_deces").value + "</span></td><td style='padding:5px'>Lieu de décès</td><td style='padding:5px'> <span style='font-weight:bold;'>" + document.getElementById("lieu_deces").value + "</span></td></tr>"
+                        + "<tr><td style='padding:10px' colspan='6'><hr></td></tr><tr><td style='font-weight:bold; padding:5px'>1)DEFUNT<br></td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>" + document.getElementById("nom_defunt").value + " </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> " + document.getElementById("prenom_defunt").value + "</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'>" + document.getElementById("sexe_defunt").options[document.getElementById("sexe_defunt").selectedIndex].text + "</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>" + dateFrench(document.getElementById("date_naissance_defunt").value) + "</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>" + document.getElementById("cec_naissance_defunt").value + "</span></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Acte naissance<BR><span style='font-weight:bold;'>" + document.getElementById("num_acte_naissance").value + "</span></td><td style='padding:5px'>Mairie<br><span style='font-weight:bold;'>" + document.getElementById("cec_naissance_defunt").value + "</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>" + document.getElementById("code_profession_defunt").options[document.getElementById("code_profession_defunt").selectedIndex].text + "</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>" + document.getElementById("domicile_nomvoie_defunt").value + "</span></td><td style='padding:5px'></td></tr><tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Sit. Matrimoniale<br><span style='font-weight:bold;'>" + document.getElementById("code_situation_matrimoniale_defunt").options[document.getElementById("code_situation_matrimoniale_defunt").selectedIndex].text + " </span></td><td style='padding:5px'>Réligion<br><span style='font-weight:bold;'> " + document.getElementById("code_religion_defunt").options[document.getElementById("code_religion_defunt").selectedIndex].text + "</span></td><td style='padding:5px'>Nationalité<br><span style='font-weight:bold;'>" + document.getElementById("code_nationalite_defunt").options[document.getElementById("code_nationalite_defunt").selectedIndex].text + "</span></td></tr>"
+                        + "<tr><td style='padding:10px' colspan='6'><hr></td></tr><td style='font-weight:bold; padding:5px'>3)DECLARANT</td><td style='padding:5px'>Nom<br><span style='font-weight:bold;'>" + document.getElementById("nom_declarant").value + " </span></td><td style='padding:5px'>Prenom<br><span style='font-weight:bold;'> " + document.getElementById("prenom_declarant").value + "</span></td><td style='padding:5px'>Date naissance<br><span style='font-weight:bold;'>" + dateFrench(document.getElementById("date_naissance_declarant").value) + "</span></td><td style='padding:5px'>Sexe<br><span style='font-weight:bold;'> " + document.getElementById("sexe_declarant").options[document.getElementById("sexe_declarant").selectedIndex].text + "</span></td><td style='padding:5px'>Lieu<br><span style='font-weight:bold;'>" + document.getElementById("lieu_naissance_declarant").value + "</span></td><td style='padding:5px'>Adresse<br><span style='font-weight:bold;'>" + document.getElementById("domicile_nomvoie_declarant").value + "</span></td><tr>"
+                        + "<tr><td style='font-weight:bold; padding:5px'></td><td style='padding:5px'>Cause de décès <br><span style='font-weight:bold;'>" + selected + "</span></td><td style='padding:5px'>Filiation<br><span style='font-weight:bold;'>" + document.getElementById("code_filiation_declarant").options[document.getElementById("code_filiation_declarant").selectedIndex].text + "</span></td><td style='padding:5px'>Téléphone<br><span style='font-weight:bold;'>" + document.getElementById("telephone_declarant").value + "</span></td><td style='padding:5px'>Profession<br><span style='font-weight:bold;'>" + document.getElementById("code_profession_declarant").options[document.getElementById("code_profession_declarant").selectedIndex].text + "</span></td><td style='padding:5px'>Nationalite<br><span style='font-weight:bold;'>" + document.getElementById("code_nationalite_declarant").options[document.getElementById("code_nationalite_declarant").selectedIndex].text + "</span></tr>"
+                        + "<tr><td style='padding:5px;' colspan=11><hr style='border:none;'></td></tr></table><bR><br>Assurez-vous, puis confirmez !</div> ",
                     showCancelButton: !0,
                     confirmButtonText: "Oui, Confirmer!",
                     cancelButtonText: "Non, Annuler!",

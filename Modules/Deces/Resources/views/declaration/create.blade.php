@@ -44,9 +44,6 @@
                     <form  name="contactUsForm" id="contactUsForm" class="validation-wizard wizard-circle" method="post" action="javascript:void(0)">
                         <!-- Step 1 -->
                         <h6>Défunt</h6>
-                        <div class="d-none">
-                            <input type="text" value="{{ $type_declaration }}" id="type_declaration">
-                        </div>
                         @include("deces::declaration.form")
                         <!-- Step 2 -->
                        @include("deces::declaration.conjoint")
