@@ -62,7 +62,9 @@
        <tr style="">
            <td style="width:100%; text-align: center;">
                <p><strong>EXTRAIT D’ACTE DE NAISSANCE</strong><br>
+                @if(filled($acte->approbation_mairie))
                 N°:<strong>{{ $acte->niupp }}</strong> DU <strong>{{date("d-m-Y", strtotime($acte->declaration->date_heure_declaration))}}</strong> <br>
+                @endif
                 CENTRE D’ETAT CIVIL : <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
             </p>
            </td>
@@ -109,7 +111,12 @@
                     <p style="margin-right:150px;">L’officier de l’état civil</p><br>
                 </div>
                 <div style="position:absolute; right:60px; top:210px">
-                          <img src='{{ public_path('app/'.$signatairePortail->signature) }}'><br>
+                          @php
+                              $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($signatairePortail->signature);
+                          @endphp
+                          @if ($pdfSignature)
+                          <img src="{{ $pdfSignature }}"><br>
+                          @endif
                              {{ $signatairePortail->nom.' '.$signatairePortail->prenom }}
 
                 </div>

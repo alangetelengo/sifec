@@ -1,0 +1,62 @@
+/* Portail SIFEC — compléments Bootstrap (modales au-dessus du header fixe) */
+.modal-portail {
+  z-index: 200000;
+}
+
+.modal-portail .modal-backdrop {
+  z-index: 199990;
+}
+
+.portail-modal-body-scroll {
+  max-height: calc(100vh - 8rem);
+  overflow: auto;
+}
+
+.portail-payment-type input {
+  visibility: hidden;
+  position: absolute;
+}
+
+.portail-payment-type .portail-card {
+  cursor: pointer;
+  background-size: auto;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  width: 120px;
+  height: 80px;
+  border: 1px solid #ccc;
+  filter: brightness(1.8) grayscale(1) opacity(0.7);
+  margin: 4px;
+}
+
+.portail-payment-type .portail-card:hover {
+  filter: brightness(1.2) grayscale(0.5) opacity(0.9);
+}
+
+.portail-payment-type input:checked + .portail-card {
+  filter: none;
+  box-shadow: 0 0 0 2px #0d6efd;
+}
+
+.portail-card-mtn {
+  background-image: url('../img/mtn.png');
+}
+
+.portail-card-airtel {
+  background-image: url('../img/airtel.jpg');
+}
+
+.portail-card-visa {
+  background-image: url('../img/visa.png');
+}
+
+.portail-card-paypal {
+  background-image: url('https://cdn-icons-png.flaticon.com/128/196/196565.png');
+}
+
+.portail-admin-toolbar {
+  background: #f8f9fa;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+}

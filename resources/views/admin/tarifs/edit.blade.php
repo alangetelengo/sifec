@@ -58,7 +58,7 @@ Modifier Tarif {{ $tarif->code_tarification }}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Statut</label>
                                 <div class="form-check form-switch" style="padding-top: 8px;">
-                                    <input class="form-check-input" type="checkbox" name="actif" 
+                                    <input class="form-check-input" type="checkbox" name="actif" value="1"
                                            id="actif" {{ old('actif', $tarif->actif) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="actif">
                                         Tarif actif

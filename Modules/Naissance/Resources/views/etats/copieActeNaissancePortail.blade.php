@@ -121,7 +121,12 @@
             </td>
             <td style="width:30%; text-align: center; vertical-align: middle;">
                 @if ($acte->approbation_tribunal == 1 && $acte->sceau_tribunal)
-                    <img src='{{ public_path('app/'.$acte->sceau_tribunal) }}' alt="" width="100" height="100" style="display: block; margin: 0 auto;">
+                    @php
+                        $pdfSceau = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->sceau_tribunal);
+                    @endphp
+                    @if ($pdfSceau)
+                    <img src="{{ $pdfSceau }}" alt="" width="100" height="100" style="display: block; margin: 0 auto;">
+                    @endif
                 @endif
             </td>
             <td style="width:35%; text-align: right; vertical-align: middle;">
@@ -136,8 +141,10 @@
         <tr style="">
             <td style="width:100%; text-align: center;">
                 <p><strong style="font-size: 18px;">COPIE D'ACTE DE NAISSANCE </strong>
-                    {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
-                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong></p>
+                    @if(filled($acte->approbation_mairie))
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong>
+                    @endif
+                </p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -269,9 +276,18 @@
                     </td>
                     <td style="text-align: left;">
                      <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($libLocalite)))}}, le {{ utf8_encode(strftime('%d %B %Y', strtotime($datePourCopiePdf))) }}<br>L'officier de l'état civil</p>
-                         @if ($acte->approbation_mairie != "")
-                             <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
-                             <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
+                         @if (! empty($signatairePortail->signature ?? null))
+                             @php
+                                 $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($signatairePortail->signature);
+                             @endphp
+                             @if ($pdfSignature)
+                             <img src="{{ $pdfSignature }}"><br>
+                             @endif
+                             <span style="color:black; font-weight:bold">{{ \App\Sifec\Sifec::formatNomPrenomPourActe($signatairePortail->nom ?? '', $signatairePortail->prenom ?? '') }}</span>
+                         @else
+                             <div style="height: 60px; padding-top: 10px;">
+                                 <span style="color: #999; font-style: italic;">[En attente de signature de délivrance]</span>
+                             </div>
                          @endif
                      </td>
                   </tr>

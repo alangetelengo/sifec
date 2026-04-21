@@ -68,25 +68,21 @@
                 </a>
                 @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'], true))
                     {{-- PDF certificat (mise en page formation sanitaire) : toujours pour ces types --}}
-                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}"
-                       target="_blank"
-                       rel="noopener"
+                    <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire', 'from' => 'acte']) }}"
                        class="btn btn-sm btn-warning"
                        title="Ouvrir le PDF du certificat de naissance">
                         <i class="fas fa-file-medical"></i>
                     </a>
                     @if($dn->type_declaration === 'DECLARATION DE NAISSANCE')
                         {{-- PDF déclaration telle que générée pour le centre d’état civil --}}
-                        <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}"
-                           target="_blank"
-                           rel="noopener"
+                        <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil', 'from' => 'acte']) }}"
                            class="btn btn-sm btn-success"
                            title="Ouvrir le PDF de la déclaration de naissance générée">
                             <i class="fas fa-file-alt"></i>
                         </a>
                     @endif
                 @else
-                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-sm btn-warning" title="Voir le document (PDF)">
+                    <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'from' => 'acte']) }}" class="btn btn-sm btn-warning" title="Voir le document (PDF)">
                         <i class="fas fa-print"></i>
                     </a>
                 @endif

@@ -6,10 +6,19 @@ return [
         'validite_mois_par_defaut' => 3,
     ],
     'sms' => [
+        /** wirepick | infobip (Infobip : voir aussi config/technodev.php) */
+        'provider' => env('SIFEC_SMS_PROVIDER', 'wirepick'),
+        'sender_id' => env('SIFEC_SMS_SENDER_ID', 'ETAT-CIVIL'),
+        'wirepick' => [
+            'client' => env('SIFEC_SMS_WIREPICK_CLIENT', 'mukinayiseth'),
+            'password' => env('SIFEC_SMS_WIREPICK_PASSWORD', '123456789@123456789'),
+            'endpoint' => env('SIFEC_SMS_WIREPICK_ENDPOINT', 'https://api.wirepick.com/httpsms/send'),
+        ],
         'templates' => [
             'actions' => [
                 'creation_registre' => 'M.(Mme) :tribunal, un registre de :type_registre numero :code_registre provenance :cec est en attente de validation',
                 'paraphage_registre' => 'M (Mme) :tribunal, votre code pour parapher le registre numero :code_registre est :code_otp',
+                'paraphage_registre_bulk' => 'M (Mme) :tribunal, votre code :code_otp paraphe :nombre registre(s) d\'état civil (validité :minutes min).',
 
                 'declaration_naissance' => 'M.(Mme) :declarant, une declaration de naissance de :enfant, dont vous etes declarant a ete emis avec succes, le numero de la declaration est :code_declaration',
                 'acte_naissance' => "M.(Mme) :declarant, l'acte de la declaration de naissance :code_acte_naissance dont vous etes declarant est disponible,priere de vous rapprocher du centre d'etat civil :libCec",

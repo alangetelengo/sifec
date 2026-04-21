@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>Portail SIFEC (Bootstrap)</title>
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+
+
+  <script src="assets/vendor/kendo-library/kendo-js/jquery.min.js"></script>
+  <script src="assets/js/html2canvas.min.js"></script>
+  <script src="assets/js/filesaver.js"></script>
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/animate.css/animate.min.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/style.css" rel="stylesheet">
+
+  <!-- =======================================================
+  * Template Name: Anyar
+  * Updated: Jul 27 2023 with Bootstrap v5.3.1
+  * Template URL: https://bootstrapmade.com/anyar-free-multipurpose-one-page-bootstrap-theme/
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+
+<!--style>
+.k-window  div.k-window-content
+{
+ overflow: hidden;
+}
+
+</style-->
+
+
+</head>
+
+<body>
+    <!-- ======= Top Bar ======= -->
+  <div id="topbar" class="fixed-top d-flex align-items-center ">
+    <div class="container d-flex align-items-center justify-content-center justify-content-md-between">
+      <div class="contact-info d-flex align-items-center">
+
+        <!--i class="bi bi-envelope-fill"></i-->
+        <a href="#" style="text-align: center" title="Ministère de l'intérieur et de la décentratlisation">
+          <img src="assets/img/arm.png" style="width:35%;vertical-align: center;"/> <!--span style="vertical-align: center;">Ministère de l'intérieur, de la décentralisation</span><br><span style="margin-top: -100px;"> de l'administration du territoire</span-->
+
+        <span></span>
+      </a>
+        <a href="#" style="text-align: center" title></a>
+
+      </div>
+      <div class="cta d-none d-md-block">
+        <a href="#about" class="scrollto" title="République du Congo" style="text-align: center;">
+          <img src="assets/img/congo.png" style="width:30%"/><br>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= Header ======= -->
+  <header id="header" class="fixed-top d-flex align-items-center ">
+    <div class="container d-flex align-items-center justify-content-between">
+
+      <h1 class="logo"><a href="index-bootstrap.html"><img src="assets/img/logo-sifec-app.gif" alt="SIFEC"></a></h1>
+      <!-- Uncomment below if you prefer to use an image logo -->
+      <!-- <a href=index.html" class="logo"><img src="assets/img/logo.png" alt="" class="img-fluid"></a>-->
+
+      <nav id="navbar" class="navbar">
+        <ul>
+          <li><a class="nav-link scrollto active" href="#hero">Accueil</a></li>
+          <li><a class="nav-link scrollto" href="#about">Etat-civil</a></li>
+          <li><a class="nav-link scrollto" href="#services">Sifec</a></li>
+          <li><a class="nav-link scrollto " href="#portfolio">Faits</a></li>
+          <li class="dropdown"><a href="#pricing"><span>Procédures</span> <i class="bi bi-chevron-down"></i></a>
+            <ul>
+              <li><a href="#pricing0">Naissance</a></li>
+              <li><a href="#pricing1">Décès</a></li>
+              <li><a href="#pricing2">Mariage</a></li>
+              <li><a href="#pricing3">Divorce</a></li>
+            </ul>
+          </li>
+          <li class="dropdown"><a href="#"><span>Documentation</span> <i class="bi bi-chevron-down"></i></a>
+            <ul>
+              <li><a href="assets/documentation/code.pdf" target="_blank">Code de la famille</a></li>
+            </ul>
+          </li>
+          <li class="dropdown"><a href="#"><span>E-services</span> <i class="bi bi-chevron-down"></i></a>
+            <ul>
+              <!--li><a href="#" id="frmDecBtnDisplay">Déclaration en ligne</a></li-->
+              <!--li><a href="#" id="frmCheckActeBtnDisplay">Authentification d'acte</a></li-->
+              <!--li><a href="#" id="frmCopieBtnDisplay">Copie d'acte de naissance</a></li-->
+              <!--li><a href="#" id="frmDupBtnDisplay" title="D'acte de naissance">Copies/Duplicata/Extrait</a></li-->
+              <!--li><a href="#" id="frmLivBtnDisplay">Livret de famille</a></li-->
+              <!--li><a href="#" id="frmJournalBtnDisplay">Publication de bans</a></li-->
+              <li><a href="#" id="frmWindowParticulierBtnDisplay">Vous êtes un particulier</a></li>
+              <li><a href="#" id="frmConnexionBtnDisplay">Vous êtes une administration</a></li>
+            </ul>
+          </li>
+
+          <li><a class="nav-link scrollto" href="#contact">Contacts</a></li>
+        </ul>
+        <i class="bi bi-list mobile-nav-toggle"></i>
+      </nav><!-- .navbar -->
+
+    </div>
+  </header><!-- End Header -->
+
+  <!-- ======= Hero Section ======= -->
+  <section id="hero" class="d-flex justify-cntent-center align-items-center">
+    <div id="heroCarousel" data-bs-interval="5000" class="container carousel carousel-fade" data-bs-ride="carousel">
+
+      <!-- Slide 1 -->
+      <div class="carousel-item active">
+        <div class="carousel-container">
+          <h2 class="animate__animated animate__fadeInDown" style="font-size:30px">La dématérialisation de l'Etat Civil avec<strong> SIFEC</strong></h2>
+          <p class="animate__animated animate__fadeInUp">Le Système Intégré des Faits d'Etat Civil (SIFEC) est une plateforme numérique nationale qui assure un traitement automatique du processus de gestion des faits d'état civil sur toute l'étendue du territoire.</p>
+          <a href="#services" class="btn-get-started animate__animated animate__fadeInUp scrollto">Savoir plus sur SIFEC</a>
+        </div>
+      </div>
+
+      <!-- Slide 2 -->
+      <div class="carousel-item">
+        <div class="carousel-container">
+          <h2 class="animate__animated animate__fadeInDown" style="font-size:30px">Synchronisation instantanée de l'information de l'état civil avec<strong> SIFEC</strong></h2>
+          <p class="animate__animated animate__fadeInUp">Le Système Intégré des Faits d'Etat Civil (SIFEC) est une plateforme numérique qui garantit l'interopérabilité des administrations traitant les informations de l'état civil. </p>
+          <a href="#services" class="btn-get-started animate__animated animate__fadeInUp scrollto">Savoir plus sur SIFEC</a>
+        </div>
+      </div>
+
+      <!-- Slide 3 -->
+      <div class="carousel-item">
+        <div class="carousel-container">
+          <h2 class="animate__animated animate__fadeInDown" style="font-size:30px">Une sécurité garantie de l'information de l'Etat civil avec<strong> SIFEC</strong></h2>
+          <p class="animate__animated animate__fadeInUp">Le Système Intégré des Faits d'Etat Civil (SIFEC) est une plateforme numérique qui permet de bâtir une politique de sécurité centralisée du système d’information de l’état civil pour plus de fiabilité.  </p>
+          <a href="#services" class="btn-get-started animate__animated animate__fadeInUp scrollto">Savoir plus sur SIFEC</a>
+        </div>
+      </div>
+
+      <a class="carousel-control-prev" href="#heroCarousel" role="button" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon bx bx-chevron-left" aria-hidden="true"></span>
+      </a>
+
+      <a class="carousel-control-next" href="#heroCarousel" role="button" data-bs-slide="next">
+        <span class="carousel-control-next-icon bx bx-chevron-right" aria-hidden="true"></span>
+      </a>
+
+    </div>
+  </section><!-- End Hero -->
+
+  <main id="main">
+
+    <!-- ======= Icon Boxes Section ======= -->
+    <section id="icon-boxes" class="icon-boxes">
+      <div class="container">
+
+        <div class="row">
+          <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0" data-aos="fade-up">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bxs-group"></i></div>
+              <h4 class="title"><a href="#" style="font-size:14px">Aux particuliers</a></h4>
+              <p class="description" style="font-size:13px"><strong><i class="bi bi-chevron-double-down"></i></strong> Simplification des procédures d'état civil;</p>
+              <p class="description" style="font-size:13px"><i class="bi bi-chevron-double-down"></i> Réduction des délais et des coûts pour l'acquisition des actes d'état civil.</p>
+
+
+
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0" data-aos="fade-up" data-aos-delay="100">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-home"></i></div>
+              <h4 class="title"><a href="#" style="font-size:14px">A l'administration d'état civil</a></h4>
+              <p class="description" style="font-size:13px"><strong><i class="bi bi-chevron-double-down"></i></strong> Automatisation des processus métiers;</p>
+              <p class="description" style="font-size:13px"><i class="bi bi-chevron-double-down"></i> Amélioration de la performance et du cadre de travail.</p>
+
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0" data-aos="fade-up" data-aos-delay="200">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bxs-network-chart"></i></div>
+              <h4 class="title"><a href="#" style="font-size:14px">Au SI du domaine public</a></h4>
+              <p class="description" style="font-size:13px"><strong><i class="bi bi-chevron-double-down"></i></strong> Interopérabilité instantanée des administrations publiques en matière d'état civil;</p>
+              <p class="description" style="font-size:13px"><i class="bi bi-chevron-double-down"></i> Amélioration de la qualité du service public.</p>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0" data-aos="fade-up" data-aos-delay="300">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-world"></i></div>
+              <h4 class="title"><a href="#" style="font-size:14px">Au niveau national</a></h4>
+              <p class="description" style="font-size:13px"><strong><i class="bi bi-chevron-double-down"></i></strong> Politique de sécurité des données centrale et fiable;</p>
+              <p class="description" style="font-size:13px"><i class="bi bi-chevron-double-down"></i> Des statistiques fiables sur les faits d'état civil sur toute l'étendue du territoire.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Icon Boxes Section -->
+
+    <!-- ======= About Us Section ======= -->
+    <section id="about" class="about" style="padding-top: 50px;padding-bottom: 50px;">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>L'ETAT CIVIL</h2>
+          <p>L’Etat civil est une institution légale, ayant pour objet l’enregistrement officiel des évènements, des caractéristiques liées à la naissance, au décès et au mariage ainsi que les évènements qui peuvent modifier certains caractères de l’Etat civil d’une personne comme le divorce, la séparation légale, l’adoption, la légitimation,  l’annulation de mariage. <br>A ce titre,
+		  l'Etat Civil est l'administration qui est chargée de dresser les actes de l'état civil.
+          </p>
+        </div>
+
+        <div class="row content">
+          <div class="col-lg-6">
+            <p>
+              Une fois qu’un événement d’état civil a eu lieu et que le document original a été établi par le biais de l’officier de l’état civil, il en résutle:
+
+            </p>
+            <ul>
+              <li><i class="ri-check-double-line"></i> la prodution de l'acte d'état civil et sa transmission au déclarant;</li>
+              <li><i class="ri-check-double-line"></i> la transcription  de l'acte dans le registre d'état civil, un document permanent, conçu exclusivement pour des fins juridiques. </li>
+
+            </ul>
+          </div>
+          <div class="col-lg-6 pt-4 pt-lg-0">
+            <p>
+              Le système d'état civil couvre l'ensemble des administrations publiques qui traitent des questions relatives aux informations concernant l'état civil
+              des citoyens. <br>
+              Ainsi, il permet de capturer tous les évènements qui peuvent survenir pendant toute la vie d'un individu de sa naissance jusqu'à sa mort en passant par les changements intermédiaires concernant son statut social.
+            </p>
+            <!--a href="#" class="btn-learn-more">Learn More</a-->
+          </div>
+
+
+        </div>
+
+
+      </div>
+    </section><!-- End About Us Section -->
+
+    <section id="why-us" class="why-us">
+      <div class="container-fluid">
+
+        <div class="row">
+
+          <div class="col-lg-5 align-items-stretch position-relative video-box" style='background-image: url("assets/img/administration.jpg");' data-aos="fade-right">
+            <!--a href="https://www.youtube.com/watch?v=LXb3EKWsInQ" class="glightbox play-btn mb-4"></a-->
+          </div>
+
+          <div class="col-lg-7 d-flex flex-column justify-content-center align-items-stretch" data-aos="fade-left">
+
+            <div class="content">
+              <h3 style="font-size: 20px; font-weight: bolder; text-transform: uppercase">Fonctionnement du système d'état civil au Congo<strong></strong></h3>
+              <p>
+                Le système d'état civil en République du Congo fonctionne à deux niveaux.
+              </p>
+            </div>
+
+            <div class="accordion-list">
+              <ul>
+                <li data-aos="fade-up" data-aos-delay="100">
+                  <a data-bs-toggle="collapse" class="collapse" data-bs-target="#accordion-list-1"><span>01</span> NIVEAU STRATEGIQUE<i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                  <div id="accordion-list-1" class="collapse show" data-bs-parent=".accordion-list">
+                    <p style="font-size:13px">
+                      Le niveau national ou stratégique est celui constitué par l’ensemble des ministères qui œuvrent dans le système d’état civil.
+                    </p>
+                  </div>
+                </li>
+
+                <li data-aos="fade-up" data-aos-delay="200">
+                  <a data-bs-toggle="collapse" data-bs-target="#accordion-list-2" class="collapsed"><span>02</span> NIVEAU OPERATIONNEL <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                  <div id="accordion-list-2" class="collapse" data-bs-parent=".accordion-list">
+                    <p style="font-size:13px">
+                      Il est constitué par :<br>
+                    <ul style="font-size:13px">
+                    <li><strong>1. Les centres principaux d’état civil</strong> qui ont pour mission de recevoir les déclarations des faits d’état civil , de dresser les actes qui en  découlent, enfin de porter les   mentions nécessaires sur les registres d’actes de naissance ou de mariage.
+                      </li>
+                      <li style="margin-top: -30px;"><strong> 2. Les centres secondaires d’état civil</strong> sont créés par arrêté du Ministre de l’Intérieur et fonctionnent sous la responsabilité du centre principal auquel ils sont rattachés. Ils sont érigés dans les quartiers, les villages, les formations sanitaires et les établissements pénitentiaires sous forme de centre auxiliaire d’état civil.
+                      </li>
+                    </ul>
+
+                    </p>
+                  </div>
+                </li>
+
+
+
+              </ul>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======= Clients Section ======= -->
+    <!--section id="clients" class="clients">
+      <div class="container" data-aos="zoom-in">
+
+        <div class="clients-slider swiper">
+          <div class="swiper-wrapper align-items-center">
+            <div class="swiper-slide"><img src="assets/img/clients/client-1.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-2.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-3.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-4.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-5.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-6.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-7.png" class="img-fluid" alt=""></div>
+            <div class="swiper-slide"><img src="assets/img/clients/client-8.png" class="img-fluid" alt=""></div>
+          </div>
+          <div class="swiper-pagination"></div>
+        </div>
+
+      </div>
+    </section><!-- End Clients Section -->
+
+    <!-- ======= Why Us Section ======= -->
+    <!--section id="why-us" class="why-us">
+      <div class="container-fluid">
+
+        <div class="row">
+
+          <div class="col-lg-5 align-items-stretch position-relative video-box" style='background-image: url("assets/img/why-us.jpg");' data-aos="fade-right">
+            <a href="https://www.youtube.com/watch?v=LXb3EKWsInQ" class="glightbox play-btn mb-4"></a>
+          </div>
+
+          <div class="col-lg-7 d-flex flex-column justify-content-center align-items-stretch" data-aos="fade-left">
+
+            <div class="content">
+              <h3>Eum ipsam laborum deleniti <strong>velit pariatur architecto aut nihil</strong></h3>
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Duis aute irure dolor in reprehenderit
+              </p>
+            </div>
+
+            <div class="accordion-list">
+              <ul>
+                <li data-aos="fade-up" data-aos-delay="100">
+                  <a data-bs-toggle="collapse" class="collapse" data-bs-target="#accordion-list-1"><span>01</span> Non consectetur a erat nam at lectus urna duis? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                  <div id="accordion-list-1" class="collapse show" data-bs-parent=".accordion-list">
+                    <p>
+                      Feugiat pretium nibh ipsum consequat. Tempus iaculis urna id volutpat lacus laoreet non curabitur gravida. Venenatis lectus magna fringilla urna porttitor rhoncus dolor purus non.
+                    </p>
+                  </div>
+                </li>
+
+                <li data-aos="fade-up" data-aos-delay="200">
+                  <a data-bs-toggle="collapse" data-bs-target="#accordion-list-2" class="collapsed"><span>02</span> Feugiat scelerisque varius morbi enim nunc? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                  <div id="accordion-list-2" class="collapse" data-bs-parent=".accordion-list">
+                    <p>
+                      Dolor sit amet consectetur adipiscing elit pellentesque habitant morbi. Id interdum velit laoreet id donec ultrices. Fringilla phasellus faucibus scelerisque eleifend donec pretium. Est pellentesque elit ullamcorper dignissim. Mauris ultrices eros in cursus turpis massa tincidunt dui.
+                    </p>
+                  </div>
+                </li>
+
+                <li data-aos="fade-up" data-aos-delay="300">
+                  <a data-bs-toggle="collapse" data-bs-target="#accordion-list-3" class="collapsed"><span>03</span> Dolor sit amet consectetur adipiscing elit? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                  <div id="accordion-list-3" class="collapse" data-bs-parent=".accordion-list">
+                    <p>
+                      Eleifend mi in nulla posuere sollicitudin aliquam ultrices sagittis orci. Faucibus pulvinar elementum integer enim. Sem nulla pharetra diam sit amet nisl suscipit. Rutrum tellus pellentesque eu tincidunt. Lectus urna duis convallis convallis tellus. Urna molestie at elementum eu facilisis sed odio morbi quis
+                    </p>
+                  </div>
+                </li>
+
+              </ul>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Why Us Section -->
+
+    <!-- ======= Services Section ======= -->
+    <section id="services" class="services" style="background: rgba(0,83, 0, 0.9)">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2 style="color: #fff;">SIFEC</h2>
+          <p style="color: #fff;">Le Système Intégré des Faits d'Etat Civil (SIFEC) est une plateforme numérique nationale permettant l'enregistrement des faits d'état civil et la production automatique des actes y découlant. Il assure ainsi la dématérialisation du processus de gestion des faits d'état civil et garantit par conséquent une meilleure synchronisation d'informations entre les différentes administrations publiques oeuvrant dans le système d'information d'état civil.</p>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="100">
+            <div class="icon-box">
+              <i class="bi bi-gear"></i>
+              <h4><a href="#">Automatisation des traitements</a></h4>
+              <p>SIFEC assure l'automatisation de l’enregistrement des faits d’état civil et de la production des actes.</p>
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-stretch mt-4 mt-md-0" data-aos="fade-up" data-aos-delay="200">
+            <div class="icon-box">
+              <i class="bi bi-database"></i>
+              <h4><a href="#">Centralisation des données</a></h4>
+              <p>SIFEC permet de mettre en place une base des données unique et centrale de l’Etat civil.</p>
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-stretch mt-4 mt-md-0" data-aos="fade-up" data-aos-delay="300">
+            <div class="icon-box">
+              <i class="bi bi-files"></i>
+              <h4><a href="#">Uniformité des actes</a></h4>
+              <p>SIFEC assure l’uniformité des actes d’état civil produits à travers l'ensemble du territoire national.</p>
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-stretch mt-4 mt-md-0" data-aos="fade-up" data-aos-delay="400">
+            <div class="icon-box">
+              <i class="bi bi-bar-chart"></i>
+              <h4><a href="#">Statistiques fiables</a></h4>
+              <p>SIFEC fournit des statistiques fiables sur les faits d’état civil enregistrés.</p>
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-stretch mt-4 mt-md-0" data-aos="fade-up" data-aos-delay="500">
+            <div class="icon-box">
+              <i class="bi bi-hdd-network"></i>
+              <h4><a href="#">Interopérabilité </a></h4>
+              <p>SIFEC permet une interopérabilité instantanée des différents acteurs concernés par le système d'information de l'état civil.
+              </p>
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-stretch mt-4 mt-md-0" data-aos="fade-up" data-aos-delay="600">
+            <div class="icon-box">
+              <i class="bi bi-rulers"></i>
+              <h4><a href="#">Politique de sécurité unique et centralisée</a></h4>
+              <p>SIFEC permet de bâtir une politique de sécurité du système d’information de l’état civil unique, centralisée et plus fiable.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section><!-- End Services Section -->
+
+    <!-- ======= Cta Section ======= -->
+    <!--section id="cta" class="cta">
+      <div class="container">
+
+        <div class="row" data-aos="zoom-in">
+          <div class="col-lg-9 text-center text-lg-start">
+            <h3>Call To Action</h3>
+            <p> Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+          </div>
+          <div class="col-lg-3 cta-btn-container text-center">
+            <a class="cta-btn align-middle" href="#">Call To Action</a>
+          </div>
+        </div>
+
+      </div>
+    </section><!-- End Cta Section -->
+
+    <!-- ======= Portfoio Section ======= -->
+    <section id="portfolio" class="portfoio">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>Les faits d'état civil</h2>
+          <p>Le système d’état civil Congolais est composé d'un ensemble de dix (10) faits d’état civil.</p>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-12 d-flex justify-content-center">
+            <ul id="portfolio-flters">
+              <li data-filter="*" class="filter-active">Tous</li>
+              <li data-filter=".filter-app">Les faits à acte</li>
+              <li data-filter=".filter-card">Les faits à mentions légales</li>
+              <!--li data-filter=".filter-web">Web</li-->
+            </ul>
+          </div>
+        </div>
+
+        <div class="row portfolio-container" style="ont-size: 13px">
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="assets/img/naissance.jpg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Naissance</h4>
+              <p>Fait d'état civil produisant l'acte de naissance</p>
+              <a href="assets/img/naissance.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="App 1"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="assets/img/deces.jpg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Décès</h4>
+              <p>Fait d'état civil produisant l'acte de décès</p>
+              <a href="assets/img/deces.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="App 2"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="assets/img/mariage.jpg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Mariage</h4>
+              <p>Fait d'état civil produisant l'acte de mariage</p>
+              <a href="assets/img/mariage.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 2"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="assets/img/divorce.jpg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Divorce</h4>
+              <p>Fait d'état civil produisant l'acte de divorce</p>
+              <a href="assets/img/divorce.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="App 3"><i class="bx bx-plus"></i></a>
+                </div>
+          </div>
+
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="assets/img/separation.jpg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Séparation de corps</h4>
+              <p></p>
+              <a href="assets/img/separation.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 3"><i class="bx bx-plus"></i></a>
+             </div>
+          </div>
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="assets/img/adoption.jpg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Adoptions d'enfants</h4>
+              <p></p>
+              <a href="assets/img/adoption.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 3"><i class="bx bx-plus"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="assets/img/annulation.png" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Annulation de mariage</h4>
+              <p></p>
+              <a href="assets/img/annulation.png" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 1"><i class="bx bx-plus"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="assets/img/foetale.jpeg" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Mort foetale</h4>
+              <p></p>
+              <a href="assets/img/foetale.jpeg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 3"><i class="bx bx-plus"></i></a>
+            </div>
+          </div>
+
+            <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+                <img src="assets/img/changement.jpg" class="img-fluid" alt="">
+                <div class="portfolio-info">
+                    <h4>Changement de nom</h4>
+                    <p></p>
+                    <a href="assets/img/changement.jpg" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 3"><i class="bx bx-plus"></i></a>
+                </div>
+            </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="assets/img/reconnaissance.png" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Reconnaissance d'enfants</h4>
+              <p></p>
+              <a href="assets/img/reconnaissance.png" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 3"><i class="bx bx-plus"></i></a>
+            </div>
+          </div>
+
+
+
+        </div>
+
+      </div>
+    </section><!-- End Portfoio Section -->
+
+    <!-- ======= Team Section ======= -->
+
+
+    <!-- ======= Pricing Section ======= -->
+    <section id="pricing" class="pricing section-bg" style="padding-top: 100px;">
+      <div class="container" data-aos="fade-up" id="pricing0" style="margin-top: 30px;">
+
+        <div class="section-title">
+          <h2>Procédures Naissance</h2>
+          <p>Le pré-enregistrement (déclaration de naissance) peut se faire soit dans une formation sanitaire, soit dans un bateau ou encore soit dans un avion. Les procédures d’enregistrement dépendent justement des circonstances ou des conditions dans lesquelles la naissance est survenue.
+          </p>
+        </div>
+
+        <div class="row">
+
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              <h3 style="text-transform: uppercase">Naissance dans une formation sanitaire</h3>
+              <!--h4><sup></sup><span>45 jours max après naissance</span></h4-->
+              <ul style="text-align: left;">
+                <li><strong>1.A la formation sanitaire:</strong> Déclaration de naissance dans SIFEC</li>
+                <li><strong>2.A la formation sanitaire:</strong> Transmission systématique des données à la mairie</li>
+                <li><strong>3.Au centre de l'Etat Civil:</strong> Production de l'acte de naissance et notification par SMS au déclarant</li>
+
+              </ul>
+              <!--div class="btn-wrap">
+                <a href="#" class="btn-buy">Buy Now</a>
+              </div-->
+            </div>
+          </div>
+
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              <h3 style="text-transform: uppercase">Naissance hors formation sanitaire</h3>
+              <!--h4><sup></sup><span>45 jours max après naissance</span></h4-->
+              <ul style="text-align: left;">
+                <li><strong>1.Au centre de l'Etat Civil:</strong> Dépôt des pièces justificatives de naissance par le déclarant<br></li>
+                <li><strong>2.Au centre de l'Etat Civil:</strong> Création d'un certificat de non inscription + pièces justificatives dans SIFEC</li>
+                <li><strong>3.Au centre de l'Etat Civil:</strong> Transmission systématique du certificat au tribunal <br></li>
+                <li><strong>4.Au tribunal:</strong> Création automatique dans SIFEC d'une réquisition aux fins de déclaration de naissance  <br></li>
+                <li><strong>5.Au centre de l'Etat Civil:</strong> Production acte de naissance et notification SMS au déclarant <br></li>
+
+              </ul>
+              <!--div class="btn-wrap">
+                <a href="#" class="btn-buy">Buy Now</a>
+              </div-->
+            </div>
+          </div>
+
+
+        </div>
+
+      </div>
+
+      <div class="container" data-aos="fade-up" id="pricing1" style="margin-top: 30px;">
+
+        <div class="section-title">
+          <h2>Procédures Décès</h2>
+          <p>Le décès est la disparition permanente de tout signe de vie à un moment quelconque, postérieure à la naissance (cessation des fonctions vitales après la naissance sans possibilité de réanimation). Cette définition ne comprend pas les morts fœtales.
+          </p>
+        </div>
+
+        <div class="row">
+
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              <h3 style="text-transform: uppercase">Décès dans une formation sanitaire</h3>
+              <!--h4><sup></sup><span>45 jours max après naissance</span></h4-->
+              <ul style="text-align: left;">
+                <li><strong>1.A la formation sanitaire:</strong> Déclaration de décès dans SIFEC<br></li>
+                <li><strong>2.A la formation sanitaire:</strong> Transmission systématique à la pompe funèbre <br></li>
+                <li><strong>3.Aux pompes funèbres:</strong> Production acte de décès et notification SMS au déclarant <br></li>
+
+              </ul>
+              <!--div class="btn-wrap">
+                <a href="#" class="btn-buy">Buy Now</a>
+              </div-->
+            </div>
+          </div>
+
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              <h3 style="text-transform: uppercase">Décès hors formation sanitaire</h3>
+              <!--h4><sup></sup><span>45 jours max après naissance</span></h4-->
+              <ul style="text-align: left;">
+                <li><strong>1.Au service d'hygiène:</strong> Déclaration de décès dans SIFEC<br></li>
+                <li><strong>2.Au service d'hygiène:</strong> Transmission systématique de la déclaration aux pompes funèbres <br></li>
+                <li><strong>3.Aux pompes funèbres:</strong> Production acte de décès et notification SMS au déclarant <br></li>
+
+              </ul>
+              <!--div class="btn-wrap">
+                <a href="#" class="btn-buy">Buy Now</a>
+              </div-->
+            </div>
+          </div>
+
+
+        </div>
+
+      </div>
+
+      <div class="container" data-aos="fade-up" id="pricing2" style="margin-top: 30px;">
+
+        <div class="section-title">
+          <h2>Procédures Mariage</h2>
+          <p>Le mariage est un acte public par lequel un homme et une femme établissent entre eux une union légale et durable dont les conditions sont déterminées dans le code de la famille article127 de la loi N°73/84 du 17 octobre 1984 portant code de la famille.
+            .
+          </p>
+        </div>
+
+        <div class="row">
+
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              <h3 style="text-transform: uppercase; font-size:13px">Célébration au centre d'état civil dans un délai maximum de 60 jours</h3>
+              <!--h4><sup></sup><span>45 jours max après naissance</span></h4-->
+              <ul style="text-align: left;">
+                <li><strong>1.Au centre de l'Etat Civil:</strong> Inscription des époux</li>
+                <li><strong>2.Au centre de l'Etat Civil:</strong> Création automatique dans SIFEC de la déclaration de mariage <br></li>
+                <li><strong>3.Au centre de l'Etat Civil:</strong> Publication de bans sur le portail web de SIFEC<br></li>
+                <li><strong>4.Au centre de l'Etat Civil::</strong> En cas de non opposition, production automatique dans SIFEC de l'acte de mariage et du livret de famille<br></li>
+
+              </ul>
+              <!--div class="btn-wrap">
+                <a href="#" class="btn-buy">Buy Now</a>
+              </div-->
+            </div>
+          </div>
+
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              <h3 style="text-transform: uppercase; font-size:13px">Célébration hors centre d'Etat Civil et/ou au delà de 60 jours</h3>
+              <!--h4><sup></sup><span>45 jours max après naissance</span></h4-->
+              <ul style="text-align: left;">
+                <li><strong>1.Au centre de l'Etat Civil:</strong> Inscription des époux<br></li>
+                <li><strong>2.Au centre de l'Etat Civil:</strong> Création dans SIFEC d'une déclaration de mariage provisoire</li>
+                <li><strong>3.Au centre de l'Etat Civil:</strong> Transmission de la déclaration provisoire au tribunal par SIFEC en vue d’établir une réquisition aux fins de dispense (de lieu et ou de délai).</li>
+                <li><strong>4.Au tribunal :</strong> Génération automatique d'une réquisition aux fins de dispense </li>
+                <li><strong>5.Au centre de l'Etat Civil:</strong> Publication de bans sur le portail web de SIFEC <br></li>
+                <li><strong>6.Au centre de l'Etat Civil:</strong> En cas de non opposition, production automatique dans SIFEC de l'acte de mariage et du livret de famille<br></li>
+              </ul>
+              <!--div class="btn-wrap">
+                <a href="#" class="btn-buy">Buy Now</a>
+              </div-->
+            </div>
+          </div>
+
+
+        </div>
+
+      </div>
+
+      <div class="container" data-aos="fade-up" id="pricing3" style="margin-top: 30px;">
+
+        <div class="section-title">
+          <h2>Procédures Divorce</h2>
+          <p>Le divorce est la dissolution légale et définitive des liens de mariage, c’est-à-dire la séparation de l’époux et de l’épouse qui confère aux parties le droit de se remarier.
+
+          </p>
+        </div>
+
+        <div class="row">
+
+          <p>Contenu indisponible...</p>
+
+
+        </div>
+
+      </div>
+
+    </section><!-- End Pricing Section -->
+
+    <!-- ======= Contact Section ======= -->
+    <section id="contact" class="contact">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>Contactez-nous</h2>
+        </div>
+
+        <div class="row mt-1 d-flex justify-content-end" data-aos="fade-right" data-aos-delay="100">
+
+          <div class="col-lg-5">
+            <div class="info">
+              <div class="address">
+                <i class="bi bi-geo-alt"></i>
+                <h4>Location:</h4>
+                <p>Boulevard Alfred Raoult, Brazzaville</p>
+              </div>
+
+              <div class="email">
+                <i class="bi bi-envelope"></i>
+                <h4>Email:</h4>
+                <p>info@prefecture.gouv.cg</p>
+              </div>
+
+              <div class="phone">
+                <i class="bi bi-phone"></i>
+                <h4>Call:</h4>
+                <p>+1 242 06 604 24 32</p>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="col-lg-6 mt-5 mt-lg-0" data-aos="fade-left" data-aos-delay="100">
+
+            <form action="forms/contact.php" method="post" role="form" class="php-email-form">
+              <div class="row">
+                <div class="col-md-6 form-group">
+                  <input type="text" name="name" class="form-control" id="name" placeholder="Votre Nom" required>
+                </div>
+                <div class="col-md-6 form-group mt-3 mt-md-0">
+                  <input type="email" class="form-control" name="email" id="email" placeholder="Votre Email" required>
+                </div>
+              </div>
+              <div class="form-group mt-3">
+                <input type="text" class="form-control" name="subject" id="subject" placeholder="Sujet" required>
+              </div>
+              <div class="form-group mt-3">
+                <textarea class="form-control" name="message" rows="5" placeholder="Message" required></textarea>
+              </div>
+              <div class="my-3">
+                <div class="loading">Loading</div>
+                <div class="error-message"></div>
+                <div class="sent-message">Your message has been sent. Thank you!</div>
+              </div>
+              <div class="text-center"><button type="submit">Envoyer Message</button></div>
+            </form>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Contact Section -->
+
+  </main><!-- End #main -->
+
+  <!-- ======= Footer ======= -->
+  <footer id="footer">
+
+    <div class="footer-newsletter">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-6">
+            <h4> Newsletter</h4>
+            <p>Restez informé des actualités relatives à l'Etat civil en souscrivant à la newsletter.</p>
+          </div>
+          <div class="col-lg-6">
+            <form action="" method="post">
+              <input type="email" name="email"><input type="submit" value="Je souscris">
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-top">
+      <div class="container">
+        <div class="row">
+
+          <div class="col-lg-3 col-md-6 footer-links">
+            <h4>Liens internes</h4>
+            <ul>
+              <li><i class="bx bx-chevron-right"></i> <a href="index.html">Accueil</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#about">Etat civil</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#services">SIFEC</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#portfolio">Faits d'état civil</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#pricing">Procédures d'enregistrement</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-3 col-md-6 footer-links">
+            <h4>Liens utiles</h4>
+            <ul>
+              <li><i class="bx bx-chevron-right"></i> <a href="https://presidence.cg" target="_blank">Présidence de la république</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="https://sgg.gouv.cg" target="_blank">Secrétariat général du gouvernement</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="https://primature.gouv.cg" target="_blank">Primature</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="https://interieur.gouv.cg" target="_blank">Ministère de l'intérieur</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="https://justice.gouv.cg" target="_blank">Ministère de la justice</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-3 col-md-6 footer-contact">
+            <h4>Contacts</h4>
+            <p>
+              Boulevard Alfred Raoult, <br>
+              Brazzaville<br>
+              Congo <br><br>
+              <strong>Phone:</strong> + 242 06 604 24 32<br>
+              <strong>Email:</strong> contact@prefecture.interieur.gouv.cg.com<br>
+            </p>
+
+          </div>
+
+          <div class="col-lg-3 col-md-6 footer-info">
+            <h3>A propos de SIFEC </h3>
+            <p>Le Système Intégré des Faits d'Etat Civil (SIFEC) est une plateforme numérique qui a été mise en oeuvre par l'Agence Congolaise des Systèmes d'Informations (ACSI).</p>
+            <div class="social-links mt-3">
+              <a href="#" class="twitter"><i class="bx bxl-twitter"></i></a>
+              <a href="#" class="facebook"><i class="bx bxl-facebook"></i></a>
+              <a href="#" class="instagram"><i class="bx bxl-instagram"></i></a>
+              <a href="#" class="google-plus"><i class="bx bxl-skype"></i></a>
+              <a href="#" class="linkedin"><i class="bx bxl-linkedin"></i></a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="copyright">
+        &copy; Copyright <strong><span>Ministère de l'intérieur et de la décentralisation</span></strong>. Tous droits réservés.
+      </div>
+      <div class="credits">
+        <!-- All the links in the footer should remain intact. -->
+        <!-- You can delete the links only if you purchased the pro version. -->
+        <!-- Licensing information: https://bootstrapmade.com/license/ -->
+        <!-- Purchase the pro version with working PHP/AJAX contact form: https://bootstrapmade.com/anyar-free-multipurpose-one-page-bootstrap-theme/ -->
+        Développé par <a href="https://acsi.cg/" target="_blank">ACSI</a>
+      </div>
+    </div>
+  </footer><!-- End Footer -->
+
+  <div id="preloader"></div>
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS File -->
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/sweetalert2.all.min.js"></script>
+
+
+<link href="assets/css/portail-bootstrap.css" rel="stylesheet">
+
+<!-- Modal particulier -->
+<div class="modal fade modal-portail" id="modalParticulier" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">SIFEC | E-services</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body portail-modal-body-scroll" style="background-image:url('assets/img/sifec.jpg'); background-repeat:no-repeat; background-position:center;">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="list-group">
+              <div class="list-group-item fw-bold">Naissance</div>
+              <button type="button" class="list-group-item list-group-item-action btn-service" data-type-acte="Naissance" data-type-doc="Copie">Copie</button>
+              <button type="button" class="list-group-item list-group-item-action btn-service" data-type-acte="Naissance" data-type-doc="Extrait acte naissance">Extrait</button>
+              <div class="list-group-item fw-bold mt-2">Mariage</div>
+              <button type="button" class="list-group-item list-group-item-action btn-service" data-type-acte="Mariage" data-type-doc="Copie">Copie</button>
+              <button type="button" class="list-group-item list-group-item-action" id="frmLivBtnDisplay">Livret de famille</button>
+              <div class="list-group-item fw-bold mt-2">Décès</div>
+              <button type="button" class="list-group-item list-group-item-action btn-service" data-type-acte="Décès" data-type-doc="Copie">Copie</button>
+              <button type="button" class="list-group-item list-group-item-action btn-service" data-type-acte="Décès" data-type-doc="Extrait acte décès">Extrait</button>
+              <button type="button" class="list-group-item list-group-item-action mt-2" id="frmJournalBtnDisplay">Publication des bans de mariage</button>
+            </div>
+          </div>
+          <div class="col-md-8 d-flex align-items-center justify-content-center">
+            <p class="text-muted small mb-0">Choisissez un service dans le menu.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal connexion -->
+<div class="modal fade modal-portail" id="modalConnexion" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Connexion aux services SIFEC</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body bg-white bg-opacity-75">
+        <div class="text-center mb-2"><img src="assets/img/loader.gif" id="loaderConnexion" alt="" style="display:none;width:30px;"></div>
+        <div id="alertConnexion"></div>
+        <form id="formConnexion">
+          <div class="mb-3">
+            <label class="form-label" for="connexion_admin">Administration</label>
+            <select class="form-select" id="connexion_admin" required>
+              <option value="dec">DIRECTION DES EXAMENS ET CONCOURS (DEC)</option>
+              <option value="dic">DIRECTION DE L'IDENTIFICATION CIVILE (DIC)</option>
+              <option value="bch">BANQUE CONGOLAISE DE L'HABITAT (BCH)</option>
+              <option value="lcb">LA CONGOLAISE DES BANQUES (LCB)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="connexion_email">Email (compte API Laravel)</label>
+            <input type="email" class="form-control" id="connexion_email" required placeholder="utilisateur@example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="connexion_password">Mot de passe</label>
+            <input type="password" class="form-control" id="connexion_password" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Connexion</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal administration / authentification acte -->
+<div class="modal fade modal-portail" id="modalAdmin" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header portail-admin-toolbar">
+        <span class="navbar-text me-auto"><strong>Administration :</strong> <span id="adminLibLabel">—</span></span>
+        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="btnHistorique">Historique</button>
+        <button type="button" class="btn btn-outline-danger btn-sm me-2" id="btnDeconnexion">Déconnexion</button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body p-0" style="background-image:url('assets/img/sifec.jpg'); background-repeat:no-repeat; background-position:center;">
+        <div class="container-fluid">
+          <div class="row g-0">
+            <div class="col-lg-6 p-4">
+              <div class="bg-white bg-opacity-90 p-3 rounded shadow-sm">
+                <div class="text-center mb-2"><img src="assets/img/loader.gif" id="loaderAuthentification" alt="" style="display:none;width:60px;"></div>
+                <form id="formAuthActe">
+                  <div class="mb-3">
+                    <label class="form-label" for="auth_type_acte">Type d'acte</label>
+                    <select class="form-select" id="auth_type_acte" required>
+                      <option value="">Sélectionnez…</option>
+                      <option value="Acte de naissance">Acte de naissance</option>
+                      <option value="Acte de mariage">Acte de mariage</option>
+                      <option value="Acte de décès">Acte de décès</option>
+                      <option value="Acte de divorce">Acte de divorce</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="auth_numero_acte">Numéro de l'acte</label>
+                    <input type="text" class="form-control" id="auth_numero_acte" required>
+                  </div>
+                  <button type="submit" class="btn btn-success">Authentifier</button>
+                </form>
+                <div id="auth-validation" class="mt-2"></div>
+                <div class="mt-3">
+                  <h6 class="small text-muted">Reçu PDF</h6>
+                  <iframe id="iframeRecu" title="Reçu" class="w-100 border rounded" style="min-height:280px;"></iframe>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6 p-4 bg-white bg-opacity-75">
+              <div class="text-center mb-2">
+                <img src="assets/img/certificat.jpg" id="certificatLoader" alt="" style="display:none;width:100px;height:100px;">
+                <img src="assets/img/certificat1.png" id="certificatLoader1" alt="" style="display:none;width:100px;height:100px;">
+              </div>
+              <iframe id="displayActe" title="État de l'acte" class="w-100 border rounded" style="min-height:520px;background:#e9ecef;"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal demande d'acte -->
+<div class="modal fade modal-portail" id="modalDemande" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDemandeTitre">Demande d'acte</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body" style="background-image:url('assets/img/sifec.jpg'); background-repeat:no-repeat; background-position:center;">
+        <div class="text-center mb-2"><img src="assets/img/loader.gif" id="loaderDemandeActe" alt="" style="display:none;width:60px;"></div>
+        <input type="hidden" id="demande_type_acte" value="">
+        <input type="hidden" id="demande_type_document" value="">
+        <form id="formDemandeActe" class="bg-white bg-opacity-90 p-3 rounded">
+          <h6 class="border-bottom pb-2">Étape 1 — Recherche</h6>
+          <div class="mb-3">
+            <label class="form-label" for="demande_TypeCritere">Critère</label>
+            <select class="form-select" id="demande_TypeCritere">
+              <option value="1">Recherche par numéro d'acte</option>
+              <option value="2">Recherche par identité</option>
+            </select>
+          </div>
+          <div class="mb-3" id="wrap_numero_acte">
+            <label class="form-label" for="demande_numero_acte">Numéro d'acte</label>
+            <input type="text" class="form-control" id="demande_numero_acte" autocomplete="off">
+            <div id="demande_numero_feedback" class="small mt-1" aria-live="polite"></div>
+          </div>
+          <div id="wrap_identite" style="display:none;">
+            <div class="mb-3">
+              <label class="form-label" for="demande_nom_acte">Nom</label>
+              <input type="text" class="form-control" id="demande_nom_acte">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="demande_prenom_acte">Prénom</label>
+              <input type="text" class="form-control" id="demande_prenom_acte">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="demande_sexe_acte">Sexe</label>
+              <select class="form-select" id="demande_sexe_acte">
+                <option value="M">Masculin</option>
+                <option value="F">Féminin</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="demande_date_naissance">Date de naissance</label>
+              <input type="date" class="form-control" id="demande_date_naissance">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="demande_lieu_naissance">Lieu de naissance</label>
+              <input type="text" class="form-control" id="demande_lieu_naissance">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="demande_cec_acte_filter">CEC de déclaration</label>
+              <input type="search" class="form-control mb-2" id="demande_cec_acte_filter" placeholder="Filtrer la liste des centres…" autocomplete="off">
+              <select class="form-select" id="demande_cec_acte" size="5" style="height:auto; max-height:180px;"></select>
+            </div>
+          </div>
+          <h6 class="border-bottom pb-2 mt-3">Étape 2 — Demandeur</h6>
+          <div class="mb-3">
+            <label class="form-label" for="demande_nom_demandeur">Nom(s) et prénom(s) du demandeur</label>
+            <input type="text" class="form-control" id="demande_nom_demandeur" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="demande_tel_demandeur">Téléphone</label>
+            <input type="text" class="form-control" id="demande_tel_demandeur" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="demande_email_demandeur">Email <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" id="demande_email_demandeur" required placeholder="Pour l'envoi du document PDF">
+            <div class="form-text">Obligatoire : le document vous sera envoyé à cette adresse.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="demande_cec_traitement_filter">Centre d'état civil destinataire</label>
+            <input type="search" class="form-control mb-2" id="demande_cec_traitement_filter" placeholder="Filtrer la liste (commencez à taper)…" autocomplete="off">
+            <select class="form-select" id="demande_cec_traitement" required size="6" style="height:auto; max-height:220px;"></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Moyen de paiement (optionnel)</label>
+            <div class="portail-payment-type d-flex flex-wrap gap-2">
+              <input type="radio" name="moyen_paiement" id="pay_mtn" value="mtn">
+              <label class="portail-card portail-card-mtn" for="pay_mtn"></label>
+              <input type="radio" name="moyen_paiement" id="pay_airtel" value="airtel">
+              <label class="portail-card portail-card-airtel" for="pay_airtel"></label>
+              <input type="radio" name="moyen_paiement" id="pay_visa" value="visa">
+              <label class="portail-card portail-card-visa" for="pay_visa"></label>
+              <input type="radio" name="moyen_paiement" id="pay_paypal" value="paypal">
+              <label class="portail-card portail-card-paypal" for="pay_paypal"></label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="demande_numero_momo">N° Mobile Money (si applicable)</label>
+            <input type="text" class="form-control" id="demande_numero_momo">
+          </div>
+          <button type="submit" class="btn btn-primary">Valider la demande</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal état / iframe -->
+<div class="modal fade modal-portail" id="modalEtat" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Affichage de l'état</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="iframeEtat" class="w-100 border-0" style="min-height:80vh;background:#dee2e6;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal journal BAN -->
+<div class="modal fade modal-portail" id="modalJournal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Journal des bans de mariage</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body" style="background-image:url('assets/img/sifec.jpg'); background-repeat:no-repeat; background-position:center;">
+        <div class="bg-white bg-opacity-90 p-3 rounded mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label" for="ban_filter_dep">Département</label>
+              <select class="form-select" id="ban_filter_dep"><option value="">—</option></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="ban_filter_cec">Institution</label>
+              <select class="form-select" id="ban_filter_cec"><option value="">—</option></select>
+            </div>
+            <div class="col-md-4">
+              <button type="button" class="btn btn-primary me-2" id="btnRechercheJournal">Rechercher</button>
+              <button type="button" class="btn btn-outline-secondary" id="btnResetJournal">Réinitialiser</button>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive bg-white bg-opacity-90 rounded">
+          <table class="table table-sm table-striped mb-0" id="banTable">
+            <thead class="table-light">
+              <tr>
+                <th>Département</th>
+                <th>Institution</th>
+                <th>Nom époux</th>
+                <th>Nom épouse</th>
+                <th>Date célébration</th>
+                <th>Lieu</th>
+              </tr>
+            </thead>
+            <tbody id="banTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal historique PDF -->
+<div class="modal fade modal-portail" id="modalHistorique" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Historique des authentifications</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="iframeHistorique" class="w-100 border-0" style="min-height:80vh;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/portail-api.js"></script>
+<script src="js/portail-app.js"></script>
+
+</body>
+
+</html>

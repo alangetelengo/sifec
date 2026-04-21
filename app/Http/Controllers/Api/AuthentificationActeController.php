@@ -9,7 +9,9 @@ use App\Sifec\Sifec;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Modules\Deces\Entities\ActeDeces;
 use Modules\Deces\Entities\DeclarationDeces;
@@ -166,15 +168,50 @@ class AuthentificationActeController extends Controller
 
     }
 
+    /**
+     * Portail : vérification asynchrone de l'existence d'un acte après saisie du numéro.
+     */
+    public function verifierActePortail(Request $request)
+    {
+        $validated = $request->validate([
+            'type_acte' => 'required|in:Naissance,Mariage,Décès',
+            'numero_acte' => 'required|string|min:1',
+        ]);
+
+        $codeTypeActe = match ($validated['type_acte']) {
+            'Naissance' => 'TAC_0001',
+            'Mariage' => 'TAC_0002',
+            'Décès' => 'TAC_0004',
+            default => null,
+        };
+
+        $acte = app(DemandeDocumentService::class)
+            ->rechercherActe($codeTypeActe, trim($validated['numero_acte']));
+
+        if (! $acte) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Acte non trouvé. Vérifiez le numéro saisi.',
+            ]);
+        }
+
+        return response()->json([
+            'code' => '200',
+            'message' => 'Acte trouvé.',
+        ]);
+    }
+
     // DemandeCopie depuis le portail
     public function demandeActe(Request $request)
     {
         // 1. Validation des données
-        $validated = $request->validate([
+        // ConvertEmptyStringsToNull : champs identité vides → null ; sans « nullable », « string » échoue (422) en recherche par n° d'acte seul.
+        try {
+            $validated = $request->validate([
             'type_acte' => 'required|in:Naissance,Mariage,Décès',
             'type_document' => 'required|in:Copie,Extrait,Extrait acte naissance,Extrait acte décès,Extrait acte mariage',
             'numero_acte' => 'nullable|string',
-            'nom_acte' => 'required_without:numero_acte|string',
+            'nom_acte' => 'nullable|string|required_without:numero_acte',
             'prenom_acte' => 'nullable|string',
             'sexe_acte' => 'nullable|in:M,F',
             'date_naissance_acte' => 'nullable|date',
@@ -182,10 +219,28 @@ class AuthentificationActeController extends Controller
             'cec_acte' => 'nullable|string',
             'nom_demandeur' => 'required|string',
             'telephone_demandeur' => 'required|string',
-            'email_demandeur' => 'nullable|email',
+            'email_demandeur' => 'required|email',
             'cec_traitement' => 'nullable|string',
             'montant_a_payer' => 'nullable|numeric',
             'moyen_paiement' => 'nullable|string',
+            ]);
+        } catch (ValidationException $e) {
+            Log::channel('sifec')->warning('[Portail][demandeActe] Validation refusée', [
+                'errors' => $e->errors(),
+                'type_acte' => $request->input('type_acte'),
+                'type_document' => $request->input('type_document'),
+                'numero_acte' => $request->input('numero_acte'),
+                'nom_acte' => $request->input('nom_acte'),
+            ]);
+
+            throw $e;
+        }
+
+        Log::channel('sifec')->info('[Portail][demandeActe] Requête validée', [
+            'type_acte' => $validated['type_acte'],
+            'type_document' => $validated['type_document'],
+            'numero_acte' => $validated['numero_acte'] ?? null,
+            'nom_acte' => $validated['nom_acte'] ?? null,
         ]);
 
         // 2. Mapper type_acte vers code_type_acte
@@ -262,6 +317,12 @@ class AuthentificationActeController extends Controller
             ]);
 
             // 7. Retour avec les informations de la demande
+            Log::channel('sifec')->info('[Portail][demandeActe] Demande créée', [
+                'code_demande' => $demande->code_demande_document,
+                'numero_acte' => $numeroActe,
+                'code_institution' => $codeInstitution,
+            ]);
+
             return response()->json([
                 'code' => '200',
                 'message' => 'Demande créée avec succès',
@@ -916,5 +977,57 @@ class AuthentificationActeController extends Controller
 
             return back();
         }
+    }
+
+    /**
+     * Portail : URL du PDF d'historique (consommation par iframe / lecteur PDF).
+     */
+    public function historiqueAuthentification(Request $request)
+    {
+        $request->validate([
+            'code_administration' => ['required', 'string', 'max:100'],
+        ]);
+        $code = $request->input('code_administration');
+        $url = url('/api/v1/etatHistoriqueAuthentification/'.rawurlencode($code));
+
+        return response()->json([
+            'etat' => $url,
+        ]);
+    }
+
+    /**
+     * PDF : lignes de tr_authentification_acte (filtrage optionnel par code_administration).
+     */
+    public function etatHistoriqueAuthentification(string $code)
+    {
+        $rows = collect();
+        try {
+            if (Schema::hasTable('tr_authentification_acte')) {
+                $q = DB::table('tr_authentification_acte');
+                if (Schema::hasColumn('tr_authentification_acte', 'code_administration')) {
+                    $q->where('code_administration', $code);
+                }
+                if (Schema::hasColumn('tr_authentification_acte', 'date_authentification')) {
+                    $q->orderByDesc('date_authentification');
+                }
+                $rows = $q->limit(500)->get();
+            }
+        } catch (\Throwable $e) {
+            Log::channel('sifec')->warning('etatHistoriqueAuthentification', [
+                'message' => $e->getMessage(),
+                'code' => $code,
+            ]);
+        }
+
+        $html2pdf = new Html2Pdf('P', 'A4', 'fr');
+        $html2pdf->setDefaultFont('Arial');
+        $html2pdf->writeHTML(view('portail.historique_authentifications_pdf', [
+            'rows' => $rows,
+            'code' => $code,
+        ])->render());
+
+        return response($html2pdf->output('', 'S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="historique-authentifications.pdf"');
     }
 }

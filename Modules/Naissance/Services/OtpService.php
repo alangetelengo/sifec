@@ -4,6 +4,7 @@ namespace Modules\Naissance\Services;
 
 use App\Sifec\SifecFacade;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +15,8 @@ use Modules\Notification\Jobs\ValidationacteNaissanceJob;
 
 class OtpService
 {
-    private const OTP_VALID_MINUTES = 1;
+    /** Aligné sur les autres flux OTP (ex. demandes de documents) : 2 minutes. */
+    private const OTP_VALID_MINUTES = 2;
 
     /** Renvois de code tant que l’OTP précédent est encore valide (3ᵉ renvoi → verrouillage). */
     private const OTP_MAX_RESEND = 3;
@@ -207,7 +209,9 @@ class OtpService
             }
 
             if ($premierActe->otp_expire_at && now()->gt(Carbon::parse($premierActe->otp_expire_at))) {
-                return ['result' => 'fail', 'payload' => 'Code OTP expiré (1 minute). Veuillez en demander un nouveau.'];
+                $min = self::OTP_VALID_MINUTES;
+
+                return ['result' => 'fail', 'payload' => 'Code OTP expiré ('.$min.' minute'.($min > 1 ? 's' : '').'). Veuillez en demander un nouveau.'];
             }
 
             if ((string) $otp !== (string) $premierActe->otp_approbation_mairie) {
@@ -251,7 +255,7 @@ class OtpService
             }
 
             $finalizer = app(ActeNaissanceSignatureFinalizer::class);
-            $mouvementService = app(\Modules\Naissance\Services\MouvementService::class);
+            $mouvementService = app(MouvementService::class);
 
             try {
                 foreach ($actes as $an) {
@@ -337,7 +341,7 @@ class OtpService
     }
 
     /**
-     * @param \Illuminate\Support\Collection|iterable $actes
+     * @param  Collection|iterable  $actes
      */
     private function applyLockoutToActes($actes): void
     {
@@ -356,7 +360,7 @@ class OtpService
     }
 
     /**
-     * @param \Illuminate\Support\Collection|iterable $actes
+     * @param  Collection|iterable  $actes
      */
     private function assignOtpSecurityToAll($actes, array $fields): void
     {

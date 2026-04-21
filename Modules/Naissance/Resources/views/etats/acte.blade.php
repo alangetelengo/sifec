@@ -139,11 +139,18 @@
         <tr style="">
             <td style="width:100%; text-align: center;">
                 @if ((int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
-                    <img src="{{ public_path('app/'.$acte->sceau_tribunal) }}" alt="" width="80" height="80" style="display: block; margin: 0 auto 2mm auto;">
+                    @php
+                        $__pdfSceauSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->sceau_tribunal);
+                    @endphp
+                    @if ($__pdfSceauSrc)
+                    <img src="{{ $__pdfSceauSrc }}" alt="" width="80" height="80" style="display: block; margin: 0 auto 2mm auto;">
+                    @endif
                 @endif
                 <p style="margin: 0;"><strong style="font-size: 16px;">ACTE DE NAISSANCE</strong>
-                    {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
-                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong></p>
+                    @if ($acte->approbation_mairie != "")
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ $acte->registre->created_at->format('Y') }}</strong>
+                    @endif
+                </p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -395,7 +402,13 @@
                     <td style="text-align: left;">
                      <p style="font-size: 12px; margin: 0 0 1mm 0;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
                          @if ($acte->approbation_mairie != "")
-                             <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
+                             @php
+                                 $__pdfSignatureSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->signature_mairie);
+                             @endphp
+                             @if ($__pdfSignatureSrc)
+                             <img src="{{ $__pdfSignatureSrc }}"><br>
+
+                             @endif
                              <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
                          @endif
                      </td>

@@ -40,6 +40,7 @@ use Modules\Referentiel\Entities\Profession;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 use Modules\Referentiel\Entities\TypeDocument;
 use Spipu\Html2Pdf\Html2Pdf;
+use Symfony\Component\HttpFoundation\Response;
 
 class NaissanceController extends Controller
 {
@@ -74,6 +75,41 @@ class NaissanceController extends Controller
         return view('naissance::declaration.index', compact('declarations', 'title', 'button'));
     }
 
+    /**
+     * Page avec visionneuse PDF (Kendo), comme copie / extrait d’acte.
+     */
+    public function voirEtat(Request $request, string $id)
+    {
+        $dn = Declarationnaissance::where('code_declaration_naissance', $id)->first();
+        if ($dn === null) {
+            abort(404);
+        }
+
+        $contexte = $request->query('contexte');
+        if ($contexte && ! in_array($contexte, ['formation_sanitaire', 'centre_etat_civil'], true)) {
+            $contexte = null;
+        }
+
+        $retour = $request->query('from') === 'acte' ? 'acte' : 'declaration';
+
+        $routeParams = ['id' => $id];
+        if ($contexte) {
+            $routeParams['contexte'] = $contexte;
+        }
+        $pdfUrl = route('declarationNaissance.etat', $routeParams);
+
+        $titrePage = match ($contexte) {
+            'formation_sanitaire' => 'Certificat de naissance',
+            'centre_etat_civil' => 'Déclaration de naissance',
+            default => 'Document PDF',
+        };
+
+        return view('naissance::declaration.voir-etat-pdf', compact('dn', 'pdfUrl', 'retour', 'titrePage'));
+    }
+
+    /**
+     * Flux PDF brut (consommé par la visionneuse ou un onglet direct).
+     */
     public function etat(Request $request, $id)
     {
         $contexteForcage = $request->query('contexte');
@@ -99,7 +135,10 @@ class NaissanceController extends Controller
         if (in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'], true)) {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
+            return $this->pdfInlineResponse(
+                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                $dn->code_declaration_naissance.'.pdf'
+            );
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE NON INSCRIPTION') {
@@ -108,32 +147,61 @@ class NaissanceController extends Controller
             $ageEnfant = $dateNow->diffInYears($dateNaissEnfant);
             $html2pdf->writeHTML(view('naissance::etats.certificat_non_inscription', compact('dummy', 'ageEnfant', 'qrCode'), ['certificat' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
+            return $this->pdfInlineResponse(
+                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                $dn->code_declaration_naissance.'.pdf'
+            );
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE TRANSCRIPTION' && ($dn->type_declaration_origine ?? '') === 'DECLARATION DE PATERNITE') {
             $html2pdf->writeHTML(view('naissance::etats.certificat_de_transcription', compact('dummy', 'qrCode'), ['certificat' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
+            return $this->pdfInlineResponse(
+                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                $dn->code_declaration_naissance.'.pdf'
+            );
         }
 
         if ($dn->type_declaration === "CERTIFICAT DE DESTRUCTION DE L'ACTE") {
             $html2pdf->writeHTML(view('naissance::etats.certificat_destruction', compact('dummy', 'qrCode'), ['certificat' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
+            return $this->pdfInlineResponse(
+                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                $dn->code_declaration_naissance.'.pdf'
+            );
         }
 
         if ($dn->type_declaration === 'FICHE DE TRANSCRIPTION') {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
+            return $this->pdfInlineResponse(
+                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                $dn->code_declaration_naissance.'.pdf'
+            );
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE TRANSCRIPTION') {
             $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $html2pdf->output($dn->code_declaration_naissance.'.pdf');
+            return $this->pdfInlineResponse(
+                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                $dn->code_declaration_naissance.'.pdf'
+            );
         }
+
+        abort(404);
+    }
+
+    private function pdfInlineResponse(string $pdfBinary, string $filename): Response
+    {
+        $safeName = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $filename) ?: 'document.pdf';
+        $safeName = trim($safeName) !== '' ? trim($safeName) : 'document.pdf';
+
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$safeName.'"',
+            'Cache-Control' => 'private, must-revalidate',
+        ]);
     }
 
     // Recherche d'une personne

@@ -438,14 +438,15 @@ class Sifec
         $phone = $this->normalizeSmsPhone((string) $to);
         $from = config('sifec.sms.sender_id', 'ETAT-CIVIL');
         $data = [
-            'client' => 'mukinayiseth',
-            'password' => '123456789@123456789',
+            'client' => config('sifec.sms.wirepick.client', 'mukinayiseth'),
+            'password' => config('sifec.sms.wirepick.password', '123456789@123456789'),
             'phone' => $phone,
             'from' => $from,
             'text' => $content,
         ];
+        $endpoint = config('sifec.sms.wirepick.endpoint', 'https://api.wirepick.com/httpsms/send');
 
-        $req = Http::asForm()->get('https://api.wirepick.com/httpsms/send', $data);
+        $req = Http::asForm()->get($endpoint, $data);
 
         $responseBody = $req->body();
         $wirepickStatus = $this->parseWirepickResponseStatus($responseBody);
@@ -2158,7 +2159,7 @@ class Sifec
         if (in_array($typeActe, ['TPA_0002', 'TAC_0002'], true)) {
             return ActeMariage::where('code_acte_mariage', $numeroActe)->first() ?? null;
         }
-        if (in_array($typeActe, ['TPA_0003', 'TAC_0003'], true)) {
+        if (in_array($typeActe, ['TPA_0003', 'TAC_0003', 'TAC_0004'], true)) {
             return ActeDeces::where('code_acte_deces', $numeroActe)->first() ?? null;
         }
 

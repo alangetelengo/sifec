@@ -6,57 +6,444 @@ Registre Etat civil
 
 <link href="{{ asset('tpl/vendor/jquery-smartwizard/dist/css/smart_wizard.min.css')}}" rel="stylesheet">
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css')}}" rel="stylesheet">
+<style>
+    /* Page registres — en-tête + modal création (charte SIFEC) */
+    .sifec-registre-page .card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid rgba(0, 107, 49, 0.12);
+    }
+    .sifec-registre-page .card-header h4 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.15rem;
+        color: #1a1a1a;
+    }
+    .sifec-registre-btn-add {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: none;
+        border-radius: 999px;
+        color: #fff !important;
+        background: linear-gradient(135deg, #006B31 0%, #009E49 55%, #21B931 100%);
+        box-shadow: 0 4px 14px rgba(0, 107, 49, 0.28);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .sifec-registre-btn-add:hover {
+        color: #fff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(0, 107, 49, 0.35);
+    }
+    .sifec-registre-btn-add:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 158, 73, 0.35);
+    }
+    #modalCEC .modal-content {
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    }
+    #modalCEC .modal-header {
+        border: none;
+        padding: 1.1rem 1.35rem;
+        background: linear-gradient(135deg, #006B31 0%, #009E49 55%, #0d7a45 100%);
+        color: #fff;
+    }
+    #modalCEC .modal-title {
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: 0.01em;
+    }
+    #modalCEC .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.9;
+    }
+    #modalCEC .btn-close:hover {
+        opacity: 1;
+    }
+    #modalCEC .modal-body {
+        padding: 1.35rem 1.35rem 1.15rem;
+        background: #fafbfa;
+    }
+    #modalCEC .sifec-registre-field {
+        margin-bottom: 1.15rem;
+    }
+    #modalCEC .sifec-registre-field:last-of-type {
+        margin-bottom: 0;
+    }
+    #modalCEC .form-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #374151;
+        margin-bottom: 0.4rem;
+    }
+    #modalCEC .form-control,
+    #modalCEC .form-select {
+        border-radius: 10px;
+        border: 1px solid rgba(0, 107, 49, 0.18);
+        padding: 0.55rem 0.85rem;
+        background: #fff;
+    }
+    #modalCEC .form-control:focus,
+    #modalCEC .form-select:focus {
+        border-color: #009E49;
+        box-shadow: 0 0 0 3px rgba(0, 158, 73, 0.18);
+    }
+    #modalCEC .form-control[readonly] {
+        background: #f3f4f3;
+        color: #1f2937;
+    }
+    #modalCEC .modal-footer {
+        border-top: 1px solid rgba(0, 107, 49, 0.1);
+        padding: 1rem 1.35rem;
+        background: #fff;
+        gap: 0.65rem;
+    }
+    #modalCEC .sifec-registre-btn-submit {
+        border: none;
+        border-radius: 999px;
+        padding: 0.5rem 1.35rem;
+        font-weight: 600;
+        color: #fff;
+        background: linear-gradient(135deg, #006B31 0%, #009E49 55%, #21B931 100%);
+        box-shadow: 0 2px 10px rgba(0, 107, 49, 0.22);
+    }
+    #modalCEC .sifec-registre-btn-submit:hover {
+        color: #fff;
+        filter: brightness(1.03);
+    }
+    #modalCEC .sifec-registre-btn-close {
+        border-radius: 999px;
+        padding: 0.5rem 1.25rem;
+        font-weight: 600;
+        border: 1.5px solid #d1d5db;
+        background: #fff;
+        color: #4b5563;
+    }
+    #modalCEC .sifec-registre-btn-close:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+        color: #374151;
+    }
+    #modalCEC .invalid-feedback {
+        font-size: 0.82rem;
+    }
+    /* Filtres tribunal (registre.tribunal) */
+    .sifec-registre-filtres-tribunal {
+        background: linear-gradient(180deg, #f8faf8 0%, #fff 100%);
+        border: 1px solid rgba(0, 107, 49, 0.14);
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    .sifec-registre-filtres-tribunal .sl-filter-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6b7280;
+        margin-bottom: 0.35rem;
+    }
+    /* Tableau tribunal : tient dans la largeur utile, sans scroll horizontal inutile */
+    .table-responsive.sifec-registre-tribunal-table-host {
+        overflow-x: visible;
+        -webkit-overflow-scrolling: auto;
+    }
+    #table-registres-tribunal.sifec-registre-table-tribunal {
+        table-layout: fixed;
+        width: 100%;
+        max-width: 100%;
+        font-size: 0.82rem;
+    }
+    .sifec-registre-table-tribunal thead th {
+        white-space: normal;
+        vertical-align: middle;
+        background: #f8faf8;
+        border-bottom: 2px solid rgba(0, 107, 49, 0.18);
+        line-height: 1.25;
+        font-size: 0.78rem;
+        font-weight: 600;
+        /* Ne pas couper les mots d’un seul token (ex. « ACTION » lettre par lettre) */
+        word-break: normal;
+        overflow-wrap: break-word;
+        hyphens: manual;
+    }
+    .sifec-registre-table-tribunal tbody td {
+        vertical-align: middle;
+        word-break: normal;
+        overflow-wrap: normal;
+        padding: 0.4rem 0.3rem;
+    }
+    /* Longs libellés de mairie : coupure seulement si nécessaire */
+    .sifec-registre-table-tribunal td.col-cec {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    .sifec-registre-table-tribunal th.col-tribunal-num,
+    .sifec-registre-table-tribunal td.col-tribunal-num {
+        width: 2.25rem;
+        text-align: center;
+    }
+    .sifec-registre-table-tribunal th.col-tribunal-lib,
+    .sifec-registre-table-tribunal td.col-tribunal-lib {
+        width: 13%;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    .sifec-registre-table-tribunal th.col-tribunal-type,
+    .sifec-registre-table-tribunal td.col-tribunal-type {
+        width: 9%;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    .sifec-registre-table-tribunal th.col-cec,
+    .sifec-registre-table-tribunal td.col-cec {
+        width: 20%;
+    }
+    .sifec-registre-table-tribunal th.col-date {
+        width: 8.5%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.2;
+        padding: 0.35rem 0.2rem;
+    }
+    .sifec-registre-table-tribunal td.col-date {
+        white-space: nowrap;
+        text-align: center;
+    }
+    .sifec-registre-table-tribunal th.col-acte-n {
+        width: 5.5%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.2;
+        padding: 0.35rem 0.2rem;
+    }
+    .sifec-registre-table-tribunal td.col-acte-n {
+        white-space: nowrap;
+        text-align: center;
+    }
+    .sifec-registre-table-tribunal th.col-acte-transcrit {
+        width: 9%;
+        min-width: 5.5rem;
+        white-space: nowrap;
+        text-align: center;
+        line-height: 1.2;
+        padding: 0.35rem 0.2rem;
+    }
+    .sifec-registre-table-tribunal td.col-acte-transcrit {
+        white-space: nowrap;
+        text-align: center;
+    }
+    .sifec-registre-table-tribunal th.col-statut,
+    .sifec-registre-table-tribunal td.col-statut {
+        width: 10%;
+    }
+    .sifec-registre-table-tribunal th.col-select,
+    .sifec-registre-table-tribunal td.col-select {
+        width: 2.5rem;
+        text-align: center;
+        vertical-align: middle;
+        padding-left: 0.2rem;
+        padding-right: 0.2rem;
+    }
+    .sifec-registre-table-tribunal th.col-actions,
+    .sifec-registre-table-tribunal td.col-actions {
+        width: 5.5rem;
+        min-width: 5.5rem;
+        white-space: nowrap;
+        text-align: right;
+        vertical-align: middle;
+        overflow: visible;
+    }
+    .sifec-registre-table-tribunal td.col-statut .badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: normal;
+        text-align: left;
+        display: inline-block;
+        max-width: 100%;
+    }
+    .sifec-registre-bulk-bar {
+        padding: 0.65rem 0.9rem;
+        background: #f0fdf4;
+        border: 1px solid rgba(0, 158, 73, 0.22);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+</style>
 
 @endsection
 
 @section('corps')
-<div class="page-sifec-index">
+<div class="page-sifec-index sifec-registre-page">
 <div class="an-shell">
 <div class="an-body">
     <div class="row">
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4>Liste des registres de l'état civil</h4>
+                    <h4>
+                        <i class="fas fa-book me-2 text-success opacity-90"></i>
+                        @if(!empty($vueTribunalRegistres))
+                            Registres des centres d’état civil (votre juridiction)
+                        @else
+                            Liste des registres de l'état civil
+                        @endif
+                    </h4>
                     @can("module.registre.create")
-                    <button type="button" class="btn btn-sm btn-primary mb-2" data-bs-toggle="modal" data-bs-target="#modalCEC">
-                        Ajouter
+                    @if(empty($vueTribunalRegistres))
+                    <button type="button" class="sifec-registre-btn-add" data-bs-toggle="modal" data-bs-target="#modalCEC">
+                        <i class="fas fa-plus-circle" aria-hidden="true"></i> Ajouter un registre
                     </button>
+                    @endif
                     @endcan
                 </div>
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <div class="table-responsive">
+                            @if(!empty($vueTribunalRegistres))
+                            <form method="get" action="{{ route('registre.tribunal') }}" class="sifec-registre-filtres-tribunal">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="sl-filter-label">Type de registre</div>
+                                        <select name="code_type_registre" class="form-select form-control">
+                                            <option value="">Tous</option>
+                                            @foreach($typeRegistres as $tr)
+                                                <option value="{{ $tr->code_type_registre }}" {{ request('code_type_registre') == $tr->code_type_registre ? 'selected' : '' }}>
+                                                    {{ $tr->lib_type_registre }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="sl-filter-label">Centre d’état civil</div>
+                                        <select name="code_institution" class="form-select form-control">
+                                            <option value="">Tous (juridiction)</option>
+                                            @foreach($centresEtatCivilJuridiction as $cec)
+                                                <option value="{{ $cec->code_institution }}" {{ request('code_institution') == $cec->code_institution ? 'selected' : '' }}>
+                                                    {{ $cec->lib_institution }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-lg-2">
+                                        <div class="sl-filter-label">Année</div>
+                                        <select name="annee" class="form-select form-control">
+                                            <option value="">Toutes</option>
+                                            @foreach($anneesFiltre as $y)
+                                                <option value="{{ $y }}" {{ (string) request('annee') === (string) $y ? 'selected' : '' }}>{{ $y }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-lg-2">
+                                        <div class="sl-filter-label">Statut</div>
+                                        <select name="statut_registre" class="form-select form-control">
+                                            <option value="">Tous</option>
+                                            <option value="en_attente_validation" {{ request('statut_registre') === 'en_attente_validation' ? 'selected' : '' }}>En attente de validation</option>
+                                            <option value="actif" {{ request('statut_registre') === 'actif' ? 'selected' : '' }}>Activé (paraphé)</option>
+                                            <option value="cloture" {{ request('statut_registre') === 'cloture' ? 'selected' : '' }}>Clôturé</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8 col-lg-6">
+                                        <div class="sl-filter-label">Libellé du registre</div>
+                                        <input type="text" name="recherche" class="form-control" value="{{ request('recherche') }}" placeholder="Rechercher dans le libellé…">
+                                    </div>
+                                    <div class="col-md-4 col-lg-6 d-flex flex-wrap gap-2 justify-content-lg-end pt-1 pt-lg-0">
+                                        <button type="submit" class="btn btn-success px-4 fw-semibold" style="border-radius:10px;">
+                                            <i class="fas fa-filter me-1"></i> Filtrer
+                                        </button>
+                                        <a href="{{ route('registre.tribunal') }}" class="btn btn-outline-secondary" style="border-radius:10px;">
+                                            <i class="fas fa-redo me-1"></i> Réinitialiser
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
+                            @endif
 
-                                <table id="example" class="display">
+                            @if(!empty($vueTribunalRegistres))
+                                @can('module.fonctionnalites.parapher')
+                                <div class="sifec-registre-bulk-bar d-flex flex-wrap align-items-center gap-3">
+                                    <button type="button" class="btn btn-success px-4 fw-semibold" id="btn-parapher-selection" style="border-radius:10px;" disabled>
+                                        <i class="fas fa-file-signature me-1"></i> Parapher la sélection (<span id="registre-bulk-count">0</span>)
+                                    </button>
+                                    <span class="small text-muted mb-0">Sélectionnez les registres en attente, puis un seul code OTP paraphé le lot (SMS et e-mail si configuré).</span>
+                                </div>
+                                @endcan
+                            @endif
+
+                            <div class="table-responsive @if(!empty($vueTribunalRegistres)) sifec-registre-tribunal-table-host @endif">
+
+                                <table @if(!empty($vueTribunalRegistres)) id="table-registres-tribunal" class="table table-bordered table-hover align-middle mb-0 w-100 sifec-registre-table-tribunal" @else id="example" class="display" @endif>
                                     <thead>
                                         <tr>
-                                            <th>N°</th>
-                                            <th>Registre</th>
-                                            <th>Type registre</th>
-                                            <th>Date ouverture</th>
-                                            <th>Date fermeture</th>
-                                            <th>Nombre d'acte prévu</th>
-                                            <th>Nombre d'acte transcrit</th>
-                                            <th>Statut</th>
-                                            <th>Action</th>
+                                            @if(!empty($vueTribunalRegistres))
+                                                @can('module.fonctionnalites.parapher')
+                                                <th class="col-select">
+                                                    <input type="checkbox" class="form-check-input mx-auto d-block" id="registre-bulk-select-all" title="Tout sélectionner" aria-label="Tout sélectionner">
+                                                </th>
+                                                @endcan
+                                            @endif
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-tribunal-num" @endif>N°</th>
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-tribunal-lib" @endif>Registre</th>
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-tribunal-type" @endif>Type registre</th>
+                                            @if(!empty($vueTribunalRegistres))
+                                            <th class="col-cec">Centre d’état civil</th>
+                                            @endif
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-date" title="Date d’ouverture du registre" @endif>
+                                                @if(!empty($vueTribunalRegistres)) Ouverture @else Date ouverture @endif
+                                            </th>
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-date" title="Date de fermeture du registre" @endif>
+                                                @if(!empty($vueTribunalRegistres)) Fermeture @else Date fermeture @endif
+                                            </th>
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-acte-n" title="Nombre d’actes prévus dans le registre" @endif>
+                                                @if(!empty($vueTribunalRegistres)) Prévus @else Nombre d'acte prévu @endif
+                                            </th>
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-acte-transcrit" title="Nombre d’actes déjà transcrits" @endif>
+                                                @if(!empty($vueTribunalRegistres)) Transcrits @else Nombre d'acte transcrit @endif
+                                            </th>
+                                            <th @if(!empty($vueTribunalRegistres)) class="col-statut" @endif>Statut</th>
+                                            <th class="@if(!empty($vueTribunalRegistres)) col-actions @endif">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php $i=1; ?>
                                         @foreach ($registres as $registre)
                                         <tr width="100%">
-                                            <td>{{ $i++ }}</td>
-                                            <td>{{ $registre->lib_registre }}</td>
-                                            <td>{{ $registre->typeRegistre->lib_type_registre }}</td>
-                                            <td>{{ date("d-m-Y", strtotime($registre->date_ouverture)) }}</td>
-                                            <td>{{ date("d-m-Y", strtotime($registre->date_fermeture)) }}</td>
-                                            <td>{{ $registre->nombre_acte_prevu}}</td>
-                                            <td>{{ $registre->nombre_acte_transcrit }}</td>
-                                            <td>
+                                            @if(!empty($vueTribunalRegistres))
+                                                @can('module.fonctionnalites.parapher')
+                                                <td class="col-select">
+                                                    @if($registre->sceau == null && (string) $registre->statut !== '1')
+                                                        <input type="checkbox" class="form-check-input registre-bulk-cb mx-auto d-block" value="{{ $registre->code_registre }}" aria-label="Sélectionner {{ $registre->lib_registre }}">
+                                                    @else
+                                                        <span class="text-muted small">—</span>
+                                                    @endif
+                                                </td>
+                                                @endcan
+                                            @endif
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-tribunal-num" @endif>{{ $i++ }}</td>
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-tribunal-lib" @endif>{{ $registre->lib_registre }}</td>
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-tribunal-type" @endif>{{ $registre->typeRegistre->lib_type_registre }}</td>
+                                            @if(!empty($vueTribunalRegistres))
+                                            <td class="col-cec">
+                                                <span class="d-inline-block w-100">{{ \Illuminate\Support\Str::limit($registre->institutionUser?->institution?->lib_institution ?? '—', 80) }}</span>
+                                            </td>
+                                            @endif
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-date text-center" @endif>{{ $registre->date_ouverture ? date('d-m-Y', strtotime($registre->date_ouverture)) : '—' }}</td>
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-date text-center" @endif>{{ $registre->date_fermeture ? date('d-m-Y', strtotime($registre->date_fermeture)) : '—' }}</td>
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-acte-n text-center" @endif>{{ $registre->nombre_acte_prevu}}</td>
+                                            <td @if(!empty($vueTribunalRegistres)) class="col-acte-transcrit text-center" @endif>{{ $registre->nombre_acte_transcrit }}</td>
+                                            <td class="@if(!empty($vueTribunalRegistres)) col-statut @endif">
                                                 @if($registre->statut == "0" && $registre->approbation_tribunal == null)
-                                                    <span class="badge light badge-danger" style="font-size: 13px;font-weight:600;" title="registre en attente de validation">Encours de validation</span>
+                                                    <span class="badge light badge-danger" style="font-size: 13px;font-weight:600;" title="registre en attente de validation">En cours de validation</span>
                                                 @endif
                                                 @if($registre->statut == "1" && $registre->approbation_tribunal != null)
                                                     <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">Activé</span>
@@ -69,8 +456,8 @@ Registre Etat civil
                                                 <span class="badge light badge-danger" style="font-size: 13px;font-weight:600;" title="Ce registre est clôturé">Clôturé</span>
                                                 @endif
                                             </td>
-                                            <td>
-                                                <div class="dropdown">
+                                            <td class="@if(!empty($vueTribunalRegistres)) col-actions @endif">
+                                                <div class="dropdown d-inline-block">
                                                     <button type="button" class="btn btn-primary light sharp" data-bs-toggle="dropdown">
                                                         <svg width="20px" height="20px" viewBox="0 0 24 24" version="1.1"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><rect x="0" y="0" width="24" height="24"></rect><circle fill="#000000" cx="5" cy="12" r="2"></circle><circle fill="#000000" cx="12" cy="12" r="2"></circle><circle fill="#000000" cx="19" cy="12" r="2"></circle></g></svg>
                                                     </button>
@@ -102,6 +489,7 @@ Registre Etat civil
                                         </tr>
                                         @endforeach
                                     </tbody>
+                                    @if(empty($vueTribunalRegistres))
                                     <tfoot>
                                         <tr>
                                             <th>N°</th>
@@ -115,6 +503,7 @@ Registre Etat civil
                                             <th>Action</th>
                                         </tr>
                                     </tfoot>
+                                    @endif
                                 </table>
                             </div>
                         </div>
@@ -126,66 +515,61 @@ Registre Etat civil
 
 
       <!-- Large modal -->
-    <div class="modal fade" id="modalCEC" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        {{-- <div class="modal-dialog modal-lg"> --}}
-        <div class="modal-dialog">
+    <div class="modal fade" id="modalCEC" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalRegistreCecTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md">
             <div class="modal-content">
                 <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Information du régistre</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title text-white" id="modalRegistreCecTitle">
+                        <i class="fas fa-file-signature me-2 opacity-90"></i>Nouveau registre
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
-                <form  action="{{ route("registre.store") }}" method="POST">
+                <form id="form-registre-create" action="{{ route('registre.store') }}" method="POST">
                     @csrf
                     <div class="modal-body">
-                        <div class="row">
-                            <div class="mb-2 col-md-12">
-                                <label class="form-label">Type régistre <span class="text-danger">*</span></label>
-                                <select name="code_type_registre" class="form-control form-control wide" id="codetyperegistre">
-                                    <option disabled selected>Choisissez</option>
-                                    @if(Auth::user()->affectationActive()->institution->lieu->localiteParent->pompes_funebres == 0)
-                                        @foreach (Modules\Referentiel\Entities\TypeRegistre::all() as $item)
-                                            <option value="{{ $item->code_type_registre }}">{{$item->lib_type_registre}}</option>
-                                        @endforeach
-                                        @else
-                                        @foreach ($typeRegistres as $item)
-                                            <option value="{{ $item->code_type_registre }}">{{$item->lib_type_registre}}</option>
-                                        @endforeach
-                                    @endif
-                                </select>
-
-                            {{-- </div>
-                            <div class="mb-2 col-md-6"> --}}
-                                <label class="form-label">Libéllé <span class="text-danger">*</span></label>
-                                <input id="typeregistre" type="text" class="form-control" readonly class="form-control @error('lib_registre') is-invalid @enderror" value="{{ old("lib_registre") }}" required  name="lib_registre">
-                                <input type="hidden" id="prefix" name="prefix">
-                                @error("lib_registre")
-                                    <div class="invalid-feedback">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                            {{-- </div>
-                            <div class="row"> --}}
-                            <div class="mb-2 col-md-12">
-                                <label class="form-label">Nombre d'acte prévu <span class="text-danger">*</span></label>
-                                <input  class="form-control form-control-sm @error("nbre_acte_prevu") is-invalid @enderror " name="nbre_acte_prevu" type="number" >
-                                @error("nbre_acte_prevu")
-                                    <div class="invalid-feedback">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                            <div class="mb-2 col-md-12 d-none">
-                                <label class="form-label">Etat <span class="text-danger">*</span></label>
-                                <select id="statut" name="statut" class="form-control @error('statut') is-invalid @enderror" required>
-                                    <option value="0" {{"statut"==old("statut") ? "selected":""}}>Désactivé</option>
-                                </select>
-                            </div>
+                        <p class="small text-muted mb-3 mb-md-4">Renseignez le type, le libellé généré et le nombre d’actes prévus pour ce registre.</p>
+                        <div class="sifec-registre-field">
+                            <label class="form-label" for="codetyperegistre">Type de registre <span class="text-danger">*</span></label>
+                            <select name="code_type_registre" class="form-select wide" id="codetyperegistre" required>
+                                <option value="" disabled {{ old('code_type_registre') ? '' : 'selected' }}>Choisissez un type</option>
+                                @if(Auth::user()->affectationActive()->institution->lieu->localiteParent->pompes_funebres == 0)
+                                    @foreach (Modules\Referentiel\Entities\TypeRegistre::all() as $item)
+                                        <option value="{{ $item->code_type_registre }}" {{ old('code_type_registre') == $item->code_type_registre ? 'selected' : '' }}>{{ $item->lib_type_registre }}</option>
+                                    @endforeach
+                                @else
+                                    @foreach ($typeRegistres as $item)
+                                        <option value="{{ $item->code_type_registre }}" {{ old('code_type_registre') == $item->code_type_registre ? 'selected' : '' }}>{{ $item->lib_type_registre }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                        <div class="sifec-registre-field">
+                            <label class="form-label" for="typeregistre">Libellé <span class="text-danger">*</span></label>
+                            <input id="typeregistre" type="text" class="form-control @error('lib_registre') is-invalid @enderror" value="{{ old('lib_registre') }}" name="lib_registre" readonly required>
+                            <input type="hidden" id="prefix" name="prefix">
+                            @error('lib_registre')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="sifec-registre-field">
+                            <label class="form-label" for="nbre_acte_prevu">Nombre d’actes prévus <span class="text-danger">*</span></label>
+                            <input id="nbre_acte_prevu" class="form-control @error('nbre_acte_prevu') is-invalid @enderror" name="nbre_acte_prevu" type="number" min="1" step="1" value="{{ old('nbre_acte_prevu') }}" placeholder="Ex. 100">
+                            @error('nbre_acte_prevu')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="d-none">
+                            <label class="form-label">État <span class="text-danger">*</span></label>
+                            <select id="statut" name="statut" class="form-select @error('statut') is-invalid @enderror" required>
+                                <option value="0" {{ old('statut') == '0' || old('statut') === null ? 'selected' : '' }}>Désactivé</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-sm btn-primary">Valider</button>
-                        <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">Fermer</button>
+                    <div class="modal-footer flex-nowrap justify-content-end">
+                        <button type="button" class="btn sifec-registre-btn-close" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" class="btn sifec-registre-btn-submit" id="btn-registre-create-submit">
+                            <i class="fas fa-check me-1"></i> Valider
+                        </button>
                     </div>
                 </form>
             </div>
@@ -196,12 +580,15 @@ Registre Etat civil
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content shadow">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-semibold">Validation du registre (paraphe)</h5>
+                    <h5 class="modal-title fw-semibold" id="modal-paraphage-title">Validation du registre (paraphe)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer">
                     </button>
                 </div>
                 <div class="modal-body pt-3">
                     <input type="hidden" id="code_registre">
+                    <input type="hidden" id="paraphe_mode" value="single">
+                    <input type="hidden" id="paraphe_bulk_codes_json" value="">
+                    <p id="paraphe-bulk-summary" class="small fw-semibold text-success mb-3 d-none" role="status"></p>
                     <p class="small text-muted mb-3">
                         Le code reçu par SMS est valable <strong>1 minute</strong>.
                         Vous disposez de <strong>3 tentatives</strong> par code.
@@ -348,12 +735,27 @@ Registre Etat civil
 </div>
 @endsection
 @section('scripts')
-      <!-- Datatable -->
+      @if(empty($vueTribunalRegistres))
+      <!-- Datatable (liste CEC uniquement — évite double en-tête / pied sur la vue tribunal) -->
       <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
       <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+      @endif
 
       <script>
         $(function() {
+            $('#form-registre-create').on('submit', function () {
+                var btn = document.getElementById('btn-registre-create-submit');
+                if (btn && typeof window.sifecBtnLoading === 'function') {
+                    window.sifecBtnLoading(btn, 'Enregistrement…');
+                }
+            });
+            $('#modalCEC').on('hidden.bs.modal', function () {
+                var btn = document.getElementById('btn-registre-create-submit');
+                if (btn && typeof window.sifecBtnReset === 'function') {
+                    window.sifecBtnReset(btn, '<i class="fas fa-check me-1"></i> Valider');
+                }
+            });
+
             $("#codetyperegistre").on("change", function() {
 
                 var codetyperegistre = $(this).val();
@@ -603,6 +1005,100 @@ Registre Etat civil
                     });
                 }
 
+                function getRegistreCsrfToken() {
+                    return $('meta[name="csrf-token"]').attr('content') || '';
+                }
+
+                function requestParaphOtpBulk(codes, openModalOnSuccess, isResend) {
+                    var url = "{{ route('registre.send.otp.bulk') }}";
+                    $(".over-loader-page").fadeIn(600);
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ codes: codes, resend: !!isResend }),
+                        dataType: 'json',
+                        headers: {
+                            'X-CSRF-TOKEN': getRegistreCsrfToken(),
+                            'X-Requested-With': 'XMLHttpRequest',
+                            Accept: 'application/json'
+                        }
+                    }).done(function (response) {
+                        $(".over-loader-page").fadeOut(600);
+                        if (String(response.code) === '200') {
+                            paraphOtpMaxAttempts = parseInt(response.otp_max_attempts, 10) || 3;
+                            var sentUsed = parseInt(response.attempts_used, 10);
+                            setParaphAttemptsUsedDisplay(!isNaN(sentUsed) ? sentUsed : 0, paraphOtpMaxAttempts);
+                            var validSec = parseInt(response.valid_for_seconds, 10) || 60;
+                            if (openModalOnSuccess) {
+                                $('#modal-registre-paraphage').modal('show');
+                            }
+                            startParaphExpiryCountdown(validSec);
+                            if (openModalOnSuccess) {
+                                showParaphAlert('success', response.message || 'Code envoyé. Saisissez-le avant la fin du compte à rebours.');
+                            } else {
+                                flashAlert('Code OTP', 'success', response.message || 'Nouveau code envoyé.');
+                            }
+                        } else if (String(response.code) === '184' && response.retry_after_seconds) {
+                            if (openModalOnSuccess) {
+                                $('#modal-registre-paraphage').modal('show');
+                            }
+                            applyParaphAttemptsFromResponse(response);
+                            startParaphLockoutCountdown(parseInt(response.retry_after_seconds, 10) || 180);
+                            flashAlert('Réponse', 'error', response.message || 'Temporisation active.');
+                        } else {
+                            flashAlert('Réponse', 'error', response.message || 'Erreur.');
+                        }
+                    }).fail(function (xhr) {
+                        $(".over-loader-page").fadeOut(600);
+                        var msg = 'Impossible d\'envoyer le code.';
+                        if (xhr.status === 429) {
+                            msg = 'Trop de demandes. Réessayez dans une minute.';
+                        }
+                        flashAlert('Réponse', 'error', msg);
+                    });
+                }
+
+                function updateRegistreBulkSelectionUi() {
+                    var $bulkAction = $('#btn-parapher-selection');
+                    if (!$bulkAction.length) {
+                        return;
+                    }
+                    var checked = $('.registre-bulk-cb:checked').length;
+                    $('#registre-bulk-count').text(checked);
+                    $bulkAction.prop('disabled', checked < 1);
+                    var total = $('.registre-bulk-cb').length;
+                    var el = document.getElementById('registre-bulk-select-all');
+                    if (el) {
+                        el.indeterminate = checked > 0 && checked < total;
+                        el.checked = total > 0 && checked === total;
+                    }
+                }
+
+                $(document).on('change', '.registre-bulk-cb', updateRegistreBulkSelectionUi);
+                $('#registre-bulk-select-all').on('change', function () {
+                    var on = $(this).prop('checked');
+                    $('.registre-bulk-cb').prop('checked', on);
+                    updateRegistreBulkSelectionUi();
+                });
+
+                $('#btn-parapher-selection').on('click', function () {
+                    var codes = $('.registre-bulk-cb:checked').map(function () { return $(this).val(); }).get();
+                    if (!codes.length) {
+                        flashAlert('Sélection', 'error', 'Cochez au moins un registre.');
+                        return;
+                    }
+                    $('#paraphe_mode').val('bulk');
+                    $('#paraphe_bulk_codes_json').val(JSON.stringify(codes));
+                    $('#code_registre').val('');
+                    var n = codes.length;
+                    $('#modal-paraphage-title').text('Validation groupée (' + n + ' registre' + (n > 1 ? 's' : '') + ')');
+                    $('#paraphe-bulk-summary').removeClass('d-none').text(
+                        n + ' registre(s) seront paraphés avec le même code OTP.'
+                    );
+                    requestParaphOtpBulk(codes, true, false);
+                });
+
                 function sanitizeOtpParaphInput($field) {
                     var v = ($field.val() || '').replace(/\D/g, '').slice(0, 6);
                     if ($field.val() !== v) {
@@ -638,10 +1134,25 @@ Registre Etat civil
                     clearRegistreParaphTimers();
                     hideParaphAlert();
                     $('#otp_paraphage').val('');
+                    $('#paraphe_mode').val('single');
+                    $('#paraphe_bulk_codes_json').val('');
+                    $('#modal-paraphage-title').text('Validation du registre (paraphe)');
+                    $('#paraphe-bulk-summary').addClass('d-none').text('');
+                    var sa = document.getElementById('registre-bulk-select-all');
+                    if (sa) {
+                        sa.indeterminate = false;
+                        sa.checked = false;
+                    }
+                    $('.registre-bulk-cb').prop('checked', false);
+                    updateRegistreBulkSelectionUi();
                 });
 
                 $("a.show-validation-modal").on("click", function () {
                     var code_registre = $(this).attr("href");
+                    $('#paraphe_mode').val('single');
+                    $('#paraphe_bulk_codes_json').val('');
+                    $('#modal-paraphage-title').text('Validation du registre (paraphe)');
+                    $('#paraphe-bulk-summary').addClass('d-none').text('');
                     requestParaphOtpForRegistre(code_registre, true);
                     return false;
                 });
@@ -649,6 +1160,20 @@ Registre Etat civil
                 $('#resend-otp-link').on('click', function (e) {
                     e.preventDefault();
                     if ($(this).hasClass('disabled')) {
+                        return false;
+                    }
+                    if ($('#paraphe_mode').val() === 'bulk') {
+                        var raw = $('#paraphe_bulk_codes_json').val();
+                        var codesBulk = [];
+                        try {
+                            codesBulk = JSON.parse(raw || '[]');
+                        } catch (errBulk) {
+                            codesBulk = [];
+                        }
+                        if (!codesBulk.length) {
+                            return false;
+                        }
+                        requestParaphOtpBulk(codesBulk, false, true);
                         return false;
                     }
                     var code_registre = $('#code_registre').val();
@@ -660,24 +1185,15 @@ Registre Etat civil
                 });
 
                 $("#btn-validate").on("click", function () {
-                    var code_registre = $("#code_registre").val();
                     var otp_paraphage = ($("#otp_paraphage").val() || '').replace(/\D/g, '');
-                    if (code_registre === "" || otp_paraphage === "") {
-                        alert("Veuillez saisir le code à 6 chiffres reçu par SMS.");
+                    if (otp_paraphage === "" || otp_paraphage.length !== 6 || !/^\d{6}$/.test(otp_paraphage)) {
+                        alert("Veuillez saisir le code à 6 chiffres reçu par SMS (et par e-mail si configuré).");
                         return false;
                     }
-                    if (otp_paraphage.length !== 6 || !/^\d{6}$/.test(otp_paraphage)) {
-                        alert("Le code doit comporter exactement 6 chiffres (0 à 9), sans lettre ni symbole.");
-                        return false;
-                    }
+                    var mode = $('#paraphe_mode').val();
                     var $btn = $(this);
                     $btn.prop("disabled", true);
                     $btn.html("Traitement en cours ...");
-                    var url = "{{ route('registre.validate.otp') }}";
-                    var data = {
-                        code_registre: code_registre,
-                        otp_paraphage: otp_paraphage
-                    };
 
                     function handleParaphValidateResponse(response) {
                         if (!response || typeof response !== 'object') {
@@ -723,22 +1239,93 @@ Registre Etat civil
                         flashAlert("Réponse", "error", response.message || 'Erreur inattendue.');
                     }
 
+                    function finishParaphValidateAjax() {
+                        $btn.prop("disabled", false);
+                        $btn.html("Valider");
+                    }
+
+                    if (mode === 'bulk') {
+                        var rawCodes = $('#paraphe_bulk_codes_json').val();
+                        var codesBulkVal = [];
+                        try {
+                            codesBulkVal = JSON.parse(rawCodes || '[]');
+                        } catch (errVal) {
+                            codesBulkVal = [];
+                        }
+                        if (!codesBulkVal.length) {
+                            finishParaphValidateAjax();
+                            alert('La sélection groupée est invalide. Fermez le modal et recommencez.');
+                            return false;
+                        }
+                        $.ajax({
+                            url: "{{ route('registre.validate.otp.bulk') }}",
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ codes: codesBulkVal, otp_paraphage: otp_paraphage }),
+                            dataType: 'json',
+                            headers: {
+                                'X-CSRF-TOKEN': getRegistreCsrfToken(),
+                                'X-Requested-With': 'XMLHttpRequest',
+                                Accept: 'application/json'
+                            }
+                        }).done(function (response) {
+                            finishParaphValidateAjax();
+                            handleParaphValidateResponse(response);
+                        }).fail(function (xhr) {
+                            finishParaphValidateAjax();
+                            var parsed = xhr.responseJSON;
+                            if (!parsed && xhr.responseText) {
+                                try {
+                                    parsed = JSON.parse(xhr.responseText);
+                                } catch (e) {
+                                    parsed = null;
+                                }
+                            }
+                            if (parsed && typeof parsed === 'object') {
+                                var rc = paraphOtpResponseCode(parsed);
+                                if (rc === 183) {
+                                    applyParaphAttemptsFromResponse(parsed);
+                                    flashAlert("Réponse", "error", parsed.message || 'Code OTP incorrect.');
+                                    return;
+                                }
+                                if (rc === 180) {
+                                    flashAlert("Réponse", "error", parsed.message || 'Données invalides.');
+                                    return;
+                                }
+                            }
+                            var msg = 'Erreur lors de la validation.';
+                            if (xhr.status === 429) {
+                                msg = 'Trop de tentatives. Patientez quelques instants.';
+                            }
+                            flashAlert('Réponse', 'error', msg);
+                        });
+                        return false;
+                    }
+
+                    var code_registre = $("#code_registre").val();
+                    if (code_registre === "") {
+                        finishParaphValidateAjax();
+                        alert("Identifiant registre manquant. Fermez le modal et rouvrez depuis Parapher.");
+                        return false;
+                    }
+
                     $.ajax({
-                        url: url,
+                        url: "{{ route('registre.validate.otp') }}",
                         method: 'POST',
-                        data: data,
+                        data: {
+                            code_registre: code_registre,
+                            otp_paraphage: otp_paraphage
+                        },
                         dataType: 'json',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             Accept: 'application/json'
                         }
                     }).done(function (response) {
-                        $btn.prop("disabled", false);
-                        $btn.html("Valider");
+                        finishParaphValidateAjax();
                         handleParaphValidateResponse(response);
                     }).fail(function (xhr) {
-                        $btn.prop("disabled", false);
-                        $btn.html("Valider");
+                        finishParaphValidateAjax();
                         var parsed = xhr.responseJSON;
                         if (!parsed && xhr.responseText) {
                             try {

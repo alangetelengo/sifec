@@ -669,9 +669,7 @@ class UserController extends Controller
 
         $user = User::find($id);
         if ($user == null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         // Dossier cible : public/app/signature (cohérent avec les fichiers existants)
@@ -684,7 +682,7 @@ class UserController extends Controller
         try {
 
             // Supprimer l'ancienne signature si elle existe
-            if (! empty($user->personne->signature)) {
+            if ($user->personne && ! empty($user->personne->signature)) {
                 $signatureExistant = $user->personne->signature;
                 $cheminSignature = public_path('app/'.$signatureExistant);
                 if (file_exists($cheminSignature)) {
@@ -703,26 +701,30 @@ class UserController extends Controller
                     $personne->signature = $signature;
                     $personne->save();
                 } else {
-                    flash()->error('Le fichier de signature est corrompu ou inaccessible.', [], 'Gestion des utilisateurs');
-
-                    return back()->withInput();
+                    return redirect()
+                        ->route('utilisateur.profile', $user->code_user)
+                        ->with('error', 'Le fichier de signature est corrompu ou inaccessible.')
+                        ->withInput();
                 }
             } else {
-                flash()->error("Aucun fichier de signature n'a été envoyé.", [], 'Gestion des utilisateurs');
-
-                return back()->withInput();
+                return redirect()
+                    ->route('utilisateur.profile', $user->code_user)
+                    ->with('error', "Aucun fichier de signature n'a été envoyé.")
+                    ->withInput();
             }
 
             DB::commit();
-            flash()->success('Signature ajoutée avec succès');
 
-            return back();
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('success', 'Signature enregistrée avec succès.');
 
         } catch (Exception $e) {
             DB::rollBack();
-            flash()->error($e->getMessage(), [], 'Gestion des utilisateurs');
 
-            return back();
+            return redirect()
+                ->route('utilisateur.profile', $id)
+                ->with('error', $e->getMessage());
         }
 
     }

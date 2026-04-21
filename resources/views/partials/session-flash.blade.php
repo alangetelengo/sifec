@@ -33,22 +33,8 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
     </div>
-@elseif ($tfFlash !== null && $tfFlash['type'] === 'success')
-    <div class="sifec-session-flash mb-2 position-relative" role="region" aria-label="Message de succès">
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
-            <span class="me-2">{{ e($tfFlash['message']) }}</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-    </div>
-@elseif ($tfFlash !== null && $tfFlash['type'] === 'error')
-    <div class="sifec-session-flash mb-2 position-relative" role="region" aria-label="Message d’erreur">
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
-            <span class="me-2">{{ e($tfFlash['message']) }}</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-    </div>
 @elseif (session('success') || session('error') || session('warning') || session('info'))
-    {{-- Messages flash Laravel (session) --}}
+    {{-- Session Laravel avant le cookie sifec_tf : évite qu’un ancien cookie masque un flash frais (ex. profil / signature). --}}
     <div class="sifec-session-flash mb-2 position-relative" role="region" aria-label="Messages">
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
@@ -74,5 +60,19 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
             </div>
         @endif
+    </div>
+@elseif ($tfFlash !== null && $tfFlash['type'] === 'success')
+    <div class="sifec-session-flash mb-2 position-relative" role="region" aria-label="Message de succès">
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
+            <span class="me-2">{{ e($tfFlash['message']) }}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    </div>
+@elseif ($tfFlash !== null && $tfFlash['type'] === 'error')
+    <div class="sifec-session-flash mb-2 position-relative" role="region" aria-label="Message d’erreur">
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
+            <span class="me-2">{{ e($tfFlash['message']) }}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
     </div>
 @endif

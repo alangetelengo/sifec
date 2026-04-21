@@ -125,10 +125,18 @@
         <tr style="">
             <td style="width:100%; text-align: center;">
                 @if ((int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
-                    <img src="{{ public_path('app/'.$acte->sceau_tribunal) }}" alt="" width="100" height="100" style="display: block; margin: 0 auto 3mm auto;">
+                    @php
+                        $pdfSceau = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->sceau_tribunal);
+                    @endphp
+                    @if ($pdfSceau)
+                    <img src="{{ $pdfSceau }}" alt="" width="100" height="100" style="display: block; margin: 0 auto 3mm auto;">
+                    @endif
                 @endif
                 <p><strong style="font-size: 18px;">COPIE D'ACTE DE NAISSANCE</strong>
-                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong></p>
+                    @if(filled($acte->approbation_mairie))
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong>
+                    @endif
+                </p>
             </td>
         </tr><br>
     </table>
@@ -239,7 +247,12 @@
                     <td style="text-align: left;">
                      <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>L'officier de l'état civil</p>
                          @if ($signatureOfficier)
-                             <img src='{{ public_path('app/'.$signatureOfficier) }}'><br>
+                             @php
+                                 $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($signatureOfficier);
+                             @endphp
+                             @if ($pdfSignature)
+                             <img src="{{ $pdfSignature }}"><br>
+                             @endif
                              <span style="color:black; font-weight:bold">{{ $nomSignataire }}</span>
                          @else
                              <div style="height: 60px; padding-top: 10px;">

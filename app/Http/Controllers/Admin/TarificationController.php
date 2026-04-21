@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Sifec\Sifec;
 use Exception;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Modules\Mobile\Entities\Tarificatrion;
@@ -49,7 +50,14 @@ class TarificationController extends Controller
         $tarifs = $query->orderBy('date_debut_validite', 'desc')->paginate(20);
         $typesDocuments = TypeDocumentDemande::all();
 
-        return view('admin.tarifs.index', compact('tarifs', 'typesDocuments'));
+        $stats = [
+            'total' => Tarificatrion::count(),
+            'actifs' => Tarificatrion::where('actif', true)->count(),
+            'nationaux' => Tarificatrion::whereNull('code_institution')->count(),
+            'specifiques' => Tarificatrion::whereNotNull('code_institution')->count(),
+        ];
+
+        return view('admin.tarifs.index', compact('tarifs', 'typesDocuments', 'stats'));
     }
 
     /**
@@ -60,7 +68,7 @@ class TarificationController extends Controller
 
         $typesDocuments = TypeDocumentDemande::all();
         // $institutions = $this->mairieInstitutionUsersPourTarif();
-        $institutions = Institution::where("code_type_institution", "TPINS_0002")->get();
+        $institutions = Institution::where('code_type_institution', 'TPINS_0002')->get();
 
         return view('admin.tarifs.create', compact('typesDocuments', 'institutions'));
     }
@@ -79,9 +87,24 @@ class TarificationController extends Controller
             'commentaire' => 'nullable|string|max:1000',
         ]);
 
-        if (! empty($validated['code_institution']) && ! $this->institutionEstMairie($validated['code_institution'])) {
+        $codeInstitution = $validated['code_institution'] ?? null;
+        $codeInstitution = $codeInstitution === '' ? null : $codeInstitution;
+
+        if ($codeInstitution !== null && ! $this->institutionEstMairie($codeInstitution)) {
             return back()->withErrors([
                 'code_institution' => 'Seules les mairies (type TPINS_0002) peuvent avoir un tarif spécifique.',
+            ])->withInput();
+        }
+
+        if ($this->tarifDejaExistantPourTypeEtCentre($validated['code_type_document_demande'], $codeInstitution)) {
+            if ($codeInstitution !== null) {
+                return back()->withErrors([
+                    'code_institution' => 'Un tarif existe déjà pour ce type de document et cette mairie. Modifiez ou supprimez l’existant.',
+                ])->withInput();
+            }
+
+            return back()->withErrors([
+                'code_type_document_demande' => 'Un tarif national existe déjà pour ce type de document. Modifiez ou supprimez l’existant.',
             ])->withInput();
         }
 
@@ -95,7 +118,7 @@ class TarificationController extends Controller
             );
 
             $tarif->code_type_document_demande = $validated['code_type_document_demande'];
-            $tarif->code_institution = $validated['code_institution'] ?? null;
+            $tarif->code_institution = $codeInstitution;
             $tarif->prix = $validated['prix'];
             $tarif->date_debut_validite = $validated['date_debut_validite'] ?? now();
             $tarif->date_fin_validite = $validated['date_fin_validite'] ?? null;
@@ -109,14 +132,15 @@ class TarificationController extends Controller
                 'prix' => $tarif->prix,
             ]);
 
-            flash()->success('Tarif créé avec succès.');
-
-            return redirect()->route('admin.tarifs.index');
+            return redirect()
+                ->route('admin.tarifs.index')
+                ->with('success', 'Tarif créé avec succès.');
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur création tarif', ['error' => $e->getMessage()]);
-            flash()->error('Erreur lors de la création du tarif.');
 
-            return back()->withInput();
+            return back()
+                ->withInput()
+                ->with('error', 'Erreur lors de la création du tarif.');
         }
     }
 
@@ -140,7 +164,6 @@ class TarificationController extends Controller
             'prix' => 'required|numeric|min:0',
             'date_debut_validite' => 'nullable|date',
             'date_fin_validite' => 'nullable|date|after_or_equal:date_debut_validite',
-            'actif' => 'boolean',
             'commentaire' => 'nullable|string|max:1000',
         ]);
 
@@ -150,7 +173,8 @@ class TarificationController extends Controller
             $tarif->prix = $validated['prix'];
             $tarif->date_debut_validite = $validated['date_debut_validite'] ?? $tarif->date_debut_validite;
             $tarif->date_fin_validite = $validated['date_fin_validite'] ?? null;
-            $tarif->actif = $request->has('actif');
+            // Case à cocher HTML : absent si décoché ; ne pas valider avec la règle « boolean » (échecs selon navigateur / Laravel).
+            $tarif->actif = $request->boolean('actif');
             $tarif->commentaire = $validated['commentaire'] ?? null;
 
             $tarif->save();
@@ -160,14 +184,15 @@ class TarificationController extends Controller
                 'nouveau_prix' => $tarif->prix,
             ]);
 
-            flash()->success('Tarif modifié avec succès.');
-
-            return redirect()->route('admin.tarifs.index');
+            return redirect()
+                ->route('admin.tarifs.index')
+                ->with('success', 'Tarif modifié avec succès.');
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur modification tarif', ['error' => $e->getMessage()]);
-            flash()->error('Erreur lors de la modification du tarif.');
 
-            return back()->withInput();
+            return back()
+                ->withInput()
+                ->with('error', 'Erreur lors de la modification du tarif.');
         }
     }
 
@@ -182,13 +207,10 @@ class TarificationController extends Controller
             $tarif->save();
 
             $status = $tarif->actif ? 'activé' : 'désactivé';
-            flash()->success("Tarif {$status} avec succès.");
 
-            return back();
+            return back()->with('success', "Tarif {$status} avec succès.");
         } catch (Exception $e) {
-            flash()->error('Erreur lors de la modification du statut.');
-
-            return back();
+            return back()->with('error', 'Erreur lors de la modification du statut.');
         }
     }
 
@@ -205,13 +227,24 @@ class TarificationController extends Controller
                 'code_tarification' => $code,
             ]);
 
-            flash()->success('Tarif supprimé avec succès.');
+            return back()->with('success', 'Tarif supprimé avec succès.');
+        } catch (QueryException $e) {
+            Log::channel('sifec')->error('Suppression tarif refusée (contrainte SQL)', [
+                'code_tarification' => $code,
+                'error' => $e->getMessage(),
+            ]);
 
-            return back();
+            return back()->with(
+                'error',
+                'Impossible de supprimer ce tarif : il est peut-être encore référencé par d’autres données.'
+            );
         } catch (Exception $e) {
-            flash()->error('Erreur lors de la suppression du tarif.');
+            Log::channel('sifec')->error('Erreur suppression tarif', [
+                'code_tarification' => $code,
+                'error' => $e->getMessage(),
+            ]);
 
-            return back();
+            return back()->with('error', 'Erreur lors de la suppression du tarif.');
         }
     }
 
@@ -221,5 +254,22 @@ class TarificationController extends Controller
             ->where('code_institution', $codeInstitution)
             ->where('code_type_institution', self::CODE_TYPE_INSTITUTION_MAIRIE)
             ->exists();
+    }
+
+    /**
+     * Un seul enregistrement par couple (type de document, centre) ; tarif national = centre null.
+     */
+    protected function tarifDejaExistantPourTypeEtCentre(string $codeTypeDocumentDemande, ?string $codeInstitution): bool
+    {
+        $q = Tarificatrion::query()
+            ->where('code_type_document_demande', $codeTypeDocumentDemande);
+
+        if ($codeInstitution !== null) {
+            $q->where('code_institution', $codeInstitution);
+        } else {
+            $q->whereNull('code_institution');
+        }
+
+        return $q->exists();
     }
 }

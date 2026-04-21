@@ -446,21 +446,27 @@ class DemandeDocumentService
     }
 
     /**
-     * Notifier les agents du centre lors de l'enregistrement d'une demande
+     * Notifier les agents du centre (gestion des demandes) et l’officier d’état civil
+     * (permission de signature du type de document concerné), pour l’institution destinataire.
      */
     protected function notifierAgentsCentre(DemandeDocument $demande): void
     {
         try {
             if (! $demande->code_institution) {
-                Log::channel('sifec')->warning("Impossible de notifier : pas d'institution", [
+                Log::channel('sifec')->warning('[DemandeDocument][Notification] Aucune institution sur la demande — agents et officiers non notifiés.', [
                     'code_demande' => $demande->code_demande_document,
+                    'origine_demande' => $demande->origine_demande,
                 ]);
 
                 return;
             }
 
-            // Récupérer tous les utilisateurs affectés à l'institution avec la permission demande_document
-            $agents = User::whereHas('affectations', function ($query) use ($demande) {
+            $demande->loadMissing('institution');
+
+            $libInstitution = $demande->institution?->lib_institution;
+
+            // Agents habilités à traiter les demandes document au centre
+            $agentsDemande = User::whereHas('affectations', function ($query) use ($demande) {
                 $query->where('code_institution', $demande->code_institution)
                     ->where('active', 1);
             })
@@ -469,17 +475,75 @@ class DemandeDocumentService
                 })
                 ->get();
 
-            Log::channel('sifec')->info('Notification nouvelle demande', [
+            // Officiers d’état civil (signature copie / extrait selon le type d’acte)
+            $permissionSignature = $demande->getPermissionSignature();
+            $officiers = User::whereHas('affectations', function ($query) use ($demande) {
+                $query->where('code_institution', $demande->code_institution)
+                    ->where('active', 1);
+            })
+                ->whereHas('fonctionnalites', function ($query) use ($permissionSignature) {
+                    $query->where('lib_technique', $permissionSignature);
+                })
+                ->get();
+
+            $recipients = $agentsDemande->merge($officiers)->unique('code_user')->values();
+
+            Log::channel('sifec')->info('[DemandeDocument][Notification] Destinataires pour nouvelle demande (centre + officier).', [
                 'code_demande' => $demande->code_demande_document,
-                'nb_agents' => $agents->count(),
+                'code_institution' => $demande->code_institution,
+                'lib_institution' => $libInstitution,
+                'nb_agents_module_demande_document' => $agentsDemande->count(),
+                'permission_signature' => $permissionSignature,
+                'nb_officiers_permission_signature' => $officiers->count(),
+                'nb_destinataires_uniques' => $recipients->count(),
+                'code_users' => $recipients->pluck('code_user')->all(),
             ]);
 
-            foreach ($agents as $agent) {
-                $agent->notify(new NouvelleDemandeCentre($demande));
+            if ($recipients->isEmpty()) {
+                Log::channel('sifec')->warning('[DemandeDocument][Notification] Aucun destinataire — vérifier les affectations actives et les permissions « module.demande_document » et signature document au centre.', [
+                    'code_demande' => $demande->code_demande_document,
+                    'code_institution' => $demande->code_institution,
+                    'permission_signature' => $permissionSignature,
+                ]);
+
+                return;
             }
 
+            $recipients->loadMissing('personne');
+
+            $sifec = app(Sifec::class);
+            $smsCount = 0;
+
+            foreach ($recipients as $user) {
+                $user->notify(new NouvelleDemandeCentre($demande));
+
+                $tel = trim((string) (optional($user->personne)->telephone ?? ''));
+                if ($tel !== '') {
+                    $sms = 'SIFEC: Nouvelle demande '.$demande->getLibelleTypeDocument().
+                        ' ('.$demande->getLibelleTypeActe().'). Acte N° '.$demande->numero_acte.
+                        '. Demandeur: '.$demande->getNomCompletDemandeur().
+                        '. Connectez-vous sur SIFEC pour la traiter.';
+                    try {
+                        $sifec->sendSms($tel, $sms);
+                        $smsCount++;
+                    } catch (Exception $smsEx) {
+                        Log::channel('sifec')->warning('[DemandeDocument][Notification] SMS nouvelle demande échoué', [
+                            'code_demande' => $demande->code_demande_document,
+                            'code_user' => $user->code_user,
+                            'error' => $smsEx->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            Log::channel('sifec')->info('[DemandeDocument][Notification] Notifications envoyées (base de données, e-mail si renseigné, SMS si téléphone).', [
+                'code_demande' => $demande->code_demande_document,
+                'nombre_destinataires' => $recipients->count(),
+                'code_users' => $recipients->pluck('code_user')->all(),
+                'sms_envoyes' => $smsCount,
+            ]);
         } catch (Exception $e) {
-            Log::channel('sifec')->error('Erreur notification agents centre', [
+            Log::channel('sifec')->error('[DemandeDocument][Notification] Erreur notification centre / officier', [
                 'code_demande' => $demande->code_demande_document,
                 'error' => $e->getMessage(),
             ]);
@@ -533,7 +597,15 @@ class DemandeDocumentService
                                ' (Acte N° '.$demande->numero_acte.'). '.
                                'Connectez-vous pour signer.';
 
-                    $sifec->envoyerSMS($signataire->personne->telephone, $message);
+                    try {
+                        $sifec->sendSms($signataire->personne->telephone, $message);
+                    } catch (Exception $smsEx) {
+                        Log::channel('sifec')->warning('[DemandeDocument][Notification] SMS signataire échoué', [
+                            'code_demande' => $demande->code_demande_document,
+                            'code_user' => $signataire->code_user,
+                            'error' => $smsEx->getMessage(),
+                        ]);
+                    }
                 }
             }
 

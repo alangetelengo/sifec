@@ -72,7 +72,7 @@
                             </a>
                         @endif
                     @endcan
-                    <a href="{{ route('declarationNaissance.etat',$dn->code_declaration_naissance) }}" target="_blank" rel="noopener" class="btn btn-sm btn-warning" title="Voir document"><i class="fas fa-print"></i></a>
+                    <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'from' => 'acte']) }}" class="btn btn-sm btn-warning" title="Voir document"><i class="fas fa-print"></i></a>
                 @elseif($dn->acte && !$dn->acte->approbation_mairie)
                     <a href="{{ route('acteNaissance.print.acte',$dn->code_declaration_naissance) }}"
                        target="_blank"

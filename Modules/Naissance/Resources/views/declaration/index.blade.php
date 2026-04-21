@@ -146,16 +146,16 @@ Déclaration
 
                                                 {{-- Consulter le PDF --}}
                                                 @if(in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE']))
-                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire']) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp" title="Voir le certificat de naissance">
+                                                    <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'formation_sanitaire', 'from' => 'declaration']) }}" class="btn btn-warning shadow btn-xs sharp" title="Voir le certificat de naissance">
                                                         <i class="fas fa-file-medical"></i>
                                                     </a>
                                                     @if($dn->type_declaration == 'DECLARATION DE NAISSANCE')
-                                                    <a href="{{ route('declarationNaissance.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil']) }}" target="_blank" class="btn btn-success shadow btn-xs sharp" title="Voir la déclaration de naissance">
+                                                    <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'contexte' => 'centre_etat_civil', 'from' => 'declaration']) }}" class="btn btn-success shadow btn-xs sharp" title="Voir la déclaration de naissance">
                                                         <i class="fas fa-file-alt"></i>
                                                     </a>
                                                     @endif
                                                 @else
-                                                    <a href="{{ route('declarationNaissance.etat', $dn->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp" title="Voir le document (PDF)">
+                                                    <a href="{{ route('declarationNaissance.voir.etat', ['id' => $dn->code_declaration_naissance, 'from' => 'declaration']) }}" class="btn btn-warning shadow btn-xs sharp" title="Voir le document (PDF)">
                                                         <i class="fas fa-print"></i>
                                                     </a>
                                                 @endif

@@ -734,7 +734,11 @@ class ActeNaissanceController extends Controller
                     ->assignNiuppFeuilletRegistre($acte, Auth::user());
                 $acte->refresh();
 
-                $acte->approbation_mairie = 1;
+                $affectation = Auth::user()->affectationActive();
+                if ($affectation === null || $affectation->cui === null || $affectation->cui === '') {
+                    throw new Exception("Impossible d'approuver : aucune affectation active (CUI) pour cet utilisateur.");
+                }
+                $acte->approbation_mairie = $affectation->cui;
                 $acte->signature_mairie = Auth::user()->personne->signature;
                 $acte->save();
                 DB::commit();

@@ -379,7 +379,7 @@ Actes de naissance
                         <i class="fas fa-lock me-1"></i>
                         <strong>Sécurité :</strong> au plus <strong>3 renvois</strong> du code tant qu’un code est encore valide,
                         au plus <strong>3 saisies incorrectes</strong> ; en cas de dépassement, attente <strong>3 minutes</strong> avant de recommencer.
-                        Chaque code reste valide <strong>1 minute</strong>.
+                        Chaque code reste valide <strong>2 minutes</strong>.
                     </p>
                 </div>
 
@@ -411,7 +411,7 @@ Actes de naissance
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="fas fa-clock text-warning"></i>
                                 <span class="small">Code valide encore :
-                                    <strong id="otp-countdown" class="text-warning fs-5">60s</strong>
+                                    <strong id="otp-countdown" class="text-warning fs-5">120s</strong>
                                 </span>
                             </div>
                             <div class="progress" style="height:6px;">
@@ -438,7 +438,7 @@ Actes de naissance
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success btn-sm" id="btn-validate">
-                    <i class="fas fa-check me-1"></i> Valider
+                    <i class="fas fa-signature me-1"></i> Signer
                 </button>
                 <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">
                     <i class="fas fa-times me-1"></i> Fermer
@@ -783,15 +783,15 @@ Actes de naissance
 
     // ── Gestion du timer OTP ─────────────────────────────────────────────
     var otpTimerInterval = null;
-    var otpTimerSeconds  = 60;
-    var otpTimerInitialTotal = 60;
+    var otpTimerSeconds  = 120;
+    var otpTimerInitialTotal = 120;
     var otpExpired       = false;
 
     /** @param {number} [totalSeconds] durée initiale affichée (serveur : valid_for_seconds) */
     function startOtpTimer(totalSeconds) {
         var t = parseInt(totalSeconds, 10);
         if (!t || t < 1) {
-            t = 60;
+            t = 120;
         }
         otpTimerInitialTotal = t;
         clearInterval(otpTimerInterval);
@@ -805,7 +805,7 @@ Actes de naissance
                           .removeClass('bg-danger').addClass('bg-warning');
         $('#otp-timer-block').removeClass('d-none');
         $('#otp-expired-block').addClass('d-none');
-        $('#btn-validate').prop('disabled', false);
+        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer');
         $('#btn-resend-otp').prop('disabled', true);
         $('#otp_approbation_mairie').prop('disabled', false).val('').trigger('focus');
 
@@ -1408,7 +1408,7 @@ Actes de naissance
                 $(".over-loader-page").fadeOut(600);
                 $("#validation_type").val("bulk");
                 $("#modal-validate-acte").modal('show');
-                var sec = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                var sec = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
                 startOtpTimer(sec);
                 if (response.otp_session === 'reused') {
                     flashAlert("Info", "info", typeof response.message === "string" ? response.message : "Code toujours valide — utilisez le même SMS ou e-mail.");
@@ -1447,7 +1447,7 @@ Actes de naissance
         }
 
         // Désactiver le bouton pour éviter la double soumission
-        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signature...');
 
         var code_declaration_naissance = $("#code_declaration_naissance_validate").val();
         var validation_type = $("#validation_type").val();
@@ -1494,7 +1494,7 @@ Actes de naissance
                         clearInterval(otpTimerInterval);
                         $('#modal-validate-acte').modal('hide');
                         $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                                         .html('<i class="fas fa-signature me-1"></i> Signer');
                     } else {
                         if (response.message && typeof response.message === 'object' && response.message.error) {
                             var fb = response.message.error;
@@ -1507,7 +1507,7 @@ Actes de naissance
                         }
                         flashAlert("Échec", "error", msg);
                         $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                                         .html('<i class="fas fa-signature me-1"></i> Signer');
                     }
                 },
                 error: function(xhr){
@@ -1517,7 +1517,7 @@ Actes de naissance
                     $('#otp-feedback').addClass('d-none').empty();
                     flashAlert("Erreur", "error", msg);
                     $('#btn-validate').prop('disabled', false)
-                                     .html('<i class="fas fa-check me-1"></i> Valider');
+                                     .html('<i class="fas fa-signature me-1"></i> Signer');
                 }
             });
         }else{
@@ -1542,7 +1542,7 @@ Actes de naissance
                         clearInterval(otpTimerInterval);
                         $('#modal-validate-acte').modal('hide');
                         $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                                         .html('<i class="fas fa-signature me-1"></i> Signer');
                     } else {
                         if (response.message && typeof response.message === 'object' && response.message.error) {
                             var fbB = response.message.error;
@@ -1555,7 +1555,7 @@ Actes de naissance
                         }
                         flashAlert("Échec", "error", msg);
                         $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-check me-1"></i> Valider');
+                                         .html('<i class="fas fa-signature me-1"></i> Signer');
                     }
                 },
                 error: function(xhr){
@@ -1565,7 +1565,7 @@ Actes de naissance
                     $('#otp-feedback').addClass('d-none').empty();
                     flashAlert("Erreur", "error", msg);
                     $('#btn-validate').prop('disabled', false)
-                                     .html('<i class="fas fa-check me-1"></i> Valider');
+                                     .html('<i class="fas fa-signature me-1"></i> Signer');
                 }
             });
         }
@@ -1585,7 +1585,7 @@ Actes de naissance
                 _token: '{{ csrf_token() }}'
             }, function(response){
                 if (response.code == "200") {
-                    var secR = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                    var secR = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
                     startOtpTimer(secR);
                     flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS (et par courriel si configuré).");
                 } else if (response.code == "184") {
@@ -1608,7 +1608,7 @@ Actes de naissance
             var data = { codes: actesGeneres, resend: 1, _token: '{{ csrf_token() }}' };
             $.post(url, data, function(response){
                 if (response.code == "200") {
-                    var secB = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                    var secB = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
                     startOtpTimer(secB);
                     flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS (et par courriel si configuré).");
                 } else if (response.code == "184") {
@@ -1634,7 +1634,7 @@ Actes de naissance
         clearInterval(otpTimerInterval);
         otpExpired = false;
         $('#otp-feedback').addClass('d-none').empty();
-        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-check me-1"></i> Valider');
+        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer');
     });
 
     // Renvoi individuel (modale)
@@ -1985,7 +1985,7 @@ Actes de naissance
                 $('#code_declaration_naissance_validate').val(code);
                 $("#validation_type").val("simple");
                 $("#modal-validate-acte").modal('show');
-                var secS = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 60;
+                var secS = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
                 startOtpTimer(secS);
                 if (response.otp_session === 'reused') {
                     flashAlert("Info", "info", typeof response.message === "string" ? response.message : "Code toujours valide — utilisez le même SMS ou e-mail.");

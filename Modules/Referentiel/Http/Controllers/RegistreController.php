@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -26,11 +27,15 @@ use Modules\Notification\Notifications\CreationRegistreParCecNotification;
 use Modules\Notification\Notifications\FeuilletRegistreAjouteNotification;
 use Modules\Notification\Notifications\RegistreValideParTribunalNotification;
 use Modules\Notification\Services\NotificationService;
+use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\Registre;
 use Modules\Referentiel\Entities\TypeRegistre;
 
 class RegistreController extends Controller
 {
+    /** Catégorie d'institution « centre d'état civil » (tr_type_institution.code_type_categorie_ins). */
+    private const CODE_TYPE_CATEGORIE_INS_CEC = 'TCINS_0001';
+
     private const OTP_VALID_MINUTES = 1;
 
     private const OTP_MAX_ATTEMPTS = 3;
@@ -500,6 +505,358 @@ class RegistreController extends Controller
     }
 
     /**
+     * Envoi d’un OTP unique pour parapher plusieurs registres (tribunal).
+     */
+    public function sendOtpBulk(Request $request): JsonResponse
+    {
+        if (! Gate::allows('module.fonctionnalites.parapher')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à parapher des registres.",
+            ]);
+        }
+
+        $codes = $request->input('codes', []);
+        if (! is_array($codes)) {
+            $codes = [];
+        }
+        $codes = array_values(array_unique(array_filter(array_map('strval', $codes))));
+        if ($codes === []) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Sélectionnez au moins un registre.',
+            ]);
+        }
+        if (count($codes) > 40) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Maximum 40 registres par validation groupée.',
+            ]);
+        }
+
+        $regs = Registre::whereIn('code_registre', $codes)->get();
+        if ($regs->count() !== count($codes)) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Un ou plusieurs registres sont introuvables.',
+            ]);
+        }
+
+        foreach ($regs as $reg) {
+            if ($auth = $this->ensureParapherAuthorizedForRegistre($reg)) {
+                return $auth;
+            }
+            if ((int) $reg->statut === 1) {
+                return response()->json([
+                    'code' => '186',
+                    'message' => 'Un registre sélectionné est déjà validé : '.$reg->code_registre,
+                ]);
+            }
+            if ($locked = $this->jsonIfOtpLocked($reg)) {
+                return $locked;
+            }
+            if ($reg->sceau !== null && $reg->sceau !== '') {
+                return response()->json([
+                    'code' => '186',
+                    'message' => 'Un registre sélectionné est déjà paraphé : '.$reg->code_registre,
+                ]);
+            }
+            if ($reg->otp_paraphage && $reg->otp_expire_at && now()->lessThan($reg->otp_expire_at)) {
+                return response()->json([
+                    'code' => '180',
+                    'message' => 'Un code OTP individuel est encore actif pour « '.$reg->lib_registre.' ». Finalisez le paraphe unitaire ou attendez l’expiration.',
+                ]);
+            }
+        }
+
+        $cacheKey = $this->registreParapheBulkCacheKey();
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && ! empty($cached['locked_until'])) {
+            $lu = $cached['locked_until'] instanceof Carbon
+                ? $cached['locked_until']
+                : Carbon::parse($cached['locked_until']);
+            if (now()->lessThan($lu)) {
+                $retryAfter = max(1, $lu->getTimestamp() - now()->getTimestamp());
+
+                return response()->json([
+                    'code' => '184',
+                    'message' => 'Suite à des tentatives infructueuses, veuillez attendre avant de demander un nouveau code.',
+                    'retry_after_seconds' => $retryAfter,
+                    'remaining_attempts' => 0,
+                    'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+                    'attempts_used' => self::OTP_MAX_ATTEMPTS,
+                ]);
+            }
+        }
+
+        $codesSorted = $codes;
+        sort($codesSorted);
+        $sameActive = false;
+        if (is_array($cached) && ! empty($cached['otp']) && ! empty($cached['otp_expires_at'])) {
+            $exp = $cached['otp_expires_at'] instanceof Carbon
+                ? $cached['otp_expires_at']
+                : Carbon::parse($cached['otp_expires_at']);
+            if (now()->lessThan($exp)) {
+                $c0 = $cached['codes'];
+                sort($c0);
+                $sameActive = ($c0 === $codesSorted);
+            }
+        }
+
+        $strikes = 0;
+        if ($sameActive) {
+            $strikes = (int) ($cached['strikes'] ?? 0) + 1;
+            if ($strikes >= self::OTP_MAX_ATTEMPTS) {
+                return $this->applyBulkParapheLockoutCache($codes);
+            }
+        }
+
+        try {
+            $otp = $this->generateNumericOtp();
+            $personne = Auth::user()->personne;
+            $tribunalNom = $personne ? $personne->nomcomplet() : 'Magistrat';
+            $n = count($codes);
+            $temp = (string) config('sifec.sms.templates.actions.paraphage_registre_bulk');
+            $temp = str_replace(':tribunal', $tribunalNom, $temp);
+            $temp = str_replace(':code_otp', $otp, $temp);
+            $temp = str_replace(':nombre', (string) $n, $temp);
+            $temp = str_replace(':minutes', (string) self::OTP_VALID_MINUTES, $temp);
+
+            Cache::put($cacheKey, [
+                'otp' => $otp,
+                'codes' => $codes,
+                'otp_expires_at' => now()->addMinutes(self::OTP_VALID_MINUTES),
+                'strikes' => $strikes,
+                'locked_until' => null,
+            ], now()->addMinutes(15));
+
+            $contact = $personne ? $personne->contacts->first() : null;
+            if ($contact !== null) {
+                SifecFacade::sendSms($contact->indicatif.$contact->telephone, $temp);
+                if (! empty($contact->email_professionnelle)) {
+                    $summary = $regs->map(fn (Registre $r) => $r->getcode())->implode(', ');
+                    dispatch(new ValidationRegistreJob(
+                        $tribunalNom,
+                        $otp,
+                        $summary.' ('.$n.' registre(s))',
+                        $contact->email_professionnelle
+                    ));
+                }
+            }
+
+            Log::channel('sifec')->info('OTP paraphe registre (bulk) envoyé', [
+                'codes' => $codes,
+                'count' => $n,
+                'cui' => Auth::user()->affectationActive()->cui,
+                'renvoi' => $request->boolean('resend'),
+            ]);
+
+            return response()->json([
+                'code' => '200',
+                'message' => 'Code envoyé par SMS (et e-mail si configuré). Il est valable '.self::OTP_VALID_MINUTES.' minute.',
+                'valid_for_seconds' => self::OTP_VALID_MINUTES * 60,
+                'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+                'attempts_used' => $strikes,
+                'otp_lockout_minutes' => self::OTP_LOCKOUT_MINUTES,
+            ]);
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('sendOtpBulk registre: '.$e->getMessage(), ['codes' => $codes]);
+
+            return response()->json([
+                'code' => '181',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Validation OTP unique pour parapher plusieurs registres.
+     */
+    public function validateOtpBulk(Request $request): JsonResponse
+    {
+        if (! Gate::allows('module.fonctionnalites.parapher')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à parapher des registres.",
+            ]);
+        }
+
+        $codes = $request->input('codes', []);
+        if (! is_array($codes)) {
+            $codes = [];
+        }
+        $codes = array_values(array_unique(array_filter(array_map('strval', $codes))));
+        $otpSaisi = (string) $request->input('otp_paraphage', '');
+
+        if ($codes === [] || $otpSaisi === '' || strlen($otpSaisi) !== 6 || ! ctype_digit($otpSaisi)) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Sélectionnez des registres et saisissez le code à 6 chiffres.',
+            ]);
+        }
+
+        $cacheKey = $this->registreParapheBulkCacheKey();
+        $cached = Cache::get($cacheKey);
+        if (! is_array($cached) || empty($cached['otp'])) {
+            return response()->json([
+                'code' => '185',
+                'message' => 'Aucun code actif. Demandez un nouveau code OTP.',
+            ]);
+        }
+
+        if (! empty($cached['locked_until'])) {
+            $lu = $cached['locked_until'] instanceof Carbon
+                ? $cached['locked_until']
+                : Carbon::parse($cached['locked_until']);
+            if (now()->lessThan($lu)) {
+                $retryAfter = max(1, $lu->getTimestamp() - now()->getTimestamp());
+
+                return response()->json([
+                    'code' => '184',
+                    'message' => 'Temporisation active. Patientez avant de réessayer.',
+                    'retry_after_seconds' => $retryAfter,
+                    'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+                    'attempts_used' => self::OTP_MAX_ATTEMPTS,
+                ]);
+            }
+        }
+
+        $exp = $cached['otp_expires_at'] instanceof Carbon
+            ? $cached['otp_expires_at']
+            : Carbon::parse($cached['otp_expires_at']);
+        if (now()->greaterThan($exp)) {
+            return response()->json([
+                'code' => '185',
+                'message' => 'Le code OTP a expiré. Demandez un nouveau code.',
+            ]);
+        }
+
+        sort($codes);
+        $cachedCodes = $cached['codes'];
+        sort($cachedCodes);
+        if ($codes !== $cachedCodes) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'La sélection ne correspond plus au code envoyé. Fermez le modal et recommencez.',
+            ]);
+        }
+
+        if (! hash_equals((string) $cached['otp'], $otpSaisi)) {
+            $strikes = (int) ($cached['strikes'] ?? 0) + 1;
+            $cached['strikes'] = $strikes;
+            if ($strikes >= self::OTP_MAX_ATTEMPTS) {
+                return $this->applyBulkParapheLockoutCache($cached['codes']);
+            }
+            Cache::put($cacheKey, $cached, now()->addMinutes(15));
+
+            return response()->json([
+                'code' => '183',
+                'message' => 'Code OTP incorrect.',
+                'remaining_attempts' => (int) (self::OTP_MAX_ATTEMPTS - $strikes),
+                'otp_max_attempts' => (int) self::OTP_MAX_ATTEMPTS,
+                'attempts_used' => $strikes,
+            ]);
+        }
+
+        $regs = Registre::whereIn('code_registre', $cached['codes'])->get();
+        if ($regs->count() !== count($cached['codes'])) {
+            return response()->json([
+                'code' => '182',
+                'message' => 'Registres introuvables lors de la validation.',
+            ]);
+        }
+
+        try {
+            DB::beginTransaction();
+            foreach ($regs as $reg) {
+                $reg = Registre::where('code_registre', $reg->code_registre)->lockForUpdate()->first();
+                if ($reg === null) {
+                    throw new \RuntimeException('Registre introuvable.');
+                }
+                if ((int) $reg->statut === 1) {
+                    throw new \RuntimeException('Registre déjà validé : '.$reg->code_registre);
+                }
+                if ($auth = $this->ensureParapherAuthorizedForRegistre($reg)) {
+                    DB::rollBack();
+
+                    return $auth;
+                }
+                $reg->loadMissing('institutionUser.institution.institutionParent');
+                $reg->sceau = $reg->institutionUser->institution->institutionParent->sceau;
+                $reg->otp_paraphage = $otpSaisi;
+                $reg->otp_expire_at = null;
+                $reg->otp_paraphage_attempts = 0;
+                $reg->otp_locked_until = null;
+                $reg->signature_tribunal = Auth::user()->personne->signature;
+                $reg->approbation_tribunal = Auth::user()->affectationActive()->cui;
+                $reg->statut = 1;
+                $reg->save();
+            }
+            Cache::forget($cacheKey);
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::channel('sifec')->error('validateOtpBulk registre: '.$e->getMessage(), [
+                'codes' => $cached['codes'] ?? [],
+            ]);
+
+            return response()->json([
+                'code' => '183',
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        foreach ($regs as $reg) {
+            $this->notifyCecApresValidationTribunal(Registre::query()->find($reg->code_registre));
+        }
+
+        Log::channel('sifec')->info('Registres paraphe validés (bulk)', [
+            'codes' => $cached['codes'],
+            'count' => count($cached['codes']),
+            'cui' => Auth::user()->affectationActive()->cui,
+        ]);
+
+        $n = count($cached['codes']);
+
+        return response()->json([
+            'code' => '200',
+            'message' => $n > 1
+                ? $n.' registres validés (paraphe) avec succès.'
+                : 'Registre validé (paraphe) avec succès.',
+        ]);
+    }
+
+    private function registreParapheBulkCacheKey(): string
+    {
+        return 'registre_paraphe_bulk:'.Auth::id();
+    }
+
+    private function applyBulkParapheLockoutCache(array $codes): JsonResponse
+    {
+        $cacheKey = $this->registreParapheBulkCacheKey();
+        Cache::put($cacheKey, [
+            'otp' => null,
+            'codes' => $codes,
+            'otp_expires_at' => null,
+            'strikes' => self::OTP_MAX_ATTEMPTS,
+            'locked_until' => now()->addMinutes(self::OTP_LOCKOUT_MINUTES),
+        ], now()->addMinutes(15));
+
+        Log::channel('sifec')->warning('Registre paraphe bulk: verrouillage après quota OTP', [
+            'codes' => $codes,
+        ]);
+
+        return response()->json([
+            'code' => '184',
+            'message' => 'Nombre maximal de tentatives atteint. Nouveau code possible dans '.self::OTP_LOCKOUT_MINUTES.' minute(s).',
+            'retry_after_seconds' => self::OTP_LOCKOUT_MINUTES * 60,
+            'remaining_attempts' => 0,
+            'otp_max_attempts' => self::OTP_MAX_ATTEMPTS,
+            'attempts_used' => self::OTP_MAX_ATTEMPTS,
+        ]);
+    }
+
+    /**
      * Après paraphe tribunal : notification in-app + e-mails aux agents actifs du CEC (ne bloque pas la validation).
      */
     private function notifyCecApresValidationTribunal(Registre $reg): void
@@ -816,14 +1173,95 @@ class RegistreController extends Controller
         return view('referentiel::registre.feuillet_acte_deces', compact('acteReg'));
     }
 
-    public function registresTribunal()
+    public function registresTribunal(Request $request)
     {
         $inst = Auth::user()->affectationActive()->institution;
-        $registres = $inst->descendants()->map->registres()->flatten();
-        $typeRegistres = TypeRegistre::all();
-        $typeRegistres_vide = [];
+        $inst->loadMissing('typeInstitution');
 
-        return view('referentiel::registre.index', compact('registres', 'typeRegistres', 'typeRegistres_vide'));
+        $descendants = $inst->descendants();
+
+        $centresEtatCivilJuridiction = $descendants
+            ->filter(fn (Institution $d) => $d->typeInstitution?->code_type_categorie_ins === self::CODE_TYPE_CATEGORIE_INS_CEC)
+            ->unique('code_institution')
+            ->sortBy('lib_institution', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $codesRegistres = $descendants->map->registres()->flatten()->pluck('code_registre')->unique()->filter()->values();
+
+        if ($codesRegistres->isEmpty()) {
+            $registres = collect();
+        } else {
+            $query = Registre::query()
+                ->whereIn('code_registre', $codesRegistres)
+                ->with(['typeRegistre', 'institutionUser.institution']);
+
+            if ($request->filled('code_type_registre')) {
+                $query->where('code_type_registre', $request->string('code_type_registre')->toString());
+            }
+
+            if ($request->filled('code_institution')) {
+                $codeInst = $request->string('code_institution')->toString();
+                $allowed = $centresEtatCivilJuridiction->pluck('code_institution')->all();
+                if (! in_array($codeInst, $allowed, true)) {
+                    abort(403, 'Centre d’état civil hors juridiction.');
+                }
+                $query->whereHas('institutionUser', fn ($q) => $q->where('code_institution', $codeInst));
+            }
+
+            if ($request->filled('annee')) {
+                $year = (int) $request->input('annee');
+                $currentY = (int) date('Y');
+                if ($year >= 1900 && $year <= $currentY + 1) {
+                    $query->where(function ($q) use ($year) {
+                        $q->whereYear('date_ouverture', $year)
+                            ->orWhere(function ($q2) use ($year) {
+                                $q2->whereNull('date_ouverture')->whereYear('created_at', $year);
+                            });
+                    });
+                }
+            }
+
+            if ($request->filled('statut_registre')) {
+                switch ($request->input('statut_registre')) {
+                    case 'en_attente_validation':
+                        $query->where('statut', 0)->whereNull('approbation_tribunal');
+                        break;
+                    case 'actif':
+                        $query->where('statut', 1)->whereNotNull('approbation_tribunal');
+                        break;
+                    case 'cloture':
+                        $query->whereNotNull('signature_cloture_cec')->where('signature_cloture_cec', '!=', '');
+                        break;
+                }
+            }
+
+            if ($request->filled('recherche')) {
+                $term = trim($request->string('recherche')->toString());
+                if ($term !== '') {
+                    $like = '%'.addcslashes($term, '%_\\').'%';
+                    $query->where('lib_registre', 'like', $like);
+                }
+            }
+
+            $registres = $query
+                ->orderByDesc('date_ouverture')
+                ->orderBy('lib_registre')
+                ->get();
+        }
+
+        $typeRegistres = TypeRegistre::orderBy('lib_type_registre')->get();
+        $typeRegistres_vide = [];
+        $vueTribunalRegistres = true;
+        $anneesFiltre = collect(range((int) date('Y'), (int) date('Y') - 25));
+
+        return view('referentiel::registre.index', compact(
+            'registres',
+            'typeRegistres',
+            'typeRegistres_vide',
+            'centresEtatCivilJuridiction',
+            'vueTribunalRegistres',
+            'anneesFiltre'
+        ));
     }
 
     // ajout de feuilles du registre au cours de la même année

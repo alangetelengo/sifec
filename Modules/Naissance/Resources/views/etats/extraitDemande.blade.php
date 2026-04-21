@@ -59,7 +59,10 @@
         <tr>
             <td style="width:100%; text-align: center;">
                 <p><strong style="font-size: 16px;">EXTRAIT D'ACTE DE NAISSANCE</strong><br>
-                   N°: <strong style="color: red; font-size: 14px;">{{ $acte->niupp }}</strong></p>
+                   @if(filled($acte->approbation_mairie))
+                   N°: <strong style="color: red; font-size: 14px;">{{ $acte->niupp }}</strong>
+                   @endif
+                </p>
             </td>
         </tr>
     </table>
@@ -83,7 +86,12 @@
             L'officier de l'état civil
         </p>
         @if($signatureOfficier)
-            <img src='{{ public_path('app/'.$signatureOfficier) }}' style="max-height: 60px;"><br>
+            @php
+                $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($signatureOfficier);
+            @endphp
+            @if ($pdfSignature)
+            <img src="{{ $pdfSignature }}" style="max-height: 60px;"><br>
+            @endif
             <span style="color:black; font-weight:bold">{{ $nomSignataire }}</span>
         @else
             <div style="height: 60px; padding-top: 10px;">

@@ -84,6 +84,19 @@
         : '';
     $datePourCopiePdf = $acte->date_emission ?? optional($acte->declaration)->date_heure_declaration ?? now();
 
+    // Signature de délivrance (ex. demande document) — pas celle de l'acte original
+    $delivranceSignature = isset($signatureOfficier) ? $signatureOfficier : null;
+    $delivranceNomSignataire = isset($nomSignataireDelivrance) ? (string) $nomSignataireDelivrance : '';
+    if (isset($dateSignatureDelivrance) && $dateSignatureDelivrance !== null && $dateSignatureDelivrance !== '') {
+        try {
+            $delivranceDateLigne = \Illuminate\Support\Carbon::parse($dateSignatureDelivrance)->format('d/m/Y');
+        } catch (\Throwable $e) {
+            $delivranceDateLigne = (string) $dateSignatureDelivrance;
+        }
+    } else {
+        $delivranceDateLigne = utf8_encode(strftime('%d %B %Y', strtotime($datePourCopiePdf)));
+    }
+
     @endphp
     {{-- Entête identique à acte.blade.php (3 colonnes centrées ; mentions en rouge au centre ; sceau au-dessus du titre) --}}
     <table cellspacing="0" style="width: 100%; font-size: 12px;">
@@ -127,11 +140,18 @@
         <tr style="">
             <td style="width:100%; text-align: center;">
                 @if ((int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
-                    <img src="{{ public_path('app/'.$acte->sceau_tribunal) }}" alt="" width="100" height="100" style="display: block; margin: 0 auto 3mm auto;">
+                    @php
+                        $pdfSceau = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->sceau_tribunal);
+                    @endphp
+                    @if ($pdfSceau)
+                    <img src="{{ $pdfSceau }}" alt="" width="100" height="100" style="display: block; margin: 0 auto 3mm auto;">
+                    @endif
                 @endif
                 <p><strong style="font-size: 18px;">COPIE D'ACTE DE NAISSANCE</strong>
-                    {{-- <br> Acte n°:<strong>{{ $acte->numeroActe->numero_acte }}</strong> --}}
-                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong></p>
+                    @if(filled($acte->approbation_mairie))
+                    <br>N°: <strong style="color: red">{{ $acte->niupp }} R.A.N {{ optional(optional($acte->registre)->created_at)->format('Y') ?? date('Y') }}</strong>
+                    @endif
+                </p>
             </td>
             <td style="width:15%; text-align: center;">
                 {{-- <img src="{{asset('app-assets/images/img.jpg')}}" alt=""> --}}
@@ -260,10 +280,21 @@
                         {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
                     <td style="text-align: left;">
-                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{ utf8_encode(strftime('%d %B %Y', strtotime($datePourCopiePdf))) }}<br>L'officier de l'état civil</p>
-                         @if ($acte->approbation_mairie != "")
-                             <img src='{{ public_path('app/'.$acte->signature_mairie) }}'><br>
-                             <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
+                     <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{ $delivranceDateLigne }}<br>L'officier de l'état civil</p>
+                         @if ($delivranceSignature)
+                             @php
+                                 $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($delivranceSignature);
+                             @endphp
+                             @if ($pdfSignature)
+                             <img src="{{ $pdfSignature }}"><br>
+                             @endif
+                             @if ($delivranceNomSignataire !== '')
+                             <span style="color:black; font-weight:bold">{{ $delivranceNomSignataire }}</span>
+                             @endif
+                         @else
+                             <div style="height: 60px; padding-top: 10px;">
+                                 <span style="color: #999; font-style: italic;">[En attente de signature de délivrance]</span>
+                             </div>
                          @endif
                      </td>
                   </tr>

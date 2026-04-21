@@ -3,22 +3,30 @@
 namespace Modules\Referentiel\Entities;
 
 use App\Models\InstitutionUser;
-use Illuminate\Database\Eloquent\Model;
-use Modules\Naissance\Entities\ActeNaissance;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Deces\Entities\ActeDeces;
+use Modules\Naissance\Entities\ActeNaissance;
 
 class Registre extends Model
 {
     use HasFactory;
 
     protected $guarded = [];
-    protected $table = "tr_registre";
-    protected $primaryKey = "code_registre";
+
+    protected $table = 'tr_registre';
+
+    protected $primaryKey = 'code_registre';
+
     public $incrementing = false;
 
+    protected $casts = [
+        'otp_expire_at' => 'datetime',
+        'otp_locked_until' => 'datetime',
+        'otp_paraphage_attempts' => 'integer',
+    ];
 
     public function typeRegistre(): BelongsTo
     {
@@ -37,25 +45,24 @@ class Registre extends Model
 
     /**
      * Get the institutionUser that owns the Registre
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function institutionUser(): BelongsTo
     {
         return $this->belongsTo(InstitutionUser::class, 'cui', 'cui');
     }
 
-    public function getcode(){
+    public function getcode()
+    {
         $id = $this->identifiant_registre;
         $code = $this->code_registre;
-        $cr = substr($code,4);
+        $cr = substr($code, 4);
         // $s = "R.A.N_INS_000915022023203954";
 
-        $idr = substr($id,0,6).$cr;
+        $idr = substr($id, 0, 6).$cr;
+
         // $idr = substr($id,0,6).$cr;
         return $idr;
     }
-
 
     // public function feuillets(): HasMany
     // {
@@ -66,14 +73,15 @@ class Registre extends Model
     {
         $id = $this->identifiant_registre;
         $code = $this->code_registre;
-        $cr = substr($code,4);
+        $cr = substr($code, 4);
         // $s = "2023_R.A.N_";
 
-        $idr = substr($id,0,6).$cr;
+        $idr = substr($id, 0, 6).$cr;
+
         return $cr;
     }
 
-    //signature du tribunal pour parapher et coter
+    // signature du tribunal pour parapher et coter
     public function signataire(): BelongsTo
     {
         return $this->belongsTo(InstitutionUser::class, 'approbation_tribunal', 'cui');
@@ -87,21 +95,20 @@ class Registre extends Model
         return $this->belongsTo(InstitutionUser::class, 'cloture_cec', 'cui');
     }
 
-    //le numéro du registre revisé pour les sms notifications
+    // le numéro du registre revisé pour les sms notifications
 
     public function numeroOrdreRegistre()
     {
-        $code =  substr($this->identifiant_registre,0,5);
+        $code = substr($this->identifiant_registre, 0, 5);
         // $ordre = substr($this->code_registre,4,8);
-        $numero = $code.date("Y");
+        $numero = $code.date('Y');
+
         return $numero;
     }
 
-
-
     public function validateur()
     {
-        return $this->institutionUser->institution->institutionParent->institutionsUsers->flatten()->where("code_fonction","FONC_0009")->first()->user->personne;
+        return $this->institutionUser->institution->institutionParent->institutionsUsers->flatten()->where('code_fonction', 'FONC_0009')->first()->user->personne;
 
     }
 
@@ -109,7 +116,7 @@ class Registre extends Model
      * Génère le texte de paraphage du registre (intro de la page 1) selon le type de registre et l'institution.
      * Utilisable dans toutes les vues (naissance, décès, mariage).
      *
-     * @param string $contexte 'naissance' | 'deces' | 'mariage' — détermine la formulation du type de registre et "pour le compte"
+     * @param  string  $contexte  'naissance' | 'deces' | 'mariage' — détermine la formulation du type de registre et "pour le compte"
      * @return string HTML du paragraphe (à afficher avec {!! !!})
      */
     public function getTexteParapheRegistre(string $contexte = 'naissance'): string
@@ -135,14 +142,14 @@ class Registre extends Model
             $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
         } elseif ($contexte === 'deces') {
             if ($inst->typeInstitution && $inst->typeInstitution->code_type_institution === 'TPINS_0003') {
-                $pourLeCompte = 'des <strong>' . e($libInstitution) . '</strong>';
+                $pourLeCompte = 'des <strong>'.e($libInstitution).'</strong>';
             } else {
-                $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
+                $pourLeCompte = 'du '.strtolower($categorie).' de la <strong>'.e($libInstitution).'</strong>';
             }
             $dateAnnee = $registre->created_at ? date('Y', strtotime($registre->created_at)) : '';
             $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
         } else {
-            $pourLeCompte = 'du ' . strtolower($categorie) . ' de la <strong>' . e($libInstitution) . '</strong>';
+            $pourLeCompte = 'du '.strtolower($categorie).' de la <strong>'.e($libInstitution).'</strong>';
             $dateAnnee = $registre->created_at ? date('Y', strtotime($registre->created_at)) : '';
             $dateCe = $registre->updated_at ? date('d-m-Y', strtotime($registre->updated_at)) : '';
         }
@@ -158,10 +165,10 @@ class Registre extends Model
 
         if ($contexte === 'naissance') {
             // Formulation validée (ponctuation, « registre d'actes de naissance », Centre d'état civil, etc.).
-            $s = 'Le présent registre, contenant <strong>' . $n . '</strong> feuillets, devant servir de registre d\'actes de naissance pour l\'année <strong>' . $dateAnnee . '</strong>, pour le compte du Centre d\'état civil de la <strong>' . e($libInstitution) . '</strong>, a été coté et paraphé par nous, <strong>' . $pdt . '</strong>, ' . $titre . ' du <strong>' . e($parentLib) . '</strong>, ce <strong>' . $dateCe . '</strong>.<br><br>';
+            $s = 'Le présent registre, contenant <strong>'.$n.'</strong> feuillets, devant servir de registre d\'actes de naissance pour l\'année <strong>'.$dateAnnee.'</strong>, pour le compte du Centre d\'état civil de la <strong>'.e($libInstitution).'</strong>, a été coté et paraphé par nous, <strong>'.$pdt.'</strong>, '.$titre.' du <strong>'.e($parentLib).'</strong>, ce <strong>'.$dateCe.'</strong>.<br><br>';
         } else {
-            $phraseType = 'registre d\'actes de ' . mb_strtolower($libType, 'UTF-8');
-            $s = 'Le présent registre, contenant <strong>' . $n . '</strong> feuillets, devant servir de ' . $phraseType . ' pour l\'année <strong>' . $dateAnnee . '</strong>, pour le compte ' . $pourLeCompte . ', a été coté et paraphé par nous, <strong>' . $pdt . '</strong>, ' . $titre . ' du <strong>' . e($parentLib) . '</strong>, ce <strong>' . $dateCe . '</strong>.<br><br>';
+            $phraseType = 'registre d\'actes de '.mb_strtolower($libType, 'UTF-8');
+            $s = 'Le présent registre, contenant <strong>'.$n.'</strong> feuillets, devant servir de '.$phraseType.' pour l\'année <strong>'.$dateAnnee.'</strong>, pour le compte '.$pourLeCompte.', a été coté et paraphé par nous, <strong>'.$pdt.'</strong>, '.$titre.' du <strong>'.e($parentLib).'</strong>, ce <strong>'.$dateCe.'</strong>.<br><br>';
         }
 
         $s .= "Le registre sera clôturé et arrêté le 31 Décembre par l'officier de l'état-civil.";

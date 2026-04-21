@@ -27,6 +27,7 @@ Route::post('verificationActe', [DocumentEtatCivilController::class, 'verificati
 Route::post('authentification', [AuthentificationActeController::class, 'authentification']);
 
 // Demande (copies, extrait, duplicata) d'actes
+Route::post('verifierActePortail', [AuthentificationActeController::class, 'verifierActePortail'])->name('verifierActePortail');
 Route::post('demandeActe', [AuthentificationActeController::class, 'demandeActe']);
 
 Route::get('copie/actenaissance/{id}', [AuthentificationActeController::class, 'displayCopie'])->name('copieActeNaissance');
@@ -47,7 +48,14 @@ Route::get('etatactemariage/{id}', [AuthentificationActeController::class, 'disp
 // Liste des CEC (portail)
 Route::get('listeCec', [AuthentificationActeController::class, 'listeCec'])->name('listeCec');
 
-// BAN / journal : Bearer + scope mariage-ban (+ droit métier web si l’utilisateur est un User complet)
+// Historique authentifications (portail)
+Route::post('historiqueAuthentification', [AuthentificationActeController::class, 'historiqueAuthentification'])->name('historiqueAuthentification');
+Route::get('etatHistoriqueAuthentification/{code}', [AuthentificationActeController::class, 'etatHistoriqueAuthentification'])->name('etatHistoriqueAuthentification');
+
+// BAN / journal — consultation publique (publication légale), pagination + filtres + throttle
+Route::middleware('throttle:ban-mariage-public')->get('banMariagePublic', [BanController::class, 'journalMariagesSansActePublic'])->name('banMariagePublic');
+
+// BAN / journal : agents — Bearer + scope mariage-ban + can:module.acteMariage
 Route::middleware(['auth:api', 'scope:mariage-ban', 'can:module.acteMariage'])->get('banMariage', [BanController::class, 'journalMariagesSansActe'])->name('banMariage');
 
 // statut paiement MOMO

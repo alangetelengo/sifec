@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Support\SifecSidebarMenuBuilder;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -51,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layout.sidebar', function (\Illuminate\View\View $view): void {
             $view->with('sidebarMenu', app(SifecSidebarMenuBuilder::class)->tree());
+        });
+
+        RateLimiter::for('ban-mariage-public', function (Request $request) {
+            return Limit::perMinute(45)->by($request->ip());
         });
     }
 }

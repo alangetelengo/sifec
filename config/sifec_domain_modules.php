@@ -33,6 +33,7 @@ return [
 
         'acteMariage.displayEtat' => 'MOD_0004',
         'banMariage' => 'MOD_0004',
+        'banMariagePublic' => 'MOD_0004',
         'etatRecuMariage' => 'MOD_0004',
         'etatRecuMariageNA' => 'MOD_0004',
     ],

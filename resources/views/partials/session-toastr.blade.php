@@ -15,8 +15,14 @@
         if ($value instanceof \Illuminate\Contracts\Support\MessageBag) {
             $value = $value->first();
         }
+        if ($value instanceof \Stringable) {
+            $value = (string) $value;
+        }
         if (is_array($value)) {
             $value = implode(' ', array_map(static fn ($v) => is_scalar($v) ? (string) $v : '', $value));
+        }
+        if (is_scalar($value) && ! is_string($value)) {
+            $value = (string) $value;
         }
         if (is_object($value) && method_exists($value, '__toString')) {
             $value = (string) $value;
@@ -88,7 +94,10 @@
                 window.toastr.options.progressBar = true;
                 window.toastr.options.timeOut = 8000;
 
-                if (payload.query) {
+                var useQuery =
+                    payload.query &&
+                    (payload.qSuccess || payload.qNoticeText || payload.qError);
+                if (useQuery) {
                     if (payload.qSuccess) {
                         window.toastr.success(payload.qSuccess);
                     } else if (payload.qNoticeText) {

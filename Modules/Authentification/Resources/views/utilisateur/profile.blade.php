@@ -22,9 +22,20 @@
 
     .sifec-profile-page {
         background: var(--sifec-profile-surface);
-        margin: -0.5rem -0.75rem 0;
+        /* Pas de marge négative en haut : évite de recouvrir le bandeau global sous .content-body */
+        margin: 0 -0.75rem 0;
         padding: 1rem 0.75rem 2.5rem;
         min-height: calc(100vh - 120px);
+    }
+
+    /* Un seul bandeau : le profil affiche ses flashes ici ; on masque le doublon du layout */
+    body:has(.sifec-profile-page--inline-flash) .sifec-session-flash-wrap {
+        display: none !important;
+    }
+
+    .sifec-profile-inline-flash .alert {
+        border-radius: 10px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
     }
 
     /* Liens profil : toute la page est dans .sifec-profile-page ; la grille des cartes
@@ -510,10 +521,40 @@
     $initials = $p
         ? mb_strtoupper(mb_substr($p->nom, 0, 1).mb_substr($p->prenom, 0, 1))
         : mb_strtoupper(mb_substr($user->email ?? '?', 0, 2));
+    $profileHasFlash = session()->has('success') || session()->has('error') || session()->has('warning') || session()->has('info');
 @endphp
 
-<div class="sifec-profile-page">
+<div class="sifec-profile-page {{ $profileHasFlash ? 'sifec-profile-page--inline-flash' : '' }}">
     <div class="container-fluid px-2 px-lg-3" style="max-width: 1320px; margin: 0 auto;">
+
+        @if ($profileHasFlash)
+            <div class="sifec-profile-inline-flash mb-3" role="region" aria-label="Messages" style="position: relative; z-index: 5;">
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show border-0" role="alert">
+                        <span class="me-2">{{ session('success') }}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show border-0" role="alert">
+                        <span class="me-2">{{ session('error') }}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    </div>
+                @endif
+                @if (session('warning'))
+                    <div class="alert alert-warning alert-dismissible fade show border-0" role="alert">
+                        <span class="me-2">{{ session('warning') }}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    </div>
+                @endif
+                @if (session('info'))
+                    <div class="alert alert-info alert-dismissible fade show border-0" role="alert">
+                        <span class="me-2">{{ session('info') }}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <nav class="sifec-profile-breadcrumb" aria-label="Fil d'Ariane">
             <ol class="breadcrumb mb-0">
@@ -738,7 +779,8 @@
                             @endif
                         </div>
 
-                        <form action="{{ route('utilisateur.signature', $user->code_user) }}"
+                        <form id="form-signature-agent"
+                              action="{{ route('utilisateur.signature', $user->code_user) }}"
                               method="POST"
                               enctype="multipart/form-data">
                             @csrf
@@ -755,7 +797,7 @@
                             @error('signature')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
-                            <button type="submit" class="btn btn-sm w-100 text-white mt-2 fw-semibold" style="background: linear-gradient(135deg, #006B31, #009E49); border: none;">
+                            <button type="submit" id="btn-signature-submit" class="btn btn-sm w-100 text-white mt-2 fw-semibold" style="background: linear-gradient(135deg, #006B31, #009E49); border: none;">
                                 <i class="fas fa-save me-1"></i>Enregistrer
                             </button>
                         </form>
@@ -939,20 +981,36 @@
 <script>
 (function () {
     var input = document.getElementById('sig-input');
-    if (!input) return;
-    input.addEventListener('change', function () {
-        var file = this.files[0];
-        if (!file) return;
-        var preview = document.getElementById('sig-preview');
-        var placeholder = document.getElementById('sig-placeholder');
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            preview.src = e.target.result;
-            preview.classList.remove('d-none');
-            if (placeholder) placeholder.classList.add('d-none');
-        };
-        reader.readAsDataURL(file);
-    });
+    var form = document.getElementById('form-signature-agent');
+    var btn = document.getElementById('btn-signature-submit');
+
+    if (input) {
+        input.addEventListener('change', function () {
+            var file = this.files[0];
+            if (!file) return;
+            var preview = document.getElementById('sig-preview');
+            var placeholder = document.getElementById('sig-placeholder');
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (form && btn) {
+        form.addEventListener('submit', function () {
+            if (btn.getAttribute('data-loading') === '1') {
+                return;
+            }
+            btn.setAttribute('data-loading', '1');
+            btn.disabled = true;
+            btn.innerHTML =
+                '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enregistrement…';
+        });
+    }
 })();
 </script>
 @endsection

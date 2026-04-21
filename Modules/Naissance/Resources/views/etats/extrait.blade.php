@@ -26,6 +26,9 @@
 
    $prenomEnfantExtrait = \App\Sifec\Sifec::formatPrenomPourActe($acte->declaration->enfant->prenom ?? '');
 
+   $delivranceSignature = isset($signatureOfficier) ? $signatureOfficier : null;
+   $delivranceNomSignataire = isset($nomSignataireDelivrance) ? (string) $nomSignataireDelivrance : '';
+
    @endphp
 
 <table cellspacing="0" style="width: 100%; font-size: 12px;">
@@ -67,7 +70,9 @@
        <tr style="">
            <td style="width:100%; text-align: center;">
                <p><strong>EXTRAIT D’ACTE DE NAISSANCE</strong><br>
+                    @if(filled($acte->approbation_mairie))
                     N°:<strong>{{ $acte->niupp }}</strong> du <strong>{{date("d-m-Y", strtotime($acte->declaration->date_heure_declaration))}}</strong> <br><br>
+                    @endif
                     CENTRE D’ETAT CIVIL : <strong>{{ $acte->institutionUser->institution->lib_institution }}</strong>
                 </p>
            </td>
@@ -109,7 +114,7 @@
 
            </table>
 
-                @if ($acte->approbation_mairie != "" && ! empty($qrCode ?? null))
+                @if (! empty($qrCode ?? null))
                 <div style="position:absolute; left: 12px; top: 228px; width: 32mm;">
                     <div style="width: 30mm;">
                         <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
@@ -121,10 +126,18 @@
                     <p style="margin-right:150px;margin-top:70px">L’officier de l’état civil</p><br>
                 </div>
                 <div style="position:absolute; right:60px; top:250px">
-                            @if ($acte->approbation_mairie != "")
-
-                               <img src='{{ public_path('app/'.$acte->signature_mairie)}}' style="">
-                                <p style="font-weight:bold;"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</p>
+                            @if ($delivranceSignature)
+                               @php
+                                   $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($delivranceSignature);
+                               @endphp
+                               @if ($pdfSignature)
+                               <img src="{{ $pdfSignature }}" style="">
+                               @endif
+                               @if ($delivranceNomSignataire !== '')
+                                <p style="font-weight:bold;">{{ $delivranceNomSignataire }}</p>
+                               @endif
+                            @else
+                                <p style="color: #999; font-style: italic;">[En attente de signature de délivrance]</p>
                             @endif
 
                 </div>

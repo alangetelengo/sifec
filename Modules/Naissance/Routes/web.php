@@ -33,6 +33,7 @@ Route::middleware('auth')->prefix('declarationNaissance')->group(function() {
     Route::put('{id}/update', [NaissanceController::class,'update'])->name("declarationNaissance.update");
     Route::delete('{id}/destroy', [NaissanceController::class,'destroy'])->name("declarationNaissance.destroy");
     Route::get('{id}/etat', [NaissanceController::class,'etat'])->name("declarationNaissance.etat");
+    Route::get('{id}/voir-etat', [NaissanceController::class,'voirEtat'])->name("declarationNaissance.voir.etat");
     Route::get('searcharrcomurb', [NaissanceController::class,'searchArrondissement'])->name('declarationNaissance.search.arrond');
     Route::get('searchquartier', [NaissanceController::class,'searchQuartier'])->name('declarationNaissance.search.quartier');
     Route::get('searchquartiervillage/{id}', [NaissanceController::class,'searchLocalite'])->name('declarationNaissance.search.quartier.village');

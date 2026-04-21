@@ -2,9 +2,9 @@
 
 namespace Modules\Mobile\Entities;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Referentiel\Entities\Institution;
 
 class Tarificatrion extends Model
@@ -12,10 +12,19 @@ class Tarificatrion extends Model
     use HasFactory;
 
     protected $guarded = [];
-    protected $table = "t_tarification";
-    protected $primaryKey = "code_tarification";
+
+    protected $table = 't_tarification';
+
+    protected $primaryKey = 'code_tarification';
+
     public $incrementing = false;
 
+    protected $casts = [
+        'date_debut_validite' => 'date',
+        'date_fin_validite' => 'date',
+        'actif' => 'boolean',
+        'prix' => 'float',
+    ];
 
     public function typeActe(): BelongsTo
     {
