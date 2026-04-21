@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Modules\Mobile\Entities\DemandeDocument;
 
@@ -18,39 +17,13 @@ class NouvelleDemandeCentre extends Notification
         $this->demande = $demande;
     }
 
+    /**
+     * Base de données uniquement : l’e-mail est envoyé via {@see \App\Mail\NouvelleDemandeCentreMail}
+     * et {@see \Illuminate\Support\Facades\Mail} (même schéma que l’OTP signature demande document).
+     */
     public function via($notifiable): array
     {
-        $channels = ['database'];
-        $email = trim((string) ($notifiable->email ?? ''));
-        if ($email !== '') {
-            $channels[] = 'mail';
-        }
-
-        return $channels;
-    }
-
-    public function toMail($notifiable): MailMessage
-    {
-        $this->demande->loadMissing('institution');
-        $centre = $this->demande->institution?->lib_institution ?? "Centre d'état civil";
-        $origine = $this->demande->estPortail() ? 'Portail public' : 'Guichet (sur site)';
-
-        $salut = trim((string) optional($notifiable->personne)->nomcomplet());
-        $greeting = $salut !== '' ? 'Bonjour '.$salut : 'Bonjour,';
-
-        return (new MailMessage)
-            ->subject('Nouvelle demande de document — SIFEC')
-            ->greeting($greeting)
-            ->line('Une nouvelle demande de document a été enregistrée pour votre centre.')
-            ->line('**Centre :** '.$centre)
-            ->line('**Origine :** '.$origine)
-            ->line('**Type de document :** '.$this->demande->getLibelleTypeDocument())
-            ->line('**Type d\'acte :** '.$this->demande->getLibelleTypeActe())
-            ->line('**Numéro d\'acte :** '.$this->demande->numero_acte)
-            ->line('**Demandeur :** '.$this->demande->getNomCompletDemandeur())
-            ->action('Ouvrir la demande', route('demandeDocument.show', $this->demande->code_demande_document))
-            ->line('Merci de traiter cette demande dans les délais prévus.')
-            ->salutation('L\'équipe SIFEC');
+        return ['database'];
     }
 
     public function toArray($notifiable): array

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Mail\DocumentPretPourSignatureMail;
+use App\Mail\NouvelleDemandeCentreMail;
 use App\Models\User;
 use App\Notifications\DocumentPretPourSignature;
 use App\Notifications\NouvelleDemandeCentre;
@@ -9,6 +11,7 @@ use App\Sifec\Sifec;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Modules\Mobile\Entities\DemandeDocument;
 use Modules\Mobile\Entities\Tarificatrion;
 
@@ -517,6 +520,30 @@ class DemandeDocumentService
             foreach ($recipients as $user) {
                 $user->notify(new NouvelleDemandeCentre($demande));
 
+                $to = trim((string) ($user->email ?? ''));
+                if ($to !== '' && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                    Log::channel('sifec')->info('Envoi e-mail nouvelle demande document (centre / officier)', [
+                        'code_demande' => $demande->code_demande_document,
+                        'code_user' => $user->code_user,
+                        'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                    ]);
+                    try {
+                        Mail::to($to)->send(new NouvelleDemandeCentreMail($demande, $user));
+                        Log::channel('sifec')->info('E-mail nouvelle demande document : envoi SMTP terminé sans exception.', [
+                            'code_demande' => $demande->code_demande_document,
+                            'code_user' => $user->code_user,
+                            'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::channel('sifec')->error('Échec envoi e-mail nouvelle demande document', [
+                            'code_demande' => $demande->code_demande_document,
+                            'code_user' => $user->code_user,
+                            'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                            'exception' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
                 $tel = trim((string) (optional($user->personne)->telephone ?? ''));
                 if ($tel !== '') {
                     $sms = 'SIFEC: Nouvelle demande '.$demande->getLibelleTypeDocument().
@@ -586,8 +613,31 @@ class DemandeDocumentService
             $sifec = app(Sifec::class);
 
             foreach ($signataires as $signataire) {
-                // Notification système et email
                 $signataire->notify(new DocumentPretPourSignature($demande));
+
+                $to = trim((string) ($signataire->email ?? ''));
+                if ($to !== '' && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                    Log::channel('sifec')->info('Envoi e-mail document prêt pour signature (signataire)', [
+                        'code_demande' => $demande->code_demande_document,
+                        'code_user' => $signataire->code_user,
+                        'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                    ]);
+                    try {
+                        Mail::to($to)->send(new DocumentPretPourSignatureMail($demande, $signataire));
+                        Log::channel('sifec')->info('E-mail document prêt pour signature : envoi SMTP terminé sans exception.', [
+                            'code_demande' => $demande->code_demande_document,
+                            'code_user' => $signataire->code_user,
+                            'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::channel('sifec')->error('Échec envoi e-mail document prêt pour signature', [
+                            'code_demande' => $demande->code_demande_document,
+                            'code_user' => $signataire->code_user,
+                            'to_masque' => preg_replace('/(^.).*(@.*$)/', '$1…$2', $to),
+                            'exception' => $e->getMessage(),
+                        ]);
+                    }
+                }
 
                 // Notification SMS
                 if ($signataire->personne && $signataire->personne->telephone) {

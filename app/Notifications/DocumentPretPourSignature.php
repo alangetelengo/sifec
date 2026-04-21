@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Modules\Mobile\Entities\DemandeDocument;
 
@@ -18,9 +17,13 @@ class DocumentPretPourSignature extends Notification
         $this->demande = $demande;
     }
 
+    /**
+     * Base de données uniquement : l’e-mail est envoyé via {@see \App\Mail\DocumentPretPourSignatureMail}
+     * et {@see \Illuminate\Support\Facades\Mail} (même schéma que l’OTP signature demande document).
+     */
     public function via($notifiable): array
     {
-        return ['database', 'mail'];
+        return ['database'];
     }
 
     public function toArray($notifiable): array
@@ -36,20 +39,5 @@ class DocumentPretPourSignature extends Notification
             'demandeur' => $this->demande->getNomCompletDemandeur(),
             'url' => route('demandeDocument.show', $this->demande->code_demande_document),
         ];
-    }
-
-    public function toMail($notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('Document en attente de signature - SIFEC')
-            ->greeting('Bonjour '.optional($notifiable->personne)->nomcomplet())
-            ->line('Un document a été généré et nécessite votre signature électronique.')
-            ->line('**Type de document :** '.$this->demande->getLibelleTypeDocument())
-            ->line('**Type d\'acte :** '.$this->demande->getLibelleTypeActe())
-            ->line('**Numéro d\'acte :** '.$this->demande->numero_acte)
-            ->line('**Demandeur :** '.$this->demande->getNomCompletDemandeur())
-            ->action('Signer le document', route('demandeDocument.show', $this->demande->code_demande_document))
-            ->line('Merci de procéder à la signature dès que possible.')
-            ->salutation('L\'équipe SIFEC');
     }
 }
