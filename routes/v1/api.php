@@ -1,91 +1,85 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\PayementController;
-use App\Http\Controllers\Api\SignatureController;
-use App\Http\Controllers\Api\DocumentEtatCivilController;
+/**
+ * API versionnée : préfixe /api/v1 (bootstrap/app.php).
+ *
+ * Classification, risques et alignement can:/portail : docs/api-v1-routes-et-autorisations.md
+ */
+
 use App\Http\Controllers\Api\AuthentificationActeController;
 use App\Http\Controllers\Api\BanController;
+use App\Http\Controllers\Api\DemandeDocumentApiController;
+use App\Http\Controllers\Api\DocumentEtatCivilController;
+use App\Http\Controllers\Api\PayementController;
+use App\Http\Controllers\Api\SignatureController;
+use App\Http\Controllers\Api\UserController;
+use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+// --- Technique : authentification API (Passport) ---
+Route::post('login', [UserController::class, 'login']);
 
-Route::post("login",[UserController::class,"login"]);
-Route::post("upload-signatures",[SignatureController::class,"upload"]);
+// Signatures acte mariage : Bearer + scope signatures-mariage (tablettes : login API puis envoi du token)
+Route::middleware(['auth:api', 'scope:signatures-mariage'])->post('upload-signatures', [SignatureController::class, 'upload']);
 
-Route::post('verificationActe', [DocumentEtatCivilController::class,'verificationActe']);
+// --- Public portail ---
+Route::post('verificationActe', [DocumentEtatCivilController::class, 'verificationActe']);
 
-Route::post("authentification", [AuthentificationActeController::class, "authentification"]);
+Route::post('authentification', [AuthentificationActeController::class, 'authentification']);
 
-//route API demande des (copies extrait et duplicata) d'actes
-Route::post("demandeActe", [AuthentificationActeController::class, "demandeActe"]);
+// Demande (copies, extrait, duplicata) d'actes
+Route::post('demandeActe', [AuthentificationActeController::class, 'demandeActe']);
 
-Route::get('copie/actenaissance/{id}',[AuthentificationActeController::class,"displayCopie"])->name('copieActeNaissance');
-Route::get('extrait/actenaissance/{id}',[AuthentificationActeController::class,"displayExtraitActe"])->name('acteNaissance.displayExtraitActe');
-Route::get("duplicata/actenaissance/{id}", [AuthentificationActeController::class,'displayDuplicata'])->name('duplicataActeNaissance');
+Route::get('copie/actenaissance/{id}', [AuthentificationActeController::class, 'displayCopie'])->name('copieActeNaissance');
+Route::get('extrait/actenaissance/{id}', [AuthentificationActeController::class, 'displayExtraitActe'])->name('acteNaissance.displayExtraitActe');
+Route::get('duplicata/actenaissance/{id}', [AuthentificationActeController::class, 'displayDuplicata'])->name('duplicataActeNaissance');
 
-Route::get('copie/actenaissance/portail/{id}',[AuthentificationActeController::class,"displayCopiePortail"])->name('copieActeNaissancePortail');
-Route::get('extrait/actenaissance/portail/{id}',[AuthentificationActeController::class,"displayExtraitActePortail"])->name('acteNaissance.displayExtraitActePortail');
+Route::get('copie/actenaissance/portail/{id}', [AuthentificationActeController::class, 'displayCopiePortail'])->name('copieActeNaissancePortail');
+Route::get('extrait/actenaissance/portail/{id}', [AuthentificationActeController::class, 'displayExtraitActePortail'])->name('acteNaissance.displayExtraitActePortail');
 
+Route::get('copie/actedeces/{id}', [AuthentificationActeController::class, 'displayCopieDeces'])->name('copieActeDeces');
+Route::get('extrait/actedeces/{id}', [AuthentificationActeController::class, 'displayExtraitActeDeces'])->name('acteDeces.displayExtrait');
+Route::get('duplicata/actedeces/{id}', [AuthentificationActeController::class, 'displayDuplicataDeces'])->name('duplicataActeDeces');
 
-Route::get('copie/actedeces/{id}',[AuthentificationActeController::class,"displayCopieDeces"])->name('copieActeDeces');
-Route::get('extrait/actedeces/{id}',[AuthentificationActeController::class,"displayExtraitActeDeces"])->name('acteDeces.displayExtrait');
-Route::get("duplicata/actedeces/{id}", [AuthentificationActeController::class,'displayDuplicataDeces'])->name('duplicataActeDeces');
+Route::get('etatactenaissance/{id}', [AuthentificationActeController::class, 'displayActe'])->name('acteNaissance.displayEtat');
+Route::get('etatactedeces/{id}', [AuthentificationActeController::class, 'displayActeDeces'])->name('acteDeces.displayEtat');
+Route::get('etatactemariage/{id}', [AuthentificationActeController::class, 'displayActeMariage'])->name('acteMariage.displayEtat');
 
-Route::get('etatactenaissance/{id}',[AuthentificationActeController::class,"displayActe"])->name('acteNaissance.displayEtat');
-Route::get('etatactedeces/{id}',[AuthentificationActeController::class,"displayActeDeces"])->name('acteDeces.displayEtat');
-Route::get('etatactemariage/{id}',[AuthentificationActeController::class,"displayActeMariage"])->name('acteMariage.displayEtat');
+// Liste des CEC (portail)
+Route::get('listeCec', [AuthentificationActeController::class, 'listeCec'])->name('listeCec');
 
-//route d'accès à la liste des centre d'état civil depuis le portail
-Route::get('listeCec',[AuthentificationActeController::class,"listeCec"])->name('listeCec');
+// BAN / journal : Bearer + scope mariage-ban (+ droit métier web si l’utilisateur est un User complet)
+Route::middleware(['auth:api', 'scope:mariage-ban', 'can:module.acteMariage'])->get('banMariage', [BanController::class, 'journalMariagesSansActe'])->name('banMariage');
 
-//route affichage bon de mariage
-Route::get('banMariage', [BanController::class, 'journalMariagesSansActe'])
-        ->name('banMariage');
+// statut paiement MOMO
+Route::post('statutPaiementMomo', [PayementController::class, 'statutPaiementMomo'])->name('statutPaiementMomo');
 
-//statut paiement MOMO
-Route::post('statutPaiementMomo',[PayementController::class,"statutPaiementMomo"])->name('statutPaiementMomo');
+// Retirées : méthodes inexistantes sur AuthentificationActeController (erreur 500).
+// Réimplémenter ou exposer via contrôleur web authentifié (ex. PaiementDocumentController@etatRecouvrement).
+// Route::get('etatRecouvrement', ...);
+// Route::post('historiqueAuthentification', ...);
+// Route::get('etatHistorique/{id}', ...);
+// Route::get('etatRecetteDemandeEnLigne', ...);
 
+// statut paiement rdc
+Route::post('rdcPaiement', [PayementController::class, 'rdcpaiement'])->name('rdcpaiement');
 
-//route affichage de l'état de recocuvrement des Recettes relatives aux authentifications des actes par les administrations
-Route::get('etatRecouvrement',[AuthentificationActeController::class,"etatRecouvrement"])->name('etatRecouvement');
+// Consultation statut demande
+Route::get('demande/{code}/statut', [DemandeDocumentApiController::class, 'consulterStatut'])->name('demande.statut');
 
-//route affichage de l'état historique des authentifications par administration
-Route::post('historiqueAuthentification',[AuthentificationActeController::class,"historiqueAuthentification"])->name('historiqueAuthentification');
-Route::get('etatHistorique/{id}',[AuthentificationActeController::class,"etatHistorique"])->name('etatHistorique');
+// route d'accès au controlleur du paiement
+Route::get('paiement', [PayementController::class, 'paiement'])->name('paiement');
 
-//route affichage de l'état des recettes relatives aux demandes d'acte d'acte en ligne
-Route::get('etatRecetteDemandeEnLigne',[AuthentificationActeController::class,"etatRecetteDemandeEnLigne"])->name('etatRecetteDemandeEnLigne');
+// route de redirection en cas de confirmation de paiement paypal
+Route::get('successPaypal', [PayementController::class, 'successPaypal'])->name('successPaypal');
 
+// route de redirection en cas d'annulation de paiement paypal
+Route::get('cancelPaypal', [PayementController::class, 'cancelPaypal'])->name('cancelPaypal');
+// tst
 
-//statut paiement rdc
-Route::post('rdcPaiement',[PayementController::class,"rdcpaiement"])->name('rdcpaiement');
-
-//route d'accès au controlleur du paiement
-Route::get('paiement',[PayementController::class,"paiement"])->name('paiement');
-
-//route de redirection en cas de confirmation de paiement paypal
-Route::get('successPaypal',[PayementController::class,"successPaypal"])->name('successPaypal');
-
-//route de redirection en cas d'annulation de paiement paypal
-Route::get('cancelPaypal',[PayementController::class,"cancelPaypal"])->name('cancelPaypal');
-//tst
-
-//route d'impression du reçu de paiement de l'authentification des actes
-Route::get('etatRecuNaissance/{id}',[AuthentificationActeController::class,"etatRecuNaissance"])->name('etatRecuNaissance');
-Route::get('etatRecuMariage/{id}',[AuthentificationActeController::class,"etatRecuMariage"])->name('etatRecuMariage');
-Route::get('etatRecuDeces/{id}',[AuthentificationActeController::class,"etatRecuDeces"])->name('etatRecuDeces');
-Route::get('etatRecuDecesNA/{id}',[AuthentificationActeController::class,"etatRecuDecesNA"])->name('etatRecuDecesNA');
-Route::get('etatRecuNaissanceNA/{id}',[AuthentificationActeController::class,"etatRecuNaissanceNA"])->name('etatRecuNaissanceNA');
-Route::get('etatRecuMariageNA/{id}',[AuthentificationActeController::class,"etatRecuMariageNA"])->name('etatRecuMariageNA');
-
+// route d'impression du reçu de paiement de l'authentification des actes
+Route::get('etatRecuNaissance/{id}', [AuthentificationActeController::class, 'etatRecuNaissance'])->name('etatRecuNaissance');
+Route::get('etatRecuMariage/{id}', [AuthentificationActeController::class, 'etatRecuMariage'])->name('etatRecuMariage');
+Route::get('etatRecuDeces/{id}', [AuthentificationActeController::class, 'etatRecuDeces'])->name('etatRecuDeces');
+Route::get('etatRecuDecesNA/{id}', [AuthentificationActeController::class, 'etatRecuDecesNA'])->name('etatRecuDecesNA');
+Route::get('etatRecuNaissanceNA/{id}', [AuthentificationActeController::class, 'etatRecuNaissanceNA'])->name('etatRecuNaissanceNA');
+Route::get('etatRecuMariageNA/{id}', [AuthentificationActeController::class, 'etatRecuMariageNA'])->name('etatRecuMariageNA');

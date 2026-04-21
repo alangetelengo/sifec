@@ -744,6 +744,18 @@
             var html = $btn.data('sifec-original-html');
             $btn.html(typeof html !== 'undefined' ? html : (text || 'Enregistrer'));
         }
+        /** Libellé depuis data-libelle (Blade e()) : décoder les entités puis échapper pour Swal html / <strong> */
+        function sifecHtmlForSwalStrong(text) {
+            if (text == null || text === '') return '';
+            var t = document.createElement('textarea');
+            t.innerHTML = String(text);
+            var decoded = t.value;
+            return decoded
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
         /** SweetAlert en mode loading (pour formulaires AJAX) */
         function sifecSwalLoading(title) {
             return Swal.fire({

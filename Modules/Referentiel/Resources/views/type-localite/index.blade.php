@@ -319,9 +319,10 @@
             Swal.fire({ title: 'Erreur', text: 'Formulaire introuvable.', icon: 'error', confirmButtonText: 'OK' });
             return;
         }
+        var libHtml = (typeof sifecHtmlForSwalStrong === 'function') ? sifecHtmlForSwalStrong(libelle) : String(libelle);
         Swal.fire({
             title: 'Confirmer la suppression ?',
-            html: 'Le type <strong>' + libelle + '</strong> ne peut être supprimé que s’il n’est utilisé par aucune localité.',
+            html: 'Le type <strong>' + libHtml + '</strong> ne peut être supprimé que s’il n’est utilisé par aucune localité.',
             type: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#CE1126',
@@ -366,7 +367,7 @@
             e.preventDefault();
             e.stopPropagation();
             var code = $(this).data('code');
-            var libelle = $(this).data('libelle');
+            var libelle = this.getAttribute('data-libelle');
             if (code && libelle) {
                 confirmDelete(code, libelle);
             }

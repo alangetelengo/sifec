@@ -1,422 +1,349 @@
 @extends('layout.app')
 @section('titre')
-   Gestion des Types d'Institution
+    Référentiel — Types d’institution
 @endsection
 @section('styles')
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
+@include('referentiel::partials.sifec-ref-crud-styles')
 @endsection
 @section('corps')
-<div class="page-sifec-index">
-<div class="an-shell">
-<div class="an-body">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0"><i class="fas fa-building me-2"></i>Gestion des Types d'Institution</h4>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTypeInstitutionModal">
-                    <i class="fas fa-plus-circle me-2"></i>Ajouter un type d'institution
+@php
+    $typeInstitutionsCount = $typeInstitutions ? $typeInstitutions->count() : 0;
+@endphp
+<div class="sifec-ref-crud-page container-fluid px-0">
+    <div class="sl-hero mb-4">
+        <div class="row align-items-center g-3 position-relative" style="z-index:1">
+            <div class="col-lg">
+                <h1><i class="fas fa-building me-2 opacity-90"></i>Types d’institution</h1>
+                <p>Libellés rattachés à une catégorie. Recherche et filtre ci-dessous (aperçu : 20 derniers enregistrés).</p>
+            </div>
+            <div class="col-lg-auto">
+                <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addTypeInstitutionModal">
+                    <i class="fas fa-plus-circle me-1"></i> Nouveau type
                 </button>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des types d'institution</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Formulaire de filtre -->
-                    <form id="form-search-type-institutions">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Type d'institution</label>
-                                <input type="text" class="form-control" name="lib_type_institution" id="filter-lib-type-institution" placeholder="Rechercher...">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Catégorie</label>
-                                <select name="code_type_categorie_ins" id="filter-code-type-categorie-ins" class="form-control">
-                                    <option value="">Toutes les catégories</option>
-                                    @foreach ($typeCategorieInstitutions as $categorie)
-                                        <option value="{{ $categorie->code_type_categorie_ins }}">{{ $categorie->lib_type_categorie_institution }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i> Rechercher
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-type-institutions">
-                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                </button>
-                                <span id="count-results" class="ms-3 text-muted"></span>
-                            </div>
-                        </div>
-                    </form>
+        </div>
+    </div>
 
-                    <!-- Tableau des types d'institution -->
-                    <div class="table-responsive mt-4">
-                        <table id="table-type-institutions" class="display table table-hover" style="min-width: 845px">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Type d'institution</th>
-                                    <th>Catégorie</th>
-                                    <th>Type de CEC</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-type-institutions">
-                                @php
-                                    $typeInstitutionsCount = $typeInstitutions ? $typeInstitutions->count() : 0;
-                                @endphp
-                                @if($typeInstitutionsCount > 0)
-                                    @foreach ($typeInstitutions as $item)
-                                    <tr>
-                                        <td><span class="badge badge-primary">{{ $loop->iteration }}</span></td>
-                                        <td><strong>{{ $item->lib_type_institution }}</strong></td>
-                                        <td>{{ $item->typeCategorieInstitution ? $item->typeCategorieInstitution->lib_type_categorie_institution : 'N/A' }}</td>
-                                        <td>
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editTypeInstitutionModal{{ $item->code_type_institution }}" title="Modifier">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </button>
-                                                <form action="{{ route('typeInstitution.destroy', $item->code_type_institution) }}" method="post" class="d-inline" id="deleteForm{{ $item->code_type_institution }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-danger shadow btn-xs sharp btn-delete" type="button" data-code="{{ $item->code_type_institution }}" data-libelle="{{ $item->lib_type_institution }}" title="Supprimer">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                @else
-                                    <tr>
-                                        <td colspan="4" class="text-center">
-                                            <div class="py-4">
-                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                                <p class="text-muted">Aucun type d'institution trouvé (Total: {{ $typeInstitutionsCount }})</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Type d'institution</th>
-                                    <th>Catégorie</th>
-                                    <th>Type de CEC</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </tfoot>
-                        </table>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#006B31,#009E49);">
+                        <i class="fas fa-list-ol"></i>
+                    </div>
+                    <div>
+                        <div class="sl-stat-lbl">Aperçu liste</div>
+                        <div class="sl-stat-val">{{ $typeInstitutionsCount }}</div>
+                        <div class="small text-muted">Dernières entrées</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#2781d5,#5a9fd4);">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <div>
+                        <div class="sl-stat-lbl">Recherche</div>
+                        <div class="sl-stat-val small fw-normal text-dark pt-1">Filtre serveur</div>
+                        <div class="small text-muted">Libellé et catégorie</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Ajout -->
-    <div class="modal fade" id="addTypeInstitutionModal" tabindex="-1" aria-labelledby="addTypeInstitutionModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addTypeInstitutionModalLabel">
-                        <i class="fas fa-plus-circle me-2"></i>Ajouter un type d'institution
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="card sl-card">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Résultats</h5>
+            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addTypeInstitutionModal" style="border-radius:10px;">
+                <i class="fas fa-plus me-1"></i> Ajouter
+            </button>
+        </div>
+        <div class="card-body p-0 p-md-3">
+            <form id="form-search-type-institutions" class="row g-3 align-items-end px-3 px-md-0 pt-3 pt-md-0">
+                <div class="col-md-5 col-lg-4">
+                    <label class="sl-filter-label d-block" for="filter-lib-type-institution">Type d’institution</label>
+                    <div class="input-group border rounded-3 overflow-hidden bg-white shadow-sm">
+                        <span class="input-group-text bg-white border-0 text-muted"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-0 ps-0" name="lib_type_institution" id="filter-lib-type-institution" placeholder="Rechercher…" autocomplete="off">
+                    </div>
                 </div>
-                <form method="POST" action="{{ route('typeInstitution.store') }}" id="addTypeInstitutionForm">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Type d'institution <span class="text-danger">*</span></label>
-                                <input type="text" name="lib_type_institution" class="form-control form-control-lg @error('lib_type_institution') is-invalid @enderror"
-                                       value="{{ old("lib_type_institution") }}" placeholder="Ex: CEC Principal, Tribunal..." required>
-                                @error("lib_type_institution")
-                                <div class="invalid-feedback">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                </div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Saisissez le nom du type d'institution
-                                </small>
-                            </div>
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Catégorie <span class="text-danger">*</span></label>
-                                <select name="code_type_categorie_ins" class="form-control form-control-lg @error('code_type_categorie_ins') is-invalid @enderror" required>
-                                    <option value="">-- Sélectionner une catégorie --</option>
-                                    @foreach($typeCategorieInstitutions as $categorie)
-                                        <option value="{{ $categorie->code_type_categorie_ins }}" {{ old('code_type_categorie_ins') == $categorie->code_type_categorie_ins ? 'selected' : '' }}>
-                                            {{ $categorie->lib_type_categorie_institution }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error("code_type_categorie_ins")
-                                <div class="invalid-feedback">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                </div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Sélectionnez la catégorie d'institution
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Annuler
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Enregistrer
-                        </button>
-                    </div>
-                </form>
+                <div class="col-md-5 col-lg-4">
+                    <label class="sl-filter-label d-block" for="filter-code-type-categorie-ins">Catégorie</label>
+                    <select name="code_type_categorie_ins" id="filter-code-type-categorie-ins" class="form-select border rounded-3 shadow-sm">
+                        <option value="">Toutes les catégories</option>
+                        @foreach ($typeCategorieInstitutions as $categorie)
+                            <option value="{{ $categorie->code_type_categorie_ins }}">{{ $categorie->lib_type_categorie_institution }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-success px-4" style="border-radius:10px;font-weight:600;">
+                        <i class="fas fa-search me-1"></i> Rechercher
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="btn-reset-filters-type-institutions" style="border-radius:10px;">
+                        <i class="fas fa-rotate-left me-1"></i> Réinitialiser
+                    </button>
+                    <span id="count-results" class="sl-result-pill ms-md-2 d-none d-md-inline-flex"></span>
+                </div>
+            </form>
+            <div class="mt-2 d-md-none px-3">
+                <span id="count-results-mobile" class="sl-result-pill"></span>
+            </div>
+
+            <div class="sl-table-host mx-md-0 px-3 px-md-0 pb-3 pb-md-0">
+                <div id="type-institutions-table-loading" class="sl-table-loading-overlay d-none" aria-live="polite" aria-busy="false" hidden>
+                    <span class="sifec-spinner" role="status"></span>
+                    <span>Recherche en cours…</span>
+                </div>
+                <div class="table-responsive sl-table-wrap mt-3">
+                    <table id="table-type-institutions" class="table table-hover sl-table mb-0 align-middle" style="min-width:640px">
+                        <thead>
+                            <tr>
+                                <th class="sl-row-num">#</th>
+                                <th>Type d’institution</th>
+                                <th>Catégorie</th>
+                                <th class="text-end sl-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-type-institutions">
+                            @include('referentiel::type-institution.partials.table-type-institutions', ['typeInstitutions' => $typeInstitutions])
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modals Modification -->
-    @foreach ($typeInstitutions as $item)
-    <div class="modal fade" id="editTypeInstitutionModal{{ $item->code_type_institution }}" tabindex="-1" aria-labelledby="editTypeInstitutionModalLabel{{ $item->code_type_institution }}" aria-hidden="true">
+{{-- Modal ajout --}}
+<div class="modal fade" id="addTypeInstitutionModal" tabindex="-1" aria-labelledby="addTypeInstitutionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header sl-modal-header text-white border-0 py-3">
+                <h5 class="modal-title" id="addTypeInstitutionModalLabel"><i class="fas fa-plus-circle me-2"></i>Nouveau type d’institution</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form method="POST" action="{{ route('typeInstitution.store') }}" id="addTypeInstitutionForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Libellé <span class="text-danger">*</span></label>
+                        <input type="text" name="lib_type_institution" class="form-control form-control-lg @error('lib_type_institution') is-invalid @enderror"
+                               value="{{ old('lib_type_institution') }}" placeholder="Ex. CEC principal, Tribunal…" required>
+                        @error('lib_type_institution')
+                            <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold">Catégorie <span class="text-danger">*</span></label>
+                        <select name="code_type_categorie_ins" class="form-select form-select-lg @error('code_type_categorie_ins') is-invalid @enderror" required>
+                            <option value="">— Sélectionner —</option>
+                            @foreach($typeCategorieInstitutions as $categorie)
+                                <option value="{{ $categorie->code_type_categorie_ins }}" {{ old('code_type_categorie_ins') == $categorie->code_type_categorie_ins ? 'selected' : '' }}>
+                                    {{ $categorie->lib_type_categorie_institution }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('code_type_categorie_ins')
+                            <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Annuler</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold"><i class="fas fa-check me-1"></i>Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@foreach ($typeInstitutionsForModals as $item)
+    <div class="modal fade" id="editTypeInstitutionModal{{ $item->code_type_institution }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editTypeInstitutionModalLabel{{ $item->code_type_institution }}">
-                        <i class="fas fa-edit me-2"></i>Modifier {{ $item->lib_type_institution }}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
+                <div class="modal-header sl-modal-header text-white border-0 py-3">
+                    <h5 class="modal-title"><i class="fas fa-pen-to-square me-2"></i>{{ $item->lib_type_institution }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <form action="{{ route('typeInstitution.update', $item->code_type_institution) }}" method="POST" id="editTypeInstitutionForm{{ $item->code_type_institution }}">
                     @csrf
                     @method('PUT')
                     <div class="modal-body">
-                        <div class="row">
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Type d'institution <span class="text-danger">*</span></label>
-                                <input class="form-control form-control-lg @error('lib_type_institution') is-invalid @enderror"
-                                       name="lib_type_institution" type="text" value="{{ $item->lib_type_institution }}" required>
-                                @error("lib_type_institution")
-                                <div class="invalid-feedback">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                </div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Catégorie <span class="text-danger">*</span></label>
-                                <select name="code_type_categorie_ins" class="form-control form-control-lg @error('code_type_categorie_ins') is-invalid @enderror" required>
-                                    <option value="">-- Sélectionner une catégorie --</option>
-                                    @foreach($typeCategorieInstitutions as $categorie)
-                                        <option value="{{ $categorie->code_type_categorie_ins }}" {{ $item->code_type_categorie_ins == $categorie->code_type_categorie_ins ? 'selected' : '' }}>
-                                            {{ $categorie->lib_type_categorie_institution }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error("code_type_categorie_ins")
-                                <div class="invalid-feedback">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                </div>
-                                @enderror
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Libellé <span class="text-danger">*</span></label>
+                            <input class="form-control form-control-lg @error('lib_type_institution') is-invalid @enderror" name="lib_type_institution" type="text" value="{{ $item->lib_type_institution }}" required>
+                            @error('lib_type_institution')
+                                <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label fw-bold">Catégorie <span class="text-danger">*</span></label>
+                            <select name="code_type_categorie_ins" class="form-select form-select-lg @error('code_type_categorie_ins') is-invalid @enderror" required>
+                                <option value="">— Sélectionner —</option>
+                                @foreach($typeCategorieInstitutions as $categorie)
+                                    <option value="{{ $categorie->code_type_categorie_ins }}" {{ $item->code_type_categorie_ins == $categorie->code_type_categorie_ins ? 'selected' : '' }}>
+                                        {{ $categorie->lib_type_categorie_institution }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('code_type_categorie_ins')
+                                <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Annuler
-                        </button>
-                        <button type="submit" class="btn btn-warning">
-                            <i class="fas fa-save me-1"></i>Modifier
-                        </button>
+                    <div class="modal-footer bg-light border-0">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Annuler</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold"><i class="fas fa-check me-1"></i>Mettre à jour</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    @endforeach
-</div>
-</div>
-</div>
+@endforeach
 @endsection
 @section('scripts')
-      <!-- Datatable -->
-      <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
-      <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
-      <script>
-          // Fonction de confirmation de suppression avec flashAlert (SweetAlert2)
-          function confirmDelete(code, libelle) {
-              var formId = 'deleteForm' + code;
-              var form = document.getElementById(formId);
+<script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script>
+    function confirmDeleteTypeInstitution(code, libelle) {
+        var form = document.getElementById('deleteForm' + code);
+        if (!form) {
+            Swal.fire({ title: 'Erreur', text: 'Formulaire de suppression introuvable.', icon: 'error', confirmButtonText: 'OK', customClass: { popup: 'sl-swal-referentiel' } });
+            return;
+        }
+        var libEsc = (typeof sifecHtmlForSwalStrong === 'function')
+            ? sifecHtmlForSwalStrong(libelle)
+            : String(libelle).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        Swal.fire({
+            title: 'Supprimer ce type ?',
+            html: 'Le type <strong>' + libEsc + '</strong> sera retiré s’il n’est référencé par aucune institution.',
+            icon: 'warning',
+            iconColor: '#c9a227',
+            showCancelButton: true,
+            focusCancel: true,
+            confirmButtonText: 'Oui, supprimer',
+            cancelButtonText: 'Annuler',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'sl-swal-referentiel',
+                confirmButton: 'btn btn-danger rounded-pill px-4 fw-semibold shadow-sm',
+                cancelButton: 'btn btn-outline-secondary rounded-pill px-3 fw-semibold'
+            }
+        }).then(function (result) {
+            if (result.value === true || result.isConfirmed === true) form.submit();
+        });
+    }
 
-              if (!form) {
-                  console.error('Formulaire non trouvé:', formId);
-                  Swal.fire({
-                      title: 'Erreur',
-                      text: 'Formulaire de suppression non trouvé: ' + formId,
-                      type: 'error',
-                      confirmButtonText: 'OK'
-                  });
-                  return;
-              }
+    var tableTypeInstitutions = null;
 
-              Swal.fire({
-                  title: 'Êtes-vous sûr ?',
-                  html: 'Voulez-vous vraiment supprimer le type d\'institution <strong>' + libelle + '</strong> ?',
-                  type: 'warning',
-                  showCancelButton: true,
-                  confirmButtonColor: '#CE1126',
-                  cancelButtonColor: '#009639',
-                  confirmButtonText: 'Oui, supprimer',
-                  cancelButtonText: 'Annuler',
-                  buttonsStyling: false,
-                  customClass: {
-                      confirmButton: 'btn btn-danger me-2',
-                      cancelButton: 'btn btn-success'
-                  }
-              }).then((result) => {
-                  if (result.value === true || result.isConfirmed === true) {
-                      form.submit();
-                  }
-              });
-          }
+    function setTypeInstitutionsTableLoading(show) {
+        var $el = $('#type-institutions-table-loading');
+        if (show) { $el.removeClass('d-none').removeAttr('hidden').attr('aria-busy', 'true'); }
+        else { $el.addClass('d-none').attr('aria-busy', 'false').attr('hidden', 'hidden'); }
+    }
 
-          // Variable pour stocker l'instance DataTables
-          var tableTypeInstitutions = null;
+    function searchTypeInstitutionsServer() {
+        $.ajax({
+            url: "{{ route('typeInstitution.filter') }}",
+            type: 'POST',
+            data: $('#form-search-type-institutions').serialize() + '&_token={{ csrf_token() }}',
+            dataType: 'json',
+            beforeSend: function () {
+                setTypeInstitutionsTableLoading(true);
+                $('#count-results').text('').addClass('d-none');
+                $('#count-results-mobile').text('');
+            },
+            complete: function () { setTypeInstitutionsTableLoading(false); },
+            success: function (response) {
+                if (!response || response.success !== true) {
+                    flashAlert('Erreur', 'error', (response && response.message) ? response.message : 'Erreur lors de la recherche.');
+                    return;
+                }
+                if ($.fn.DataTable.isDataTable('#table-type-institutions')) {
+                    try { tableTypeInstitutions.destroy(); } catch (e) {}
+                    tableTypeInstitutions = null;
+                }
+                var html = (response.html !== undefined && response.html !== null) ? String(response.html) : '';
+                $('#tbody-type-institutions').html(html);
 
-          // Fonction pour rechercher les types d'institution côté serveur
-          function searchTypeInstitutionsServer() {
-              var formData = $('#form-search-type-institutions').serialize();
-              formData += '&_token={{ csrf_token() }}';
+                var count = (typeof response.count === 'number') ? response.count : 0;
+                var countText = count + ' résultat(s)';
+                if (response.limite_atteinte) countText += ' — limite 500, affinez la recherche';
+                $('#count-results').text(countText).removeClass('d-none');
+                $('#count-results-mobile').text(countText);
 
-              $.ajax({
-                  url: "{{ route('typeInstitution.filter') }}",
-                  type: 'POST',
-                  data: formData,
-                  beforeSend: function() {
-                      $('#tbody-type-institutions').html('<tr><td colspan="4" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
-                      $('#count-results').text('');
-                  },
-                  success: function(response) {
-                      try {
-                          if (response.success && response.html) {
-                              // Détruire DataTables complètement avant de modifier le contenu
-                              if ($.fn.DataTable.isDataTable('#table-type-institutions')) {
-                                  try {
-                                      tableTypeInstitutions.destroy();
-                                  } catch(e) {
-                                      console.log('Erreur lors de la destruction de DataTables:', e);
-                                  }
-                                  tableTypeInstitutions = null;
-                              }
-                              // Vider complètement le tbody et le remplacer par les nouvelles données
-                              $('#tbody-type-institutions').empty().html(response.html);
+                setTimeout(function () {
+                    try {
+                        var rows = $('#tbody-type-institutions tr');
+                        var firstTd = rows.first().find('td').first();
+                        var isEmpty = rows.length === 0 || firstTd.attr('colspan') === '4';
+                        if (!isEmpty && rows.length > 0) {
+                            tableTypeInstitutions = $('#table-type-institutions').DataTable({
+                                language: { search: 'Filtrer le tableau :', lengthMenu: 'Afficher _MENU_', zeroRecords: 'Aucune ligne', emptyTable: '—', info: '', infoEmpty: '', infoFiltered: '' },
+                                paging: false, searching: true, info: false, ordering: true, destroy: true
+                            });
+                        }
+                    } catch (e) { console.error(e); }
+                }, 120);
+            },
+            error: function (xhr) {
+                var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la recherche.';
+                flashAlert('Erreur', 'error', msg);
+            }
+        });
+    }
 
-                              // Afficher le nombre de résultats
-                              var countText = response.count + ' résultat(s) trouvé(s)';
-                              if (response.limite_atteinte) {
-                                  countText += ' (limite de 500 atteinte, affinez vos critères)';
-                              }
-                              $('#count-results').text(countText);
+    $(document).ready(function () {
+        var initCountText = '{{ $typeInstitutionsCount }} ligne(s) — aperçu';
+        $('#count-results').text(initCountText).removeClass('d-none');
+        $('#count-results-mobile').text(initCountText);
 
-                              // Réinitialiser DataTables avec les nouvelles données (même si vide)
-                              setTimeout(function() {
-                                  try {
-                                      // Vérifier si la table a des données (plus d'une ligne ou pas de classe text-center)
-                                      var rows = $('#tbody-type-institutions tr');
-                                      var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+        var initRows = $('#tbody-type-institutions tr');
+        if (initRows.length && initRows.first().find('td').first().attr('colspan') !== '4') {
+            try {
+                tableTypeInstitutions = $('#table-type-institutions').DataTable({
+                    language: { search: 'Filtrer le tableau :', lengthMenu: 'Afficher _MENU_', zeroRecords: 'Aucune ligne', emptyTable: '—', info: '', infoEmpty: '', infoFiltered: '' },
+                    paging: false, searching: true, info: false, ordering: true
+                });
+            } catch (e) {}
+        }
 
-                                      if (hasData && rows.length > 0) {
-                                          tableTypeInstitutions = $('#table-type-institutions').DataTable({
-                                              "language": {
-                                                  "search": "Rechercher:",
-                                                  "lengthMenu": "Afficher _MENU_ éléments",
-                                                  "info": "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
-                                                  "infoEmpty": "Affichage de 0 à 0 sur 0 éléments",
-                                                  "infoFiltered": "(filtré sur _MAX_ éléments au total)",
-                                                  "loadingRecords": "Chargement...",
-                                                  "zeroRecords": "Aucun élément correspondant trouvé",
-                                                  "emptyTable": "Aucune donnée disponible dans le tableau",
-                                                  "paginate": {
-                                                      "first": "Premier",
-                                                      "last": "Dernier",
-                                                      "next": "Suivant",
-                                                      "previous": "Précédent"
-                                                  }
-                                              },
-                                              "paging": false,
-                                              "searching": true,
-                                              "info": false,
-                                              "ordering": true,
-                                              "destroy": true
-                                          });
-                                      } else {
-                                          // Si pas de données réelles, ne pas initialiser DataTables pour éviter les erreurs
-                                          console.log('Table vide ou message d\'information seulement, DataTables non initialisé');
-                                      }
-                                  } catch(e) {
-                                      console.error('Erreur lors de l\'initialisation de DataTables:', e);
-                                  }
-                              }, 100);
-                          } else {
-                              flashAlert("Erreur", "error", response.message || "Une erreur est survenue lors de la recherche");
-                          }
-                      } catch(e) {
-                          console.error('Erreur lors du traitement de la réponse:', e);
-                          flashAlert("Erreur", "error", "Erreur lors du traitement de la réponse");
-                      }
-                  },
-                  error: function(xhr, status, error) {
-                      console.error('Erreur AJAX:', error);
-                      var errorMessage = "Erreur lors de la recherche des types d'institution";
-                      if (xhr.responseJSON && xhr.responseJSON.message) {
-                          errorMessage = xhr.responseJSON.message;
-                      } else if (xhr.responseJSON && xhr.responseJSON.error) {
-                          errorMessage = xhr.responseJSON.error;
-                      }
-                      flashAlert("Erreur", "error", errorMessage);
-                  }
-              });
-          }
+        $('#form-search-type-institutions').on('submit', function (e) {
+            e.preventDefault();
+            searchTypeInstitutionsServer();
+        });
 
-          $(document).ready(function() {
-              // Soumission du formulaire de recherche
-              $('#form-search-type-institutions').on('submit', function(e) {
-                  e.preventDefault();
-                  searchTypeInstitutionsServer();
-              });
+        $('#btn-reset-filters-type-institutions').on('click', function () {
+            $('#form-search-type-institutions')[0].reset();
+            location.reload();
+        });
 
-              // Réinitialiser les filtres
-              $('#btn-reset-filters-type-institutions').on('click', function() {
-                  $('#form-search-type-institutions')[0].reset();
-                  location.reload();
-              });
+        $(document).on('click', '.btn-delete', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var code = $(this).data('code');
+            var libelle = this.getAttribute('data-libelle');
+            if (code && libelle) confirmDeleteTypeInstitution(code, libelle);
+        });
 
-              // Event listener pour les boutons de suppression
-              $(document).on('click', '.btn-delete', function(e) {
-                  e.preventDefault();
-                  e.stopPropagation();
+        $('#addTypeInstitutionModal').on('show.bs.modal', function () {
+            var f = document.getElementById('addTypeInstitutionForm');
+            if (f) f.reset();
+        });
+    });
 
-                  var button = $(this);
-                  var code = button.data('code');
-                  var libelle = button.data('libelle');
-
-                  if (code && libelle) {
-                      confirmDelete(code, libelle);
-                  } else {
-                      Swal.fire({
-                          title: 'Erreur',
-                          text: 'Données manquantes pour la suppression',
-                          type: 'error',
-                          confirmButtonText: 'OK'
-                      });
-                  }
-              });
-
-              // Réinitialiser le formulaire lors de l'ouverture du modal d'ajout
-              $('#addTypeInstitutionModal').on('show.bs.modal', function() {
-                  $('#addTypeInstitutionForm')[0].reset();
-              });
-          });
-      </script>
+    $('#addTypeInstitutionForm').on('submit', function () {
+        var btn = $(this).find('button[type="submit"]')[0];
+        if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
+    });
+    $(document).on('submit', 'form[id^="editTypeInstitutionForm"]', function () {
+        var btn = $(this).find('button[type="submit"]')[0];
+        if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
+    });
+</script>
 @endsection

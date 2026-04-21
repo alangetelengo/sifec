@@ -11,8 +11,7 @@
 |
 */
 
-Route::prefix('notification')->group(function() {
-    Route::get('/', 'NotificationController@index')->name('notifications.index');
-    Route::get('{id}/read', 'NotificationController@read')->name('notifications.read');
-    Route::get('mark-all-read', 'NotificationController@markAllAsRead')->name('notifications.markAllAsRead');
-});
+/*
+ * Les routes notifications (web) sont définies dans routes/web.php avec le middleware auth.
+ * Évite les doublons de noms de routes et les accès sans authentification.
+ */

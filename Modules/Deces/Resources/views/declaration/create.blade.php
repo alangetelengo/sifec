@@ -40,6 +40,7 @@
                       @else
                       <a href="{{ route('declarationDeces.index') }}" class="btn btn-warning float-end"> <i class="fa fa-list"></i> Retour à la liste</a>
                       @endif
+                      <br>
                     <form  name="contactUsForm" id="contactUsForm" class="validation-wizard wizard-circle" method="post" action="javascript:void(0)">
                         <!-- Step 1 -->
                         <h6>Défunt</h6>

@@ -495,7 +495,7 @@ Déclaration
                 e.stopPropagation();
                 var $btn = $(e.target).closest('.btn-delete');
                 var code = $btn.data('code');
-                var libelle = $btn.data('libelle');
+                var libelle = $btn[0] && $btn[0].getAttribute ? $btn[0].getAttribute('data-libelle') : $btn.data('libelle');
                 var formId = 'deleteForm' + code;
                 var form = document.getElementById(formId);
                 if (!form) {

@@ -6,6 +6,29 @@
 @section('styles')
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
 <style>
+    @include('authentification::partials.sifec-swal-delete-styles')
+
+    .swal2-popup.sifec-swal-delete.sifec-swal-mark-all-read .swal2-actions button.swal2-confirm,
+    .swal2-popup.sifec-swal-delete.sifec-swal-mark-all-read .swal2-styled.swal2-confirm {
+        background: #1b6f4a !important;
+        color: #fff !important;
+        border: 1px solid #0f5132 !important;
+        box-shadow: 0 2px 8px rgba(27, 111, 74, 0.35) !important;
+    }
+
+    .swal2-popup.sifec-swal-delete.sifec-swal-mark-all-read .swal2-actions button.swal2-confirm:hover,
+    .swal2-popup.sifec-swal-delete.sifec-swal-mark-all-read .swal2-styled.swal2-confirm:hover {
+        background: #0f5132 !important;
+        border-color: #0a3d24 !important;
+        color: #fff !important;
+    }
+
+    .swal2-popup.sifec-swal-delete.sifec-swal-mark-all-read .swal2-actions button.swal2-confirm:focus,
+    .swal2-popup.sifec-swal-delete.sifec-swal-mark-all-read .swal2-styled.swal2-confirm:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(27, 111, 74, 0.35) !important;
+    }
+
     .page-notifications-sifec {
         --n-ink: #1a2e26;
         --n-muted: #5c6d66;
@@ -494,9 +517,28 @@ $(document).ready(function() {
 });
 
 function markAllAsRead() {
-    if (confirm('Marquer toutes les notifications comme lues ?')) {
-        window.location.href = "{{ route('notifications.markAllAsRead') }}";
-    }
+    Swal.fire({
+        title: 'Marquer toutes les notifications comme lues ?',
+        html: 'Les notifications resteront listées ici avec le statut <strong>Lu</strong>.',
+        type: 'question',
+        showCancelButton: true,
+        focusCancel: true,
+        reverseButtons: true,
+        buttonsStyling: false,
+        customClass: {
+            popup: 'sifec-swal-delete sifec-swal-mark-all-read',
+            confirmButton: 'btn shadow-sm px-4 fw-semibold',
+            cancelButton: 'btn shadow-sm px-4 fw-semibold'
+        },
+        confirmButtonText: 'Oui, tout marquer',
+        cancelButtonText: 'Annuler',
+        confirmButtonAriaLabel: 'Confirmer : tout marquer comme lu',
+        cancelButtonAriaLabel: 'Annuler'
+    }).then(function (result) {
+        if (result && (result.value === true || result.isConfirmed === true)) {
+            window.location.href = "{{ route('notifications.markAllAsRead') }}";
+        }
+    });
 }
 </script>
 @endsection

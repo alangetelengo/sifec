@@ -12,17 +12,28 @@ class ActeDisponibleDeclarantMailable extends Mailable
 
     public function __construct(
         public string $subjectLine,
-        public string $corpsMessage
+        public string $corpsMessage,
+        public ?string $attachmentPath = null,
+        public ?string $attachmentName = null,
     ) {}
 
     public function build()
     {
         $fromName = env('SUBJECT', config('app.name'));
 
-        return $this->subject($this->subjectLine)
+        $mail = $this->subject($this->subjectLine)
             ->from(env('MAIL_USERNAME'), $fromName)
             ->markdown('mail.acte_disponible_declarant', [
                 'corps' => $this->corpsMessage,
             ]);
+
+        if ($this->attachmentPath !== null && $this->attachmentPath !== '' && is_file($this->attachmentPath)) {
+            $mail->attachFromPath(
+                $this->attachmentPath,
+                $this->attachmentName ?? basename($this->attachmentPath)
+            );
+        }
+
+        return $mail;
     }
 }

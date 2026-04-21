@@ -41,14 +41,10 @@ class TypeLocaliteController extends Controller
             $typeLocalite->lib_type_localite = $request->lib_type_localite;
             $typeLocalite->save();
 
-            flash()->success('Type de localité ajouté avec succès');
-
-            return redirect()->route('typelocalite.index');
+            return redirect()->route('typelocalite.index')->with('success', 'Type de localité ajouté avec succès');
 
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -63,9 +59,7 @@ class TypeLocaliteController extends Controller
         $typeLocalite = TypeLocalite::where('code_type_localite', $id)->first();
 
         if ($typeLocalite == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         $request->validate([
@@ -76,14 +70,10 @@ class TypeLocaliteController extends Controller
             $typeLocalite->lib_type_localite = $request->lib_type_localite;
             $typeLocalite->save();
 
-            flash()->success('Type de localité modifié avec succès');
-
-            return redirect()->route('typelocalite.index');
+            return redirect()->route('typelocalite.index')->with('success', 'Type de localité modifié avec succès');
 
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -101,9 +91,8 @@ class TypeLocaliteController extends Controller
 
             if ($typeLocalite == null) {
                 Log::channel('sifec')->error('Type de localité non trouvé: '.$id);
-                flash()->error('Impossible de charger cette page');
 
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Impossible de charger cette page');
             }
 
             // Vérifier si des localités utilisent ce type
@@ -111,21 +100,18 @@ class TypeLocaliteController extends Controller
 
             if ($countLocalites > 0) {
                 Log::channel('sifec')->warning('Impossible de supprimer le type de localité '.$id.' car il est utilisé par '.$countLocalites.' localité(s)');
-                flash()->error('Impossible de supprimer ce type de localité car il est utilisé par des localités');
 
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Impossible de supprimer ce type de localité car il est utilisé par des localités');
             }
 
             $typeLocalite->delete();
-            flash()->success('Suppression effectuée avec succès');
 
-            return redirect()->route('typelocalite.index');
+            return redirect()->route('typelocalite.index')->with('success', 'Suppression effectuée avec succès');
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la suppression du type de localité '.$id.': '.$e->getMessage());
             Log::channel('sifec')->error('Stack trace: '.$e->getTraceAsString());
-            flash()->error($e->getMessage());
 
-            return redirect()->back();
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }

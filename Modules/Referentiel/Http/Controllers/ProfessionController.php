@@ -94,13 +94,9 @@ class ProfessionController extends Controller
             $profession->lib_profession = $request->lib_profession;
             $profession->save();
 
-            flash()->success('Profession enregistrée avec succès');
-
-            return redirect()->route('profession.index');
+            return redirect()->route('profession.index')->with('success', 'Profession enregistrée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -115,9 +111,7 @@ class ProfessionController extends Controller
         $profession = Profession::where('code_profession', $id)->first();
 
         if ($profession == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         $request->validate([
@@ -125,7 +119,7 @@ class ProfessionController extends Controller
                 'required',
                 'string',
                 'min:2',
-                Rule::unique('tr_profession', [], 'lib_profession')->whereNull('deleted_at')->ignore($profession->code_profession, 'code_profession'),
+                Rule::unique('tr_profession', 'lib_profession')->whereNull('deleted_at')->ignore($profession->code_profession, 'code_profession'),
             ],
         ], [
             'lib_profession.unique' => 'Cette profession existe déjà dans le système.',
@@ -135,13 +129,9 @@ class ProfessionController extends Controller
             $profession->lib_profession = $request->lib_profession;
             $profession->save();
 
-            flash()->success('Profession modifiée avec succès');
-
-            return redirect()->route('profession.index');
+            return redirect()->route('profession.index')->with('success', 'Profession modifiée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -156,27 +146,20 @@ class ProfessionController extends Controller
         $profession = Profession::where('code_profession', $id)->first();
 
         if ($profession == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         try {
             // Vérifier les relations avant suppression
             if ($profession->personnes()->count() > 0) {
-                flash()->error('Impossible de supprimer cette profession car elle est utilisée par des personnes');
-
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Impossible de supprimer cette profession car elle est utilisée par des personnes');
             }
 
             $profession->delete();
-            flash()->success('Suppression a été effectuée avec succès');
 
-            return redirect()->route('profession.index');
+            return redirect()->route('profession.index')->with('success', 'Suppression effectuée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back();
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }

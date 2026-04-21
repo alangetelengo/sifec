@@ -6,6 +6,7 @@ use App\Services\InstitutionLienSyncService;
 use App\Sifec\Sifec;
 use Exception;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -40,12 +41,6 @@ class InstitutionController extends Controller
         // Charger tous les types d'institutions pour le filtre
         $typeInstitutions = TypeInstitution::all();
 
-        // Charger tous les types de localités pour le formulaire
-        $typeLocalites = TypeLocalite::all();
-
-        // Charger les tribunaux pour le formulaire (si nécessaire)
-        $tribunaux = Institution::whereIn('code_type_institution', ['TPINS_0008', 'TPINS_0001'])->get();
-
         // Log pour déboguer
         Log::channel('sifec')->info('=== CHARGEMENT PAGE INSTITUTIONS ===', [
             'count_institutions' => $institutions->count(),
@@ -53,7 +48,7 @@ class InstitutionController extends Controller
             'premiere_institution' => $institutions->first() ? $institutions->first()->lib_institution : 'Aucune',
         ]);
 
-        return view('referentiel::institution.index', compact('institutions', 'localites', 'typeInstitutions', 'tribunaux', 'typeLocalites'));
+        return view('referentiel::institution.index', compact('institutions', 'localites', 'typeInstitutions'));
     }
 
     /**
@@ -115,10 +110,13 @@ class InstitutionController extends Controller
                 'filtres_appliques' => $request->only(['lib_institution', 'code_type_institution', 'code_localite']),
             ]);
 
+            $limiteAtteinte = $countResultat > $maxResults;
+
             return response()->json([
                 'success' => true,
                 'html' => view('referentiel::institution.partials.table-institutions', compact('institutions'))->render(),
                 'count' => $institutions->count(),
+                'limite_atteinte' => $limiteAtteinte,
             ]);
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors du filtrage des institutions: '.$e->getMessage(), [
@@ -133,11 +131,35 @@ class InstitutionController extends Controller
     }
 
     /**
-     * La création se fait depuis la liste (modal). Cette route évite une erreur 500 si un lien direct est utilisé.
+     * Formulaire de création (même périmètre que la page d’édition : localité, parent, liens métier).
      */
-    public function create()
+    public function create(): Renderable
     {
-        return redirect()->route('institution.index');
+        $localites = Localite::whereIn('code_type_localite', ['TPLOC_0002', 'TPLOC_0003', 'TPLOC_0004'])
+            ->orderBy('lib_localite')
+            ->get();
+
+        $typeInstitutions = TypeInstitution::orderBy('lib_type_institution')->get();
+
+        $availableParents = Institution::with('typeInstitution')
+            ->whereNotIn('code_type_institution', ['TPINS_0004', 'TPINS_0001'])
+            ->orderBy('lib_institution')
+            ->get();
+
+        $institution = new Institution;
+        $institution->setRelation('liensSortants', new EloquentCollection([]));
+
+        $cecPourLiens = $this->institutionsCecPourLiens(null);
+        $tribunauxPourLiens = $this->institutionsTribunauxPourLiens(null);
+
+        return view('referentiel::institution.create', compact(
+            'institution',
+            'localites',
+            'typeInstitutions',
+            'availableParents',
+            'cecPourLiens',
+            'tribunauxPourLiens'
+        ));
     }
 
     /**
@@ -152,16 +174,12 @@ class InstitutionController extends Controller
             ->find($id);
 
         if ($institution === null) {
-            flash()->error('Institution introuvable.');
-
-            return redirect()->route('institution.index');
+            return redirect()->route('institution.index')->with('error', 'Institution introuvable.');
         }
 
         // Exclure les types TPINS_0004 et TPINS_0001 pour l'édition
         if (in_array($institution->code_type_institution, ['TPINS_0004', 'TPINS_0001'])) {
-            flash()->error("La modification de ce type d'institution n'est pas autorisée.");
-
-            return redirect()->route('institution.index');
+            return redirect()->route('institution.index')->with('error', "La modification de ce type d'institution n'est pas autorisée.");
         }
 
         $localites = Localite::whereIn('code_type_localite', ['TPLOC_0002', 'TPLOC_0003', 'TPLOC_0004'])->get();
@@ -196,7 +214,9 @@ class InstitutionController extends Controller
             'tribunaux',
             'typeLocalites',
             'availableParents',
-            'cecPourLiens', [], 'tribunauxPourLiens'));
+            'cecPourLiens',
+            'tribunauxPourLiens'
+        ));
     }
 
     /**
@@ -247,10 +267,9 @@ class InstitutionController extends Controller
                     $sceau = $file->store('sceau');
                     $institution->sceau = $sceau;
                 } else {
-                    flash()->error('Le fichier du sceau est corrompu ou inaccessible.');
                     DB::rollBack();
 
-                    return redirect()->back()->withInput();
+                    return redirect()->back()->withInput()->with('error', 'Le fichier du sceau est corrompu ou inaccessible.');
                 }
             }
 
@@ -265,17 +284,16 @@ class InstitutionController extends Controller
                 'lib_institution' => $institution->lib_institution,
             ]);
 
-            flash()->success("$institution->lib_institution enregistré(e) avec succès", [], 'Gestion du référentiel');
-
-            return redirect()->route('institution.index');
+            return redirect()
+                ->route('institution.index')
+                ->with('success', $institution->lib_institution.' enregistré(e) avec succès.');
         } catch (Exception $e) {
             DB::rollBack();
             Log::channel('sifec')->error('Erreur lors de la création d\'institution: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -291,9 +309,7 @@ class InstitutionController extends Controller
         $institution = Institution::find($id);
 
         if ($institution == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Institution introuvable.');
         }
 
         try {
@@ -317,9 +333,10 @@ class InstitutionController extends Controller
                 if ($parent) {
                     $descendants = $institution->descendants()->pluck('code_institution')->toArray();
                     if (in_array($request->code_institution_parent, $descendants)) {
-                        flash()->error('Une institution ne peut pas être son propre parent ou avoir un de ses descendants comme parent');
-
-                        return redirect()->back()->withInput();
+                        return redirect()->back()->withInput()->with(
+                            'error',
+                            'Une institution ne peut pas être son propre parent ou avoir un de ses descendants comme parent.'
+                        );
                     }
                 }
             }
@@ -336,9 +353,7 @@ class InstitutionController extends Controller
                     $sceau = $file->store('sceau');
                     $institution->sceau = $sceau;
                 } else {
-                    flash()->error('Le fichier du sceau est corrompu ou inaccessible.');
-
-                    return redirect()->back()->withInput();
+                    return redirect()->back()->withInput()->with('error', 'Le fichier du sceau est corrompu ou inaccessible.');
                 }
             }
 
@@ -353,9 +368,9 @@ class InstitutionController extends Controller
                 'lib_institution' => $institution->lib_institution,
             ]);
 
-            flash()->success("$institution->lib_institution modifié avec succès", [], 'Gestion du référentiel');
-
-            return redirect()->route('institution.index');
+            return redirect()
+                ->route('institution.index')
+                ->with('success', $institution->lib_institution.' modifié(e) avec succès.');
 
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la modification d\'institution: '.$e->getMessage(), [
@@ -363,9 +378,8 @@ class InstitutionController extends Controller
                 'request' => $request->all(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -381,9 +395,7 @@ class InstitutionController extends Controller
             $institution = Institution::find($id);
 
             if ($institution == null) {
-                flash()->error('Impossible de charger cette page');
-
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Institution introuvable.');
             }
 
             // Utiliser softDeletes() au lieu de supprimer=1
@@ -394,17 +406,14 @@ class InstitutionController extends Controller
                 'lib_institution' => $institution->lib_institution,
             ]);
 
-            flash()->success('Suppression a été effectuée avec succès', [], 'Gestion du référentiel');
-
-            return redirect()->route('institution.index');
+            return redirect()->route('institution.index')->with('success', 'Suppression effectuée avec succès.');
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la suppression d\'institution: '.$e->getMessage(), [
                 'code_institution' => $id,
                 'trace' => $e->getTraceAsString(),
             ]);
-            flash()->error('Erreur lors de la suppression : '.$e->getMessage());
 
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Erreur lors de la suppression : '.$e->getMessage());
         }
     }
 
@@ -491,7 +500,7 @@ class InstitutionController extends Controller
     {
         $q = Institution::with('typeInstitution')
             ->whereHas('typeInstitution', function ($q) {
-                $q->where('code_type_categorie_ins', [], 'TCINS_0001');
+                $q->where('code_type_categorie_ins', 'TCINS_0001');
             })
             ->where('code_type_institution', '!=', 'TPINS_0003')
             ->whereNotIn('code_type_institution', ['TPINS_0004', 'TPINS_0001'])

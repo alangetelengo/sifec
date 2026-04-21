@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+
+        $passportScopes = config('sifec_passport.scopes', []);
+        if ($passportScopes !== []) {
+            Passport::tokensCan($passportScopes);
+        }
 
         // Même session / flash : les redirections absolues doivent utiliser l’hôte réellement visité
         // (ex. http://sifec alors que APP_URL=http://192.168.x/sifec → cookie de session perdu, aucun message).

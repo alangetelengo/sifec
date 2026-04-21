@@ -11,47 +11,49 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-
-    public function login(Request $request){
+    public function login(Request $request)
+    {
 
         $rules = [
-            "email"=>"required|email",
-            "password"=>"required"
+            'email' => 'required|email',
+            'password' => 'required',
         ];
 
+        $validator = Validator::make($request->all(), $rules);
 
-        $validator = Validator::make($request->all(),$rules);
-
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
-                "code"=>"180",
-                "message"=>collect($validator->errors())->flatten()
+                'code' => '180',
+                'message' => collect($validator->errors())->flatten(),
             ]);
         }
 
-        $user = User::where("email",$request->email)->first();
-        if($user == null){
+        $user = User::where('email', $request->email)->first();
+        if ($user == null) {
             return response()->json([
-                "code"=>"180",
-                "message"=>["Utilisateur non reconnu"]
+                'code' => '180',
+                'message' => ['Utilisateur non reconnu'],
             ]);
         }
 
-        if(!Hash::check($request->password,$user->password)){
+        if (! Hash::check($request->password, $user->password)) {
             return response()->json([
-                "code"=>"180",
-                "message"=>["Mot de passe incorrect"]
+                'code' => '180',
+                'message' => ['Mot de passe incorrect'],
             ]);
         }
-       
 
-        $auth = Auth::login($user);
-        $token = Auth::user()->createToken('access_token')->accessToken;
+        Auth::login($user);
+
+        $scopes = config('sifec_passport.default_personal_token_scopes', []);
+        $token = $user->createToken('access_token', $scopes)->accessToken;
+
         return response()->json([
-            "code"=>"200",
-            "message"=>["Connexion réussie"],
-            "user"=>$user,
-            "token"=>$token
+            'code' => '200',
+            'message' => ['Connexion réussie'],
+            'user' => $user,
+            'token' => $token,
+            'scopes' => $scopes,
         ]);
     }
 }

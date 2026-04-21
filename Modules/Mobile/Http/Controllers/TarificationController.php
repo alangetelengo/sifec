@@ -64,7 +64,7 @@ class TarificationController extends Controller
             $tarification->code_type_acte = $request->code_type_acte;
             $tarification->code_type_document_demande = $request->code_type_document_demande;
             $tarification->prix = $request->prix;
-            $tarification->cui = Auth::user()->affectationActive()->cui;
+            $tarification->code_institution = Auth::user()->affectationActive()->code_institution;
             $tarification->save();
 
             DB::commit();

@@ -1,344 +1,302 @@
 @extends('layout.app')
 @section('titre')
-   Gestion des Religions
+    Référentiel — Religions
 @endsection
 @section('styles')
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
+@include('referentiel::partials.sifec-ref-crud-styles')
 @endsection
 @section('corps')
-<div class="page-sifec-index">
-<div class="an-shell">
-<div class="an-body">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0"><i class="fas fa-pray me-2"></i>Gestion des Religions</h4>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addReligionModal">
-                    <i class="fas fa-plus-circle me-2"></i>Ajouter une religion
+@php
+    $religionsCount = $religions ? $religions->count() : 0;
+@endphp
+<div class="sifec-ref-crud-page container-fluid px-0">
+    <div class="sl-hero mb-4">
+        <div class="row align-items-center g-3 position-relative" style="z-index:1">
+            <div class="col-lg">
+                <h1><i class="fas fa-pray me-2 opacity-90"></i>Référentiel des religions</h1>
+                <p>Libellés utilisés dans les actes et formulaires. Recherche jusqu’à 500 résultats par requête.</p>
+            </div>
+            <div class="col-lg-auto">
+                <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addReligionModal">
+                    <i class="fas fa-plus-circle me-1"></i> Nouvelle religion
                 </button>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des religions</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Formulaire de filtre -->
-                    <form id="form-search-religions">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Libellé de la religion</label>
-                                <input type="text" class="form-control" name="lib_religion" id="filter-lib-religion" placeholder="Rechercher...">
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i> Rechercher
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-religions">
-                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                </button>
-                                <span id="count-results" class="ms-3 text-muted"></span>
-                            </div>
-                        </div>
-                    </form>
+        </div>
+    </div>
 
-                    <!-- Tableau des religions -->
-                    <div class="table-responsive mt-4">
-                        <table id="table-religions" class="display table table-hover" style="min-width: 845px">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Libellé</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-religions">
-                                @php
-                                    $religionsCount = $religions ? $religions->count() : 0;
-                                @endphp
-                                @if($religionsCount > 0)
-                                    @foreach ($religions as $item)
-                                    <tr>
-                                        <td><span class="badge badge-primary">{{ $loop->iteration }}</span></td>
-                                        <td><strong>{{ $item->lib_religion }}</strong></td>
-                                        <td>
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editReligionModal{{ $item->code_religion }}" title="Modifier">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </button>
-                                                <form action="{{ route('religion.destroy', $item->code_religion) }}" method="post" class="d-inline" id="deleteForm{{ $item->code_religion }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-danger shadow btn-xs sharp btn-delete" type="button" data-code="{{ $item->code_religion }}" data-libelle="{{ $item->lib_religion }}" title="Supprimer">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                @else
-                                    <tr>
-                                        <td colspan="3" class="text-center">
-                                            <div class="py-4">
-                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                                <p class="text-muted">Aucune religion trouvée (Total: {{ $religionsCount }})</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Libellé</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </tfoot>
-                        </table>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#006B31,#009E49);">
+                        <i class="fas fa-list-ol"></i>
+                    </div>
+                    <div>
+                        <div class="sl-stat-lbl">Affichage initial</div>
+                        <div class="sl-stat-val">{{ $religionsCount }}</div>
+                        <div class="small text-muted">Dernières entrées</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#2781d5,#5a9fd4);">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div>
+                        <div class="sl-stat-lbl">Référentiel</div>
+                        <div class="sl-stat-val small fw-normal text-dark pt-1">Données partagées</div>
+                        <div class="small text-muted">Même base pour tout SIFEC</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Ajout -->
-    <div class="modal fade" id="addReligionModal" tabindex="-1" aria-labelledby="addReligionModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addReligionModalLabel">
-                        <i class="fas fa-plus-circle me-2"></i>Ajouter une religion
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="{{ route('religion.store') }}" id="addReligionForm">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Libellé de la religion <span class="text-danger">*</span></label>
-                                <input type="text" name="lib_religion" class="form-control form-control-lg @error('lib_religion') is-invalid @enderror"
-                                       value="{{ old("lib_religion") }}" placeholder="Ex: Christianisme, Islam..." required>
-                                @error("lib_religion")
-                                <div class="invalid-feedback">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                </div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Saisissez le nom de la religion à enregistrer
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Annuler
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Enregistrer
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="card sl-card">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Résultats</h5>
+            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addReligionModal" style="border-radius:10px;">
+                <i class="fas fa-plus me-1"></i> Ajouter
+            </button>
         </div>
-    </div>
+        <div class="card-body p-0 p-md-3">
+            <form id="form-search-religions" class="row g-3 align-items-end px-3 px-md-0 pt-3 pt-md-0">
+                <div class="col-md-6 col-lg-5">
+                    <label class="sl-filter-label d-block" for="filter-lib-religion">Libellé</label>
+                    <div class="input-group border rounded-3 overflow-hidden bg-white shadow-sm">
+                        <span class="input-group-text bg-white border-0 text-muted"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-0 ps-0" name="lib_religion" id="filter-lib-religion" placeholder="Rechercher…" autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-success px-4" style="border-radius:10px;font-weight:600;">
+                        <i class="fas fa-search me-1"></i> Rechercher
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="btn-reset-filters-religions" style="border-radius:10px;">
+                        <i class="fas fa-rotate-left me-1"></i> Réinitialiser
+                    </button>
+                    <span id="count-results" class="sl-result-pill ms-md-2 d-none d-md-inline-flex"></span>
+                </div>
+            </form>
+            <div class="mt-2 d-md-none px-3">
+                <span id="count-results-mobile" class="sl-result-pill"></span>
+            </div>
 
-    <!-- Modals Modification -->
-    @foreach ($religions as $item)
-    <div class="modal fade" id="editReligionModal{{ $item->code_religion }}" tabindex="-1" aria-labelledby="editReligionModalLabel{{ $item->code_religion }}" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editReligionModalLabel{{ $item->code_religion }}">
-                        <i class="fas fa-edit me-2"></i>Modifier {{ $item->lib_religion }}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="sl-table-host mx-md-0 px-3 px-md-0 pb-3 pb-md-0">
+                <div id="religions-table-loading" class="sl-table-loading-overlay d-none" aria-live="polite" aria-busy="false" hidden>
+                    <span class="sifec-spinner" role="status"></span>
+                    <span>Recherche en cours…</span>
                 </div>
-                <form action="{{ route('religion.update', $item->code_religion) }}" method="POST" id="editReligionForm{{ $item->code_religion }}">
-                    @csrf
-                    @method('PUT')
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Libellé de la religion <span class="text-danger">*</span></label>
-                                <input class="form-control form-control-lg @error('lib_religion') is-invalid @enderror"
-                                       name="lib_religion" type="text" value="{{ $item->lib_religion }}" required>
-                                @error("lib_religion")
-                                <div class="invalid-feedback">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                </div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Annuler
-                        </button>
-                        <button type="submit" class="btn btn-warning">
-                            <i class="fas fa-save me-1"></i>Modifier
-                        </button>
-                    </div>
-                </form>
+                <div class="table-responsive sl-table-wrap mt-3">
+                    <table id="table-religions" class="table table-hover sl-table mb-0 align-middle" style="min-width:720px">
+                        <thead>
+                            <tr>
+                                <th class="sl-row-num">#</th>
+                                <th>Libellé</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-religions">
+                            @include('referentiel::religion.partials.table-religions', ['religions' => $religions])
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-    @endforeach
 </div>
+
+<div class="modal fade" id="addReligionModal" tabindex="-1" aria-labelledby="addReligionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header sl-modal-header text-white border-0 py-3">
+                <h5 class="modal-title" id="addReligionModalLabel"><i class="fas fa-plus-circle me-2"></i>Nouvelle religion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form method="POST" action="{{ route('religion.store') }}" id="addReligionForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Libellé <span class="text-danger">*</span></label>
+                        <input type="text" name="lib_religion" class="form-control form-control-lg @error('lib_religion') is-invalid @enderror"
+                               value="{{ old('lib_religion') }}" placeholder="Ex. Christianisme, Islam…" required>
+                        @error('lib_religion')
+                            <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted"><i class="fas fa-info-circle me-1"></i>Libellé affiché dans les actes et listes.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Annuler</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold"><i class="fas fa-check me-1"></i>Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+@foreach ($religions as $item)
+<div class="modal fade" id="editReligionModal{{ $item->code_religion }}" tabindex="-1" aria-labelledby="editReligionModalLabel{{ $item->code_religion }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header sl-modal-header text-white border-0 py-3">
+                <h5 class="modal-title" id="editReligionModalLabel{{ $item->code_religion }}"><i class="fas fa-pen-to-square me-2"></i>Modifier — {{ $item->lib_religion }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form action="{{ route('religion.update', $item->code_religion) }}" method="POST" id="editReligionForm{{ $item->code_religion }}">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Libellé <span class="text-danger">*</span></label>
+                        <input class="form-control form-control-lg @error('lib_religion') is-invalid @enderror" name="lib_religion" type="text" value="{{ $item->lib_religion }}" required>
+                        @error('lib_religion')
+                            <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Annuler</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold"><i class="fas fa-check me-1"></i>Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+@endforeach
 @endsection
 @section('scripts')
-      <!-- Datatable -->
-      <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
-      <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
-      <script>
-          // Fonction de confirmation de suppression avec SweetAlert2
-          function confirmDelete(code, libelle) {
-              var formId = 'deleteForm' + code;
-              var form = document.getElementById(formId);
+<script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+<script>
+    function confirmDeleteReligion(code, libelle) {
+        var form = document.getElementById('deleteForm' + code);
+        if (!form) {
+            Swal.fire({ title: 'Erreur', text: 'Formulaire de suppression introuvable.', icon: 'error', confirmButtonText: 'OK', customClass: { popup: 'sl-swal-referentiel' } });
+            return;
+        }
+        var libEsc = (typeof sifecHtmlForSwalStrong === 'function')
+            ? sifecHtmlForSwalStrong(libelle)
+            : String(libelle).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        Swal.fire({
+            title: 'Supprimer cette religion ?',
+            html: 'La ligne <strong>' + libEsc + '</strong> sera retirée de la liste (suppression logique).',
+            icon: 'warning',
+            iconColor: '#c9a227',
+            showCancelButton: true,
+            focusCancel: true,
+            confirmButtonText: 'Oui, supprimer',
+            cancelButtonText: 'Annuler',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'sl-swal-referentiel',
+                confirmButton: 'btn btn-danger rounded-pill px-4 fw-semibold shadow-sm',
+                cancelButton: 'btn btn-outline-secondary rounded-pill px-3 fw-semibold'
+            }
+        }).then(function (result) {
+            if (result.value === true || result.isConfirmed === true) form.submit();
+        });
+    }
 
-              if (!form) {
-                  console.error('Formulaire non trouvé:', formId);
-                  Swal.fire({
-                      title: 'Erreur',
-                      text: 'Formulaire de suppression non trouvé: ' + formId,
-                      type: 'error',
-                      confirmButtonText: 'OK'
-                  });
-                  return;
-              }
+    var tableReligions = null;
 
-              Swal.fire({
-                  title: 'Êtes-vous sûr ?',
-                  html: 'Voulez-vous vraiment supprimer la religion <strong>' + libelle + '</strong> ?',
-                  type: 'warning',
-                  showCancelButton: true,
-                  confirmButtonColor: '#CE1126',
-                  cancelButtonColor: '#009639',
-                  confirmButtonText: 'Oui, supprimer',
-                  cancelButtonText: 'Annuler',
-                  buttonsStyling: false,
-                  customClass: {
-                      confirmButton: 'btn btn-danger me-2',
-                      cancelButton: 'btn btn-success'
-                  }
-              }).then((result) => {
-                  if (result.value === true || result.isConfirmed === true) {
-                      form.submit();
-                  }
-              });
-          }
+    function setReligionsTableLoading(show) {
+        var $el = $('#religions-table-loading');
+        if (show) { $el.removeClass('d-none').removeAttr('hidden').attr('aria-busy', 'true'); }
+        else { $el.addClass('d-none').attr('aria-busy', 'false').attr('hidden', 'hidden'); }
+    }
 
-          // Variable pour stocker l'instance DataTables
-          var tableReligions = null;
+    function searchReligionsServer() {
+        $.ajax({
+            url: "{{ route('religion.filter') }}",
+            type: 'POST',
+            data: $('#form-search-religions').serialize() + '&_token={{ csrf_token() }}',
+            beforeSend: function () {
+                setReligionsTableLoading(true);
+                $('#count-results').text('').addClass('d-none');
+                $('#count-results-mobile').text('');
+            },
+            complete: function () { setReligionsTableLoading(false); },
+            success: function (response) {
+                if (response.code !== '200') {
+                    flashAlert('Erreur', 'error', response.message || 'Erreur de recherche.');
+                    return;
+                }
+                if ($.fn.DataTable.isDataTable('#table-religions')) {
+                    try { tableReligions.destroy(); } catch (e) {}
+                    tableReligions = null;
+                }
+                $('#tbody-religions').html(response.data);
+                var countText = response.count + ' résultat(s)';
+                if (response.limite_atteinte) countText += ' — limite 500, affinez la recherche';
+                $('#count-results').text(countText).removeClass('d-none');
+                $('#count-results-mobile').text(countText);
 
-          // Fonction pour rechercher les religions côté serveur
-          function searchReligionsServer() {
-              var formData = $('#form-search-religions').serialize();
-              formData += '&_token={{ csrf_token() }}';
+                setTimeout(function () {
+                    try {
+                        var rows = $('#tbody-religions tr');
+                        var firstTd = rows.first().find('td').first();
+                        var isEmpty = rows.length === 0 || firstTd.hasClass('sl-empty') || firstTd.attr('colspan') === '3';
+                        if (!isEmpty && rows.length > 0) {
+                            tableReligions = $('#table-religions').DataTable({
+                                language: { search: 'Filtrer le tableau :', lengthMenu: 'Afficher _MENU_', zeroRecords: 'Aucune ligne', emptyTable: '—', info: '', infoEmpty: '', infoFiltered: '' },
+                                paging: false, searching: true, info: false, ordering: true, destroy: true
+                            });
+                        } else tableReligions = null;
+                    } catch (e) { console.error(e); }
+                }, 100);
+            },
+            error: function (xhr) {
+                var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la recherche.';
+                flashAlert('Erreur', 'error', msg);
+            }
+        });
+    }
 
-              $.ajax({
-                  url: "{{ route('religion.filter') }}",
-                  type: 'POST',
-                  data: formData,
-                  beforeSend: function() {
-                      $('#tbody-religions').html('<tr><td colspan="3" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
-                      $('#count-results').text('');
-                  },
-                  success: function(response) {
-                      try {
-                          if (response.code === '200') {
-                              $('#tbody-religions').html(response.data);
-                              $('#count-results').text(response.count + ' résultat(s) trouvé(s)');
-                              
-                              // Réinitialiser DataTables si elle existe
-                              if (tableReligions) {
-                                  tableReligions.destroy();
-                                  tableReligions = null;
-                              }
+    $(document).ready(function () {
+        $('#count-results').text('{{ $religionsCount }} ligne(s) — aperçu').removeClass('d-none');
+        $('#count-results-mobile').text('{{ $religionsCount }} ligne(s)');
 
-                              // Réinitialiser DataTables après un court délai
-                              setTimeout(function() {
-                                  try {
-                                      var rowCount = $('#tbody-religions tr').length;
-                                      var firstRow = $('#tbody-religions tr').first();
-                                      var isEmptyMessage = firstRow.find('td.text-center').length > 0;
+        var initRows = $('#tbody-religions tr');
+        if (initRows.length && !initRows.first().find('td.sl-empty').length) {
+            try {
+                if (!$.fn.DataTable.isDataTable('#table-religions')) {
+                    tableReligions = $('#table-religions').DataTable({
+                        language: { search: 'Filtrer le tableau :', lengthMenu: 'Afficher _MENU_', zeroRecords: 'Aucune ligne', emptyTable: '—', info: '', infoEmpty: '', infoFiltered: '' },
+                        paging: false, searching: true, info: false, ordering: true
+                    });
+                }
+            } catch (e) {}
+        }
 
-                                      if (rowCount > 0 && !isEmptyMessage) {
-                                          tableReligions = $('#table-religions').DataTable({
-                                              "language": {
-                                                  "search": "Rechercher:",
-                                                  "lengthMenu": "Afficher _MENU_ éléments",
-                                                  "info": "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
-                                                  "infoEmpty": "Affichage de 0 à 0 sur 0 éléments",
-                                                  "infoFiltered": "(filtré sur _MAX_ éléments au total)",
-                                                  "loadingRecords": "Chargement...",
-                                                  "zeroRecords": "Aucun élément correspondant trouvé",
-                                                  "emptyTable": "Aucune donnée disponible dans le tableau",
-                                                  "paginate": {
-                                                      "first": "Premier",
-                                                      "last": "Dernier",
-                                                      "next": "Suivant",
-                                                      "previous": "Précédent"
-                                                  }
-                                              },
-                                              "paging": false,
-                                              "searching": true,
-                                              "info": false,
-                                              "ordering": true
-                                          });
-                                      }
-                                  } catch(e) {
-                                      console.error('Erreur lors de l\'initialisation de DataTables:', e);
-                                  }
-                              }, 100);
-                          } else {
-                              flashAlert("Erreur", "error", response.message || "Une erreur est survenue lors de la recherche");
-                          }
-                      } catch(e) {
-                          console.error('Erreur lors du traitement de la réponse:', e);
-                          flashAlert("Erreur", "error", "Erreur lors du traitement de la réponse");
-                      }
-                  },
-                  error: function(xhr, status, error) {
-                      console.error('Erreur AJAX:', error);
-                      var errorMessage = "Erreur lors de la recherche des religions";
-                      if (xhr.responseJSON && xhr.responseJSON.message) {
-                          errorMessage = xhr.responseJSON.message;
-                      }
-                      flashAlert("Erreur", "error", errorMessage);
-                  }
-              });
-          }
+        $('#form-search-religions').on('submit', function (e) { e.preventDefault(); searchReligionsServer(); });
+        $('#btn-reset-filters-religions').on('click', function () {
+            $('#form-search-religions')[0].reset();
+            location.reload();
+        });
 
-          // Event listeners
-          $(document).ready(function() {
-              // Soumission du formulaire de recherche
-              $('#form-search-religions').on('submit', function(e) {
-                  e.preventDefault();
-                  searchReligionsServer();
-              });
+        $(document).on('click', '.btn-delete', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var code = $(this).data('code');
+            var libelle = this.getAttribute('data-libelle');
+            if (code && libelle) confirmDeleteReligion(code, libelle);
+        });
 
-              // Réinitialisation des filtres
-              $('#btn-reset-filters-religions').on('click', function() {
-                  $('#form-search-religions')[0].reset();
-                  searchReligionsServer();
-              });
+        $('#addReligionModal').on('show.bs.modal', function () { $('#addReligionForm')[0].reset(); });
+    });
 
-              // Boutons de suppression
-              $(document).on('click', '.btn-delete', function() {
-                  var code = $(this).data('code');
-                  var libelle = $(this).data('libelle');
-                  confirmDelete(code, libelle);
-              });
-
-              // Réinitialiser le formulaire lors de l'ouverture du modal
-              $('#addReligionModal').on('show.bs.modal', function() {
-                  $('#addReligionForm')[0].reset();
-              });
-          });
-      </script>
+    $('#addReligionForm').on('submit', function () {
+        var btn = $(this).find('button[type="submit"]')[0];
+        if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
+    });
+    $(document).on('submit', 'form[id^="editReligionForm"]', function () {
+        var btn = $(this).find('button[type="submit"]')[0];
+        if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
+    });
+</script>
 @endsection

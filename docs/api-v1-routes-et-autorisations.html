@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API /api/v1 — classification et autorisations — SIFEC</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #1a1a1a;
+      --muted: #5c5c5c;
+      --border: #dee2e6;
+      --thead: #e9ecef;
+      --code-bg: #eef1f4;
+      --accent: #0d6efd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .doc {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+      background: #fff;
+      min-height: 100vh;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+    h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      margin: 0 0 0.75rem;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.5rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin: 2rem 0 0.75rem;
+      font-weight: 600;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin: 1.25rem 0 0.5rem;
+      font-weight: 600;
+    }
+    p { margin: 0.65rem 0; }
+    .sync-note {
+      background: #fff8e6;
+      border: 1px solid #e6d08a;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.92rem;
+    }
+    ul, ol { margin: 0.5rem 0 0.5rem 1.25rem; padding-left: 0.25rem; }
+    li { margin: 0.35rem 0; }
+    code {
+      font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 0.12em 0.35em;
+      border-radius: 4px;
+    }
+    strong { font-weight: 600; }
+    del { color: var(--muted); }
+    hr.section-sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      margin: 0.75rem 0 1rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.6rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    thead th {
+      background: var(--thead);
+      font-weight: 600;
+    }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+  </style>
+</head>
+<body>
+  <article class="doc">
+    <p class="sync-note">
+      Contenu aligné sur <code>api-v1-routes-et-autorisations.md</code> — mettre à jour les deux fichiers en cas de changement.
+    </p>
+
+    <h1>API <code>/api/v1</code> — classification et alignement avec les autorisations</h1>
+
+    <p>Préfixe réel des URLs : <strong><code>/api/v1</code></strong> (défini dans <code>bootstrap/app.php</code>).</p>
+
+    <p>Légende :</p>
+    <ul>
+      <li><strong>Public portail</strong> : accessible sans session web ; doit être limité (débit), traçable, et ne pas exposer plus que le besoin.</li>
+      <li><strong>Semi-public</strong> : même idée, mais données nominatives ou PDF ; renforcer (jeton de demande, signature URL, clé API).</li>
+      <li><strong>Interne / admin</strong> : ne devrait <strong>pas</strong> rester public ; prévoir <code>auth:api</code> + contrôle métier (institution, fonction).</li>
+      <li><strong>Technique</strong> : login, webhooks, redirections paiement.</li>
+    </ul>
+
+    <hr class="section-sep">
+
+    <h2>1. Inventaire par route</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Méthode</th>
+            <th>Chemin (après <code>/api/v1/</code>)</th>
+            <th>Contrôleur</th>
+            <th>Classification</th>
+            <th>Risques / remarques</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>POST</td>
+            <td><code>login</code></td>
+            <td><code>UserController@login</code></td>
+            <td><strong>Technique</strong></td>
+            <td>Émet un <strong>token Passport</strong> avec les scopes définis dans <code>config/sifec_passport.php</code> (<code>default_personal_token_scopes</code>). La réponse JSON inclut <code>scopes</code>.</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>upload-signatures</code></td>
+            <td><code>SignatureController@upload</code></td>
+            <td><strong>API authentifiée</strong></td>
+            <td><strong><code>auth:api</code> + scope <code>signatures-mariage</code></strong>. Obtenir un token via <code>POST /api/v1/login</code> puis envoyer <code>Authorization: Bearer …</code>.</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>verificationActe</code></td>
+            <td><code>DocumentEtatCivilController@verificationActe</code></td>
+            <td><strong>Public portail</strong></td>
+            <td><del>Bug : <code>return "ok"</code></del> <strong>Corrigé</strong>. La validation globale <code>type_acte</code> (inutilisée dans la suite) a été retirée pour ne pas casser les clients existants ; 422 si ni <code>numero_declaration</code> ni branche déclarant exploitable.</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>authentification</code></td>
+            <td><code>AuthentificationActeController@authentification</code></td>
+            <td><strong>Public portail</strong></td>
+            <td>Vérification d’authenticité d’acte (usage grand public).</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>demandeActe</code></td>
+            <td><code>AuthentificationActeController@demandeActe</code></td>
+            <td><strong>Public portail</strong></td>
+            <td>Création de demande (copie / extrait / duplicata).</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>copie/actenaissance/{id}</code></td>
+            <td><code>AuthentificationActeController@displayCopie</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>PDF / document lié à un <strong>identifiant</strong> : risque d’énumération si <code>id</code> prévisible. Préférer jeton lié à la demande payée.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>extrait/actenaissance/{id}</code></td>
+            <td>… <code>displayExtraitActe</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>duplicata/actenaissance/{id}</code></td>
+            <td>… <code>displayDuplicata</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>copie/actenaissance/portail/{id}</code></td>
+            <td>… <code>displayCopiePortail</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem (portail).</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>extrait/actenaissance/portail/{id}</code></td>
+            <td>… <code>displayExtraitActePortail</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>copie/actedeces/{id}</code></td>
+            <td>… <code>displayCopieDeces</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>extrait/actedeces/{id}</code></td>
+            <td>… <code>displayExtraitActeDeces</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>duplicata/actedeces/{id}</code></td>
+            <td>… <code>displayDuplicataDeces</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatactenaissance/{id}</code></td>
+            <td>… <code>displayActe</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>État d’acte.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatactedeces/{id}</code></td>
+            <td>… <code>displayActeDeces</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatactemariage/{id}</code></td>
+            <td>… <code>displayActeMariage</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>listeCec</code></td>
+            <td>… <code>listeCec</code></td>
+            <td><strong>Public portail</strong></td>
+            <td>Liste des CEC pour le portail ; acceptable si données non sensibles.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>banMariage</code></td>
+            <td><code>BanController@journalMariagesSansActe</code></td>
+            <td><strong>Interne / admin</strong></td>
+            <td><strong><code>auth:api</code> + scope <code>mariage-ban</code> + <code>can:module.acteMariage</code></strong>. Les anciens jetons <strong>sans scopes</strong> doivent être renouvelés (nouvelle connexion).</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>statutPaiementMomo</code></td>
+            <td><code>PayementController@statutPaiementMomo</code></td>
+            <td><strong>Technique</strong></td>
+            <td>Webhook / callback Mobile Money : valider signature / secret opérateur.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecouvrement</code></td>
+            <td>—</td>
+            <td><strong>Retirée</strong></td>
+            <td>Pointait vers une <strong>méthode inexistante</strong>. Réutiliser la route web authentifiée ou réimplémenter en API.</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>historiqueAuthentification</code></td>
+            <td>—</td>
+            <td><strong>Retirée</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatHistorique/{id}</code></td>
+            <td>—</td>
+            <td><strong>Retirée</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecetteDemandeEnLigne</code></td>
+            <td>—</td>
+            <td><strong>Retirée</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>rdcPaiement</code></td>
+            <td><code>PayementController@rdcpaiement</code></td>
+            <td><strong>Technique</strong></td>
+            <td>Paiement RDC : validation forte (montant, référence, idempotence).</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>paiement</code></td>
+            <td><code>PayementController@paiement</code></td>
+            <td><strong>Technique / semi-public</strong></td>
+            <td>Page ou redirection de paiement : à documenter.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>successPaypal</code></td>
+            <td><code>PayementController@successPaypal</code></td>
+            <td><strong>Technique</strong></td>
+            <td>Retour PayPal.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>cancelPaypal</code></td>
+            <td><code>PayementController@cancelPaypal</code></td>
+            <td><strong>Technique</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecuNaissance/{id}</code></td>
+            <td><code>AuthentificationActeController@etatRecuNaissance</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Reçu lié à une authentification / demande.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecuMariage/{id}</code></td>
+            <td>… <code>etatRecuMariage</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecuDeces/{id}</code></td>
+            <td>… <code>etatRecuDeces</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecuDecesNA/{id}</code></td>
+            <td>… <code>etatRecuDecesNA</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecuNaissanceNA/{id}</code></td>
+            <td>… <code>etatRecuNaissanceNA</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+          <tr>
+            <td>GET</td>
+            <td><code>etatRecuMariageNA/{id}</code></td>
+            <td>… <code>etatRecuMariageNA</code></td>
+            <td><strong>Semi-public</strong></td>
+            <td>Idem.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="section-sep">
+
+    <h2>2. Alignement avec les <code>lib_technique</code> (routes <strong>web</strong> métier)</h2>
+    <p>Les fonctionnalités sont définies dans <code>database/seeders/Data/fonctionnalites_definitions.php</code>. Les <strong><code>can:</code></strong> du back-office s’appuient sur ces <code>lib_technique</code> (voir <code>AuthServiceProvider</code> et <code>User::toutesfonctionnalites()</code>).</p>
+    <p>Exemples déjà utilisés dans le code :</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Domaine</th>
+            <th><code>lib_technique</code> (racine ou menu)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Naissance</td>
+            <td><code>module.acteNaissance</code>, <code>module.menus.naissance</code>, <code>module.acteNaissance.generate</code>, …</td>
+          </tr>
+          <tr>
+            <td>Décès</td>
+            <td><code>module.acteDeces</code>, <code>module.menus.deces</code>, …</td>
+          </tr>
+          <tr>
+            <td>Mariage</td>
+            <td><code>module.acteMariage</code>, <code>module.menus.mariage</code>, …</td>
+          </tr>
+          <tr>
+            <td>Référentiel</td>
+            <td><code>module.menus.referentiel</code>, <code>module.registre.create</code>, …</td>
+          </tr>
+          <tr>
+            <td>Administration</td>
+            <td><code>module.menus.administration</code>, <code>module.users</code>, <code>module.menuItems.manage</code>, …</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Pistes pour l’API <code>/api/v1</code></h3>
+    <ol>
+      <li>
+        <strong>Ne pas réutiliser tel quel les <code>can:</code> web</strong> sur des routes <strong>100 % publiques</strong> (pas d’utilisateur). Pour le portail, préférer :
+        <ul>
+          <li>jetons <strong>liés à une demande</strong> (hash après paiement),</li>
+          <li>ou <strong>scopes Passport</strong> dédiés (<code>portail:lecture-acte</code>, etc.) pour les apps qui ont un compte technique.</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Routes internes sensibles</strong> : <code>banMariage</code> et <code>upload-signatures</code> utilisent <strong><code>auth:api</code> + scopes Passport</strong> (voir section 3). D’autres endpoints pourront exiger le scope <code>sifec-api</code> seul ou avec <code>can:</code> métier.
+      </li>
+      <li>
+        <strong>Cartographie indicative</strong> (à affiner métier) :
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Route API</th>
+                <th>Permission / stratégie</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Affichage acte / copie / extrait / duplicata / reçus</td>
+                <td>Jeton de <strong>demande</strong> ou identifiant non énumérable + statut payé</td>
+              </tr>
+              <tr>
+                <td><code>banMariage</code></td>
+                <td><code>auth:api</code> + <code>scope:mariage-ban</code> + <code>can:module.acteMariage</code></td>
+              </tr>
+              <tr>
+                <td><code>upload-signatures</code></td>
+                <td><code>auth:api</code> + <code>scope:signatures-mariage</code></td>
+              </tr>
+              <tr>
+                <td><code>login</code> (API)</td>
+                <td>Émet les scopes configurés dans <code>config/sifec_passport.php</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+    </ol>
+
+    <hr class="section-sep">
+
+    <h2>3. Scopes Passport (jetons personnels)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scope</th>
+            <th>Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sifec-api</code></td>
+            <td>Accès général API authentifiée (réserve pour routes futures sous <code>scope:sifec-api</code>).</td>
+          </tr>
+          <tr>
+            <td><code>mariage-ban</code></td>
+            <td>Route <strong><code>GET banMariage</code></strong>.</td>
+          </tr>
+          <tr>
+            <td><code>signatures-mariage</code></td>
+            <td>Route <strong><code>POST upload-signatures</code></strong>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Configuration : <strong><code>config/sifec_passport.php</code></strong> (libellés OAuth + liste des scopes attribués au login).</p>
+    <p>Middleware Laravel : alias <strong><code>scope</code></strong> et <strong><code>scope.any</code></strong> enregistrés dans <strong><code>bootstrap/app.php</code></strong> (classes Passport <code>CheckToken</code> / <code>CheckTokenForAnyScope</code>).</p>
+    <p>Pour un compte qui ne doit <strong>pas</strong> consulter le BAN ou envoyer des signatures, adaptez la logique de <code>UserController@login</code> (scopes différents par rôle) ou utilisez des <strong>clients OAuth</strong> dédiés au lieu du flux login mot de passe.</p>
+    <p>Si <strong><code>can:module.acteMariage</code></strong> bloque un profil légitime pour <code>banMariage</code>, retirez ce middleware sur la route dans <code>routes/v1/api.php</code> ou ajoutez la fonctionnalité <strong><code>module.acteMariage</code></strong> (FNC_0029) au rôle concerné.</p>
+
+    <hr class="section-sep">
+
+    <h2>4. Actions recommandées (priorité)</h2>
+    <ol>
+      <li><strong>Réimplémenter si besoin</strong> les endpoints retirés (<code>etatRecouvrement</code>, <code>historiqueAuthentification</code>, <code>etatHistorique</code>, <code>etatRecetteDemandeEnLigne</code>) sur un contrôleur API dédié avec <code>auth:api</code> et règles métier.</li>
+      <li><strong>Vérifier les intégrations</strong> (tablettes signatures, afficheurs BAN) : elles doivent envoyer le <strong>Bearer</strong> après login.</li>
+      <li><strong>Passer en revue</strong> tous les GET avec <code>{id}</code> : identifiants non devinables + <strong>throttle</strong> + logs d’accès.</li>
+    </ol>
+
+    <hr class="section-sep">
+
+    <h2>5. Référence module métier (<code>EnsureBusinessModuleIsActive</code>)</h2>
+    <p>Les noms de routes listés dans <code>config/sifec_domain_modules.php</code> sont contrôlés pour l’<strong>activation globale</strong> des modules (<code>MOD_0002</code>, <code>MOD_0003</code>, <code>MOD_0004</code>). Les routes <strong>API</strong> nommées dans ce fichier héritent du même contrôle lorsqu’elles passent par le middleware <code>api</code> qui inclut <code>EnsureBusinessModuleIsActive</code> (voir <code>bootstrap/app.php</code>).</p>
+  </article>
+</body>
+</html>

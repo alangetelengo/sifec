@@ -22,7 +22,9 @@ class DeclarantActeDisponibleInformationJob
     public function __construct(
         public array $emails,
         public string $corpsMessage,
-        public string $subjectLine
+        public string $subjectLine,
+        public ?string $attachmentPath = null,
+        public ?string $attachmentName = null,
     ) {}
 
     public function handle(): void
@@ -34,7 +36,9 @@ class DeclarantActeDisponibleInformationJob
             }
             Mail::to($email)->send(new ActeDisponibleDeclarantMailable(
                 $this->subjectLine,
-                $this->corpsMessage
+                $this->corpsMessage,
+                $this->attachmentPath,
+                $this->attachmentName
             ));
         }
     }

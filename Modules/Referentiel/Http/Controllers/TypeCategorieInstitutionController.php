@@ -61,17 +61,16 @@ class TypeCategorieInstitutionController extends Controller
                 'lib_type_categorie_institution' => $typeCategorieInstitution->lib_type_categorie_institution,
             ]);
 
-            flash()->success('Catégorie d\'institution ajoutée avec succès');
-
-            return redirect()->route('typeCategorieInstitution.index');
+            return redirect()
+                ->route('typeCategorieInstitution.index')
+                ->with('success', 'Catégorie d\'institution ajoutée avec succès.');
 
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la création d\'une catégorie d\'institution: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -86,9 +85,7 @@ class TypeCategorieInstitutionController extends Controller
         $typeCategorieInstitution = TypeCategorieInstitution::find($id);
 
         if ($typeCategorieInstitution == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Élément introuvable.');
         }
 
         $request->validate([
@@ -114,18 +111,17 @@ class TypeCategorieInstitutionController extends Controller
                 'lib_type_categorie_institution' => $typeCategorieInstitution->lib_type_categorie_institution,
             ]);
 
-            flash()->success('Catégorie d\'institution modifiée avec succès');
-
-            return redirect()->route('typeCategorieInstitution.index');
+            return redirect()
+                ->route('typeCategorieInstitution.index')
+                ->with('success', 'Catégorie d\'institution modifiée avec succès.');
 
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la modification d\'une catégorie d\'institution: '.$e->getMessage(), [
                 'code_type_categorie_ins' => $id,
                 'trace' => $e->getTraceAsString(),
             ]);
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -140,18 +136,17 @@ class TypeCategorieInstitutionController extends Controller
         $typeCategorieInstitution = TypeCategorieInstitution::find($id);
 
         if ($typeCategorieInstitution == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Élément introuvable.');
         }
 
         try {
             // Vérifier si des types d'institutions utilisent cette catégorie
             $typeInstitutionsCount = $typeCategorieInstitution->typeInstitutions()->count();
             if ($typeInstitutionsCount > 0) {
-                flash()->error("Impossible de supprimer cette catégorie : {$typeInstitutionsCount} type(s) d'institution l'utilise(nt)");
-
-                return redirect()->back();
+                return redirect()->back()->with(
+                    'error',
+                    "Impossible de supprimer cette catégorie : {$typeInstitutionsCount} type(s) d'institution l'utilise(nt)."
+                );
             }
 
             // Utiliser softDeletes()
@@ -162,17 +157,16 @@ class TypeCategorieInstitutionController extends Controller
                 'lib_type_categorie_institution' => $typeCategorieInstitution->lib_type_categorie_institution,
             ]);
 
-            flash()->success('Suppression effectuée avec succès');
-
-            return redirect()->route('typeCategorieInstitution.index');
+            return redirect()
+                ->route('typeCategorieInstitution.index')
+                ->with('success', 'Suppression effectuée avec succès.');
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la suppression d\'une catégorie d\'institution: '.$e->getMessage(), [
                 'code_type_categorie_ins' => $id,
                 'trace' => $e->getTraceAsString(),
             ]);
-            flash()->error($e->getMessage());
 
-            return redirect()->back();
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }

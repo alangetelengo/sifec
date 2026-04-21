@@ -94,13 +94,9 @@ class ReligionController extends Controller
             $religion->lib_religion = $request->lib_religion;
             $religion->save();
 
-            flash()->success('Réligion enregistrée avec succès');
-
-            return redirect()->route('religion.index');
+            return redirect()->route('religion.index')->with('success', 'Religion enregistrée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -115,9 +111,7 @@ class ReligionController extends Controller
         $religion = Religion::where('code_religion', $id)->first();
 
         if ($religion == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         $request->validate([
@@ -125,7 +119,7 @@ class ReligionController extends Controller
                 'required',
                 'string',
                 'min:2',
-                Rule::unique('tr_religion', [], 'lib_religion')->whereNull('deleted_at')->ignore($religion->code_religion, 'code_religion'),
+                Rule::unique('tr_religion', 'lib_religion')->whereNull('deleted_at')->ignore($religion->code_religion, 'code_religion'),
             ],
         ], [
             'lib_religion.unique' => 'Cette religion existe déjà dans le système.',
@@ -135,13 +129,9 @@ class ReligionController extends Controller
             $religion->lib_religion = $request->lib_religion;
             $religion->save();
 
-            flash()->success('Réligion modifiée avec succès');
-
-            return redirect()->route('religion.index');
+            return redirect()->route('religion.index')->with('success', 'Religion modifiée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -156,27 +146,20 @@ class ReligionController extends Controller
         $religion = Religion::where('code_religion', $id)->first();
 
         if ($religion == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         try {
             // Vérifier les relations avant suppression
             if ($religion->declarationsDeces()->count() > 0) {
-                flash()->error('Impossible de supprimer cette religion car elle est utilisée par des déclarations de décès');
-
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Impossible de supprimer cette religion car elle est utilisée par des déclarations de décès');
             }
 
             $religion->delete();
-            flash()->success('Suppression a été effectuée avec succès');
 
-            return redirect()->route('religion.index');
+            return redirect()->route('religion.index')->with('success', 'Suppression effectuée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back();
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }

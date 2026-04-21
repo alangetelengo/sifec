@@ -90,7 +90,7 @@ class InstitutionUser extends Model
 
     public function tarifications(): HasMany
     {
-        return $this->hasMany(Tarificatrion::class, 'cui', 'cui');
+        return $this->hasMany(Tarificatrion::class, 'code_institution', 'code_institution');
     }
 
 

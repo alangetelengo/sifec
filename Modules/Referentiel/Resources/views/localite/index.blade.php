@@ -106,10 +106,6 @@
 }
 .sl-parent { font-size: .875rem; color: #495057; }
 .sl-root { font-size: .8rem; color: #6c757d; font-style: italic; }
-.sl-btn-icon {
-    border-radius: 8px !important;
-    padding: .35rem .55rem !important;
-}
 .sl-empty-icon {
     width: 72px; height: 72px; margin: 0 auto;
     border-radius: 50%;
@@ -140,6 +136,93 @@
     background: linear-gradient(90deg, rgba(0,158,73,.06) 0%, rgba(255,255,255,.9) 100%);
 }
 .sl-row-num { width: 3rem; text-align: center; }
+/* Chargement tableau — même esprit que sifecBtnLoading / spinners layout */
+.sl-table-host { position: relative; min-height: 120px; }
+.sl-table-loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(2px);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--sl-green);
+    border-radius: 12px;
+}
+.sl-table-loading-overlay .sifec-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-width: 3px;
+}
+/* Actions tableau — alignées sur la charte (coins arrondis, vert SIFEC / danger discret) */
+.sl-actions { white-space: nowrap; }
+.sl-actions .sl-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+.sl-btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 2.1rem;
+    padding: 0 .55rem;
+    border-radius: 10px;
+    font-size: .85rem;
+    font-weight: 600;
+    border: 1.5px solid transparent;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.sl-btn-action:focus { outline: none; box-shadow: 0 0 0 3px rgba(0, 158, 73, .2); }
+.sl-btn-action-edit {
+    color: var(--sl-green);
+    border-color: rgba(0, 107, 49, .35);
+}
+.sl-btn-action-edit:hover {
+    background: rgba(0, 158, 73, .1);
+    border-color: var(--sl-mid);
+    color: var(--sl-green);
+}
+.sl-btn-action-delete {
+    color: #b02a37;
+    border-color: rgba(176, 42, 55, .3);
+}
+.sl-btn-action-delete:hover {
+    background: rgba(176, 42, 55, .08);
+    border-color: #b02a37;
+    color: #9e1f2b;
+}
+/* SweetAlert2 — même esprit que les modals Bootstrap de la page */
+.swal2-popup.sl-swal-localite {
+    border-radius: 14px !important;
+    padding: 1.5rem 1.35rem 1.35rem !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, .12) !important;
+    border: none !important;
+}
+.swal2-popup.sl-swal-localite .swal2-title {
+    color: var(--sl-green) !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    padding: 0 0 .5rem !important;
+}
+.swal2-popup.sl-swal-localite .swal2-html-container {
+    color: #495057 !important;
+    font-size: .95rem !important;
+}
+.swal2-popup.sl-swal-localite .swal2-actions {
+    gap: .5rem !important;
+    margin-top: 1.15rem !important;
+}
+.swal2-popup.sl-swal-localite .swal2-styled.swal2-cancel {
+    margin-right: 0 !important;
+}
 </style>
 @endsection
 @section('corps')
@@ -250,6 +333,11 @@
             </button>
         </div>
         <div class="card-body p-0 p-md-3">
+            <div class="sl-table-host mx-md-0">
+                <div id="localites-table-loading" class="sl-table-loading-overlay d-none" aria-live="polite" aria-busy="false" hidden>
+                    <span class="sifec-spinner" role="status"></span>
+                    <span>Recherche en cours…</span>
+                </div>
             <div class="table-responsive sl-table-wrap">
                 <table id="table-localites" class="table table-hover sl-table mb-0 align-middle" style="min-width:920px">
                     <thead>
@@ -266,6 +354,7 @@
                         @include('referentiel::localite.partials.table-localites', ['localites' => $localites])
                     </tbody>
                 </table>
+            </div>
             </div>
         </div>
     </div>
@@ -458,19 +547,21 @@
                   return;
               }
 
+              var libHtml = (typeof sifecHtmlForSwalStrong === 'function') ? sifecHtmlForSwalStrong(libelle) : String(libelle);
               Swal.fire({
-                  title: 'Êtes-vous sûr ?',
-                  html: 'Voulez-vous vraiment supprimer la localité <strong>' + libelle + '</strong> ?',
-                  type: 'warning',
+                  title: 'Supprimer cette localité ?',
+                  html: 'La localité <strong>' + libHtml + '</strong> sera retirée de la liste (suppression logique). Cette action peut être limitée si des données y sont rattachées.',
+                  icon: 'warning',
+                  iconColor: '#c9a227',
                   showCancelButton: true,
-                  confirmButtonColor: '#CE1126',
-                  cancelButtonColor: '#009639',
+                  focusCancel: true,
                   confirmButtonText: 'Oui, supprimer',
                   cancelButtonText: 'Annuler',
                   buttonsStyling: false,
                   customClass: {
-                      confirmButton: 'btn btn-danger me-2',
-                      cancelButton: 'btn btn-success'
+                      popup: 'sl-swal-localite',
+                      confirmButton: 'btn btn-danger rounded-pill px-4 fw-semibold shadow-sm',
+                      cancelButton: 'btn btn-outline-secondary rounded-pill px-3 fw-semibold'
                   }
               }).then((result) => {
                   if (result.value === true || result.isConfirmed === true) {
@@ -483,6 +574,15 @@
           var tableLocalites = null;
 
           // Fonction pour rechercher les localités côté serveur
+          function setLocalitesTableLoading(show) {
+              var $el = $('#localites-table-loading');
+              if (show) {
+                  $el.removeClass('d-none').removeAttr('hidden').attr('aria-busy', 'true');
+              } else {
+                  $el.addClass('d-none').attr('aria-busy', 'false').attr('hidden', 'hidden');
+              }
+          }
+
           function searchLocalitesServer() {
               var formData = $('#form-search-localites').serialize();
               formData += '&_token={{ csrf_token() }}';
@@ -492,9 +592,12 @@
                   type: 'POST',
                   data: formData,
                   beforeSend: function() {
-                      $('#tbody-localites').html('<tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm text-success me-2" role="status"></span> Chargement…</td></tr>');
+                      setLocalitesTableLoading(true);
                       $('#count-results').text('').addClass('d-none');
                       $('#count-results-mobile').text('');
+                  },
+                  complete: function() {
+                      setLocalitesTableLoading(false);
                   },
                   success: function(response) {
                       try {
@@ -518,6 +621,12 @@
                               }
                               $('#count-results').text(countText).removeClass('d-none');
                               $('#count-results-mobile').text(countText);
+
+                              if (typeof notification === 'function') {
+                                  notification('success', countText, 'Recherche');
+                              } else if (typeof toastr !== 'undefined' && toastr.success) {
+                                  toastr.success(countText, 'Recherche');
+                              }
 
                               // Réinitialiser DataTables avec les nouvelles données (même si vide)
                               setTimeout(function() {
@@ -737,7 +846,7 @@
 
                   var button = $(this);
                   var code = button.data('code');
-                  var libelle = button.data('libelle');
+                  var libelle = button[0].getAttribute('data-libelle');
 
                   if (code && libelle) {
                       confirmDelete(code, libelle);
@@ -745,9 +854,22 @@
                       Swal.fire({
                           title: 'Erreur',
                           text: 'Données manquantes pour la suppression',
-                          type: 'error',
+                          icon: 'error',
                           confirmButtonText: 'OK'
                       });
+                  }
+              });
+
+              $('#addLocaliteForm').on('submit', function() {
+                  var btn = $(this).find('button[type="submit"]')[0];
+                  if (typeof sifecBtnLoading === 'function') {
+                      sifecBtnLoading(btn, 'Enregistrement…');
+                  }
+              });
+              $(document).on('submit', 'form[id^="editLocaliteForm"]', function() {
+                  var btn = $(this).find('button[type="submit"]')[0];
+                  if (typeof sifecBtnLoading === 'function') {
+                      sifecBtnLoading(btn, 'Enregistrement…');
                   }
               });
 

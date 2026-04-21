@@ -9,21 +9,14 @@ use Illuminate\Support\Facades\Route;
 use Modules\Authentification\Http\Controllers\AuthentificationController;
 use Modules\Naissance\Http\Controllers\NaissanceController;
 use Modules\Notification\Http\Controllers\NotificationController;
-use Modules\Notification\Jobs\ValidationacteNaissanceJob;
 
 Route::get('/', [AuthentificationController::class, 'index'])->name('dashboard.index')->middleware(['auth']);
 // Route::get('/', [AuthentificationController::class,'home'])->name('home.index')->middleware(['auth']);
 
-Route::get('testmail', function () {
-    dispatch(new ValidationacteNaissanceJob('MAKELEKELE', 'AN0001', '14F52', 'alangetelengo87@gmail.com'));
-
-    return 'le traitement sera fait';
-});
-
 Route::put('{id}/update', [AuthentificationController::class, 'update'])->name('dashboard.update')->middleware(['auth']);
 Route::post('store', [AuthentificationController::class, 'authentification'])->name('dashboard.login');
-Route::get('carteducongo', [AuthentificationController::class, 'carte'])->name('dashboard.carteducongo');
-Route::get('statgenredep', [AuthentificationController::class, 'statGenreDep'])->name('dashboard.statgenredep');
+Route::middleware('auth')->get('carteducongo', [AuthentificationController::class, 'carte'])->name('dashboard.carteducongo');
+Route::middleware('auth')->get('statgenredep', [AuthentificationController::class, 'statGenreDep'])->name('dashboard.statgenredep');
 
 Route::prefix('qrcode')->group(function () {
     Route::get('/', [QrcodeController::class, 'index'])->name('qrcode.index');
@@ -65,15 +58,17 @@ Route::middleware('auth')->prefix('tableau')->group(function () {
     // Route::get('cumuleNationale', [HomeController::class,'cumuleNationale'])->name('cartes.cumule.nationale');
 });
 
-Route::get('/personnes/recherche', [PersonneSearchController::class, 'recherche'])->name('personnes.recherche');
+Route::middleware('auth')->get('/personnes/recherche', [PersonneSearchController::class, 'recherche'])->name('personnes.recherche');
 
-Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-Route::get('/notifications/read/{id}', [NotificationController::class, 'read'])->name('notifications.read');
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/read/{id}', [NotificationController::class, 'read'])->name('notifications.read');
 
-// Notifications AJAX
-Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unreadCount');
-Route::get('/notifications/unread-list', [NotificationController::class, 'unreadList'])->name('notifications.unreadList');
-Route::get('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+    // Notifications AJAX
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unreadCount');
+    Route::get('/notifications/unread-list', [NotificationController::class, 'unreadList'])->name('notifications.unreadList');
+    Route::get('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+});
 
 Auth::routes();
 
@@ -81,6 +76,9 @@ Auth::routes();
 // Routes 2FA (Double Authentification)
 // ==========================================
 
+use App\Http\Controllers\Admin\DemandeDocumentConfigController;
+use App\Http\Controllers\Admin\TarificationController;
+use App\Http\Controllers\DemandeDocumentController;
 use App\Http\Controllers\TwoFactorController;
 use Modules\Deces\Http\Controllers\DecesController;
 use Modules\Mariage\Http\Controllers\MariageController;
@@ -163,3 +161,45 @@ if (app()->runningUnitTests()) {
         );
     });
 }
+
+// Routes pour la gestion des demandes de documents (copies/extraits)
+Route::middleware(['auth'])->prefix('demande-document')->name('demandeDocument.')->group(function () {
+    Route::get('/', [DemandeDocumentController::class, 'index'])->name('index');
+    Route::get('/create', [DemandeDocumentController::class, 'create'])->name('create');
+    Route::post('/', [DemandeDocumentController::class, 'store'])->name('store');
+    Route::get('/{code}', [DemandeDocumentController::class, 'show'])->name('show');
+
+    // Workflow
+    Route::post('/{code}/generer-pdf', [DemandeDocumentController::class, 'passerEnAttenteSignature'])->name('genererPdf');
+
+    // Signature (vérification dynamique des permissions dans le contrôleur)
+    Route::post('/signature/initier', [DemandeDocumentController::class, 'initierSignature'])->name('initierSignature');
+    Route::post('/signature/valider', [DemandeDocumentController::class, 'validerSignature'])->name('validerSignature');
+
+    Route::post('/{code}/rejeter', [DemandeDocumentController::class, 'rejeter'])->name('rejeter');
+    Route::post('/{code}/livree', [DemandeDocumentController::class, 'marquerLivree'])->name('livree');
+    Route::post('/{code}/renouveler', [DemandeDocumentController::class, 'preparerRenouvellement'])->name('renouveler');
+
+    // PDF
+    Route::get('/{code}/pdf', [DemandeDocumentController::class, 'telechargerPdf'])->name('pdf');
+
+    // AJAX
+    Route::post('/rechercher-acte', [DemandeDocumentController::class, 'rechercherActe'])->name('rechercherActe');
+});
+
+// Admin — validité des documents demande (copies / extraits)
+Route::middleware(['auth', 'can:module.admin.demande_document.parametres'])->prefix('admin/demande-document-config')->name('admin.demande-document-config.')->group(function () {
+    Route::get('/', [DemandeDocumentConfigController::class, 'edit'])->name('edit');
+    Route::put('/', [DemandeDocumentConfigController::class, 'update'])->middleware('can:module.admin.demande_document.parametres.modifier')->name('update');
+});
+
+// Routes Admin - Gestion des tarifs (Réservé aux administrateurs)
+Route::middleware(['auth', 'can:module.admin.tarifs'])->prefix('admin/tarifs')->name('admin.tarifs.')->group(function () {
+    Route::get('/', [TarificationController::class, 'index'])->name('index');
+    Route::get('/create', [TarificationController::class, 'create'])->name('create')->middleware('can:module.admin.tarifs.modifier');
+    Route::post('/', [TarificationController::class, 'store'])->name('store')->middleware('can:module.admin.tarifs.modifier');
+    Route::get('/{code}/edit', [TarificationController::class, 'edit'])->name('edit')->middleware('can:module.admin.tarifs.modifier');
+    Route::put('/{code}', [TarificationController::class, 'update'])->name('update')->middleware('can:module.admin.tarifs.modifier');
+    Route::post('/{code}/toggle', [TarificationController::class, 'toggleActif'])->name('toggle')->middleware('can:module.admin.tarifs.modifier');
+    Route::delete('/{code}', [TarificationController::class, 'destroy'])->name('destroy')->middleware('can:module.admin.tarifs.modifier');
+});

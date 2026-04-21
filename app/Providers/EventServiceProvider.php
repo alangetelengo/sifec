@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\DemandeDocumentEvent;
+use App\Listeners\EnvoyerNotificationDemandeDocument;
 use App\Listeners\LogMailToSifec;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -20,6 +22,9 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+        ],
+        DemandeDocumentEvent::class => [
+            EnvoyerNotificationDemandeDocument::class,
         ],
     ];
 

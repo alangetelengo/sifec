@@ -10,6 +10,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Sur migrate:fresh, tr_fonctionnalite est vide jusqu'au seed : pas d'insertion sans parent (FK).
+        if (! DB::table('tr_fonctionnalite')->where('code_fonctionnalite', 'FNC_0002')->exists()) {
+            return;
+        }
+
         if (! DB::table('tr_fonctionnalite')->where('code_fonctionnalite', 'FNC_0049')->exists()) {
             DB::table('tr_fonctionnalite')->insert([
                 'code_fonctionnalite' => 'FNC_0049',

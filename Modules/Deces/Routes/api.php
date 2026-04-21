@@ -8,4 +8,4 @@ Route::middleware('auth:api')->get('/deces', function (Request $request) {
     return $request->user();
 });
 
-Route::get("apitest", [ActeDecesController::class, 'apitest'])->name("apitest");
+Route::middleware('auth:api')->get('apitest', [ActeDecesController::class, 'apitest'])->name('apitest');

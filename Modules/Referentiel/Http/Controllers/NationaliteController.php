@@ -125,7 +125,7 @@ class NationaliteController extends Controller
             'lib_nationalite' => [
                 'required',
                 'string',
-                Rule::unique('tr_nationalite', [], 'lib_nationalite')->whereNull('deleted_at')->ignore($nationalite->code_nationalite, 'code_nationalite'),
+                Rule::unique('tr_nationalite', 'lib_nationalite')->whereNull('deleted_at')->ignore($nationalite->code_nationalite, 'code_nationalite'),
             ],
         ], [
             'lib_nationalite.unique' => 'Cette nationalité existe déjà dans le système.',

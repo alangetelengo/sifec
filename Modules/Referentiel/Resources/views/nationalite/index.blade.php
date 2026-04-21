@@ -213,7 +213,7 @@
 
               Swal.fire({
                   title: 'Êtes-vous sûr ?',
-                  html: 'Voulez-vous vraiment supprimer la nationalité <strong>' + libelle + '</strong> ?',
+                  html: 'Voulez-vous vraiment supprimer la nationalité <strong>' + (typeof sifecHtmlForSwalStrong === 'function' ? sifecHtmlForSwalStrong(libelle) : libelle) + '</strong> ?',
                   type: 'warning',
                   showCancelButton: true,
                   confirmButtonColor: '#CE1126',
@@ -347,7 +347,7 @@
               // Boutons de suppression
               $(document).on('click', '.btn-delete', function() {
                   var code = $(this).data('code');
-                  var libelle = $(this).data('libelle');
+                  var libelle = this.getAttribute('data-libelle');
                   confirmDelete(code, libelle);
               });
 
@@ -355,6 +355,15 @@
               $('#addNationaliteModal').on('show.bs.modal', function() {
                   $('#addNationaliteForm')[0].reset();
               });
+          });
+
+          $('#addNationaliteForm').on('submit', function () {
+              var btn = $(this).find('button[type="submit"]')[0];
+              if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
+          });
+          $(document).on('submit', 'form[id^="editNationaliteForm"]', function () {
+              var btn = $(this).find('button[type="submit"]')[0];
+              if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
           });
       </script>
 @endsection

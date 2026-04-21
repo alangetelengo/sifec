@@ -4,260 +4,122 @@
 @endsection
 @section('styles')
 <link href="{{ asset('tpl/vendor/datatables/css/jquery.dataTables.min.css') }}" rel="stylesheet">
+@include('referentiel::partials.sifec-ref-crud-styles')
 @endsection
 @section('corps')
-<div class="page-sifec-index">
-<div class="an-shell">
-<div class="an-body">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0"><i class="fas fa-building me-2"></i>Gestion des Institutions</h4>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCEC">
-                    <i class="fas fa-plus-circle me-2"></i>Ajouter une institution
-                </button>
+@php
+    $institutionsCount = $institutions ? $institutions->count() : 0;
+@endphp
+<div class="sifec-ref-crud-page container-fluid px-0">
+    <div class="sl-hero mb-4">
+        <div class="row align-items-center g-3 position-relative" style="z-index:1">
+            <div class="col-lg">
+                <h1><i class="fas fa-university me-2 opacity-90"></i>Institutions</h1>
+                <p>Gestion des centres et structures du référentiel. Recherche côté serveur (jusqu’à 500 résultats).</p>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des institutions</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Formulaire de filtre -->
-                    <form id="form-search-institutions">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Libellé de l'institution</label>
-                                <input type="text" class="form-control" name="lib_institution" id="filter-lib-institution" placeholder="Rechercher...">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Type d'institution</label>
-                                <select name="code_type_institution" id="filter-code-type-institution" class="form-control">
-                                    <option value="">Tous les types</option>
-                                    @foreach ($typeInstitutions as $type)
-                                        <option value="{{ $type->code_type_institution }}">{{ $type->lib_type_institution }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Localité</label>
-                                <select name="code_localite" id="filter-code-localite" class="form-control">
-                                    <option value="">Toutes les localités</option>
-                                    @foreach ($localites as $localite)
-                                        <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i> Rechercher
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-institutions">
-                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                </button>
-                                <span id="count-results" class="ms-3 text-muted"></span>
-                            </div>
-                        </div>
-                    </form>
+            <div class="col-lg-auto">
+                <a href="{{ route('institution.create') }}" class="btn btn-light">
+                    <i class="fas fa-plus-circle me-1"></i> Nouvelle institution
+                </a>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Tableau des institutions -->
-                    <div class="table-responsive mt-4">
-                        <table id="table-institutions" class="display table table-hover" style="min-width: 845px">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Institution</th>
-                                    <th>Institution parent</th>
-                                    <th>Type institution</th>
-                                    <th>Lieu</th>
-                                    <th>Sceau</th>
-                                    <th>Statut</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-institutions">
-                                @php
-                                    $institutionsCount = $institutions ? $institutions->count() : 0;
-                                @endphp
-                                @if($institutionsCount > 0)
-                                    @include('referentiel::institution.partials.table-institutions', ['institutions' => $institutions])
-                                @else
-                                    <tr>
-                                        <td colspan="8" class="text-center">
-                                            <div class="py-4">
-                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                                <p class="text-muted">Aucune institution trouvée (Total: {{ $institutionsCount }})</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Institution</th>
-                                    <th>Institution parent</th>
-                                    <th>Type institution</th>
-                                    <th>Lieu</th>
-                                    <th>Sceau</th>
-                                    <th>Statut</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </tfoot>
-                        </table>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-4">
+            <div class="card sl-stat">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="sl-stat-icon text-white" style="background:linear-gradient(135deg,#006B31,#009E49);">
+                        <i class="fas fa-list-ol"></i>
+                    </div>
+                    <div>
+                        <div class="sl-stat-lbl">Aperçu liste</div>
+                        <div class="sl-stat-val">{{ $institutionsCount }}</div>
+                        <div class="small text-muted">20 derniers enregistrements</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Ajout -->
-    <div class="modal fade" id="modalCEC" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="addInstitutionModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="addInstitutionModalLabel">
-                        <i class="fas fa-plus-circle me-2"></i>Ajouter une institution
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="card sl-card">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Liste des institutions</h5>
+            <a href="{{ route('institution.create') }}" class="btn btn-sm btn-success" style="border-radius:10px;">
+                <i class="fas fa-plus me-1"></i> Ajouter
+            </a>
+        </div>
+        <div class="card-body p-0 p-md-3">
+            <form id="form-search-institutions" class="row g-3 align-items-end px-3 px-md-0 pt-3 pt-md-0">
+                <div class="col-md-4 col-lg-3">
+                    <label class="sl-filter-label d-block" for="filter-lib-institution">Libellé</label>
+                    <div class="input-group border rounded-3 overflow-hidden bg-white shadow-sm">
+                        <span class="input-group-text bg-white border-0 text-muted"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-0 ps-0" name="lib_institution" id="filter-lib-institution" placeholder="Rechercher…" autocomplete="off">
+                    </div>
                 </div>
-                <form action="{{ route("institution.store") }}" method="POST" enctype="multipart/form-data" id="addInstitutionForm">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="row">
-                            <!-- 1. Libellé de l'institution -->
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Libellé de l'institution <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-lg @error('lib_institution') is-invalid @enderror" 
-                                       value="{{ old("lib_institution") }}" 
-                                       placeholder="Ex: Cour d'Appel de Brazzaville..." 
-                                       required name="lib_institution">
-                                @error('lib_institution')
-                                    <div class="invalid-feedback">
-                                        <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                    </div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Saisissez le nom complet de l'institution
-                                </small>
-                            </div>
+                <div class="col-md-4 col-lg-3">
+                    <label class="sl-filter-label d-block" for="filter-code-type-institution">Type</label>
+                    <select name="code_type_institution" id="filter-code-type-institution" class="form-select border rounded-3 shadow-sm">
+                        <option value="">Tous les types</option>
+                        @foreach ($typeInstitutions as $type)
+                            <option value="{{ $type->code_type_institution }}">{{ $type->lib_type_institution }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <label class="sl-filter-label d-block" for="filter-code-localite">Localité</label>
+                    <select name="code_localite" id="filter-code-localite" class="form-select border rounded-3 shadow-sm">
+                        <option value="">Toutes les localités</option>
+                        @foreach ($localites as $localite)
+                            <option value="{{ $localite->code_localite }}">{{ $localite->lib_localite }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-success px-4" style="border-radius:10px;font-weight:600;">
+                        <i class="fas fa-search me-1"></i> Rechercher
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="btn-reset-filters-institutions" style="border-radius:10px;">
+                        <i class="fas fa-rotate-left me-1"></i> Réinitialiser
+                    </button>
+                    <span id="count-results" class="sl-result-pill"></span>
+                </div>
+            </form>
 
-                            <!-- 2. Type d'institution -->
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Type d'institution <span class="text-danger">*</span></label>
-                                <select id="codetypeinstitution" name="code_type_institution" required class="form-control form-control-lg @error('code_type_institution') is-invalid @enderror">
-                                    <option value="">Choisissez un type</option>
-                                    @foreach ($typeInstitutions as $item)
-                                        <option value="{{ $item->code_type_institution }}" {{ old('code_type_institution') == $item->code_type_institution ? 'selected' : '' }}>
-                                            {{ $item->lib_type_institution }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('code_type_institution')
-                                    <div class="invalid-feedback">
-                                        <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                    </div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Sélectionnez le type d'institution
-                                </small>
-                            </div>
-
-                            <!-- 3. Rattachement à une institution parent -->
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Rattacher à une institution parent ?</label>
-                                <div class="d-flex gap-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="rattacher" id="rattacherOui" value="OUI">
-                                        <label class="form-check-label fw-bold" for="rattacherOui">
-                                            <i class="fas fa-check-circle me-1 text-success"></i>OUI
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="rattacher" id="rattacherNon" value="NON" checked>
-                                        <label class="form-check-label fw-bold" for="rattacherNon">
-                                            <i class="fas fa-times-circle me-1 text-danger"></i>NON
-                                        </label>
-                                    </div>
-                                </div>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Indiquez si cette institution dépend d'une autre institution
-                                </small>
-                            </div>
-
-                            <!-- 4. Institution parent (conditionnel) -->
-                            <div class="mb-3 col-md-12 institutionRattache d-none">
-                                <label class="form-label fw-bold">Institution parent</label>
-                                <select id="codeinstitutionparent" name="code_institution_parent" class="form-control form-control-lg" disabled>
-                                    <option value="">Sélectionnez d'abord un type d'institution</option>
-                                </select>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Sélectionnez l'institution parent si applicable
-                                </small>
-                            </div>
-
-                            <!-- 5. Type de localité (si pas de parent) -->
-                            <div class="mb-3 col-md-12 typeLocalite d-none">
-                                <label class="form-label fw-bold">Type de localité <span class="text-danger">*</span></label>
-                                <select id="codeTypeLocalite" name="code_type_localite" class="form-control form-control-lg" disabled>
-                                    <option value="">Choisissez un type</option>
-                                    @foreach ($typeLocalites as $item)
-                                        <option value="{{ $item->code_type_localite }}">{{ $item->lib_type_localite }}</option>
-                                    @endforeach
-                                </select>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Sélectionnez le type de localité pour filtrer les localités disponibles
-                                </small>
-                            </div>
-
-                            <!-- 6. Localité -->
-                            <div class="mb-3 col-md-12 localite d-none">
-                                <label class="form-label fw-bold">Localité <span class="text-danger">*</span></label>
-                                <select id="codelocalites" name="code_localite" class="form-control form-control-lg" disabled>
-                                    <option value="">Sélectionnez d'abord un type de localité</option>
-                                </select>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Sélectionnez la localité où se trouve l'institution
-                                </small>
-                            </div>
-
-                            <!-- 7. Sceau -->
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Sceau</label>
-                                <input type="file" class="form-control form-control-lg" name="sceau" accept="image/*">
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Uploadez l'image du sceau de l'institution (format image)
-                                </small>
-                            </div>
-
-                            <!-- 8. Statut -->
-                            <div class="mb-3 col-md-12">
-                                <label class="form-label fw-bold">Statut <span class="text-danger">*</span></label>
-                                <select name="statut" class="form-control form-control-lg @error('statut') is-invalid @enderror" required>
-                                    <option value="1" {{ old('statut', 1) == 1 ? 'selected' : '' }}>Actif</option>
-                                    <option value="0" {{ old('statut') == 0 ? 'selected' : '' }}>Inactif</option>
-                                </select>
-                                @error('statut')
-                                    <div class="invalid-feedback">
-                                        <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
-                                    </div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>Définissez le statut de l'institution
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Annuler
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Enregistrer
-                        </button>
-                    </div>
-                </form>
+            <div class="sl-table-host mx-md-0 px-3 px-md-0 pb-3 pb-md-0 mt-3">
+                <div id="institutions-table-loading" class="sl-table-loading-overlay d-none" aria-live="polite" aria-busy="false" hidden>
+                    <span class="sifec-spinner" role="status"></span>
+                    <span>Recherche en cours…</span>
+                </div>
+                <div class="table-responsive sl-table-wrap">
+                    <table id="table-institutions" class="table table-hover sl-table mb-0 align-middle" style="min-width:960px">
+                        <thead>
+                            <tr>
+                                <th class="sl-row-num">#</th>
+                                <th>Institution</th>
+                                <th>Parent</th>
+                                <th>Type</th>
+                                <th>Lieu</th>
+                                <th>Sceau</th>
+                                <th>Statut</th>
+                                <th class="text-end sl-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-institutions">
+                            @if($institutionsCount > 0)
+                                @include('referentiel::institution.partials.table-institutions', ['institutions' => $institutions])
+                            @else
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="sl-empty-icon mx-auto mb-2"><i class="fas fa-inbox"></i></div>
+                                        <p class="text-muted mb-0">Aucune institution dans l’aperçu.</p>
+                                    </td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -422,17 +284,44 @@
         @endif
     @endforeach
 </div>
-</div>
-</div>
 @endsection
 @section('scripts')
 <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
 <script>
     $(document).ready(function() {
-        // Variable pour stocker l'instance DataTables
         var tableInstitutions = null;
 
-        // Fonction pour rechercher les institutions côté serveur
+        function setInstitutionsTableLoading(show) {
+            var $el = $('#institutions-table-loading');
+            if (show) { $el.removeClass('d-none').removeAttr('hidden').attr('aria-busy', 'true'); }
+            else { $el.addClass('d-none').attr('aria-busy', 'false').attr('hidden', 'hidden'); }
+        }
+
+        $('#count-results').text('{{ $institutionsCount }} institution(s) — aperçu');
+
+        (function initInstitutionsDataTableIfNeeded() {
+            var initRows = $('#tbody-institutions tr');
+            if (initRows.length && initRows.first().find('td').first().attr('colspan') !== '8') {
+                try {
+                    tableInstitutions = $('#table-institutions').DataTable({
+                        language: {
+                            search: 'Filtrer le tableau :',
+                            lengthMenu: 'Afficher _MENU_',
+                            zeroRecords: 'Aucune ligne',
+                            emptyTable: '—',
+                            info: '',
+                            infoEmpty: '',
+                            infoFiltered: ''
+                        },
+                        paging: false,
+                        searching: true,
+                        info: false,
+                        ordering: true
+                    });
+                } catch (e) {}
+            }
+        })();
+
         function searchInstitutionsServer() {
             var formData = $('#form-search-institutions').serialize();
             formData += '&_token={{ csrf_token() }}';
@@ -443,8 +332,11 @@
                 data: formData,
                 dataType: 'json',
                 beforeSend: function() {
-                    $('#tbody-institutions').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>');
+                    setInstitutionsTableLoading(true);
                     $('#count-results').text('');
+                },
+                complete: function() {
+                    setInstitutionsTableLoading(false);
                 },
                 success: function(response) {
                     var $tbody = $('#tbody-institutions');
@@ -494,19 +386,18 @@
                         setTimeout(function() {
                             try {
                                 var rows = $tbody.find('tr');
-                                var hasData = rows.length > 0 && !rows.first().find('td.text-center').length;
-                                if (hasData && rows.length > 0) {
+                                var firstTd = rows.first().find('td').first();
+                                var isEmpty = rows.length === 0 || firstTd.attr('colspan') === '8';
+                                if (!isEmpty && rows.length > 0) {
                                     tableInstitutions = $('#table-institutions').DataTable({
                                         language: {
-                                            search: "Rechercher:",
-                                            lengthMenu: "Afficher _MENU_ éléments",
-                                            info: "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
-                                            infoEmpty: "Affichage de 0 à 0 sur 0 éléments",
-                                            infoFiltered: "(filtré sur _MAX_ éléments au total)",
-                                            loadingRecords: "Chargement...",
-                                            zeroRecords: "Aucun élément correspondant trouvé",
-                                            emptyTable: "Aucune donnée disponible dans le tableau",
-                                            paginate: { first: "Premier", last: "Dernier", next: "Suivant", previous: "Précédent" }
+                                            search: 'Filtrer le tableau :',
+                                            lengthMenu: 'Afficher _MENU_',
+                                            zeroRecords: 'Aucune ligne',
+                                            emptyTable: '—',
+                                            info: '',
+                                            infoEmpty: '',
+                                            infoFiltered: ''
                                         },
                                         paging: false,
                                         searching: true,
@@ -550,55 +441,41 @@
             location.reload();
         });
 
-        // Fonction de confirmation de suppression avec SweetAlert2
         function confirmDelete(code, libelle) {
             var formId = 'deleteForm' + code;
             var form = document.getElementById(formId);
 
             if (!form) {
-                console.error('Formulaire non trouvé:', formId);
                 Swal.fire({
                     title: 'Erreur',
-                    text: 'Formulaire de suppression non trouvé: ' + formId,
+                    text: 'Formulaire de suppression introuvable.',
                     icon: 'error',
-                    confirmButtonText: 'OK'
+                    confirmButtonText: 'OK',
+                    customClass: { popup: 'sl-swal-referentiel' }
                 });
                 return;
             }
 
+            var libEsc = (typeof sifecHtmlForSwalStrong === 'function')
+                ? sifecHtmlForSwalStrong(libelle)
+                : String(libelle).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             Swal.fire({
-                title: 'Êtes-vous sûr ?',
-                html: 'Voulez-vous vraiment supprimer l\'institution <strong>' + libelle + '</strong> ?',
-                type: 'warning',
+                title: 'Supprimer cette institution ?',
+                html: 'L’institution <strong>' + libEsc + '</strong> sera retirée de la liste (suppression logique).',
+                icon: 'warning',
+                iconColor: '#c9a227',
                 showCancelButton: true,
-                confirmButtonColor: '#CE1126',
-                cancelButtonColor: '#009639',
+                focusCancel: true,
                 confirmButtonText: 'Oui, supprimer',
                 cancelButtonText: 'Annuler',
                 buttonsStyling: false,
                 customClass: {
-                    confirmButton: 'btn btn-danger me-2',
-                    cancelButton: 'btn btn-success'
+                    popup: 'sl-swal-referentiel',
+                    confirmButton: 'btn btn-danger rounded-pill px-4 fw-semibold shadow-sm',
+                    cancelButton: 'btn btn-outline-secondary rounded-pill px-3 fw-semibold'
                 }
-            }).then((result) => {
-                console.log('Résultat de la confirmation:', result);
-                if (result.value === true || result.isConfirmed === true) {
-                    console.log('Soumission du formulaire:', formId);
-                    console.log('Formulaire trouvé:', form);
-                    if (form) {
-                        form.submit();
-                    } else {
-                        console.error('Formulaire non trouvé pour soumission');
-                        Swal.fire({
-                            title: 'Erreur',
-                            text: 'Impossible de trouver le formulaire de suppression',
-                            type: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                } else {
-                    console.log('Suppression annulée');
-                }
+            }).then(function (result) {
+                if (result.value === true || result.isConfirmed === true) form.submit();
             });
         }
 
@@ -609,110 +486,19 @@
 
             var button = $(this);
             var code = button.data('code');
-            var libelle = button.data('libelle');
+            var libelle = button[0] && button[0].getAttribute ? button[0].getAttribute('data-libelle') : button.data('libelle');
 
             if (code && libelle) {
                 confirmDelete(code, libelle);
             } else {
                 Swal.fire({
                     title: 'Erreur',
-                    text: 'Données manquantes pour la suppression',
+                    text: 'Données manquantes pour la suppression.',
                     icon: 'error',
-                    confirmButtonText: 'OK'
+                    confirmButtonText: 'OK',
+                    customClass: { popup: 'sl-swal-referentiel' }
                 });
             }
-        });
-
-        // Scripts pour le modal d'ajout
-        $('input[name="rattacher"]').change(function(){
-            var selectedValue = $(this).val();
-            if(selectedValue == "OUI"){
-                $(".institutionRattache").removeClass("d-none");
-                $("#codeinstitutionparent").prop('disabled', false).prop('required', true);
-                $(".typeLocalite").addClass("d-none");
-                $(".localite").addClass("d-none");
-                $("#codeTypeLocalite").prop('disabled', true).prop('required', false);
-                $("#codelocalites").prop('disabled', true).prop('required', false);
-            }
-            if(selectedValue == "NON"){
-                $(".institutionRattache").addClass("d-none");
-                $("#codeinstitutionparent").prop('disabled', true).prop('required', false).val('');
-                $(".typeLocalite").removeClass("d-none");
-                $("#codeTypeLocalite").prop('disabled', false).prop('required', true);
-            }
-        });
-
-        $("#codeinstitutionparent").on("change", function(){
-            if($(this).val() != ''){
-                $(".typeLocalite").removeClass("d-none");
-                $(".localite").removeClass("d-none");
-                $("#codeTypeLocalite").prop('disabled', false).prop('required', true);
-                $("#codelocalites").prop('disabled', false).prop('required', true);
-            }
-        });
-
-        $("#codetypeinstitution").on("change", function(){
-            var typeInstitution = $(this).val();
-            if(typeInstitution != "" && typeInstitution != null){
-                // Charger les institutions parents selon le type
-                loadAvailableParentsByType('#codeinstitutionparent', typeInstitution);
-            } else {
-                $('#codeinstitutionparent').html('<option value="">Sélectionnez d\'abord un type d\'institution</option>');
-            }
-        });
-
-        $("#codeTypeLocalite").on("change", function(){
-            $(".localite").removeClass("d-none");
-            var codetypeLoc = $(this).val();
-            if(codetypeLoc != "" && codetypeLoc != null){
-                getLocalite(codetypeLoc);
-            }
-        });
-
-        // Fonction pour charger les parents disponibles par type
-        function loadAvailableParentsByType(selectElement, codeTypeInstitution) {
-            if (!codeTypeInstitution) {
-                $(selectElement).html('<option value="">Sélectionnez d\'abord un type d\'institution</option>');
-                return;
-            }
-
-            var url = "{{ route('institution.available.parents.by.type', ':type') }}".replace(':type', codeTypeInstitution);
-            $(selectElement).html('<option value="">Chargement...</option>');
-            $(selectElement).prop('disabled', true);
-
-            $.ajax({
-                url: url,
-                method: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    var options = '<option value="">Aucune</option>';
-                    if (data && data.length > 0) {
-                        $.each(data, function(index, parent) {
-                            var typeLabel = parent.type_institution ? ' (' + parent.type_institution.lib_type_institution + ')' : '';
-                            options += '<option value="' + parent.code_institution + '">' + parent.lib_institution + typeLabel + '</option>';
-                        });
-                    }
-                    $(selectElement).html(options);
-                    $(selectElement).prop('disabled', false);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Erreur lors du chargement des parents disponibles:', error);
-                    $(selectElement).html('<option value="">Erreur lors du chargement</option>');
-                    $(selectElement).prop('disabled', false);
-                }
-            });
-        }
-
-        // Réinitialiser le formulaire d'ajout lors de l'ouverture du modal
-        $('#modalCEC').on('show.bs.modal', function() {
-            $('#addInstitutionForm')[0].reset();
-            $(".institutionRattache").addClass("d-none");
-            $(".typeLocalite").addClass("d-none");
-            $(".localite").addClass("d-none");
-            $("#codeinstitutionparent").prop('disabled', true).prop('required', false).html('<option value="">Sélectionnez d\'abord un type d\'institution</option>');
-            $("#codeTypeLocalite").prop('disabled', true).prop('required', false);
-            $("#codelocalites").prop('disabled', true).prop('required', false).html('<option value="">Sélectionnez d\'abord un type de localité</option>');
-            $('#rattacherNon').prop('checked', true);
         });
 
         // Fonction pour charger les parents disponibles (excluant l'institution et ses descendants)
@@ -784,23 +570,11 @@
                 })();
             @endif
         @endforeach
+    });
 
-        function getInstitution(id){
-            // Utiliser la nouvelle route pour charger les parents par type
-            loadAvailableParentsByType('#codeinstitutionparent', id);
-        }
-
-        function getLocalite(id){
-            var out = "<option selected disabled>Choisissez</option>";
-            $.get("{{ route('institution.get.localite') }}", { id:id }, function(data){
-                if(data.length > 0){
-                    for(var i=0; i < data.length; i++){
-                        out += "<option value="+data[i].code_localite+" >"+data[i].lib_localite+"</option>";
-                    }
-                }
-                $("#codelocalites").html(out);
-            });
-        }
+    $(document).on('submit', 'form[id^="editInstitutionForm"]', function () {
+        var btn = $(this).find('button[type="submit"]')[0];
+        if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
     });
 </script>
 @endsection

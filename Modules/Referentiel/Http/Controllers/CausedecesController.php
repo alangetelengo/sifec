@@ -94,15 +94,11 @@ class CausedecesController extends Controller
             $causeDeces->code_cause_deces = Sifec::genererCodeUniqueReferentiel($causeDeces, 'code_cause_deces', 4, 'CDCES_');
             $causeDeces->lib_cause_deces = $request->lib_cause_deces;
             $causeDeces->save();
-            flash()->success('Cause décès ajoutée avec succès');
 
-            return redirect()->route('causedeces.index');
+            return redirect()->route('causedeces.index')->with('success', 'Cause de décès enregistrée avec succès');
 
         } catch (Exception $e) {
-
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -118,16 +114,14 @@ class CausedecesController extends Controller
         $causeDeces = CauseDeces::where('code_cause_deces', $id)->first();
 
         if ($causeDeces == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         $request->validate([
             'lib_cause_deces' => [
                 'required',
                 'string',
-                Rule::unique('tr_cause_deces', [], 'lib_cause_deces')->whereNull('deleted_at')->ignore($causeDeces->code_cause_deces, 'code_cause_deces'),
+                Rule::unique('tr_cause_deces', 'lib_cause_deces')->whereNull('deleted_at')->ignore($causeDeces->code_cause_deces, 'code_cause_deces'),
             ],
         ], [
             'lib_cause_deces.unique' => 'Cette cause de décès existe déjà dans le système.',
@@ -136,15 +130,11 @@ class CausedecesController extends Controller
         try {
             $causeDeces->lib_cause_deces = $request->lib_cause_deces;
             $causeDeces->save();
-            flash()->success('Cause décès modifiée avec succès');
 
-            return redirect()->route('causedeces.index');
+            return redirect()->route('causedeces.index')->with('success', 'Cause de décès modifiée avec succès');
 
         } catch (Exception $e) {
-
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -159,26 +149,19 @@ class CausedecesController extends Controller
         $causeDeces = CauseDeces::where('code_cause_deces', $id)->first();
 
         if ($causeDeces == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
         try {
             // Vérifier les relations avant suppression
             if ($causeDeces->declarationsDeces()->count() > 0) {
-                flash()->error('Impossible de supprimer cette cause de décès car elle est utilisée par des déclarations');
-
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Impossible de supprimer cette cause de décès car elle est utilisée par des déclarations');
             }
 
             $causeDeces->delete();
-            flash()->success('Suppression effectuée avec succès');
 
-            return redirect()->route('causedeces.index');
+            return redirect()->route('causedeces.index')->with('success', 'Suppression effectuée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 }

@@ -14,19 +14,21 @@ class ReligionSeeder extends Seeder
      */
     public function run()
     {
-        $donnes = ["CHRISTIANISME","ISLAMIQUE","AUTRE"];
+        $donnes = ['CHRISTIANISME', 'ISLAMIQUE', 'AUTRE'];
 
         $data = [];
-        for($i = 0; $i < count($donnes); $i++){
+        for ($i = 0; $i < count($donnes); $i++) {
             $intCode = $i + 1;
             $count = $intCode;
-            $strCode = "RELI_".str_pad($count,4,"0",STR_PAD_LEFT);
-            $data[] = ["code_religion"=>$strCode,'lib_religion'=>$donnes[$i]];
+            $strCode = 'RELI_'.str_pad($count, 4, '0', STR_PAD_LEFT);
+            $data[] = ['code_religion' => $strCode, 'lib_religion' => $donnes[$i]];
         }
 
-
-        foreach($data as $d){
-            Religion::create($d);
+        foreach ($data as $d) {
+            Religion::updateOrCreate(
+                ['code_religion' => $d['code_religion']],
+                ['lib_religion' => $d['lib_religion']]
+            );
         }
     }
 }

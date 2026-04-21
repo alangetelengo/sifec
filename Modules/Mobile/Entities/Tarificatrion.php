@@ -2,10 +2,10 @@
 
 namespace Modules\Mobile\Entities;
 
-use App\Models\InstitutionUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Modules\Referentiel\Entities\Institution;
 
 class Tarificatrion extends Model
 {
@@ -27,8 +27,8 @@ class Tarificatrion extends Model
         return $this->belongsTo(TypeDocumentDemande::class, 'code_type_document_demande', 'code_type_document_demande');
     }
 
-    public function institutionUser(): BelongsTo
+    public function institution(): BelongsTo
     {
-        return $this->belongsTo(InstitutionUser::class, 'cui', 'cui');
+        return $this->belongsTo(Institution::class, 'code_institution', 'code_institution');
     }
 }

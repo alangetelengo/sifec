@@ -12,6 +12,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
+use Laravel\Passport\Http\Middleware\CheckToken;
+use Laravel\Passport\Http\Middleware\CheckTokenForAnyScope;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -39,6 +41,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             '2fa' => TwoFactorMiddleware::class,
             'mariage.cec' => EnsureCentreEtatCivilForMariage::class,
+            'scope' => CheckToken::class,
+            'scope.any' => CheckTokenForAnyScope::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
@@ -65,6 +69,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->call(function () {
             (new Sifec)->validiteCodeOtpActeDeces();
         })->everyMinute();
+
+        $schedule->command('demande-document:marquer-expirees')->dailyAt('00:15');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

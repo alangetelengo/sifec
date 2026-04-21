@@ -25,8 +25,23 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        Gate::before(function($user,$permission){
-            return $user->toutesfonctionnalites()->pluck("lib_technique")->unique()->contains($permission);
+        Gate::before(function ($user, $ability, array $arguments = []) {
+            if ($user === null) {
+                return null;
+            }
+
+            // Laisser les policies / autres checks (ex. 'update', 'viewAny') au reste du pipeline.
+            if (! is_string($ability) || ! str_starts_with($ability, 'module.')) {
+                return null;
+            }
+
+            // Super administrateur (FONC_0011) : accès à toutes les habilités module.* (évite écarts menu / tr_ff / module désactivé).
+            $codeFonction = optional($user->fonction())->code_fonction;
+            if ($codeFonction === 'FONC_0011') {
+                return true;
+            }
+
+            return $user->toutesfonctionnalites()->pluck('lib_technique')->unique()->contains($ability);
         });
     }
 }

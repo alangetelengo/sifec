@@ -20,12 +20,12 @@
         @endif
     </td>
     <td class="text-end sl-actions">
-        <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-primary sl-btn-icon" data-bs-toggle="modal" data-bs-target="#editLocaliteModal{{ $item->code_localite }}" title="Modifier">
-                <i class="fas fa-pen"></i>
+        <div class="sl-actions-group" role="group" aria-label="Actions">
+            <button type="button" class="sl-btn-action sl-btn-action-edit" data-bs-toggle="modal" data-bs-target="#editLocaliteModal{{ $item->code_localite }}" title="Modifier">
+                <i class="fas fa-pen" aria-hidden="true"></i>
             </button>
-            <button class="btn btn-outline-danger sl-btn-icon btn-delete" type="button" data-code="{{ $item->code_localite }}" data-libelle="{{ $item->lib_localite }}" title="Supprimer">
-                <i class="fas fa-trash-alt"></i>
+            <button type="button" class="sl-btn-action sl-btn-action-delete btn-delete" data-code="{{ $item->code_localite }}" data-libelle="{{ $item->lib_localite }}" title="Supprimer">
+                <i class="fas fa-trash-alt" aria-hidden="true"></i>
             </button>
         </div>
         <form action="{{ route('localite.destroy', $item->code_localite) }}" method="post" class="d-none" id="deleteForm{{ $item->code_localite }}">

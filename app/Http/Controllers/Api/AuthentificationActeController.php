@@ -4,9 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuthentificationActe;
-use App\Models\DemandePortailParticulier;
+use App\Services\DemandeDocumentService;
 use App\Sifec\Sifec;
-use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -170,246 +169,119 @@ class AuthentificationActeController extends Controller
     // DemandeCopie depuis le portail
     public function demandeActe(Request $request)
     {
+        // 1. Validation des données
+        $validated = $request->validate([
+            'type_acte' => 'required|in:Naissance,Mariage,Décès',
+            'type_document' => 'required|in:Copie,Extrait,Extrait acte naissance,Extrait acte décès,Extrait acte mariage',
+            'numero_acte' => 'nullable|string',
+            'nom_acte' => 'required_without:numero_acte|string',
+            'prenom_acte' => 'nullable|string',
+            'sexe_acte' => 'nullable|in:M,F',
+            'date_naissance_acte' => 'nullable|date',
+            'lieu_naissance_acte' => 'nullable|string',
+            'cec_acte' => 'nullable|string',
+            'nom_demandeur' => 'required|string',
+            'telephone_demandeur' => 'required|string',
+            'email_demandeur' => 'nullable|email',
+            'cec_traitement' => 'nullable|string',
+            'montant_a_payer' => 'nullable|numeric',
+            'moyen_paiement' => 'nullable|string',
+        ]);
 
-        // récupération des informations
-        $typeActe = $request->type_acte;
-        $typeDocument = $request->type_document;
-        $numeroActe = $request->numero_acte;
-        $nomActe = $request->nom_acte;
-        $prenomActe = $request->prenom_acte;
-        $sexeActe = $request->sexe_acte;
-        $dateNaissanceActe = $request->date_naissance_acte;
-        $lieuNaissanceActe = $request->lieu_naissance_acte;
-        $cecActe = $request->cec_acte;
-        $nomDemandeur = $request->nom_demandeur;
-        $telDemandeur = $request->telephone_demandeur;
-        $emailDemandeur = $request->email_demandeur;
-        // cec chargé de traiter la demande
-        $cecTraitement = $request->cec_traitement;
-        // nombre d'exemplaires et montant
-        // $nombreExemplaire = $request->nombre_exemplaire;
-        $montantApayer = $request->montant_a_payer;
-        // moyen de paiement
-        $moyenPaiement = $request->moyen_paiement;
-        // numero de paiement
-        $numeroMomo = $request->numero_momo;
-        $numDec = '';
+        // 2. Mapper type_acte vers code_type_acte
+        $codeTypeActe = match ($validated['type_acte']) {
+            'Naissance' => 'TAC_0001',
+            'Mariage' => 'TAC_0002',
+            'Décès' => 'TAC_0004',
+            default => null,
+        };
 
-        if ($typeActe == 'Naissance') {
-
-            // -1 vérification de l'existence de l'authenticité de l'acte
-            if ($numeroActe != '') {
-                // cas de recherche par numéro acte
-                $an = ActeNaissance::findByIdentifier($numeroActe);
-                if ($an != null && $an->niupp) {
-                    // récupération code déclaration pour l'appel des services Etats
-                    $numDec = $an->code_declaration_naissance;
-
-                } else {
-                    return 'Acte non trouvé';
-                }
-            } else {
-                // recherche par identification du sujet
-                $dn = DB::select('SELECT * from t_declaration_naissance dn, tr_identification_personne t
-                                        where t.code_personne = dn.code_enfant
-                                        and t.sexe = "%'.$sexeActe.'%"
-                                            and t.nom like "%'.$nomActe.'%"
-                                            and t.prenom like "%'.$prenomActe.'%"
-                                            and t.lieu_naissance like "%'.$lieuNaissanceActe.'%"
-                                            and t.date_naissance like "%'.$dateNaissanceActe.'%"
-                ');
-
-                if ($dn != null) {
-                    // récupéération code déclaration pour l'appel des services Etats
-                    $numDec = $dn->code_declaration_naissance;
-                } else {
-                    return response()->json(['code' => '180', 'message' => 'Acte non trouvé']);
-                }
-
-            }
-
-            // 0.enregistrement des informations de la demande
-            // $dmd = new DemandePortailParticulier();
-
-            // //$dmd->code_demande = Sifec::genererCodeUniqueReferentiel($dmd,"code_demande",4,"DMD_PORTAIL_");
-            // $dmd->statut_demande = "En attente de paiement";
-            // $dmd->type_acte = $typeActe;
-            // $dmd->type_document = $typeDocument;
-            // $dmd->num_acte = $numeroActe;
-            // $dmd->nom_acte = $nomActe;
-            // $dmd->prenom_acte = $prenomActe;
-            // $dmd->sexe_acte = $sexeActe;
-            // $dmd->date_naissance_acte = date("Y-m-d", strtotime($dateNaissanceActe));
-            // $dmd->lieu_naissance_acte = $lieuNaissanceActe;
-            // $dmd->cec_acte = $cecActe;
-
-            // $dmd->nom_demandeur = $nomDemandeur;
-            // $dmd->telephone_demandeur = $telDemandeur;
-            // $dmd->email_demandeur = $emailDemandeur;
-
-            // //$dmd->nombre_exemplaire = $nombreExemplaire;
-            // $dmd->cout = $montantApayer;
-            // $dmd->cec_associe = $cecTraitement; //cas des extraits
-            // $dmd->moyen_paiement = $moyenPaiement;
-
-            // $dmd->dateDemande = Carbon::now()->toDateTimeString(); //cas des extraits
-
-            // $dmd->save();
-
-            if ($typeDocument == 'Copie') {
-                $piece = route('copieActeNaissancePortail', $numDec.'|'.$cecTraitement);
-            }
-
-            if ($typeDocument == 'Extrait acte naissance') {
-                $piece = route('acteNaissance.displayExtraitActePortail', $numDec.'|'.$cecTraitement);
-            }
-
-            return $piece;
-
+        // 3. Mapper type_document vers code_type_document_demande
+        $typeDocument = $validated['type_document'];
+        $codeTypeDocument = null;
+        if (stripos($typeDocument, 'Copie') !== false) {
+            $codeTypeDocument = 'TDD_0001';
+        } elseif (stripos($typeDocument, 'Extrait') !== false) {
+            $codeTypeDocument = 'TDD_0002';
         }
-        if ($typeActe == 'Mariage') {
-            // -1 vérification de l'existence de l'authenticité de l'acte
-            if ($numeroActe != '') {
-                // cas de recherche par numéro acte
-                $am = ActeMariage::find($numeroActe);
 
-                if ($am != null) {
-                    // récupéération code déclaration pour l'appel des services Etats
-                    $numDec = $am->code_declaration_mariage;
-
-                } else {
-                    return response()->json(['code' => '180', 'message' => "Acte non trouvé. Veuillez modifier le numéro d'acte et réessayer!"]);
-                }
-            } else {
-                // recherche par identification du sujet :: information de l'épouse ::
-                $am = DB::select('SELECT * from t_declaration_mariage dm, and t_identification_personne t
-                            where t.code_personne = dm.code_epouse
-                            and t.sexe = "%'.$sexeActe.'%"
-                                and t.nom like "%'.$nomActe.'%"
-                                and t.prenom like "%'.$prenomActe.'%"
-                                and t.lieu_deces like "%'.$lieuNaissanceActe.'%"
-                                and t.date_deces like "%'.$dateNaissanceActe.'%"
-            ');
-
-                if ($am != null) {
-                    // récupéération code déclaration pour l'appel des services Etats
-                    $numDec = $am->code_declaration_mariage;
-
-                } else {
-                    return response()->json(['code' => '180', 'message' => "Acte non trouvé. Veuillez modifier le numéro d'acte et réessayer!"]);
-                }
-
-            }
-
-            // 0.enregistrement des informations de la demande
-            $dmd = new DemandePortailParticulier;
-
-            // $dmd->code_demande = Sifec::genererCodeUniqueReferentiel($dmd,"code_demande",4,"DMD_PORTAIL_");
-            $dmd->statut_demande = 'En attente de paiement';
-            $dmd->type_acte = $typeActe;
-            $dmd->type_document = $typeDocument;
-            $dmd->num_acte = $numeroActe;
-            $dmd->nom_acte = $nomActe;
-            $dmd->prenom_acte = $prenomActe;
-            $dmd->sexe_acte = $sexeActe;
-            $dmd->date_naissance_acte = date('Y-m-d', strtotime($dateNaissanceActe));
-            $dmd->lieu_naissance_acte = $lieuNaissanceActe;
-            $dmd->cec_acte = $cecActe;
-
-            $dmd->nom_demandeur = $nomDemandeur;
-            $dmd->telephone_demandeur = $telDemandeur;
-            $dmd->email_demandeur = $emailDemandeur;
-
-            // $dmd->nombre_exemplaire = $nombreExemplaire;
-            $dmd->cout = $montantApayer;
-            $dmd->cec_associe = $cecTraitement; // cas des extraits
-            $dmd->moyen_paiement = $moyenPaiement;
-
-            $dmd->dateDemande = Carbon::now()->toDateTimeString(); // cas des extraits
-
-            $dmd->save();
-
+        if (! $codeTypeDocument) {
             return response()->json([
-                'code' => '200',
-                'demandeDocument' => $dmd,
+                'code' => '400',
+                'message' => 'Type de document invalide',
+            ], 400);
+        }
+
+        // 4. Vérification de l'existence de l'acte
+        $numeroActe = $validated['numero_acte'] ?? null;
+        $acte = null;
+
+        if (! empty($numeroActe)) {
+            // Recherche par numéro d'acte
+            $acte = app(DemandeDocumentService::class)
+                ->rechercherActe($codeTypeActe, $numeroActe);
+
+            if (! $acte) {
+                return response()->json([
+                    'code' => '180',
+                    'message' => "Acte non trouvé. Veuillez vérifier le numéro d'acte.",
+                ]);
+            }
+        } else {
+            // TODO: Recherche par critères (nom, prénom, date, lieu)
+            // Pour l'instant, on requiert le numéro d'acte
+            return response()->json([
+                'code' => '400',
+                'message' => 'Le numéro d\'acte est requis pour le moment',
+            ], 400);
+        }
+
+        // 5. Récupérer l'institution CEC destinataire
+        $codeInstitution = null;
+        if (! empty($validated['cec_traitement'])) {
+            $institution = Institution::where('lib_institution', $validated['cec_traitement'])
+                ->orWhere('code_institution', $validated['cec_traitement'])
+                ->first();
+            if ($institution) {
+                $codeInstitution = $institution->code_institution;
+            }
+        }
+
+        // 6. Créer la demande via le service
+        try {
+            $demande = app(DemandeDocumentService::class)->creerDemandePortail([
+                'nom_demandeur' => $validated['nom_demandeur'],
+                'prenom_demandeur' => $validated['prenom_acte'] ?? null,
+                'sexe_demandeur' => $validated['sexe_acte'] ?? 'M',
+                'telephone_demandeur' => $validated['telephone_demandeur'],
+                'email_demandeur' => $validated['email_demandeur'] ?? null,
+                'numero_acte' => $numeroActe,
+                'code_type_acte' => $codeTypeActe,
+                'code_type_document_demande' => $codeTypeDocument,
+                'code_institution' => $codeInstitution,
             ]);
 
-        }
-
-        if ($typeActe == 'Décès') {
-
-            // return response()->json(["typeDocument"=>$request->type_document]);
-
-            // -1 vérification de l'existence de l'authenticité de l'acte
-            if ($numeroActe != '') {
-                // cas de recherche par numéro acte
-                $ad = ActeDeces::find($numeroActe);
-
-                if ($ad != null) {
-                    // récupéération code déclaration pour l'appel des services Etats
-                    $numDec = $ad->code_declaration_deces;
-
-                } else {
-                    return response()->json(['code' => '180', 'message' => "Acte non trouvé. Veuillez modifier le numéro d'acte et réessayer!"]);
-                }
-            } else {
-                // recherche par identification du sujet
-                $ad = DB::select('SELECT * from t_declaration_deces dc, and t_identification_personne t
-                                where t.code_personne = dc.code_defunt
-                                and t.sexe = "%'.$sexeActe.'%"
-                                    and t.nom like "%'.$nomActe.'%"
-                                    and t.prenom like "%'.$prenomActe.'%"
-                                    and t.lieu_deces like "%'.$lieuNaissanceActe.'%"
-                                    and t.date_deces like "%'.$dateNaissanceActe.'%"
-                ');
-
-                if ($ad != null) {
-                    // récupéération code déclaration pour l'appel des services Etats
-                    $numDec = $ad->code_declaration_deces;
-
-                } else {
-                    return response()->json(['code' => '180', 'message' => "Acte non trouvé. Veuillez modifier le numéro d'acte et réessayer!"]);
-                }
-
-            }
-
-            // 0.enregistrement des informations de la demande
-            $dmd = new DemandePortailParticulier;
-
-            // $dmd->code_demande = Sifec::genererCodeUniqueReferentiel($dmd,"code_demande",4,"DMD_PORTAIL_");
-            $dmd->statut_demande = 'En attente de paiement';
-            $dmd->type_acte = $typeActe;
-            $dmd->type_document = $typeDocument;
-            $dmd->num_acte = $numeroActe;
-            $dmd->nom_acte = $nomActe;
-            $dmd->prenom_acte = $prenomActe;
-            $dmd->sexe_acte = $sexeActe;
-            $dmd->date_naissance_acte = date('Y-m-d', strtotime($dateNaissanceActe));
-            $dmd->lieu_naissance_acte = $lieuNaissanceActe;
-            $dmd->cec_acte = $cecActe;
-
-            $dmd->nom_demandeur = $nomDemandeur;
-            $dmd->telephone_demandeur = $telDemandeur;
-            $dmd->email_demandeur = $emailDemandeur;
-
-            // $dmd->nombre_exemplaire = $nombreExemplaire;
-            $dmd->cout = $montantApayer;
-            $dmd->cec_associe = $cecTraitement; // cas des extraits
-            $dmd->moyen_paiement = $moyenPaiement;
-
-            $dmd->dateDemande = Carbon::now()->toDateTimeString(); // cas des extraits
-
-            $dmd->save();
-
+            // 7. Retour avec les informations de la demande
             return response()->json([
                 'code' => '200',
-                'demandeDocument' => $dmd,
+                'message' => 'Demande créée avec succès',
+                'code_demande' => $demande->code_demande_document,
+                'montant' => $demande->prix,
+                'statut' => $demande->statut,
+                // URL paiement (commentée pour l'instant)
+                // 'url_paiement' => route('api.paiement', ['code_demande' => $demande->code_demande_document]),
+            ]);
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('Erreur création demande portail API', [
+                'error' => $e->getMessage(),
+                'data' => $validated,
             ]);
 
+            return response()->json([
+                'code' => '500',
+                'message' => 'Erreur lors de la création de la demande',
+            ], 500);
         }
-
-        return response()->json(['code' => '180', 'message' => "veuiller choisir un type d'acte valable"]);
-
     }
 
     public function displayCopie($id)

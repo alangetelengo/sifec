@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Mobile\Database\Seeders\TypeActeTableSeeder;
+use Modules\Mobile\Database\Seeders\TypeDocumentDemandeTableSeeder;
 use Modules\Rectification\Database\Seeders\RubriqueSeederTableSeeder;
 
 /**
@@ -48,7 +49,7 @@ class DatabaseSeeder extends Seeder
             // ── Types d'actes ─────────────────────────────────────────────────
             TypeActeTableSeeder::class,
             RubriqueSeederTableSeeder::class,
-
+            TypeDocumentDemandeTableSeeder::class,
             // ── Modules & habilitations ──────────────────────────────────────
             ModuleSeeder::class,
             FonctionnaliteSeeder::class,

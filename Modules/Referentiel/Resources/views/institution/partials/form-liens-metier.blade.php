@@ -1,14 +1,18 @@
 @php
+    use Illuminate\Database\Eloquent\Collection as EloquentCollection;
     use Modules\Referentiel\Entities\TypeLienInstitution;
-    $selDeces = $institution->liensSortants
+    $liensSrc = $institution->relationLoaded('liensSortants')
+        ? $institution->getRelation('liensSortants')
+        : new EloquentCollection([]);
+    $selDeces = $liensSrc
         ->where('code_type_lien', TypeLienInstitution::CODE_PARTENAIRE_DECES_POMPE)
         ->pluck('code_institution_cible')
         ->all();
-    $selNaissance = $institution->liensSortants
+    $selNaissance = $liensSrc
         ->where('code_type_lien', TypeLienInstitution::CODE_FORMATION_CEC_NAISSANCE)
         ->pluck('code_institution_cible')
         ->all();
-    $selTribunal = $institution->liensSortants
+    $selTribunal = $liensSrc
         ->where('code_type_lien', TypeLienInstitution::CODE_TRIBUNAL_RESSORT)
         ->pluck('code_institution_cible')
         ->all();

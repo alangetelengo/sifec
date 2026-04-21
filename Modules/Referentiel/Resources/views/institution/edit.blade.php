@@ -8,9 +8,14 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Modifier l'institution</h4>
-                <a href="{{ route('institution.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Retour à la liste
-                </a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('institution.create') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i>Nouvelle institution
+                    </a>
+                    <a href="{{ route('institution.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Retour à la liste
+                    </a>
+                </div>
             </div>
             <div class="card">
                 <div class="card-header bg-info text-white">
@@ -165,6 +170,11 @@
         }
         $('input[name="newrattacher"]').on('change', toggleEditParentBlock);
         toggleEditParentBlock();
+    });
+
+    $('#editInstitutionForm').on('submit', function () {
+        var btn = $(this).find('button[type="submit"]')[0];
+        if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
     });
 </script>
 @endsection
