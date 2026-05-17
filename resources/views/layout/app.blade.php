@@ -27,6 +27,8 @@
 
     <link href="{{ asset('tpl/vendor/bootstrap-select/dist/css/bootstrap-select.min.css')}}" rel="stylesheet">
 	<link href="{{ asset('tpl/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')}}" rel="stylesheet">
+    <link href="{{ asset('tpl/icons/font-awesome/css/all.min.css')}}" rel="stylesheet">
+    <link href="{{ asset('css/flaticon-to-fontawesome.css') }}?v=5" rel="stylesheet">
     <link href="{{ asset('tpl/css/style.css')}}" rel="stylesheet">
     @include('layout._deznav_sifec_theme')
     <link rel="stylesheet" href="{{asset('tpl/vendor/toastr/css/toastr.min.css')}}" type="text/css">

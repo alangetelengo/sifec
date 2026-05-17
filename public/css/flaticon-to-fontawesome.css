@@ -1,0 +1,221 @@
+/**
+ * Mapping des icônes Flaticon vers Font Awesome
+ * Les navigateurs modernes ne supportent plus les polices SVG utilisées par Flaticon
+ */
+
+/* Style par défaut pour toutes les classes flaticon */
+[class^="flaticon-"]:before, 
+[class*=" flaticon-"]:before {   
+    font-family: "Font Awesome 5 Free" !important;
+    font-style: normal !important;
+    font-weight: 900 !important;
+    display: inline-block !important;
+    text-rendering: auto !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Icônes du menu principal */
+.flaticon-381-networking:before { 
+    content: "\f015" !important; /* home - Accueil */
+}
+
+.flaticon-381-edit:before { 
+    content: "\f02d" !important; /* book - Référentiel */
+}
+
+.flaticon-381-hospital:before,
+.flaticon-381-layer-1:before { 
+    content: "\f0f0" !important; /* user-md - Santé */
+}
+
+.flaticon-381-first-aid-kit:before { 
+    content: "\f479" !important; /* first-aid - Centre d'hygiène */
+}
+
+.flaticon-381-cross:before { 
+    content: "\f654" !important; /* cross - Pompes funèbres */
+}
+
+.flaticon-381-building:before,
+.flaticon-381-certificate:before { 
+    content: "\f1ad" !important; /* building - État civil (Mairie centrale et CEC) */
+}
+
+.flaticon-381-airplane:before { 
+    content: "\f072" !important; /* plane - Ambassade */
+}
+
+.flaticon-381-law:before { 
+    content: "\f0e3" !important; /* gavel - Tribunal */
+}
+
+.flaticon-381-settings-2:before { 
+    content: "\f0ad" !important; /* wrench - Administration */
+}
+
+.flaticon-381-controls-3:before { 
+    content: "\f1fe" !important; /* chart-area - Statistiques */
+}
+
+.flaticon-381-notepad:before { 
+    content: "\f15c" !important; /* file-alt - Documents */
+}
+
+.flaticon-381-internet:before { 
+    content: "\f0ac" !important; /* globe - Internet */
+}
+
+.flaticon-381-search-2:before { 
+    content: "\f002" !important; /* search */
+}
+
+.flaticon-381-user:before { 
+    content: "\f007" !important; /* user */
+}
+
+.flaticon-381-envelope:before { 
+    content: "\f0e0" !important; /* envelope */
+}
+
+.flaticon-381-calendar:before { 
+    content: "\f133" !important; /* calendar */
+}
+
+.flaticon-381-folder:before { 
+    content: "\f07b" !important; /* folder */
+}
+
+.flaticon-381-document:before,
+.flaticon-381-file:before { 
+    content: "\f15b" !important; /* file */
+}
+
+.flaticon-381-plus:before,
+.flaticon-381-add:before { 
+    content: "\f067" !important; /* plus */
+}
+
+.flaticon-381-trash:before { 
+    content: "\f2ed" !important; /* trash-alt */
+}
+
+.flaticon-381-heart:before { 
+    content: "\f004" !important; /* heart */
+}
+
+.flaticon-381-network:before { 
+    content: "\f0e8" !important; /* sitemap */
+}
+
+.flaticon-381-menu:before,
+.flaticon-381-bars:before { 
+    content: "\f0c9" !important; /* bars/menu */
+}
+
+.flaticon-381-bell:before { 
+    content: "\f0f3" !important; /* bell */
+}
+
+.flaticon-381-notepad:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f15c" !important; /* file-alt */
+    font-weight: 900;
+}
+
+.flaticon-381-television:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f26c" !important; /* tv */
+    font-weight: 900;
+}
+
+.flaticon-381-internet:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f0ac" !important; /* globe */
+    font-weight: 900;
+}
+
+.flaticon-381-heart:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f004" !important; /* heart */
+    font-weight: 900;
+}
+
+.flaticon-381-network:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f0e8" !important; /* sitemap */
+    font-weight: 900;
+}
+
+.flaticon-381-search-2:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f002" !important; /* search */
+    font-weight: 900;
+}
+
+/* Autres icônes flaticon courantes */
+.flaticon-381-user:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f007" !important; /* user */
+    font-weight: 900;
+}
+
+.flaticon-381-menu:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f0c9" !important; /* bars/menu */
+    font-weight: 900;
+}
+
+.flaticon-381-bell:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f0f3" !important; /* bell */
+    font-weight: 900;
+}
+
+.flaticon-381-envelope:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f0e0" !important; /* envelope */
+    font-weight: 900;
+}
+
+.flaticon-381-calendar:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f073" !important; /* calendar */
+    font-weight: 900;
+}
+
+.flaticon-381-folder:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f07b" !important; /* folder */
+    font-weight: 900;
+}
+
+.flaticon-381-document:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f15b" !important; /* file */
+    font-weight: 900;
+}
+
+.flaticon-381-plus:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f067" !important; /* plus */
+    font-weight: 900;
+}
+
+.flaticon-381-trash:before { 
+    font-family: "Font Awesome 5 Free" !important;
+    content: "\f1f8" !important; /* trash */
+    font-weight: 900;
+}
+
+/* Style par défaut pour toutes les classes flaticon */
+[class^="flaticon-"]:before, 
+[class*=" flaticon-"]:before {   
+    font-family: "Font Awesome 5 Free" !important;
+    font-style: normal;
+    font-weight: 900;
+    display: inline-block;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

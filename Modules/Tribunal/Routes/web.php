@@ -17,8 +17,14 @@ use Modules\Tribunal\Http\Controllers\DocumentTribunalController;
 
 Route::middleware("auth")->prefix('tribunal')->group(function() {
     Route::get('/', [TribunalController::class,'index'])->name("tribunal.document.index");
-    Route::get('document/create/{type}/{id}', [TribunalController::class,'create'])->name("tribunal.document.create");
-    Route::post('document/store/{type}/{id}', [TribunalController::class,'store'])->name("tribunal.document.store");
+    
+    // Routes protégées pour la création/import de jugements
+    Route::middleware('can:module.tribunal.jugement.create')->group(function() {
+        Route::get('document/create/{type}/{id}', [TribunalController::class,'create'])->name("tribunal.document.create");
+        Route::post('document/store/{type}/{id}', [TribunalController::class,'store'])->name("tribunal.document.store");
+        Route::get('document/importer/{type}/{code}', [TribunalController::class, 'importDocumentTribunal'])->name('tribunal.document.importer');
+    });
+    
     Route::get('declarations/voir-document/{type}/{id}', [TribunalController::class,'voirDocument'])->name("tribunal.voir_document");
 
     // Voir le certificat venant du centre d'état civil
@@ -45,9 +51,6 @@ Route::middleware("auth")->prefix('tribunal')->group(function() {
     Route::post('/tribunal/renvoyer-certificat', [TribunalController::class, 'renvoyerCertificat'])->name('tribunal.renvoyer.certificat');
 
     Route::get('document/rectification', [TribunalController::class, 'dossiersRectification'])->name('tribunal.document.rectification');
-
-    Route::get('document/importer/{type}/{code}', [TribunalController::class, 'importDocumentTribunal'])->name('tribunal.document.importer');
-
 
     //ajouter les nouvelles routes ici
     Route::get('document/historique', [TribunalController::class, 'historique'])->name('tribunal.document.historique');

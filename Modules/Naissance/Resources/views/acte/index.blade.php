@@ -523,7 +523,7 @@ Actes de naissance
 </div>
 {{-- FIN MODAL CONFIRMATION DOSSIERS EN GROUPE --}}
 
-{{-- DEBUT MODAL ANNULATION ACTE --}}
+{{-- DEBUT MODAL ANNULATION ACTE AVEC OTP --}}
 <div class="modal fade" id="modal-annulation-acte" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -534,7 +534,7 @@ Actes de naissance
             <div class="modal-body">
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Attention :</strong> Cette action va annuler définitivement l'acte de naissance. Cette opération est irréversible.
+                    <strong>Attention :</strong> Cette action va annuler définitivement l'acte de naissance. Cette opération est irréversible et nécessite une validation par code OTP.
                 </div>
                 <div class="row">
                     <div class="mb-2 col-md-12">
@@ -556,10 +556,27 @@ Actes de naissance
                         <label class="form-label">Observation</label>
                         <textarea id="observation-annulation" class="form-control" rows="3" placeholder="Détails sur l'annulation..."></textarea>
                     </div>
+                    
+                    {{-- Section OTP --}}
+                    <div class="mb-2 col-md-12" id="section-otp-annulation" style="display:none;">
+                        <hr>
+                        <div class="alert alert-info">
+                            <i class="fas fa-shield-alt"></i>
+                            <strong>Validation de sécurité :</strong> Un code OTP a été envoyé par SMS et email à l'officier d'état civil.
+                        </div>
+                        <label class="form-label">Code OTP <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="otp-annulation" placeholder="Entrez le code à 6 chiffres" maxlength="6" pattern="[0-9]{6}">
+                        <small class="text-muted">Code valide pendant <span id="otp-timer-annulation">5:00</span> minutes</small>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-danger btn-sm text-white" id="btn-annuler-final">Annuler l'acte</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-envoyer-otp-annulation">
+                    <i class="fas fa-paper-plane"></i> Envoyer le code OTP
+                </button>
+                <button type="submit" class="btn btn-danger btn-sm text-white" id="btn-annuler-final" style="display:none;">
+                    <i class="fas fa-check"></i> Valider l'annulation
+                </button>
                 <button type="button" class="btn btn-sm btn-secondary text-white" data-bs-dismiss="modal">Fermer</button>
             </div>
         </div>
@@ -604,7 +621,7 @@ Actes de naissance
     </div>
 </div>
 
-{{-- MODAL ANNULATION EN GROUPE --}}
+{{-- MODAL ANNULATION EN GROUPE AVEC OTP --}}
 <div class="modal fade" id="modal-annulation-actes-bulk" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -615,7 +632,7 @@ Actes de naissance
             <div class="modal-body">
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Attention :</strong> Cette action va annuler définitivement tous les actes sélectionnés. Cette opération est irréversible.
+                    <strong>Attention :</strong> Cette action va annuler définitivement tous les actes sélectionnés. Cette opération est irréversible et nécessite une validation par code OTP.
                 </div>
                 <div class="row">
                     <div class="mb-2 col-md-12">
@@ -633,10 +650,27 @@ Actes de naissance
                         <label class="form-label">Observation</label>
                         <textarea id="observation-annulation-bulk" class="form-control" rows="3" placeholder="Détails sur l'annulation..."></textarea>
                     </div>
+                    
+                    {{-- Section OTP --}}
+                    <div class="mb-2 col-md-12" id="section-otp-annulation-bulk" style="display:none;">
+                        <hr>
+                        <div class="alert alert-info">
+                            <i class="fas fa-shield-alt"></i>
+                            <strong>Validation de sécurité :</strong> Un code OTP a été envoyé par SMS et email à l'officier d'état civil.
+                        </div>
+                        <label class="form-label">Code OTP <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="otp-annulation-bulk" placeholder="Entrez le code à 6 chiffres" maxlength="6" pattern="[0-9]{6}">
+                        <small class="text-muted">Code valide pendant <span id="otp-timer-annulation-bulk">5:00</span> minutes</small>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-danger btn-sm text-white" id="btn-annuler-bulk-final">Annuler les actes</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-envoyer-otp-annulation-bulk">
+                    <i class="fas fa-paper-plane"></i> Envoyer le code OTP
+                </button>
+                <button type="submit" class="btn btn-danger btn-sm text-white" id="btn-annuler-bulk-final" style="display:none;">
+                    <i class="fas fa-check"></i> Valider l'annulation
+                </button>
                 <button type="button" class="btn btn-sm btn-secondary text-white" data-bs-dismiss="modal">Fermer</button>
             </div>
         </div>
@@ -1348,50 +1382,130 @@ Actes de naissance
         $("#modal-renvoi-dossiers-bulk").modal('show');
     });
 
-    // Annulation d'un acte individuel
+    // Annulation d'un acte individuel avec OTP
     $(".btn-annuler-acte").on("click", function(){
         var codeDeclaration = $(this).data('id');
         $("#code-declaration-annulation").val(codeDeclaration);
+        $("#section-otp-annulation").hide();
+        $("#otp-annulation").val('');
+        $("#btn-envoyer-otp-annulation").show();
+        $("#btn-annuler-final").hide();
         $("#modal-annulation-acte").modal('show');
     });
+
+    // Envoi du code OTP pour annulation
+    $("#btn-envoyer-otp-annulation").on("click", function(){
+        var codeDeclaration = $("#code-declaration-annulation").val();
+        var motif = $("#motif-annulation").val();
+        
+        if(!motif){
+            flashAlert("ALERTE","error",'Veuillez sélectionner un motif d\'annulation avant d\'envoyer le code OTP');
+            return;
+        }
+        
+        var $btn = $(this);
+        sifecBtnLoading($btn[0], "Envoi OTP...");
+        
+        $.ajax({
+            url: "{{ route('acteNaissance.send.otp.annulation') }}",
+            type: 'POST',
+            data: {
+                code_declaration_naissance: codeDeclaration,
+                resend: 0,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(resp){
+                sifecBtnReset($btn[0], "Envoyer le code OTP");
+                if(resp.code == "200"){
+                    flashAlert("Succès","success", resp.message);
+                    $("#section-otp-annulation").show();
+                    $("#btn-envoyer-otp-annulation").hide();
+                    $("#btn-annuler-final").show();
+                    
+                    // Démarrer le timer OTP
+                    var sec = resp.valid_for_seconds ? parseInt(resp.valid_for_seconds, 10) : 300;
+                    startOtpTimerAnnulation(sec);
+                }else{
+                    let msg = Array.isArray(resp.message) ? resp.message[0] : resp.message;
+                    flashAlert("Erreur","error",msg);
+                }
+            },
+            error: function(xhr){
+                sifecBtnReset($btn[0], "Envoyer le code OTP");
+                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'envoi du code OTP';
+                flashAlert("Erreur","error",msg);
+            }
+        });
+    });
+
+    // Validation de l'annulation avec OTP
     $("#btn-annuler-final").on("click", function(){
         var codeDeclaration = $("#code-declaration-annulation").val();
         var motif = $("#motif-annulation").val();
         var observation = $("#observation-annulation").val();
+        var otp = $("#otp-annulation").val();
+        
         if(!motif){
             flashAlert("ALERTE","error",'Veuillez sélectionner un motif d\'annulation');
             return;
         }
-        sifecBtnLoading(this, "Annulation...");
+        if(!otp || otp.length !== 6){
+            flashAlert("ALERTE","error",'Veuillez entrer le code OTP à 6 chiffres');
+            return;
+        }
+        
+        sifecBtnLoading(this, "Validation...");
         var $btn = $(this);
+        
         $.ajax({
-            url: "{{ route('acteNaissance.annuler') }}",
+            url: "{{ route('acteNaissance.validate.otp.annulation') }}",
             type: 'POST',
             data: {
                 code_declaration_naissance: codeDeclaration,
                 motif: motif,
                 observation: observation,
+                otp_annulation: otp,
                 _token: '{{ csrf_token() }}'
             },
             success: function(resp){
-                sifecBtnReset($btn[0], "Annuler l'acte");
+                sifecBtnReset($btn[0], "Valider l'annulation");
                 if(resp.code == "200"){
                     let msg = Array.isArray(resp.message) ? resp.message[0] : (typeof resp.message === 'object' && resp.message.reponse) ? resp.message.reponse : resp.message;
-                    flashAlert("Réponse","success",msg);
+                    flashAlert("Succès","success",msg);
                     $('#modal-annulation-acte').modal('hide');
                     setTimeout(()=>location.reload(), 1000);
                 }else{
                     let msg = Array.isArray(resp.message) ? resp.message[0] : resp.message;
-                    flashAlert("Réponse","error",msg);
+                    flashAlert("Erreur","error",msg);
                 }
             },
             error: function(xhr){
-                sifecBtnReset($btn[0], "Annuler l'acte");
+                sifecBtnReset($btn[0], "Valider l'annulation");
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation de l\'acte';
                 flashAlert("Erreur","error",msg);
             }
         });
     });
+
+    // Fonction timer OTP pour annulation
+    function startOtpTimerAnnulation(seconds) {
+        var timerDisplay = $("#otp-timer-annulation");
+        var intervalId = setInterval(function() {
+            var minutes = Math.floor(seconds / 60);
+            var secs = seconds % 60;
+            timerDisplay.text(minutes + ":" + (secs < 10 ? "0" : "") + secs);
+            
+            if (seconds <= 0) {
+                clearInterval(intervalId);
+                timerDisplay.text("Expiré");
+                flashAlert("Attention", "warning", "Le code OTP a expiré. Veuillez en demander un nouveau.");
+                $("#section-otp-annulation").hide();
+                $("#btn-envoyer-otp-annulation").show();
+                $("#btn-annuler-final").hide();
+            }
+            seconds--;
+        }, 1000);
+    }
 
 
 
@@ -1745,48 +1859,127 @@ Actes de naissance
         });
     });
 
-    // Ajout du JS pour l'annulation groupée
+    // Ajout du JS pour l'annulation groupée avec OTP
     $(".annuler-actes").on("click", function(){
         if(actesGeneres.length == 0){
             flashAlert("Attention", "warning", "Veuillez sélectionner au moins un acte à annuler.");
             return;
         }
+        $("#section-otp-annulation-bulk").hide();
+        $("#otp-annulation-bulk").val('');
+        $("#btn-envoyer-otp-annulation-bulk").show();
+        $("#btn-annuler-bulk-final").hide();
         $("#modal-annulation-actes-bulk").modal('show');
     });
+
+    // Envoi du code OTP pour annulation groupée
+    $("#btn-envoyer-otp-annulation-bulk").on("click", function(){
+        var motif = $("#motif-annulation-bulk").val();
+        
+        if(!motif){
+            flashAlert("ALERTE","error",'Veuillez sélectionner un motif d\'annulation avant d\'envoyer le code OTP');
+            return;
+        }
+        
+        var $btn = $(this);
+        sifecBtnLoading($btn[0], "Envoi OTP...");
+        
+        $.ajax({
+            url: "{{ route('acteNaissance.send.otp.annulation.bulk') }}",
+            type: 'POST',
+            data: {
+                codes: actesGeneres,
+                resend: 0,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(resp){
+                sifecBtnReset($btn[0], "Envoyer le code OTP");
+                if(resp.code == "200"){
+                    flashAlert("Succès","success", resp.message);
+                    $("#section-otp-annulation-bulk").show();
+                    $("#btn-envoyer-otp-annulation-bulk").hide();
+                    $("#btn-annuler-bulk-final").show();
+                    
+                    // Démarrer le timer OTP
+                    var sec = resp.valid_for_seconds ? parseInt(resp.valid_for_seconds, 10) : 300;
+                    startOtpTimerAnnulationBulk(sec);
+                }else{
+                    let msg = Array.isArray(resp.message) ? resp.message[0] : resp.message;
+                    flashAlert("Erreur","error",msg);
+                }
+            },
+            error: function(xhr){
+                sifecBtnReset($btn[0], "Envoyer le code OTP");
+                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'envoi du code OTP';
+                flashAlert("Erreur","error",msg);
+            }
+        });
+    });
+
+    // Validation de l'annulation groupée avec OTP
     $("#btn-annuler-bulk-final").on("click", function(){
         var motif = $("#motif-annulation-bulk").val();
         var observation = $("#observation-annulation-bulk").val();
+        var otp = $("#otp-annulation-bulk").val();
+        
         if(!motif){
             let msg = 'Veuillez sélectionner un motif d\'annulation';
             flashAlert("ALERTE","error",msg);
             return;
         }
+        if(!otp || otp.length !== 6){
+            flashAlert("ALERTE","error",'Veuillez entrer le code OTP à 6 chiffres');
+            return;
+        }
+        
         var btnAnnulBulk = this;
-        sifecBtnLoading(btnAnnulBulk, 'Annulation...');
+        sifecBtnLoading(btnAnnulBulk, 'Validation...');
+        
         $.ajax({
-            url: "{{ route('acteNaissance.annuler.bulk') }}",
+            url: "{{ route('acteNaissance.validate.otp.annulation.bulk') }}",
             type: 'POST',
             data: {
                 codes: actesGeneres,
                 motif: motif,
                 observation: observation,
+                otp_annulation: otp,
                 _token: '{{ csrf_token() }}'
             },
             success: function(response){
                 let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                flashAlert("Réponse","success",msg);
+                flashAlert("Succès","success",msg);
                 $('#modal-annulation-actes-bulk').modal('hide');
                 setTimeout(()=>location.reload(), 1000);
             },
             error: function(xhr){
                 let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de l\'annulation des actes';
-                flashAlert("Réponse","error",msg);
+                flashAlert("Erreur","error",msg);
             },
             complete: function() {
-                sifecBtnReset(btnAnnulBulk);
+                sifecBtnReset(btnAnnulBulk, 'Annuler les actes');
             }
         });
     });
+
+    // Fonction timer OTP pour annulation groupée
+    function startOtpTimerAnnulationBulk(seconds) {
+        var timerDisplay = $("#otp-timer-annulation-bulk");
+        var intervalId = setInterval(function() {
+            var minutes = Math.floor(seconds / 60);
+            var secs = seconds % 60;
+            timerDisplay.text(minutes + ":" + (secs < 10 ? "0" : "") + secs);
+            
+            if (seconds <= 0) {
+                clearInterval(intervalId);
+                timerDisplay.text("Expiré");
+                flashAlert("Attention", "warning", "Le code OTP a expiré. Veuillez en demander un nouveau.");
+                $("#section-otp-annulation-bulk").hide();
+                $("#btn-envoyer-otp-annulation-bulk").show();
+                $("#btn-annuler-bulk-final").hide();
+            }
+            seconds--;
+        }, 1000);
+    }
 
     // Ajout du JS pour la confirmation singleton
     $("#btn-confirmer-final").on("click", function(){

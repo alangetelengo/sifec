@@ -97,9 +97,15 @@ Route::middleware("auth")->prefix("registre")->group(function() {
     Route::get("{id}/send-otp", [RegistreController::class,'sendOtp'])
         ->middleware('throttle:registre-send-otp')
         ->name("registre.send.otp");
+    Route::post("send-otp-bulk", [RegistreController::class,'sendOtpBulk'])
+        ->middleware('throttle:registre-send-otp')
+        ->name("registre.send.otp.bulk");
     Route::post("validate-otp", [RegistreController::class,'validateOtp'])
         ->middleware('throttle:registre-validate-otp')
         ->name("registre.validate.otp");
+    Route::post("validate-otp-bulk", [RegistreController::class,'validateOtpBulk'])
+        ->middleware('throttle:registre-validate-otp')
+        ->name("registre.validate.otp.bulk");
     Route::post("close-registre", [RegistreController::class,'cloturerRegistre'])->name("registre.cloture");
     Route::delete("{id}/destroy", [RegistreController::class, 'destroy'])->name("registre.destroy");
 

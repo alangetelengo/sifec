@@ -243,6 +243,7 @@ class TribunalDeclarationService
                 }
                 $document->num_jugement = $request->num_document ?? null;
                 $document->date_jugement = $request->date_document;
+                $document->numero_ancien_acte = $request->numero_ancien_acte ?? null;
             }
             // Upload du fichier
             if ($request->hasFile('document_importer') && $request->file('document_importer')->isValid()) {

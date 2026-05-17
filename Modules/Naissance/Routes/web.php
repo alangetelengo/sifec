@@ -64,6 +64,12 @@ Route::middleware('auth')->prefix('acteNaissance')->group(function() {
     Route::post("send-otp-bulk", [ActeNaissanceController::class,'sendOtpBulk'])->name("acteNaissance.send.otp.bulk");
     Route::post("validate-otp", [ActeNaissanceController::class,'validateOtp'])->name("acteNaissance.validate.otp");
     Route::post("validate-otp-bulk", [ActeNaissanceController::class,'validateOtpBulk'])->name("acteNaissance.validate.otp.bulk");
+    
+    // Routes OTP pour l'annulation d'acte
+    Route::post("send-otp-annulation", [ActeNaissanceController::class,'sendOtpAnnulation'])->name("acteNaissance.send.otp.annulation");
+    Route::post("send-otp-annulation-bulk", [ActeNaissanceController::class,'sendOtpAnnulationBulk'])->name("acteNaissance.send.otp.annulation.bulk");
+    Route::post("validate-otp-annulation", [ActeNaissanceController::class,'validateOtpAnnulation'])->name("acteNaissance.validate.otp.annulation");
+    Route::post("validate-otp-annulation-bulk", [ActeNaissanceController::class,'validateOtpAnnulationBulk'])->name("acteNaissance.validate.otp.annulation.bulk");
     Route::get('{id}/generate',[ActeNaissanceController::class,"displayActe"])->name('acteNaissance.display');
     Route::post('generate-bulk',[ActeNaissanceController::class,"generateActeBulk"])->name('acteNaissance.generate.bulk');
     Route::get('{id}/acte/copie',[ActeNaissanceController::class,"displayCopie"])->name('acteNaissance.copie');

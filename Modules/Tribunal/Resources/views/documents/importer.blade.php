@@ -117,13 +117,24 @@
                         </div>
                         <div class="mb-3 col-md-4 typejugement d-none">
                             <label class="form-label">Type de jugement <span class="text-danger">*</span></label>
-                            <select name="code_type_jugement" class="form-control code_type_jugement" disabled>
+                            <select name="code_type_jugement" id="code_type_jugement" class="form-control code_type_jugement" disabled>
                                 <option value="" selected>Sélectionner</option>
                                 @foreach ($typeJugements as $typejugement)
-                                    <option value="{{ $typejugement->code_type_jugement }}">{{ $typejugement->lib_type_jugement }}</option>
+                                    <option value="{{ $typejugement->code_type_jugement }}" data-libelle="{{ $typejugement->lib_type_jugement }}">{{ $typejugement->lib_type_jugement }}</option>
                                 @endforeach
                             </select>
                             @error('code_type_jugement')
+                                <div class="text-danger small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="mb-3 col-md-6 champ-numero-ancien-acte d-none">
+                            <label class="form-label">N° de l'ancien acte (NIUPP) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" placeholder="Ex: NAISS/2023/12345" name="numero_ancien_acte" id="numero_ancien_acte" value="{{ old('numero_ancien_acte') }}">
+                            <small class="text-muted">Numéro de l'acte à annuler ou adopter</small>
+                            @error('numero_ancien_acte')
                                 <div class="text-danger small">{{ $message }}</div>
                             @enderror
                         </div>
@@ -186,6 +197,8 @@ $(function(){
                 $('div.typerequisition').removeClass('d-none');
                 $('select.code_type_requisition').prop('disabled', false);
                 $('select.code_type_jugement').prop('disabled', true);
+                $('div.champ-numero-ancien-acte').addClass('d-none');
+                $('#numero_ancien_acte').prop('required', false);
             }
             if (typeDoc === 'jugement') {
                 $('div.typerequisition').addClass('d-none');
@@ -198,6 +211,25 @@ $(function(){
             $('div.typejugement').addClass('d-none');
             $('select.code_type_jugement').prop('disabled', true);
             $('select.code_type_requisition').prop('disabled', true);
+            $('div.champ-numero-ancien-acte').addClass('d-none');
+            $('#numero_ancien_acte').prop('required', false);
+        }
+    });
+
+    // Afficher/masquer le champ "numero_ancien_acte" selon le type de jugement
+    $('#code_type_jugement').on('change', function(){
+        var selectedOption = $(this).find('option:selected');
+        var libelleJugement = selectedOption.data('libelle') || '';
+        
+        // Afficher le champ pour les jugements d'annulation et d'adoption
+        if (libelleJugement.toUpperCase().includes('ANNULATION') || 
+            libelleJugement.toUpperCase().includes('ADOPTION') ||
+            libelleJugement.toUpperCase().includes('HOMOLOGATION')) {
+            $('div.champ-numero-ancien-acte').removeClass('d-none');
+            $('#numero_ancien_acte').prop('required', true);
+        } else {
+            $('div.champ-numero-ancien-acte').addClass('d-none');
+            $('#numero_ancien_acte').prop('required', false);
         }
     });
 

@@ -224,6 +224,17 @@
                     <small>N&deg; ancien acte de naissance  <strong>{{ $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
                     @endif
                 @endif
+                
+                {{-- Mention pour acte d'annulation --}}
+                @if($acte->declaration->jugement->type_jugement == "JUGEMENT D'ANNULATION D'ACTE" || ($acte->est_acte_annulation ?? false))
+                    <small><strong style="color: red; font-size: 110%;">ACTE ANNULÉ</strong></small><br>
+                    <small>Suivant JUGEMENT D'ANNULATION N&deg;: <strong>{{ $acte->declaration->jugement->num_jugement }}</strong></small><br>
+                    <small>du : <strong>{{ date("d-m-Y", strtotime($acte->declaration->jugement->date_jugement)) }}</strong></small><br>
+                    <small>au : <strong>{{ $acte->declaration->jugement->institutionUser->institution->institutionParent->lib_institution }}</strong></small><br>
+                    @if($acte->niupp_acte_annule ?? $acte->declaration->jugement->numero_ancien_acte)
+                    <small>N&deg; acte annulé : <strong>{{ $acte->niupp_acte_annule ?? $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
+                    @endif
+                @endif
            @endif
           {{-- recuperer les rectification de l'acte avec ses détails--}}
             @if (isset($acte->rectifications) && $acte->rectifications->count() > 0)
