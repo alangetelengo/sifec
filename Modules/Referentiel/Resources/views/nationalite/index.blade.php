@@ -64,7 +64,14 @@
                                         <td><strong>{{ $item->lib_nationalite }}</strong></td>
                                         <td>
                                             <div class="d-flex justify-content-center gap-2">
-                                                <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editNationaliteModal{{ $item->code_nationalite }}" title="Modifier">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-primary shadow btn-xs sharp btn-edit"
+                                                    data-code="{{ $item->code_nationalite }}"
+                                                    data-libelle="{{ $item->lib_nationalite }}"
+                                                    data-update-url="{{ route('nationalite.update', $item->code_nationalite) }}"
+                                                    title="Modifier"
+                                                >
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </button>
                                                 <form action="{{ route('nationalite.destroy', $item->code_nationalite) }}" method="post" class="d-inline" id="deleteForm{{ $item->code_nationalite }}">
@@ -145,18 +152,16 @@
         </div>
     </div>
 
-    <!-- Modals Modification -->
-    @foreach ($nationalites as $item)
-    <div class="modal fade" id="editNationaliteModal{{ $item->code_nationalite }}" tabindex="-1" aria-labelledby="editNationaliteModalLabel{{ $item->code_nationalite }}" aria-hidden="true">
+    <div class="modal fade" id="editNationaliteModal" tabindex="-1" aria-labelledby="editNationaliteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editNationaliteModalLabel{{ $item->code_nationalite }}">
-                        <i class="fas fa-edit me-2"></i>Modifier {{ $item->lib_nationalite }}
+                    <h5 class="modal-title" id="editNationaliteModalLabel">
+                        <i class="fas fa-edit me-2"></i><span id="editNationaliteModalTitle">Modifier une nationalité</span>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('nationalite.update', $item->code_nationalite) }}" method="POST" id="editNationaliteForm{{ $item->code_nationalite }}">
+                <form action="#" method="POST" id="editNationaliteForm">
                     @csrf
                     @method('PUT')
                     <div class="modal-body">
@@ -164,7 +169,7 @@
                             <div class="mb-3 col-md-12">
                                 <label class="form-label fw-bold">Libellé de la nationalité <span class="text-danger">*</span></label>
                                 <input class="form-control form-control-lg @error('lib_nationalite') is-invalid @enderror"
-                                       name="lib_nationalite" type="text" value="{{ $item->lib_nationalite }}" required>
+                                       name="lib_nationalite" id="edit-lib-nationalite" type="text" value="" required>
                                 @error("lib_nationalite")
                                 <div class="invalid-feedback">
                                     <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
@@ -185,7 +190,6 @@
             </div>
         </div>
     </div>
-    @endforeach
 </div>
 </div>
 </div>
@@ -350,10 +354,34 @@
                   var libelle = this.getAttribute('data-libelle');
                   confirmDelete(code, libelle);
               });
+              $(document).on('click', '.btn-edit', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  var libelle = this.getAttribute('data-libelle') || '';
+                  var updateUrl = this.getAttribute('data-update-url') || '';
+                  if (!updateUrl) {
+                      flashAlert("Erreur", "error", "Impossible d’ouvrir le formulaire de modification.");
+                      return;
+                  }
+
+                  $('#editNationaliteForm').attr('action', updateUrl);
+                  $('#edit-lib-nationalite').val(libelle);
+                  $('#editNationaliteModalTitle').text('Modifier ' + libelle);
+
+                  var modalEl = document.getElementById('editNationaliteModal');
+                  if (!modalEl) return;
+                  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                  modal.show();
+              });
 
               // Réinitialiser le formulaire lors de l'ouverture du modal
               $('#addNationaliteModal').on('show.bs.modal', function() {
                   $('#addNationaliteForm')[0].reset();
+              });
+              $('#editNationaliteModal').on('hidden.bs.modal', function () {
+                  $('#editNationaliteForm').attr('action', '#');
+                  $('#edit-lib-nationalite').val('');
+                  $('#editNationaliteModalTitle').text('Modifier une nationalité');
               });
           });
 
@@ -361,7 +389,7 @@
               var btn = $(this).find('button[type="submit"]')[0];
               if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
           });
-          $(document).on('submit', 'form[id^="editNationaliteForm"]', function () {
+          $(document).on('submit', '#editNationaliteForm', function () {
               var btn = $(this).find('button[type="submit"]')[0];
               if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
           });

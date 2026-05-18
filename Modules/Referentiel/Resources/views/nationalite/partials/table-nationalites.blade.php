@@ -8,7 +8,14 @@
         <td><strong>{{ $item->lib_nationalite }}</strong></td>
         <td>
             <div class="d-flex justify-content-center gap-2">
-                <button type="button" class="btn btn-primary shadow btn-xs sharp" data-bs-toggle="modal" data-bs-target="#editNationaliteModal{{ $item->code_nationalite }}" title="Modifier">
+                <button
+                    type="button"
+                    class="btn btn-primary shadow btn-xs sharp btn-edit"
+                    data-code="{{ $item->code_nationalite }}"
+                    data-libelle="{{ $item->lib_nationalite }}"
+                    data-update-url="{{ route('nationalite.update', $item->code_nationalite) }}"
+                    title="Modifier"
+                >
                     <i class="fas fa-pencil-alt"></i>
                 </button>
                 <form action="{{ route('nationalite.destroy', $item->code_nationalite) }}" method="post" class="d-inline" id="deleteForm{{ $item->code_nationalite }}">

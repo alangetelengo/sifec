@@ -139,21 +139,20 @@
     </div>
 </div>
 
-@foreach ($religions as $item)
-<div class="modal fade" id="editReligionModal{{ $item->code_religion }}" tabindex="-1" aria-labelledby="editReligionModalLabel{{ $item->code_religion }}" aria-hidden="true">
+<div class="modal fade" id="editReligionModal" tabindex="-1" aria-labelledby="editReligionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
             <div class="modal-header sl-modal-header text-white border-0 py-3">
-                <h5 class="modal-title" id="editReligionModalLabel{{ $item->code_religion }}"><i class="fas fa-pen-to-square me-2"></i>Modifier — {{ $item->lib_religion }}</h5>
+                <h5 class="modal-title" id="editReligionModalLabel"><i class="fas fa-pen-to-square me-2"></i><span id="editReligionModalTitle">Modifier une religion</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-            <form action="{{ route('religion.update', $item->code_religion) }}" method="POST" id="editReligionForm{{ $item->code_religion }}">
+            <form action="#" method="POST" id="editReligionForm">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Libellé <span class="text-danger">*</span></label>
-                        <input class="form-control form-control-lg @error('lib_religion') is-invalid @enderror" name="lib_religion" type="text" value="{{ $item->lib_religion }}" required>
+                        <input class="form-control form-control-lg @error('lib_religion') is-invalid @enderror" name="lib_religion" id="edit-lib-religion" type="text" value="" required>
                         @error('lib_religion')
                             <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
                         @enderror
@@ -167,7 +166,6 @@
         </div>
     </div>
 </div>
-@endforeach
 @endsection
 @section('scripts')
 <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
@@ -286,15 +284,39 @@
             var libelle = this.getAttribute('data-libelle');
             if (code && libelle) confirmDeleteReligion(code, libelle);
         });
+        $(document).on('click', '.btn-edit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var libelle = this.getAttribute('data-libelle') || '';
+            var updateUrl = this.getAttribute('data-update-url') || '';
+            if (!updateUrl) {
+                flashAlert('Erreur', 'error', 'Impossible d’ouvrir le formulaire de modification.');
+                return;
+            }
+
+            $('#editReligionForm').attr('action', updateUrl);
+            $('#edit-lib-religion').val(libelle);
+            $('#editReligionModalTitle').text('Modifier — ' + libelle);
+
+            var modalEl = document.getElementById('editReligionModal');
+            if (!modalEl) return;
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
 
         $('#addReligionModal').on('show.bs.modal', function () { $('#addReligionForm')[0].reset(); });
+        $('#editReligionModal').on('hidden.bs.modal', function () {
+            $('#editReligionForm').attr('action', '#');
+            $('#edit-lib-religion').val('');
+            $('#editReligionModalTitle').text('Modifier une religion');
+        });
     });
 
     $('#addReligionForm').on('submit', function () {
         var btn = $(this).find('button[type="submit"]')[0];
         if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
     });
-    $(document).on('submit', 'form[id^="editReligionForm"]', function () {
+    $(document).on('submit', '#editReligionForm', function () {
         var btn = $(this).find('button[type="submit"]')[0];
         if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
     });

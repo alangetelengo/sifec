@@ -139,21 +139,27 @@
     </div>
 </div>
 
-@foreach ($causeDeces as $item)
-<div class="modal fade" id="editCauseDecesModal{{ $item->code_cause_deces }}" tabindex="-1" aria-labelledby="editCauseDecesModalLabel{{ $item->code_cause_deces }}" aria-hidden="true">
+<div class="modal fade" id="editCauseDecesModal" tabindex="-1" aria-labelledby="editCauseDecesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
             <div class="modal-header sl-modal-header text-white border-0 py-3">
-                <h5 class="modal-title" id="editCauseDecesModalLabel{{ $item->code_cause_deces }}"><i class="fas fa-pen-to-square me-2"></i>Modifier — {{ $item->lib_cause_deces }}</h5>
+                <h5 class="modal-title" id="editCauseDecesModalLabel"><i class="fas fa-pen-to-square me-2"></i><span id="editCauseDecesModalTitle">Modifier une cause de décès</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-            <form action="{{ route('causedeces.update', $item->code_cause_deces) }}" method="POST" id="editCauseDecesForm{{ $item->code_cause_deces }}">
+            <form action="#" method="POST" id="editCauseDecesForm">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Libellé <span class="text-danger">*</span></label>
-                        <input class="form-control form-control-lg @error('lib_cause_deces') is-invalid @enderror" name="lib_cause_deces" type="text" value="{{ $item->lib_cause_deces }}" required>
+                        <input
+                            class="form-control form-control-lg @error('lib_cause_deces') is-invalid @enderror"
+                            name="lib_cause_deces"
+                            id="edit-lib-cause-deces"
+                            type="text"
+                            value=""
+                            required
+                        >
                         @error('lib_cause_deces')
                             <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
                         @enderror
@@ -167,7 +173,6 @@
         </div>
     </div>
 </div>
-@endforeach
 @endsection
 @section('scripts')
 <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
@@ -288,15 +293,39 @@
             var libelle = this.getAttribute('data-libelle');
             if (code && libelle) confirmDeleteCauseDeces(code, libelle);
         });
+        $(document).on('click', '.btn-edit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var libelle = this.getAttribute('data-libelle') || '';
+            var updateUrl = this.getAttribute('data-update-url') || '';
+            if (!updateUrl) {
+                flashAlert('Erreur', 'error', 'Impossible d’ouvrir le formulaire de modification.');
+                return;
+            }
+
+            $('#editCauseDecesForm').attr('action', updateUrl);
+            $('#edit-lib-cause-deces').val(libelle);
+            $('#editCauseDecesModalTitle').text('Modifier — ' + libelle);
+
+            var modalEl = document.getElementById('editCauseDecesModal');
+            if (!modalEl) return;
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
 
         $('#addCauseDecesModal').on('show.bs.modal', function () { $('#addCauseDecesForm')[0].reset(); });
+        $('#editCauseDecesModal').on('hidden.bs.modal', function () {
+            $('#editCauseDecesForm').attr('action', '#');
+            $('#edit-lib-cause-deces').val('');
+            $('#editCauseDecesModalTitle').text('Modifier une cause de décès');
+        });
     });
 
     $('#addCauseDecesForm').on('submit', function () {
         var btn = $(this).find('button[type="submit"]')[0];
         if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
     });
-    $(document).on('submit', 'form[id^="editCauseDecesForm"]', function () {
+    $(document).on('submit', '#editCauseDecesForm', function () {
         var btn = $(this).find('button[type="submit"]')[0];
         if (typeof sifecBtnLoading === 'function') sifecBtnLoading(btn, 'Enregistrement…');
     });

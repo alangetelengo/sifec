@@ -4,7 +4,14 @@
     <td><span class="sl-lib fw-semibold text-dark">{{ $item->lib_profession }}</span></td>
     <td class="text-end sl-actions">
         <div class="sl-actions-group" role="group" aria-label="Actions">
-            <button type="button" class="sl-btn-action sl-btn-action-edit" data-bs-toggle="modal" data-bs-target="#editProfessionModal{{ $item->code_profession }}" title="Modifier">
+            <button
+                type="button"
+                class="sl-btn-action sl-btn-action-edit btn-edit"
+                data-code="{{ $item->code_profession }}"
+                data-libelle="{{ $item->lib_profession }}"
+                data-update-url="{{ route('profession.update', $item->code_profession) }}"
+                title="Modifier"
+            >
                 <i class="fas fa-pen" aria-hidden="true"></i>
             </button>
             <button type="button" class="sl-btn-action sl-btn-action-delete btn-delete" data-code="{{ $item->code_profession }}" data-libelle="{{ $item->lib_profession }}" title="Supprimer">

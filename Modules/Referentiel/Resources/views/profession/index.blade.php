@@ -146,24 +146,23 @@
     </div>
 </div>
 
-@foreach ($professions as $item)
-<div class="modal fade" id="editProfessionModal{{ $item->code_profession }}" tabindex="-1" aria-labelledby="editProfessionModalLabel{{ $item->code_profession }}" aria-hidden="true">
+<div class="modal fade" id="editProfessionModal" tabindex="-1" aria-labelledby="editProfessionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg" style="border-radius:14px;overflow:hidden;">
             <div class="modal-header sl-modal-header text-white border-0 py-3">
-                <h5 class="modal-title" id="editProfessionModalLabel{{ $item->code_profession }}">
-                    <i class="fas fa-pen-to-square me-2"></i>Modifier — {{ $item->lib_profession }}
+                <h5 class="modal-title" id="editProfessionModalLabel">
+                    <i class="fas fa-pen-to-square me-2"></i><span id="editProfessionModalTitle">Modifier une profession</span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-            <form action="{{ route('profession.update', $item->code_profession) }}" method="POST" id="editProfessionForm{{ $item->code_profession }}">
+            <form action="#" method="POST" id="editProfessionForm">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Libellé de la profession <span class="text-danger">*</span></label>
                         <input class="form-control form-control-lg @error('lib_profession') is-invalid @enderror"
-                               name="lib_profession" type="text" value="{{ $item->lib_profession }}" required>
+                               name="lib_profession" id="edit-lib-profession" type="text" value="" required>
                         @error('lib_profession')
                             <div class="invalid-feedback"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
                         @enderror
@@ -181,7 +180,6 @@
         </div>
     </div>
 </div>
-@endforeach
 @endsection
 @section('scripts')
 <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
@@ -363,9 +361,33 @@
                 confirmDeleteProfession(code, libelle);
             }
         });
+        $(document).on('click', '.btn-edit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var libelle = this.getAttribute('data-libelle') || '';
+            var updateUrl = this.getAttribute('data-update-url') || '';
+            if (!updateUrl) {
+                flashAlert('Erreur', 'error', 'Impossible d’ouvrir le formulaire de modification.');
+                return;
+            }
+
+            $('#editProfessionForm').attr('action', updateUrl);
+            $('#edit-lib-profession').val(libelle);
+            $('#editProfessionModalTitle').text('Modifier — ' + libelle);
+
+            var modalEl = document.getElementById('editProfessionModal');
+            if (!modalEl) return;
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
 
         $('#addProfessionModal').on('show.bs.modal', function () {
             $('#addProfessionForm')[0].reset();
+        });
+        $('#editProfessionModal').on('hidden.bs.modal', function () {
+            $('#editProfessionForm').attr('action', '#');
+            $('#edit-lib-profession').val('');
+            $('#editProfessionModalTitle').text('Modifier une profession');
         });
     });
 
@@ -375,7 +397,7 @@
             sifecBtnLoading(btn, 'Enregistrement…');
         }
     });
-    $(document).on('submit', 'form[id^="editProfessionForm"]', function () {
+    $(document).on('submit', '#editProfessionForm', function () {
         var btn = $(this).find('button[type="submit"]')[0];
         if (typeof sifecBtnLoading === 'function') {
             sifecBtnLoading(btn, 'Enregistrement…');

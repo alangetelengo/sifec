@@ -94,14 +94,10 @@ class NationaliteController extends Controller
             $nationalite->code_nationalite = Sifec::genererCodeUniqueReferentiel($nationalite, 'code_nationalite', 4, 'NAT_');
             $nationalite->lib_nationalite = $request->lib_nationalite;
             $nationalite->save();
-            flash()->success('Nationalité ajoutée avec succès');
-
-            return redirect()->route('nationalite.index');
+            return redirect()->route('nationalite.index')->with('success', 'Nationalité ajoutée avec succès');
 
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -116,9 +112,7 @@ class NationaliteController extends Controller
         $nationalite = Nationalite::where('code_nationalite', $id)->first();
 
         if ($nationalite == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         $request->validate([
@@ -134,14 +128,10 @@ class NationaliteController extends Controller
         try {
             $nationalite->lib_nationalite = $request->lib_nationalite;
             $nationalite->save();
-            flash()->success('Nationalité modifiée avec succès');
-
-            return redirect()->route('nationalite.index');
+            return redirect()->route('nationalite.index')->with('success', 'Nationalité modifiée avec succès');
 
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -156,27 +146,19 @@ class NationaliteController extends Controller
         $nationalite = Nationalite::where('code_nationalite', $id)->first();
 
         if ($nationalite == null) {
-            flash()->error('Impossible de charger cette page');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Impossible de charger cette page');
         }
 
         try {
             // Vérifier les relations avant suppression
             if ($nationalite->personnes()->count() > 0) {
-                flash()->error('Impossible de supprimer cette nationalité car elle est utilisée par des personnes');
-
-                return redirect()->back();
+                return redirect()->back()->with('error', 'Impossible de supprimer cette nationalité car elle est utilisée par des personnes');
             }
 
             $nationalite->delete();
-            flash()->success('suppression effectuée avec succès');
-
-            return redirect()->route('nationalite.index');
+            return redirect()->route('nationalite.index')->with('success', 'Suppression effectuée avec succès');
         } catch (Exception $e) {
-            flash()->error($e->getMessage());
-
-            return redirect()->back();
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }
