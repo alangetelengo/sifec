@@ -58,11 +58,85 @@
         return message;
     }
 
+    function calculerEcartJoursDeclarationCeremonie(dateDeclaration, dateCeremonie) {
+        if (!dateDeclaration || !dateCeremonie) {
+            return null;
+        }
+
+        var d1 = new Date(dateDeclaration);
+        var d2 = new Date(dateCeremonie);
+        d1.setHours(0, 0, 0, 0);
+        d2.setHours(0, 0, 0, 0);
+
+        return Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24));
+    }
+
+    /**
+     * Normal : centre d'état civil ET cérémonie >= 60 j après déclaration.
+     * Dispense : hors centre OU cérémonie < 60 j après déclaration.
+     */
+    function determinerTypeDeclarationMariage(dateDeclaration, dateCeremonie, lieuCeremonie, typeMariage) {
+        typeMariage = typeMariage || $("#type_mariage").val() || "NORMAL";
+
+        if (typeMariage === "PROCURATION") {
+            return "PROCURATION";
+        }
+
+        if (typeMariage === "posthume") {
+            return "POSTHUME";
+        }
+
+        if (!dateDeclaration || !dateCeremonie) {
+            return "DECLARATION DE MARIAGE";
+        }
+
+        var ecartJours = calculerEcartJoursDeclarationCeremonie(dateDeclaration, dateCeremonie);
+        if (ecartJours === null) {
+            return "DECLARATION DE MARIAGE";
+        }
+
+        var lieuCentre = lieuCeremonie === "Centre d'état civil";
+        var delaiSuffisant = ecartJours >= 60;
+
+        if (lieuCentre && delaiSuffisant) {
+            return "DECLARATION DE MARIAGE";
+        }
+
+        return "DISPENSE";
+    }
+
+    function mettreAJourTypeDeclarationFormulaire() {
+        var dateDeclaration = $("#date_declaration_mariage").val();
+        var dateCeremonie = $("#date_ceremonie_mariage").val();
+        var lieuCeremonie = $("#lieu_ceremonie_mariage").val();
+        var typeMariage = $("#type_mariage").val();
+
+        var type = determinerTypeDeclarationMariage(dateDeclaration, dateCeremonie, lieuCeremonie, typeMariage);
+        $("#type_declaration").val(type);
+
+        var ecartJours = calculerEcartJoursDeclarationCeremonie(dateDeclaration, dateCeremonie);
+        if (ecartJours !== null && ecartJours < 60) {
+            $(".notification").slideDown(300);
+        } else {
+            $(".notification").fadeOut();
+        }
+
+        if (lieuCeremonie === "Hors centre d'état civil") {
+            $(".notification2").slideDown(300);
+        } else {
+            $(".notification2").fadeOut();
+        }
+    }
+
     $(document).ready(function(){
         //dissimulation par défaut de la notification épouse mineure
         $("#notificationEpouseMineure").hide();
         $("#notificationEpouxMineure").hide();
         $("#notificationPreMariage").hide();
+
+        $("#date_declaration_mariage, #date_ceremonie_mariage, #lieu_ceremonie_mariage, #type_mariage").on("change blur", function () {
+            mettreAJourTypeDeclarationFormulaire();
+        });
 
         // Initialisation du wizard
         var form = $(".validation-wizard").show();
@@ -434,6 +508,8 @@
     }
 
     function soumission(){
+        mettreAJourTypeDeclarationFormulaire();
+
      // informations de l'époux
         var type_declaration = $("#type_declaration");
         var type_mariage = $("#type_mariage");

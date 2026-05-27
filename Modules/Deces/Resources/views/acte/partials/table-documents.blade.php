@@ -6,9 +6,11 @@
                 $dernierMouvement = $dd->mouvements->sortByDesc('created_at')->first();
             }
             $codesMouvements = $dd->mouvements ? $dd->mouvements->pluck('code_mouvement')->toArray() : [];
-            $acteProduit = collect(['MOUV_0014','MOUV_0015','MOUV_0016','MOUV_0017','MOUV_0023'])->intersect($codesMouvements)->isNotEmpty();
-            $acteValide = $dd->acte && $dd->acte->statut == 1 && $dd->acte->approbation_pompe_funebre;
             $dejaConfirme = in_array('MOUV_0019', $codesMouvements);
+            $dossierRecu = in_array('MOUV_0002', $codesMouvements) || in_array('MOUV_2006', $codesMouvements);
+            $contexteCertificat = $dd->contexteCertificatOrigine();
+            $afficherDeclarationPf = $dd->type_declaration === 'DECLARATION DE DECES'
+                && ($dejaConfirme || filled($dd->type_declaration_origine));
         @endphp
         <tr width="100%" @if($dejaConfirme) class="table-light" @endif>
             <td>
@@ -25,30 +27,25 @@
             <td>{{ $dd->type_declaration }}</td>
             <td style="width: 15%">
                 @if($dernierMouvement)
-                    @if($dernierMouvement->code_mouvement == 'MOUV_0002' || $dernierMouvement->code_mouvement == 'MOUV_2006')
+                    @if($dossierRecu && !$dejaConfirme)
                         <span class="badge light badge-warning" style="font-size: 13px;font-weight:600;">
                             Dossier reçu
+                        </span>
+                    @elseif($dernierMouvement->code_mouvement == 'MOUV_0004')
+                        <span class="badge light badge-info" style="font-size: 13px;font-weight:600;">
+                            {{ $dernierMouvement->lib_mouvement }}
+                        </span>
+                    @elseif($dernierMouvement->code_mouvement == 'MOUV_0019')
+                        <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
+                            Confirmé par la PF
+                        </span>
+                    @elseif($dernierMouvement->code_mouvement == 'MOUV_2012')
+                        <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
+                            {{ $dernierMouvement->lib_mouvement }}
                         </span>
                     @else
                         <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
                             {{ $dernierMouvement->lib_mouvement }}
-                        </span>
-                    @endif
-
-                    @if($dernierMouvement->code_mouvement == 'MOUV_0004')
-                        <span class="badge light badge-info" style="font-size: 13px;font-weight:600;">
-                            {{ $dernierMouvement->lib_mouvement }}
-                        </span>
-                    @endif
-
-                    @if($dernierMouvement->code_mouvement == 'MOUV_0016')
-                        <span class="badge light badge-success" style="font-size: 13px;font-weight:600;">
-                            {{ $dernierMouvement->lib_mouvement }}
-                        </span>
-                    @endif
-                    @if($dernierMouvement->code_mouvement == 'MOUV_0017')
-                        <span class="badge light badge-secondary" style="font-size: 13px;font-weight:600;">
-                            {{ $dernierMouvement->lib_mouvement}}
                         </span>
                     @endif
                     <br>
@@ -61,28 +58,46 @@
                 @endif
             </td>
             <td>
-                <div class="btn-group btn-group-xs">
+                <div class="d-flex flex-wrap align-items-center gap-1">
                     <a href="{{ route('declarationDeces.show', $dd->code_declaration_deces) }}"
-                       class="btn btn-info shadow btn-xs sharp me-1" title="Voir détail">
+                       class="btn btn-sm btn-info" title="Voir détail">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <a href="{{ route('declarationDeces.etat', $dd->code_declaration_deces) }}"
-                       target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir la déclaration ou le certificat">
-                        <i class="fas fa-file-pdf"></i>
-                    </a>
+
+                    @if($dd->estDocumentCertificatOrigine())
+                        <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'contexte' => $contexteCertificat, 'from' => 'acte']) }}"
+                           class="btn btn-sm btn-warning"
+                           title="{{ $contexteCertificat === 'centre_hygiene' ? 'Ouvrir le PDF du certificat de constatation' : 'Ouvrir le PDF du certificat de décès' }}">
+                            <i class="fas fa-file-medical"></i>
+                        </a>
+                        @if($afficherDeclarationPf)
+                            <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'contexte' => 'pompe_funebre', 'from' => 'acte']) }}"
+                               class="btn btn-sm btn-success"
+                               title="Ouvrir le PDF de la déclaration de décès générée">
+                                <i class="fas fa-file-alt"></i>
+                            </a>
+                        @endif
+                    @else
+                        <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'from' => 'acte']) }}"
+                           class="btn btn-sm btn-warning" title="Voir le document (PDF)">
+                            <i class="fas fa-print"></i>
+                        </a>
+                    @endif
+
                     @if(isset($dd->requisition) && $dd->requisition || isset($dd->jugement) && $dd->jugement)
-                        <a href="{{ route('tribunal.voir_document', ['type' => "deces", 'id' =>  $dd->code_declaration_deces]) }}"
-                            class="btn btn-info btn-xs text-start me-1" title="Télécharger {{ $dd->requisition ? "la requisition importée" : "le jugement importé" }} par le tribunal">
+                        <a href="{{ route('tribunal.voir_document', ['type' => 'deces', 'id' => $dd->code_declaration_deces]) }}"
+                            class="btn btn-sm btn-info" title="Télécharger {{ $dd->requisition ? 'la requisition importée' : 'le jugement importé' }} par le tribunal">
                             <i class="fas fa-download"></i>
                         </a>
                     @endif
+
                     @if(!$dejaConfirme)
-                        <button class="btn btn-success shadow btn-xs sharp me-1 btn-confirmer-document"
+                        <button type="button" class="btn btn-sm btn-success btn-confirmer-document"
                                 data-id="{{ $dd->code_declaration_deces }}" title="Confirmer le dossier">
                             <i class="fas fa-check"></i>
                         </button>
 
-                        <button class="btn btn-warning shadow btn-xs sharp btn-renvoyer-document"
+                        <button type="button" class="btn btn-sm btn-warning btn-renvoyer-document"
                                 data-id="{{ $dd->code_declaration_deces }}" title="Renvoyer">
                             <i class="fas fa-undo"></i>
                         </button>
@@ -96,4 +111,3 @@
         <td colspan="8" class="text-center">Aucun résultat trouvé</td>
     </tr>
 @endif
-

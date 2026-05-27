@@ -404,6 +404,7 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
 </div>
 @endsection
 @section('scripts')
+@verbatim
 <script>
     $(function() {
         // Gestion modale pièce d'identité
@@ -459,13 +460,13 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
                 }
                 , error: function(xhr) {
                     sifecBtnReset($btn[0], "Enregistrer");
-                    flashAlert("Erreur", "error", xhr.responseJSON ? .message || 'Erreur lors de l\'upload');
+                    flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de l\'upload');
                 }
             });
         });
 
         // Gestion modale envoi au centre d'état civil
-        $('.btn-envoyer-centre').on('click', function() {
+        $(document).on('click', '.btn-envoyer-centre', function() {
             if ($(this).hasClass('disabled')) {
                 toastr.warning('Cette déclaration a déjà été envoyée au centre d\'état civil.');
                 return;
@@ -554,7 +555,7 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
                 }
                 , error: function(xhr) {
                     sifecBtnReset($btn[0], "Envoyer");
-                    flashAlert("Erreur", "error", xhr.responseJSON ? .message || 'Erreur lors de l\'envoi');
+                    flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
                 }
             });
         });

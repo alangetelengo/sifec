@@ -179,7 +179,7 @@ class DeclarationDecesSeeder extends Seeder
             'code_religion_defunt'=> $religion->code_religion, // Récupéré dynamiquement
             // code_cause_deces sera défini dans la boucle pour varier les causes
             'filiation'=> $filiation->code_filiation, // Récupéré dynamiquement
-            'cec_naissance'=> 'MAIRIE DE MAKELEKELE',
+            'cec_naissance'=> 'MAIRIE DE L\'ARRONDISSEMENT 1 MAKELEKELE',
         ];
 
         $sharedFamilies = $this->buildSharedFamilies(

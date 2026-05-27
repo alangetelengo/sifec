@@ -163,10 +163,32 @@ Actes Décès
                                                             <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
                                                         </form>
                                                     @endif
-                                                    {{-- Consulter le PDF pour impression --}}
-                                                    <a href="{{ route('declarationDeces.etat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document (PDF)">
-                                                        <i class="fas fa-print"></i>
-                                                    </a>
+                                                    {{-- Consulter le PDF --}}
+                                                    @php
+                                                        $contexteCertificat = $dd->contexteCertificatOrigine();
+                                                        $afficherDeclarationPf = $dd->type_declaration === 'DECLARATION DE DECES'
+                                                            && filled($dd->type_declaration_origine);
+                                                    @endphp
+                                                    @if($dd->estDocumentCertificatOrigine())
+                                                        <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'contexte' => $contexteCertificat, 'from' => 'declaration']) }}"
+                                                           class="btn btn-warning shadow btn-xs sharp me-1"
+                                                           title="{{ $contexteCertificat === 'centre_hygiene' ? 'Voir le certificat de constatation' : 'Voir le certificat de décès' }}">
+                                                            <i class="fas fa-file-medical"></i>
+                                                        </a>
+                                                        @if($afficherDeclarationPf)
+                                                            <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'contexte' => 'pompe_funebre', 'from' => 'declaration']) }}"
+                                                               class="btn btn-success shadow btn-xs sharp me-1"
+                                                               title="Voir la déclaration de décès">
+                                                                <i class="fas fa-file-alt"></i>
+                                                            </a>
+                                                        @endif
+                                                    @else
+                                                        <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'from' => 'declaration']) }}"
+                                                           class="btn btn-warning shadow btn-xs sharp me-1"
+                                                           title="Voir le document (PDF)">
+                                                            <i class="fas fa-print"></i>
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -328,7 +350,7 @@ Actes Décès
     <script>
         $(function(){
             // Événement pour les boutons d'envoi au centre d'état civil
-            $(".btn-envoyer-centre").on("click", function(){
+            $(document).on("click", ".btn-envoyer-centre", function(){
                 var codeDeclaration = $(this).data('code');
 
                 // Récupération des données du bouton

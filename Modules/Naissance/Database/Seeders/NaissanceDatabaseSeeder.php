@@ -18,7 +18,6 @@ class NaissanceDatabaseSeeder extends Seeder
 
         $this->call([
             DeclarationNaissanceSeeder::class,
-            ActeNaissanceFromDeclarationsSeeder::class,
         ]);
     }
 }

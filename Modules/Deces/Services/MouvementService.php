@@ -132,10 +132,42 @@ class MouvementService
                 $declaration->tribunal_approuve_par = $user->cui;
                 $declaration->save();
             }else{
-                $codeMouvement = 'MOUV_0019'; // Code du mouvement pour confirmation du dossier par le centre d'état civil
+                $codeMouvement = 'MOUV_0019'; // Code du mouvement pour confirmation du dossier par le centre d'état civil / PF
                 $declaration->cec_approuver = "OUI";
                 $declaration->cec_approuve_par = $user->cui;
+                $declaration->cec_approuve_le = now();
+
+                $etaitConstatation = ($declaration->type_declaration === 'CERTIFICAT DE CONSTATATION DE DECES');
+                $etaitCertificatFs = ($declaration->type_declaration === 'DECLARATION DE DECES'
+                    && empty($declaration->type_declaration_origine));
+
+                if ($etaitConstatation) {
+                    $declaration->type_declaration_origine = 'CERTIFICAT DE CONSTATATION DE DECES';
+                    $declaration->type_declaration = 'DECLARATION DE DECES';
+                    $declaration->contexte_affichage = 'pompe_funebre';
+                } elseif ($etaitCertificatFs) {
+                    $declaration->type_declaration_origine = 'CERTIFICAT DE DECES';
+                    $declaration->contexte_affichage = 'pompe_funebre';
+                }
+
                 $declaration->save();
+
+                if ($etaitConstatation || $etaitCertificatFs) {
+                    $refTransform = DB::table('tr_mouvement')->where('code_mouvement', 'MOUV_2012')->first();
+                    if (! $refTransform) {
+                        throw new Exception('Mouvement référentiel MOUV_2012 introuvable (certificat transformé en déclaration de décès).');
+                    }
+                    $mvtTransform = new MouvementDeces();
+                    $mvtTransform->code_mouvement_deces = Sifec::genererCodeUniqueReferentiel($mvtTransform, 'code_mouvement_deces', 4, 'MDC_');
+                    $mvtTransform->code_declaration_deces = $declaration->code_declaration_deces;
+                    $mvtTransform->code_mouvement = $refTransform->code_mouvement;
+                    $mvtTransform->lib_mouvement = $refTransform->lib_mouvement;
+                    $mvtTransform->statut = $statut;
+                    $mvtTransform->cui = $user->cui;
+                    $mvtTransform->motif_renvoi = $motif;
+                    $mvtTransform->observation = $observation ?? 'Certificat enregistré comme déclaration de décès par la pompe funèbre.';
+                    $mvtTransform->save();
+                }
             }
             $mouvementRef = DB::table('tr_mouvement')->where('code_mouvement', $codeMouvement)->first();
             if (!$mouvementRef) {

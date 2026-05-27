@@ -18,6 +18,7 @@ use Modules\Deces\Entities\MouvementDeces;
 use Modules\Deces\Services\ActeDecesService;
 use Modules\Deces\Services\MouvementService;
 use Modules\Deces\Services\OtpDecesService;
+use Modules\Deces\Services\PfDecesActeDashboardService;
 use Modules\Notification\Jobs\DeclarantActeDisponibleInformationJob;
 use Modules\Notification\Jobs\SendSmsJob;
 use Modules\Notification\Notifications\ActeDecesAValiderNotification;
@@ -35,41 +36,24 @@ class ActeDecesController extends Controller
         $affectation = $user->affectationActive();
         $institution = $affectation->institution;
 
-        // Documents à contrôler (cec_approuver = 'NON') - Afficher les 20 derniers par défaut
-        // getDocumentsAControler retourne déjà un tri par date_heure_declaration décroissante
-        $documentsAControler = $institution->getDocumentsAControler('deces')
-            ->take(20)
-            ->values();
+        $dashboard = app(PfDecesActeDashboardService::class);
 
-        // Gestion des actes (cec_approuver = 'OUI') - Afficher les 20 derniers par défaut
-        // getActesGestion retourne déjà un tri par date_heure_declaration décroissante
-        $actesGestion = $institution->getActesGestion('deces')
-            ->take(20)
-            ->values();
+        // Aperçu : 20 lignes max au chargement initial (comme naissance)
+        $documentsAControler = $dashboard->documentsAControlerPreview($institution, 20);
+        $actesGestion = $dashboard->actesGestionPreview($institution, 20);
 
         $registre = Registre::where('cui', $affectation->cui)
             ->where('statut', 1)
             ->where('code_type_registre', 'TPRG_0004')
             ->first();
 
-        // Statistiques documents (comme dans naissance)
-        $statistiquesDocuments = method_exists($institution, 'getStatistiquesDocuments')
-            ? $institution->getStatistiquesDocuments('deces')
-            : [];
-
-        // Récupérer les types de déclaration uniques pour les filtres
-        $typesDeclaration = DeclarationDeces::distinct()
-            ->pluck('type_declaration')
-            ->filter()
-            ->sort()
-            ->values();
+        $typesDeclaration = collect(DeclarationDeces::TYPES_AUTORISES)->sort()->values();
 
         return view(
             'deces::acte.index', compact(
                 'documentsAControler',
                 'actesGestion',
                 'registre',
-                'statistiquesDocuments',
                 'typesDeclaration'
             )
         );
@@ -85,7 +69,6 @@ class ActeDecesController extends Controller
             $affectation = $user->affectationActive();
             $institution = $affectation->institution;
 
-            // Logger les critères de recherche
             Log::channel('sifec')->info('=== RECHERCHE DOCUMENTS À CONTRÔLER (DÉCÈS) ===', [
                 'user_id' => $user->code_user ?? null,
                 'institution' => $institution->code_institution ?? null,
@@ -99,106 +82,75 @@ class ActeDecesController extends Controller
                 ],
             ]);
 
-            // Si on recherche par numéro de déclaration ou type de déclaration spécifique,
-            // chercher directement dans la base pour éviter les limitations de getDocumentsAControler
-            $rechercheDirecte = false;
-            if (($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) ||
-                ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0)) {
-                $rechercheDirecte = true;
+            $query = DeclarationDeces::with([
+                'defunt', 'declarant', 'pere', 'mere', 'mouvements', 'acte', 'requisition', 'jugement',
+            ])
+                ->where(function ($q) use ($institution) {
+                    $q->where('code_institution_destinataire', $institution->code_institution)
+                        ->orWhere('code_institution', $institution->code_institution);
+                });
 
-                // Recherche directe dans tous les documents accessibles à l'institution
-                $query = DeclarationDeces::with(['mouvements', 'defunt', 'acte'])
-                    ->where(function ($query) use ($institution) {
-                        $query->where('code_institution_destinataire', $institution->code_institution)
-                            ->orWhere('code_institution', $institution->code_institution);
-                    });
+            $countInitial = (clone $query)->count();
 
-                // Ajouter le filtre par numéro de déclaration si fourni
-                if ($request->filled('numero_declaration') && strlen(trim($request->numero_declaration)) > 0) {
-                    $query->where('code_declaration_deces', 'LIKE', '%'.$request->numero_declaration.'%');
-                }
-
-                // Ajouter le filtre par type de déclaration si fourni
-                if ($request->filled('type_declaration') && strlen(trim($request->type_declaration)) > 0) {
-                    $query->where('type_declaration', $request->type_declaration);
-                }
-
-                $documentsAControler = $query->get();
-                $countInitial = $documentsAControler->count();
-            } else {
-                // Utiliser la même méthode que getDocumentsAControler pour garantir la cohérence
-                $documentsAControler = $institution->getDocumentsAControler('deces');
-                $countInitial = $documentsAControler->count();
+            if ($request->filled('numero_declaration') && strlen(trim((string) $request->numero_declaration)) > 0) {
+                $search = trim((string) $request->numero_declaration);
+                $like = '%'.addcslashes($search, '%_\\').'%';
+                $query->where('code_declaration_deces', 'like', $like);
             }
 
-            // Filtre par période (date de déclaration de décès)
-            if ($request->filled('date_debut')) {
-                $documentsAControler = $documentsAControler->filter(function ($doc) use ($request) {
-                    $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
-                    if ($dateDeclaration) {
-                        return date('Y-m-d', strtotime($dateDeclaration)) >= $request->date_debut;
-                    }
+            if ($request->filled('type_declaration') && strlen(trim((string) $request->type_declaration)) > 0) {
+                $query->where('type_declaration', $request->type_declaration);
+            }
 
-                    return false;
-                });
+            if ($request->filled('date_debut')) {
+                $query->whereRaw(
+                    'COALESCE(DATE(date_heure_declaration), DATE(created_at)) >= ?',
+                    [$request->date_debut]
+                );
             }
             if ($request->filled('date_fin')) {
-                $documentsAControler = $documentsAControler->filter(function ($doc) use ($request) {
-                    $dateDeclaration = $doc->date_heure_declaration ?? $doc->created_at;
-                    if ($dateDeclaration) {
-                        return date('Y-m-d', strtotime($dateDeclaration)) <= $request->date_fin;
-                    }
-
-                    return false;
-                });
+                $query->whereRaw(
+                    'COALESCE(DATE(date_heure_declaration), DATE(created_at)) <= ?',
+                    [$request->date_fin]
+                );
             }
 
-            // Filtre par sexe
             if ($request->filled('sexe')) {
-                $documentsAControler = $documentsAControler->filter(function ($doc) use ($request) {
-                    return $doc->defunt && $doc->defunt->sexe === $request->sexe;
-                });
+                $query->whereHas('defunt', fn ($q) => $q->where('sexe', $request->sexe));
             }
 
-            // Filtre par type de déclaration (si pas déjà appliqué dans la recherche directe)
-            if (! $rechercheDirecte && $request->filled('type_declaration')) {
-                $documentsAControler = $documentsAControler->filter(function ($doc) use ($request) {
-                    return $doc->type_declaration === $request->type_declaration;
-                });
-            }
-
-            // Filtre par statut (basé sur les mouvements)
             if ($request->filled('statut')) {
                 $statut = $request->statut;
-                $documentsAControler = $documentsAControler->filter(function ($doc) use ($statut) {
-                    $codesMouvements = $doc->mouvements ? $doc->mouvements->pluck('code_mouvement')->toArray() : [];
-                    if ($statut === 'dossier_recu') {
-                        return in_array('MOUV_0002', $codesMouvements) ||
-                               in_array('MOUV_2006', $codesMouvements);
-                    } elseif ($statut === 'confirme') {
-                        return in_array('MOUV_0019', $codesMouvements);
-                    } elseif ($statut === 'en_attente') {
-                        return in_array('MOUV_0004', $codesMouvements);
-                    }
-
-                    return true;
-                });
+                if ($statut === 'dossier_recu') {
+                    $query->whereHas('mouvements', fn ($q) => $q->whereIn('code_mouvement', ['MOUV_0002', 'MOUV_2006']));
+                } elseif ($statut === 'confirme') {
+                    $query->whereHas('mouvements', fn ($q) => $q->whereIn('code_mouvement', ['MOUV_0019', 'MOUV_2012']));
+                } elseif ($statut === 'en_attente') {
+                    $query->whereHas('mouvements', fn ($q) => $q->where('code_mouvement', 'MOUV_0004'));
+                }
             }
 
-            $documents = $documentsAControler
-                ->sortByDesc('date_heure_declaration')
+            $hasFilters = $request->filled('numero_declaration')
+                || $request->filled('type_declaration')
+                || $request->filled('date_debut')
+                || $request->filled('date_fin')
+                || $request->filled('sexe')
+                || $request->filled('statut');
+
+            $maxResults = $hasFilters ? 500 : 20;
+            $countResultat = (clone $query)->count();
+            $documents = (clone $query)
+                ->orderByDesc('date_heure_declaration')
+                ->limit($maxResults)
+                ->get()
                 ->values();
 
-            $countResultat = $documents->count();
-
-            // Limiter les résultats à 500 maximum
-            $maxResults = 500;
             if ($countResultat > $maxResults) {
-                $documents = $documents->take($maxResults);
                 Log::channel('sifec')->warning('=== RECHERCHE DOCUMENTS - LIMITE ATTEINTE (DÉCÈS) ===', [
                     'user_id' => $user->code_user ?? null,
                     'count_total' => $countResultat,
                     'count_affiché' => $maxResults,
+                    'message' => "Plus de {$maxResults} résultats trouvés. Affinez vos critères de recherche pour voir tous les résultats.",
                 ]);
             }
 
@@ -208,6 +160,7 @@ class ActeDecesController extends Controller
                 'count_initial' => $countInitial,
                 'count_resultat' => $countResultat,
                 'count_affiché' => $documents->count(),
+                'filtres_appliques' => $request->only(['numero_declaration', 'date_debut', 'date_fin', 'sexe', 'type_declaration', 'statut']),
             ]);
 
             return response()->json([
@@ -222,6 +175,7 @@ class ActeDecesController extends Controller
                 'user_id' => Auth::user()->code_user ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'criteres' => $request->only(['numero_declaration', 'date_debut', 'date_fin', 'sexe', 'type_declaration', 'statut']),
             ]);
 
             return response()->json([
@@ -985,62 +939,18 @@ class ActeDecesController extends Controller
         }
     }
 
-    public function etatlistedeces()
-    {
-        $dated = request('dated');
-        $datef = request('datef');
-
-        $listes = '';
-
-        if ($dated == null && $datef == null) {
-            $listes = DB::select('SELECT * FROM t_acte_deces
-            JOIN t_declaration_deces ON t_declaration_deces.code_declaration_deces = t_acte_deces.code_declaration_deces
-            JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_deces.code_defunt
-            JOIN tr_lieu_survenance ON tr_lieu_survenance.code_lieu_survenance = t_declaration_deces.code_lieu_survenance
-            ORDER BY tr_identification_personne.nom ASC
-            ');
-        } elseif ($dated != null && $datef == null) {
-            $listes = DB::select("SELECT * FROM t_acte_deces
-            JOIN t_declaration_deces ON t_declaration_deces.code_declaration_deces = t_acte_deces.code_declaration_deces
-            JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_deces.code_defunt
-            JOIN tr_lieu_survenance ON tr_lieu_survenance.code_lieu_survenance = t_declaration_deces.code_lieu_survenance
-             WHERE date(t_declaration_deces.date_heure_deces) BETWEEN '".$dated."' AND '".$dated."'
-             ORDER BY tr_identification_personne.nom ASC");
-        } elseif ($dated == null && $datef != null) {
-            $listes = DB::select("SELECT * FROM t_acte_deces
-            JOIN t_declaration_deces ON t_declaration_deces.code_declaration_deces = t_acte_deces.code_declaration_deces
-            JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_deces.code_defunt
-            JOIN tr_lieu_survenance ON tr_lieu_survenance.code_lieu_survenance = t_declaration_deces.code_lieu_survenance
-            WHERE date(t_declaration_deces.date_heure_deces) BETWEEN '".$datef."' AND '".$datef."'
-            ORDER BY tr_identification_personne.nom ASC");
-        } elseif ($dated != null && $datef != null) {
-            $listes = DB::select("SELECT * FROM t_acte_deces
-            JOIN t_declaration_deces ON t_declaration_deces.code_declaration_deces = t_acte_deces.code_declaration_deces
-            JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_deces.code_defunt
-            JOIN tr_lieu_survenance ON tr_lieu_survenance.code_lieu_survenance = t_declaration_deces.code_lieu_survenance
-            WHERE date(t_declaration_deces.date_heure_deces) BETWEEN '".$dated."' AND '".$datef."'
-            ORDER BY tr_identification_personne.nom ASC");
-        }
-        // dd($listes);
-
-        if ($listes != null) {
-            view()->share('tester', 'Vincent');
-            $html2pdf = new Html2Pdf('P', 'A4', 'fr');
-            $html2pdf->setDefaultFont('Arial');
-            $html2pdf->writeHTML(view('deces::etats.listedeces', compact('listes', 'dated', 'datef'))->render());
-
-            return $html2pdf->output('listedeces.pdf');
-        } else {
-            flash()->warning('Aucune donnée trouvée');
-
-            return redirect()->back();
-        }
-
-    }
-
     public function listedece()
     {
-        return view('deces::statistiques.listedeces');
+        return redirect()->route('reporting.faits.repertoire.alphabetique', ['type_fait' => 'deces']);
+    }
+
+    public function etatlistedeces()
+    {
+        return redirect()->route('reporting.faits.repertoire.alphabetique', array_filter([
+            'type_fait' => 'deces',
+            'dated' => request('dated'),
+            'datef' => request('datef'),
+        ], fn ($v) => $v !== null && $v !== ''));
     }
 
     // poser le visa du Sécrétaire général de la mairie sur les actes
@@ -1219,6 +1129,7 @@ class ActeDecesController extends Controller
                 $affectation,
                 $declaration,
                 $statut,
+                null,
                 $observation
             );
 
@@ -1274,6 +1185,7 @@ class ActeDecesController extends Controller
                     $affectation,
                     $declaration,
                     $statut,
+                    null,
                     $observation
                 );
                 if ($ok) {

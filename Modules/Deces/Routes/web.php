@@ -33,6 +33,7 @@ Route::middleware('auth')->prefix('declarationDeces')->group(function () {
 
     Route::post('{id}/destroy', [DecesController::class, 'destroy'])->name('declarationDeces.destroy');
     Route::get('{id}/etat', [DecesController::class, 'etat'])->name('declarationDeces.etat');
+    Route::get('{id}/voir-etat', [DecesController::class, 'voirEtat'])->name('declarationDeces.voir.etat');
 
     Route::get('tardive', [DecesController::class, 'declarationTardive'])->name('declarationDeces.tardive');
     Route::post('rechercheDefent', [DecesController::class, 'rechercheDefunt'])->name('declarationDeces.rechercheDefunt');

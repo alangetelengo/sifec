@@ -3,7 +3,7 @@
     <section>
 
         <div class="d-none">
-            <input type="text" value="DECLARATION DE MARIAGE" id="type_declaration">
+            <input type="hidden" value="DECLARATION DE MARIAGE" id="type_declaration">
         </div>
 		<div class="row">
 			<div class="d-flex justify-content-end align-items-center">

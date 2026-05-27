@@ -6,8 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Seeder des institutions — données extraites de la BD de référence (sifec.sql).
- * Les données sont dans database/data/institutions.sql (195 institutions).
+ * Seeder des institutions — données extraites de sifec2 (database/data/institutions.sql).
  * Catégories : Cours d'appel, TGI, TI, Mairies, Formations sanitaires,
  *              Ambassades, Pompes funèbres, Centres d'hygiène.
  */

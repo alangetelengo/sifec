@@ -35,7 +35,7 @@
                     <div class="mariage-legal-hint__row">
                         <span class="mariage-legal-hint__icon" aria-hidden="true"><i class="fa fa-gavel"></i></span>
                         <div>
-                            <p class="mariage-legal-hint__text">La date de célébration du mariage est inférieure à 60 jours : cette déclaration requiert une réquisition conformément à l&rsquo;article 144 du code de la famille.</p>
+                            <p class="mariage-legal-hint__text">La date de célébration est inférieure à 60 jours à compter de la date de déclaration : cette déclaration requiert une réquisition conformément à l&rsquo;article 144 du code de la famille.</p>
                             <span class="mariage-legal-hint__ref">Article 144</span>
                         </div>
                     </div>

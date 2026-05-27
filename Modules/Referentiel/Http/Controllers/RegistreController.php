@@ -1155,10 +1155,16 @@ class RegistreController extends Controller
     {
         $registre = Registre::find($id);
 
+        if ($registre == null) {
+            flash()->error('Impossible de charger cette page');
+
+            return back();
+        }
+
         // Récupérer les actes triés par position dans le registre (8 derniers caractères du code_acte_deces dans t_feuillet_registre)
         // Les 8 derniers caractères du code_acte_deces représentent la position dans le registre (ex: AD_00000001 → position 1)
         $actesRegistre = ActeDeces::where('code_registre', $id)
-            ->join('t_feuillet_registre', 't_acte_deces.code_acte_deces', '=', [], 't_feuillet_registre.code_acte')
+            ->join('t_feuillet_registre', 't_acte_deces.code_acte_deces', '=', 't_feuillet_registre.code_acte')
             ->select('t_acte_deces.*')
             ->orderByRaw('CAST(RIGHT(t_feuillet_registre.code_acte, 8) AS UNSIGNED) ASC')
             ->get();

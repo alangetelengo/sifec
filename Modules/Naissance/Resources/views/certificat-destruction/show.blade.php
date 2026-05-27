@@ -443,7 +443,7 @@ $(function(){
     });
 
     // Gestion modale envoi au centre d'état civil
-    $('.btn-envoyer-centre').on('click', function(){
+    $(document).on('click', '.btn-envoyer-centre', function(){
         if ($(this).hasClass('disabled')) {
             toastr.warning('Cette déclaration a été envoyée au centre d\'état civil.');
             return;

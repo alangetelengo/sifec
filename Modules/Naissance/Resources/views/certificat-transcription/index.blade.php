@@ -243,7 +243,7 @@ Certificat de destruction d'acte de naissance
     <script>
         $(function(){
             let codeTribunal = null;
-        $('.btn-envoyer-tribunal').on('click', function(){
+        $(document).on('click', '.btn-envoyer-tribunal', function(){
             codeTribunal = $(this).data('code');
             $('#input-code-tribunal').val(codeTribunal);
 

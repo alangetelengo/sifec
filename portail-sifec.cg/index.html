@@ -1146,7 +1146,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                       var numeroActe = $("#NumActe").val();
                       //récupération
                       var data = {type_acte:typeActe,numero_acte:numeroActe, administration:admin};
-                      var connexion = 'http://192.168.100.84/sifec/public/api/v1/authentification';
+                      var connexion = 'http://192.168.100.184/sifec/public/api/v1/authentification';
                       //gestion de la connexion
                       var httpRequest =  $.post(connexion, data);
 
@@ -1780,7 +1780,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
 
 
         //récupération de la liste des CEC
-        var connexion1 = 'http://192.168.100.84/sifec/public/api/v1/listeCec'   ;
+        var connexion1 = 'http://192.168.100.184/sifec/public/api/v1/listeCec'   ;
         //kendo.alert("ok");
         var data1 ="";
         var httpRequest1 =  $.get(connexion1, data1);
@@ -1892,7 +1892,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                     //exit();
 
                      //Appel du service demandeActe
-                     var connexion = 'http://192.168.100.84/sifec/public/api/v1/demandeActe';
+                     var connexion = 'http://192.168.100.184/sifec/public/api/v1/demandeActe';
                     //Traitement de la réponse
                     var httpRequest =  $.post(connexion, dataDemande);
                     //Retour en cas de succès
@@ -2385,7 +2385,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                 dataSource: {
                     transport: {
                         read: {
-                            url: "http://192.168.100.84/sifec/public/api/v1/banMariage",
+                            url: "http://192.168.100.184/sifec/public/api/v1/banMariage",
                             dataType: "json",
                             type: "GET"
                         }
@@ -2423,12 +2423,12 @@ box-shadow: 0px 3px 9px -3px #000000;">
                 columns: [
                     { field: "Departement", title: "Département" },
                     { field: "Institution", title: "Institution" },
-                   
+
                     { field: "NomEpoux", title: "Nom Epoux" },
                     { field: "NomEpouse", title: "Nom Epouse" },
                     { field: "DateCelebration", title: "Date de célébration", format: "{0:dd/MM/yyyy}" },
                     { field: "LieuCelebration", title: "Lieu de célébration" },
-                   
+
 
                 ]
             });
@@ -2738,7 +2738,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                 var data = {code_administration:idAdmin};
 
                         //récuépration historique des authentifications
-                      var connexion = 'http://192.168.100.84/sifec/public/api/v1/historiqueAuthentification';
+                      var connexion = 'http://192.168.100.184/sifec/public/api/v1/historiqueAuthentification';
                       //gestion de la connexion
                        var httpRequest =  $.post(connexion, data);
 

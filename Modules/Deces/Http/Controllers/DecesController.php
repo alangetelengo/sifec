@@ -32,6 +32,7 @@ use Modules\Referentiel\Entities\Religion;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 use Modules\Referentiel\Entities\TypeDocument;
 use Spipu\Html2Pdf\Html2Pdf;
+use Symfony\Component\HttpFoundation\Response;
 
 class DecesController extends Controller
 {
@@ -89,9 +90,51 @@ class DecesController extends Controller
         return view('deces::certificat-constatation-deces.index', compact('constatationdeces'));
     }
 
-    public function etat($id)
+    public function voirEtat(Request $request, string $id)
     {
         $ddc = DeclarationDeces::where('code_declaration_deces', $id)->first();
+        if ($ddc === null) {
+            abort(404);
+        }
+
+        $contexte = $request->query('contexte');
+        if ($contexte && ! in_array($contexte, ['formation_sanitaire', 'centre_hygiene', 'pompe_funebre'], true)) {
+            $contexte = null;
+        }
+
+        $retour = $request->query('from') === 'acte' ? 'acte' : 'declaration';
+
+        $routeParams = ['id' => $id];
+        if ($contexte) {
+            $routeParams['contexte'] = $contexte;
+        }
+        $pdfUrl = route('declarationDeces.etat', $routeParams);
+
+        $titrePage = match ($contexte) {
+            'formation_sanitaire' => 'Certificat de décès',
+            'centre_hygiene' => 'Certificat de constatation de décès',
+            'pompe_funebre' => 'Déclaration de décès',
+            default => 'Document PDF',
+        };
+
+        return view('deces::declaration.voir-etat-pdf', compact('ddc', 'pdfUrl', 'retour', 'titrePage'));
+    }
+
+    public function etat(Request $request, $id)
+    {
+        $contexteForcage = $request->query('contexte');
+        if ($contexteForcage && ! in_array($contexteForcage, ['formation_sanitaire', 'centre_hygiene', 'pompe_funebre'], true)) {
+            $contexteForcage = null;
+        }
+
+        $ddc = DeclarationDeces::with([
+            'institution', 'institutionDestinataire', 'institutionUser.institution',
+            'defunt', 'pere', 'mere', 'declarant', 'religion', 'situationMat', 'regime', 'conjoint', 'filiation', 'lieuDeces', 'lieuSurvenance',
+        ])->where('code_declaration_deces', $id)->first();
+
+        if ($ddc === null) {
+            abort(404);
+        }
 
         $dat1 = Carbon::create($ddc->created_at);
         $dateDeces = Carbon::create($ddc->date_heure_deces);
@@ -101,10 +144,37 @@ class DecesController extends Controller
         $html2pdf = new Html2Pdf('P', 'A4', 'fr');
         $html2pdf->setDefaultFont('Arial');
 
-        $html2pdf->writeHTML(view('deces::etats.declaration', compact('ddc', 'diffJour'))->render());
+        $typeDeclaration = $ddc->libelleAffichageType();
+        $contexteEffectif = $contexteForcage ?? $ddc->contexte_affichage ?? $ddc->contexteCertificatOrigine();
 
-        return $html2pdf->output($ddc->code_declaration_deces.'.pdf');
+        if ($contexteEffectif === 'centre_hygiene'
+            || ($ddc->type_declaration === 'CERTIFICAT DE CONSTATATION DE DECES' && $contexteForcage !== 'pompe_funebre')) {
+            $html2pdf->writeHTML(view('deces::etats.certificats.certificat_constatation_deces', compact('ddc'))->render());
 
+            return $this->pdfInlineResponse(
+                $html2pdf->output($ddc->code_declaration_deces.'.pdf'),
+                $ddc->code_declaration_deces.'.pdf'
+            );
+        }
+
+        $html2pdf->writeHTML(view('deces::etats.declaration', compact('ddc', 'diffJour', 'typeDeclaration', 'contexteForcage'))->render());
+
+        return $this->pdfInlineResponse(
+            $html2pdf->output($ddc->code_declaration_deces.'.pdf'),
+            $ddc->code_declaration_deces.'.pdf'
+        );
+    }
+
+    private function pdfInlineResponse(string $pdfBinary, string $filename): Response
+    {
+        $safeName = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $filename) ?: 'document.pdf';
+        $safeName = trim($safeName) !== '' ? trim($safeName) : 'document.pdf';
+
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$safeName.'"',
+            'Cache-Control' => 'private, must-revalidate',
+        ]);
     }
 
     public function create()

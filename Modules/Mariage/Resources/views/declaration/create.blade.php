@@ -1574,42 +1574,9 @@
                 }
 
             }
+
+            mettreAJourTypeDeclarationFormulaire();
             return false;
-        });
-
-        $("#date_ceremonie_mariage").blur(function() {
-            var durree = $(this).val();
-            var today = new Date();
-
-            if(durree != null || durree != ''){
-                var date2 = new Date(durree);
-
-                // To calculate the time difference of two dates
-                var Difference_In_Time = date2.getTime() - today.getTime();
-                var n_jours = parseInt(Difference_In_Time / (1000 * 3600 * 24));
-
-                if(n_jours < 60){
-                    $(".notification").slideDown(300);
-                }else{
-                    $(".notification").fadeOut();
-                }
-                return false;
-                // alert(n_jours);
-            }
-        });
-
-        $("#lieu_ceremonie_mariage").change(function (e) {
-            e.preventDefault();
-
-            var lieuC = $(this).val();
-            if(lieuC != "" || lieuC != null){
-                if(lieuC === 'Hors centre d\'état civil'){
-                    $(".notification2").slideDown(300);
-                }else{
-                    $(".notification2").fadeOut();
-                }
-
-            }
         });
 
         // GESTION ADRESSE EPOUX/EPOUSE/TEMOINS EPOUX/TEMOINS EPOUSE/INFO GENERALE

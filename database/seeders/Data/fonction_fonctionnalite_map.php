@@ -17,6 +17,7 @@ $cecEtatCivilBase = [
     'FNC_0021', 'FNC_0022', 'FNC_0045',
     'FNC_0049',
     'FNC_0057', // Gestion des demandes de documents (SANS signature)
+    'FNC_0071', // Rapport d'exploitation des actes de naissance
 ];
 
 // Permissions de l'Officier d'État Civil (avec signature de documents)
@@ -53,6 +54,7 @@ $tribunal = [
     'FNC_0010',
     'FNC_0042', 'FNC_0022', 'FNC_0045',
     'FNC_0047',
+    'FNC_0070', // Créer et importer un jugement au tribunal
 ];
 
 $tribunalPresident = [
@@ -60,6 +62,7 @@ $tribunalPresident = [
     'FNC_0021', 'FNC_0028',
     'FNC_0042', 'FNC_0022',
     'FNC_0047',
+    'FNC_0070', // Créer et importer un jugement au tribunal
 ];
 
 $ambassade = [
@@ -108,7 +111,7 @@ return [
     // 12 Directeur pompes funèbres
     'FONC_0012' => array_values(array_unique(array_merge($pompesFunebres, ['FNC_0011']))),
     // 13 DGAT
-    'FONC_0013' => ['FNC_0011', 'FNC_0004', 'FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034'],
+    'FONC_0013' => ['FNC_0011', 'FNC_0004', 'FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034', 'FNC_0071'],
     // 14 Agent mairie centrale
     'FONC_0014' => [
         'FNC_0043', 'FNC_0032', 'FNC_0002',

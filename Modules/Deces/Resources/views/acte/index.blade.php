@@ -34,226 +34,236 @@ Actes de décès
 
 @section('corps')
 <div class="page-sifec-index">
-<div class="an-shell">
-<div class="an-body">
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-header">
-                <h4>Liste des actes de décès</h4>
-                <div class="row">
-                    <div id="dupcreer">
-                        @can('module.acteDeces.generate')
-                        <button class="btn btn-sm btn-success mb-2 generate-actes d-none">Générer les actes</button>
-                        @endcan
-                        @can('module.acteDeces.signature')
-                        <button class="btn btn-sm btn-primary mb-2 validate-actes d-none">Valider les actes</button>
-                        <button class="btn btn-sm btn-primary mb-2 validate-on-acte d-none">Valider un acte</button>
-                        @endcan
-                        <button class="btn btn-sm btn-info mb-2 confirmer-documents d-none">Confirmer les dossiers</button>
-                        <button class="btn btn-sm btn-warning mb-2 renvoyer-documents d-none">Renvoyer les dossiers</button>
+    <div class="an-shell">
+        <header class="an-hero">
+            <div class="an-hero-text">
+                <h1>Liste des actes de décès</h1>
+            </div>
+            <div id="dupcreer" class="an-toolbar">
+                @can('module.acteDeces.generate')
+                <button type="button" class="btn btn-sm btn-success generate-actes d-none">Générer les actes</button>
+                @endcan
+                @can('module.acteDeces.signature')
+                <button type="button" class="btn btn-sm btn-primary validate-actes d-none">Valider les actes</button>
+                <button type="button" class="btn btn-sm btn-primary validate-on-acte d-none">Valider un acte</button>
+                @endcan
+                <button type="button" class="btn btn-sm btn-info text-white confirmer-documents d-none">Confirmer les dossiers</button>
+                <button type="button" class="btn btn-sm btn-warning text-dark renvoyer-documents d-none">Renvoyer les dossiers</button>
+            </div>
+        </header>
+
+        <div class="an-body">
+            <div class="an-tabs mb-3">
+                <ul class="nav nav-pills" id="decesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a href="#liste-documents"
+                           class="nav-link active"
+                           id="tab-documents"
+                           data-bs-toggle="tab"
+                           role="tab"
+                           aria-controls="liste-documents"
+                           aria-selected="true">
+                            <i class="fas fa-clipboard-check me-1"></i>
+                            Documents à contrôler
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a href="#gestion-actes"
+                           class="nav-link"
+                           id="tab-actes"
+                           data-bs-toggle="tab"
+                           role="tab"
+                           aria-controls="gestion-actes"
+                           aria-selected="false">
+                            <i class="fas fa-tasks me-1"></i>
+                            Gestion des actes
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tab-content">
+                <div id="liste-documents" class="tab-pane fade show active">
+                    <div class="an-hint an-hint--step1" role="note">
+                        <span class="an-hint__icon" aria-hidden="true"><span class="fw-bold small">1</span></span>
+                        <div>
+                            <strong>Étape 1 — Validation au centre d'état civil.</strong>
+                            Confirmez le dossier (certificat → déclaration de décès), puis passez à l’onglet
+                            <em>Gestion des actes</em> pour générer l’acte et la signature (OTP).
+                            Au chargement, aperçu des <strong>20 dossiers les plus récents</strong> ; utilisez le filtre pour en voir davantage.
+                            Les dossiers déjà validés restent listés ici : utilisez les actions pour ouvrir les PDF (certificat d’origine, déclaration générée).
+                        </div>
+                    </div>
+
+                    <div class="card an-filter-card shadow-none">
+                        <div class="card-header">
+                            <h2 class="card-title mb-0">
+                                <i class="fas fa-search me-2 text-secondary"></i>Filtrer les documents
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="form-search-documents">
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-numero-declaration-documents">N° déclaration</label>
+                                        <input type="text" class="form-control" name="numero_declaration" id="filter-numero-declaration-documents" placeholder="Rechercher…">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-debut-documents">Date début</label>
+                                        <input type="date" class="form-control" name="date_debut" id="filter-date-debut-documents">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-fin-documents">Date fin</label>
+                                        <input type="date" class="form-control" name="date_fin" id="filter-date-fin-documents">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-sexe-documents">Sexe</label>
+                                        <select class="form-control" name="sexe" id="filter-sexe-documents">
+                                            <option value="">Tous</option>
+                                            <option value="M">Masculin</option>
+                                            <option value="F">Féminin</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-type-documents">Type de déclaration</label>
+                                        <select class="form-control" name="type_declaration" id="filter-type-documents">
+                                            <option value="">Tous</option>
+                                            @foreach($typesDeclaration ?? [] as $type)
+                                                <option value="{{ $type }}">{{ $type }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-statut-documents">Statut</label>
+                                        <select class="form-control" name="statut" id="filter-statut-documents">
+                                            <option value="">Tous</option>
+                                            <option value="dossier_recu">Dossier reçu</option>
+                                            <option value="confirme">Confirmé</option>
+                                            <option value="en_attente">En attente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12 d-flex flex-wrap gap-2">
+                                        <button type="submit" class="btn btn-primary an-btn-search text-white">
+                                            <i class="fas fa-search me-1"></i>Rechercher
+                                        </button>
+                                        <button type="button" class="btn btn-secondary an-btn-reset" id="btn-reset-filters-documents">
+                                            <i class="fas fa-redo me-1"></i>Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="an-table-wrap">
+                        <div class="table-responsive">
+                            <table id="table-documents-controle" class="table table-hover an-data-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="check-all-documents" aria-label="Tout sélectionner"></th>
+                                        <th>N° déclaration</th>
+                                        <th>Défunt</th>
+                                        <th>Date décès</th>
+                                        <th>Sexe</th>
+                                        <th>Type document</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-documents-controle">
+                                    @include('deces::acte.partials.table-documents', ['documents' => $documentsAControler])
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-12">
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="profile-tab">
-                            <div class="custom-tab-1">
-                                <ul class="nav nav-tabs nav-pills mb-3" id="decesTabs" role="tablist">
-                                    <li class="nav-item" role="presentation">
-                                        <a href="#liste-documents"
-                                           class="nav-link active"
-                                           id="tab-documents"
-                                           data-bs-toggle="tab"
-                                           role="tab"
-                                           aria-controls="liste-documents"
-                                           aria-selected="true">
-                                            <i class="fas fa-clipboard-check me-1"></i>
-                                            Documents à contrôler
-                                        </a>
-                                    </li>
-                                    <li class="nav-item" role="presentation">
-                                        <a href="#gestion-actes"
-                                           class="nav-link"
-                                           id="tab-actes"
-                                           data-bs-toggle="tab"
-                                           role="tab"
-                                           aria-controls="gestion-actes"
-                                           aria-selected="false">
-                                            <i class="fas fa-tasks me-1"></i>
-                                            Gestion des actes
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content">
-                                    <div id="liste-documents" class="tab-pane fade active show">
-                                        <div class="pt-3">
-                                            <!-- Formulaire de recherche pour Documents à contrôler -->
-                                            <div class="card mb-3">
-                                                <div class="card-header">
-                                                    <h5 class="card-title mb-0">
-                                                        <i class="fas fa-search me-2"></i>Recherche
-                                                    </h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <form id="form-search-documents">
-                                                        <div class="row">
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">N° Déclaration</label>
-                                                                <input type="text" class="form-control" name="numero_declaration" id="filter-numero-declaration-documents" placeholder="Rechercher...">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date début</label>
-                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-documents">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date fin</label>
-                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-documents">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Sexe</label>
-                                                                <select class="form-control" name="sexe" id="filter-sexe-documents">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="M">Masculin</option>
-                                                                    <option value="F">Féminin</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Type de déclaration</label>
-                                                                <select class="form-control" name="type_declaration" id="filter-type-documents">
-                                                                    <option value="">Tous</option>
-                                                                    @foreach($typesDeclaration ?? [] as $type)
-                                                                        <option value="{{ $type }}">{{ $type }}</option>
-                                                                    @endforeach
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Statut</label>
-                                                                <select class="form-control" name="statut" id="filter-statut-documents">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="dossier_recu">Dossier reçu</option>
-                                                                    <option value="confirme">Confirmé</option>
-                                                                    <option value="en_attente">En attente</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div class="row mt-3">
-                                                            <div class="col-md-12">
-                                                                <button type="submit" class="btn btn-primary">
-                                                                    <i class="fas fa-search me-1"></i> Rechercher
-                                                                </button>
-                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-documents">
-                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            <div class="table-responsive">
-                                                <table id="table-documents-controle" class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr>
-                                                            <th><input type="checkbox" id="check-all-documents"></th>
-                                                            <th>N° Déclaration</th>
-                                                            <th>Défunt</th>
-                                                            <th>Date décès</th>
-                                                            <th>Sexe</th>
-                                                            <th>Type Document</th>
-                                                            <th>Statut</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="tbody-documents-controle">
-                                                        @include('deces::acte.partials.table-documents', ['documents' => $documentsAControler])
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+                <div id="gestion-actes" class="tab-pane fade">
+                    <div class="an-hint an-hint--step2" role="note">
+                        <span class="an-hint__icon" aria-hidden="true"><span class="fw-bold small">2–3</span></span>
+                        <div>
+                            <strong>Étapes 2 et 3 — Acte et signature.</strong>
+                            Colonne <em>Étape</em> : génération de l’acte, puis validation par l’officier (OTP).
+                            Les dossiers les plus urgents (sans acte, puis acte non validé) apparaissent en tête sur l’accueil (20 derniers).
+                        </div>
+                    </div>
+
+                    <div class="card an-filter-card shadow-none">
+                        <div class="card-header">
+                            <h2 class="card-title mb-0">
+                                <i class="fas fa-search me-2 text-secondary"></i>Filtrer les actes
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="form-search-actes">
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-code-acte-actes">Code acte</label>
+                                        <input type="text" class="form-control" name="code_acte" id="filter-code-acte-actes" placeholder="Rechercher…">
                                     </div>
-
-                                    <div id="gestion-actes" class="tab-pane fade">
-                                        <div class="pt-3">
-                                            <!-- Formulaire de recherche pour Gestion des actes -->
-                                            <div class="card mb-3">
-                                                <div class="card-header">
-                                                    <h5 class="card-title mb-0">
-                                                        <i class="fas fa-search me-2"></i>Recherche
-                                                    </h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <form id="form-search-actes">
-                                                        <div class="row">
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Code Acte</label>
-                                                                <input type="text" class="form-control" name="code_acte" id="filter-code-acte-actes" placeholder="Rechercher...">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date début</label>
-                                                                <input type="date" class="form-control" name="date_debut" id="filter-date-debut-actes">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Date fin</label>
-                                                                <input type="date" class="form-control" name="date_fin" id="filter-date-fin-actes">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Sexe</label>
-                                                                <select class="form-control" name="sexe" id="filter-sexe-actes">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="M">Masculin</option>
-                                                                    <option value="F">Féminin</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label class="form-label">Statut</label>
-                                                                <select class="form-control" name="statut" id="filter-statut-actes">
-                                                                    <option value="">Tous</option>
-                                                                    <option value="en_attente_generation">En attente de génération</option>
-                                                                    <option value="en_attente_validation">En attente de validation</option>
-                                                                    <option value="valide_non_retire">Validé, non rétiré</option>
-                                                                    <option value="retire">Rétiré</option>
-                                                                    <option value="annule">Annulé</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div class="row mt-3">
-                                                            <div class="col-md-12">
-                                                                <button type="submit" class="btn btn-primary">
-                                                                    <i class="fas fa-search me-1"></i> Rechercher
-                                                                </button>
-                                                                <button type="button" class="btn btn-secondary" id="btn-reset-filters-actes">
-                                                                    <i class="fas fa-redo me-1"></i> Réinitialiser
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            <div class="table-responsive">
-                                                <table id="table-actes-gestion" class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr>
-                                                            <th><input type="checkbox" id="check-all-actes"></th>
-                                                            <th>N° Acte</th>
-                                                            <th>Défunt</th>
-                                                            <th>Date décès</th>
-                                                            <th>Sexe</th>
-                                                            <th>Statut</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="tbody-actes-gestion">
-                                                        @include('deces::acte.partials.table-actes', ['actes' => $actesGestion])
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-debut-actes">Date début</label>
+                                        <input type="date" class="form-control" name="date_debut" id="filter-date-debut-actes">
                                     </div>
-
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-date-fin-actes">Date fin</label>
+                                        <input type="date" class="form-control" name="date_fin" id="filter-date-fin-actes">
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-sexe-actes">Sexe</label>
+                                        <select class="form-control" name="sexe" id="filter-sexe-actes">
+                                            <option value="">Tous</option>
+                                            <option value="M">Masculin</option>
+                                            <option value="F">Féminin</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <label class="form-label" for="filter-statut-actes">Statut</label>
+                                        <select class="form-control" name="statut" id="filter-statut-actes">
+                                            <option value="">Tous</option>
+                                            <option value="en_attente_generation">En attente de génération</option>
+                                            <option value="en_attente_validation">En attente de validation</option>
+                                            <option value="valide_non_retire">Validé, non rétiré</option>
+                                            <option value="retire">Rétiré</option>
+                                            <option value="annule">Annulé</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
+                                <div class="row mt-3">
+                                    <div class="col-12 d-flex flex-wrap gap-2">
+                                        <button type="submit" class="btn btn-primary an-btn-search text-white">
+                                            <i class="fas fa-search me-1"></i>Rechercher
+                                        </button>
+                                        <button type="button" class="btn btn-secondary an-btn-reset" id="btn-reset-filters-actes">
+                                            <i class="fas fa-redo me-1"></i>Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="an-table-wrap">
+                        <div class="table-responsive">
+                            <table id="table-actes-gestion" class="table table-hover an-data-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="check-all-actes" aria-label="Tout sélectionner"></th>
+                                        <th>N° acte</th>
+                                        <th>Défunt</th>
+                                        <th>Date décès</th>
+                                        <th>Sexe</th>
+                                        <th>Étape</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-actes-gestion">
+                                    @include('deces::acte.partials.table-actes', ['actes' => $actesGestion])
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -760,9 +770,6 @@ Actes de décès
         </form>
     </div>
 </div>
-</div>
-</div>
-</div>
 @endsection
 @section("scripts")
 <!-- Datatable -->
@@ -814,7 +821,10 @@ Actes de décès
                 "searching": true,
                 "info": false,
                 "ordering": true,
-                "autoWidth": false
+                "autoWidth": false,
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 7] }
+                ]
             });
         }
 
@@ -825,7 +835,10 @@ Actes de décès
                 "searching": true,
                 "info": false,
                 "ordering": true,
-                "autoWidth": false
+                "autoWidth": false,
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 7] }
+                ]
             });
         }
 
@@ -836,10 +849,263 @@ Actes de décès
         }
     });
 
+    function searchDocumentsServer(submitBtn) {
+        var formData = $('#form-search-documents').serialize();
+        formData += '&_token={{ csrf_token() }}';
+
+        $.ajax({
+            url: "{{ route('acteDeces.filter.documents') }}",
+            type: 'POST',
+            data: formData,
+            beforeSend: function() {
+                $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
+            },
+            success: function(response) {
+                try {
+                    if (response.code === '200') {
+                        if ($.fn.DataTable.isDataTable('#table-documents-controle')) {
+                            try {
+                                tableDocuments.destroy();
+                            } catch(e) {}
+                            tableDocuments = null;
+                        }
+                        $('#tbody-documents-controle').empty().html(response.data);
+
+                        codesDocuments = [];
+                        $("#check-all-documents").prop("checked", false);
+                        if (typeof updateDocumentButtons === 'function') {
+                            updateDocumentButtons();
+                        }
+
+                        setTimeout(function() {
+                            try {
+                                var rows = $('#tbody-documents-controle tr');
+                                var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+
+                                if (hasData && rows.length > 0) {
+                                    tableDocuments = $('#table-documents-controle').DataTable({
+                                        "language": frenchLanguage,
+                                        "paging": false,
+                                        "searching": true,
+                                        "info": false,
+                                        "ordering": true,
+                                        "destroy": true,
+                                        "autoWidth": false,
+                                        "columnDefs": [
+                                            { "orderable": false, "targets": [0, 7] }
+                                        ]
+                                    });
+                                }
+                            } catch(e) {}
+                        }, 100);
+
+                        var message = response.count + " résultat(s) trouvé(s)";
+                        if (response.limite_atteinte) {
+                            message += " (affichage limité à " + response.count_affiché + " résultats). Affinez vos critères pour voir tous les résultats.";
+                            flashAlert("Attention", "warning", message);
+                        } else {
+                            flashAlert("Succès", "success", message);
+                        }
+                    } else {
+                        flashAlert("Erreur", "error", response.message || "Erreur lors de la recherche");
+                        $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
+                    }
+                } catch(e) {
+                    flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
+                    $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du traitement</td></tr>');
+                }
+            },
+            error: function(xhr) {
+                try {
+                    if ($.fn.DataTable.isDataTable('#table-documents-controle')) {
+                        tableDocuments.destroy();
+                        tableDocuments = null;
+                    }
+                } catch(e) {}
+                $('#tbody-documents-controle').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du chargement</td></tr>');
+
+                setTimeout(function() {
+                    try {
+                        var rows = $('#tbody-documents-controle tr');
+                        var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+                        if (hasData && rows.length > 0) {
+                            tableDocuments = $('#table-documents-controle').DataTable({
+                                "language": frenchLanguage,
+                                "paging": false,
+                                "searching": true,
+                                "info": false,
+                                "ordering": true,
+                                "destroy": true,
+                                "autoWidth": false,
+                                "columnDefs": [
+                                    { "orderable": false, "targets": [0, 7] }
+                                ]
+                            });
+                        }
+                    } catch(e) {}
+                }, 100);
+
+                var errorMessage = "Erreur lors de la recherche des documents";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                flashAlert("Erreur", "error", errorMessage);
+            },
+            complete: function() {
+                if (submitBtn) {
+                    sifecBtnReset(submitBtn);
+                }
+            }
+        });
+    }
+
+    function searchActesServer(submitBtn) {
+        var formData = $('#form-search-actes').serialize();
+        formData += '&_token={{ csrf_token() }}';
+
+        $.ajax({
+            url: "{{ route('acteDeces.filter.actes') }}",
+            type: 'POST',
+            data: formData,
+            beforeSend: function() {
+                $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center"><i class="fa fa-spinner fa-spin"></i> Chargement...</td></tr>');
+            },
+            success: function(response) {
+                try {
+                    if (response.code === '200') {
+                        if ($.fn.DataTable.isDataTable('#table-actes-gestion')) {
+                            try {
+                                tableActes.destroy();
+                            } catch(e) {}
+                            tableActes = null;
+                        }
+                        $('#tbody-actes-gestion').empty().html(response.data);
+
+                        codesActes = [];
+                        actesGeneres = [];
+                        actesNonGeneres = [];
+                        $("#check-all-actes").prop("checked", false);
+                        if (typeof updateActeButtons === 'function') {
+                            updateActeButtons();
+                        }
+
+                        setTimeout(function() {
+                            try {
+                                var rows = $('#tbody-actes-gestion tr');
+                                var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+
+                                if (hasData && rows.length > 0) {
+                                    tableActes = $('#table-actes-gestion').DataTable({
+                                        "language": frenchLanguage,
+                                        "paging": false,
+                                        "searching": true,
+                                        "info": false,
+                                        "ordering": true,
+                                        "destroy": true,
+                                        "autoWidth": false,
+                                        "columnDefs": [
+                                            { "orderable": false, "targets": [0, 7] }
+                                        ]
+                                    });
+                                }
+                            } catch(e) {}
+                        }, 100);
+
+                        var message = response.count + " résultat(s) trouvé(s)";
+                        if (response.limite_atteinte) {
+                            message += " (affichage limité à " + response.count_affiché + " résultats). Affinez vos critères pour voir tous les résultats.";
+                            flashAlert("Attention", "warning", message);
+                        } else {
+                            flashAlert("Succès", "success", message);
+                        }
+                    } else {
+                        flashAlert("Erreur", "error", response.message || "Erreur lors de la recherche");
+                        $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors de la recherche</td></tr>');
+                    }
+                } catch(e) {
+                    flashAlert("Erreur", "error", "Erreur lors du traitement des résultats");
+                    $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du traitement</td></tr>');
+                }
+            },
+            error: function(xhr) {
+                try {
+                    if ($.fn.DataTable.isDataTable('#table-actes-gestion')) {
+                        tableActes.destroy();
+                        tableActes = null;
+                    }
+                } catch(e) {}
+                $('#tbody-actes-gestion').html('<tr><td colspan="8" class="text-center text-danger">Erreur lors du chargement</td></tr>');
+
+                setTimeout(function() {
+                    try {
+                        var rows = $('#tbody-actes-gestion tr');
+                        var hasData = rows.length > 0 && rows.first().find('td.text-center').length === 0;
+                        if (hasData && rows.length > 0) {
+                            tableActes = $('#table-actes-gestion').DataTable({
+                                "language": frenchLanguage,
+                                "paging": false,
+                                "searching": true,
+                                "info": false,
+                                "ordering": true,
+                                "destroy": true,
+                                "autoWidth": false,
+                                "columnDefs": [
+                                    { "orderable": false, "targets": [0, 7] }
+                                ]
+                            });
+                        }
+                    } catch(e) {}
+                }, 100);
+
+                var errorMessage = "Erreur lors de la recherche des actes";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                flashAlert("Erreur", "error", errorMessage);
+            },
+            complete: function() {
+                if (submitBtn) {
+                    sifecBtnReset(submitBtn);
+                }
+            }
+        });
+    }
+
+    $('#form-search-documents').on('submit', function(e) {
+        e.preventDefault();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            sifecBtnLoading(submitBtn, 'Recherche...');
+        }
+        searchDocumentsServer(submitBtn);
+    });
+
+    $('#form-search-actes').on('submit', function(e) {
+        e.preventDefault();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            sifecBtnLoading(submitBtn, 'Recherche...');
+        }
+        searchActesServer(submitBtn);
+    });
+
+    $('#btn-reset-filters-documents').on('click', function() {
+        $('#form-search-documents')[0].reset();
+        location.reload();
+    });
+
+    $('#btn-reset-filters-actes').on('click', function() {
+        $('#form-search-actes')[0].reset();
+        location.reload();
+    });
+
     $(function() {
 
     // Gestion des checkboxes pour les documents à contrôler
-    $("#check-all-documents").on("change", function() {
+    $(document).on("change", "#check-all-documents", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
         if ($(this).is(":checked")) {
             $(".checkbox-document").prop("checked", true);
             codesDocuments = [];
@@ -851,13 +1117,23 @@ Actes de décès
             codesDocuments = [];
         }
         updateDocumentButtons();
+        return false;
     });
-    $(document).on("change", ".checkbox-document", function() {
+    $(document).on("change", ".checkbox-document", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
         codesDocuments = [];
         $(".checkbox-document:checked").each(function() {
             codesDocuments.push($(this).val());
         });
+
+        var totalCheckboxes = $(".checkbox-document").length;
+        var checkedCheckboxes = $(".checkbox-document:checked").length;
+        $("#check-all-documents").prop("checked", totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
+
         updateDocumentButtons();
+        return false;
     });
 
     // Gestion des checkboxes pour les actes transcrits
@@ -926,7 +1202,7 @@ Actes de décès
     }
 
     // Confirmation d'un document individuel
-    $(".btn-confirmer-document").on("click", function() {
+    $(document).on("click", ".btn-confirmer-document", function() {
         var codeDeclaration = $(this).data('id');
         $("#code-declaration-confirmation").val(codeDeclaration);
         $("#observation-confirmation").val('');
@@ -934,7 +1210,7 @@ Actes de décès
     });
 
     // Confirmation de plusieurs documents
-    $(".confirmer-documents").on("click", function(){
+    $(document).on("click", ".confirmer-documents", function(){
         if(codesDocuments.length == 0){
             flashAlert("Attention", "warning", "Veuillez sélectionner au moins un document à confirmer.");
             return;
@@ -943,7 +1219,7 @@ Actes de décès
     });
 
     // Renvoi d'un document individuel
-    $(".btn-renvoyer-document").on("click", function(){
+    $(document).on("click", ".btn-renvoyer-document", function(){
         var codeDeclaration = $(this).data('id');
         $("#codedeclarationback").val(codeDeclaration);
         $("#motif_renvoi").val("");
@@ -955,7 +1231,7 @@ Actes de décès
     });
 
     // Renvoi de plusieurs documents
-    $(".renvoyer-documents").on("click", function(){
+    $(document).on("click", ".renvoyer-documents", function(){
         if(codesDocuments.length == 0){
             flashAlert("Attention", "warning", "Veuillez sélectionner au moins un document à renvoyer.");
             return;

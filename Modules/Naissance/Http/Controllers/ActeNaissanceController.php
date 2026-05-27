@@ -47,8 +47,8 @@ class ActeNaissanceController extends Controller
 
         $dashboard = app(CecNaissanceActeDashboardService::class);
 
-        // Aperçu : requêtes limitées côté SQL (évite get() complet + take(20) en mémoire)
-        $documentsAControler = $dashboard->documentsAControlerPreview($institution, 35);
+        // Aperçu : 20 lignes max au chargement initial
+        $documentsAControler = $dashboard->documentsAControlerPreview($institution, 20);
         $actesGestion = $dashboard->actesGestionPreview($institution, 20);
 
         $registre = Registre::where('cui', $affectation->cui)->where('statut', 1)->where('code_type_registre', 'TPRG_0001')->first();
@@ -140,7 +140,15 @@ class ActeNaissanceController extends Controller
                 }
             }
 
-            $maxResults = 500;
+            $hasFilters = $request->filled('numero_declaration')
+                || $request->filled('type_declaration')
+                || $request->filled('date_debut')
+                || $request->filled('date_fin')
+                || $request->filled('sexe')
+                || $request->filled('statut');
+
+            // Sans filtre: aperçu limité à 20. Avec filtres: autoriser un volume plus large.
+            $maxResults = $hasFilters ? 500 : 20;
             $countResultat = (clone $query)->count();
             $documents = (clone $query)
                 ->orderByDesc('date_heure_declaration')
@@ -1348,85 +1356,16 @@ class ActeNaissanceController extends Controller
 
     public function repertoire()
     {
-
-        $dated = request('dated');
-        $datef = request('datef');
-
-        if ($dated == null && $datef == null) {
-            $actes = DB::select("SELECT *
-            FROM t_acte_naissance
-            JOIN t_declaration_naissance ON t_declaration_naissance.code_declaration_naissance = t_acte_naissance.code_declaration_naissance
-            JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_naissance.code_enfant
-
-            WHERE t_acte_naissance.cui = '".Auth::user()->affectationActive()->cui."'
-            ORDER BY tr_identification_personne.nom");
-        }
-
-        return view('naissance::acte.repertoire', compact('actes', 'dated', 'datef'));
+        return redirect()->route('reporting.faits.repertoire.alphabetique', ['type_fait' => 'naissance']);
     }
 
     public function repertoireAlphabetique(Request $request)
     {
-
-        //
-        $dated = $request->dated;
-        $datef = $request->datef;
-        $user = Auth::user();
-        // if ($dated == null && $datef == null) {
-        //     $actes = DB::select("SELECT *
-        //     FROM t_acte_naissance
-        //     JOIN t_declaration_naissance ON t_declaration_naissance.code_declaration_naissance = t_acte_naissance.code_declaration_naissance
-        //     JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_naissance.code_enfant
-        //     WHERE t_acte_naissance.cui = '".Auth::user()->affectationActive()->cui."'
-        //     ORDER BY tr_identification_personne.nom");
-        // }
-
-        // if ($dated != null && $datef == null) {
-        //     $actes = DB::select("SELECT *
-        //     FROM t_acte_naissance
-        //     JOIN t_declaration_naissance ON t_declaration_naissance.code_declaration_naissance = t_acte_naissance.code_declaration_naissance
-        //     JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_naissance.code_enfant
-        //     WHERE t_acte_naissance.cui = '".Auth::user()->affectationActive()->cui."'
-        //     AND date(t_declaration_naissance.date_heure_naissance) BETWEEN '".$dated."' AND '".$dated."'
-        //     ORDER BY tr_identification_personne.nom");
-        // }
-
-        // if ($dated == null && $datef != null) {
-        //     $actes = DB::select("SELECT *
-        //     FROM t_acte_naissance
-        //     JOIN t_declaration_naissance ON t_declaration_naissance.code_declaration_naissance = t_acte_naissance.code_declaration_naissance
-        //     JOIN tr_identification_personne ON tr_identification_personne.code_personne = t_declaration_naissance.code_enfant
-        //     WHERE t_acte_naissance.cui = '".Auth::user()->affectationActive()->cui."'
-        //     AND date(t_declaration_naissance.date_heure_naissance) BETWEEN '".$datef."' AND '".$datef."'
-        //     ORDER BY tr_identification_personne.nom");
-        // }
-
-        if ($dated != null && $datef != null) {
-            $actes = DB::select("SELECT p.nom,p.prenom,p.sexe,p.date_naissance,an.niupp FROM tr_identification_personne p
-                JOIN t_declaration_naissance dn ON dn.code_enfant = p.code_personne
-                JOIN t_acte_naissance an ON an.code_declaration_naissance = dn.code_declaration_naissance
-                JOIN tr_ins_user iuser ON an.cui=iuser.cui
-                JOIN tr_institution ins ON iuser.code_institution = ins.code_institution
-                WHERE date(an.date_emission) BETWEEN '".$dated."' AND '".$datef."' AND ins.code_institution = '".Auth::user()->affectationActive()->code_institution."'
-                ORDER BY p.nom,p.prenom,p.sexe,p.date_naissance,an.niupp"
-            );
-
-        }
-        // dd("impossible");
-        // dd($request->all());
-        if ($actes == null) {
-            flash()->warning('Aucune donnée trouvée');
-
-            return back();
-        }
-
-        view()->share('tester', [], 'Vincent');
-        $html2pdf = new Html2Pdf('P', 'A4', 'fr');
-        $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('naissance::etats.repertoire', compact('actes', 'dated', 'datef'))->render());
-
-        return $html2pdf->output('repertoireAlpha.pdf');
-
+        return redirect()->route('reporting.faits.repertoire.alphabetique', array_filter([
+            'type_fait' => 'naissance',
+            'dated' => $request->input('dated'),
+            'datef' => $request->input('datef'),
+        ], fn ($v) => $v !== null && $v !== ''));
     }
 
     public function retraitActe(Request $request)

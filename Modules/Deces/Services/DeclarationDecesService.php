@@ -320,6 +320,12 @@ class DeclarationDecesService
             $ddeces->domicile_defunt = $request->domicile_defunt;
             $ddeces->type_declarant = "Personne physique";
         $ddeces->type_declaration = $request->type_declaration ?? 'DECLARATION DE DECES';
+        $codeCategorie = optional(optional($user->affectationActive()->institution)->typeInstitution)->typeCategorieInstitution->code_type_categorie_ins ?? null;
+        if ($ddeces->type_declaration === 'CERTIFICAT DE CONSTATATION DE DECES') {
+            $ddeces->contexte_affichage = 'centre_hygiene';
+        } elseif ($codeCategorie === 'TCINS_0003') {
+            $ddeces->contexte_affichage = 'formation_sanitaire';
+        }
         $ddeces->code_religion = $request->code_religion_defunt;
         $ddeces->code_situation_matrimoniale = $request->code_situation_matrimoniale_defunt;
         $ddeces->code_filiation = $request->filiation;

@@ -263,7 +263,17 @@ Actes Décès
 
     <script>
         $(function(){
-            $("a.show-to-send").on("click", function(){
+            // Gestionnaire pour le bouton "Envoyer au centre d'état civil"
+            $(document).on("click", ".btn-envoyer-centre", function(){
+                var codeDeclaration = $(this).data('code');
+                
+                $("#codedeclaration").val(codeDeclaration);
+                $("#modal-declaration-send").modal("show");
+                
+                return false;
+            });
+            
+            $(document).on("click", "a.show-to-send", function(){
 
                 var codeDeclaration = $(this).attr('href');
 
@@ -301,7 +311,7 @@ Actes Décès
                 return false;
             });
 
-            $("a.show-detail-renvoie").on("click", function(){
+            $(document).on("click", "a.show-detail-renvoie", function(){
                 var motif = $(this).attr("title");
                 var cdd = $(this).attr("href");
                 var cmvtn = $(this).attr("cmouvtdeces");

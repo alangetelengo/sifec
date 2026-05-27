@@ -51,7 +51,7 @@ certificat de non inscription
                             </div>
                             <div class="cni-verify-actions">
                                 <button type="submit" class="btn cni-btn-verify" id="btn-submit" disabled>
-                                    <i class="fas fa-arrow-right me-2"></i>Vérifier la possibilité
+                                    <i class="fas fa-arrow-right me-2"></i>Cliquez ici
                                 </button>
                             </div>
                         </div>
@@ -150,7 +150,11 @@ certificat de non inscription
                                                     title="Voir détail">
                                                     <i class="fas fa-eye"></i>
                                                  </a>
-                                                <a href="{{ route('declarationNaissance.etat',$certificat->code_declaration_naissance) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document"><i class="fas fa-print"></i></a>
+                                                <a href="{{ route('declarationNaissance.voir.etat', ['id' => $certificat->code_declaration_naissance, 'from' => 'declaration']) }}"
+                                                   class="btn btn-warning shadow btn-xs sharp me-1"
+                                                   title="Voir document">
+                                                    <i class="fas fa-print"></i>
+                                                </a>
                                                 @if($dernierMouvement && in_array($dernierMouvement->code_mouvement, ['MOUV_0026', 'MOUV_0004']))
                                                     <a href="{{ route('declarationNaissance.edit',$certificat->code_declaration_naissance) }}" class="btn btn-info shadow btn-xs sharp me-1" title="Modifier"><i class="fas fa-pencil-alt"></i></a>
                                                     <form action="{{ route('declarationNaissance.destroy',$certificat->code_declaration_naissance) }}" method="POST" style="display: inline-block">
@@ -410,19 +414,29 @@ certificat de non inscription
             let type = '';
             if (age_jours > 30) {
                 message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai dépassé</strong>Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.<span class="cni-callout__sub">Le délai légal de déclaration est dépassé.</span></div></div>';
-                lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-exclamation-triangle"></i></div><div class="cni-callout__body"><strong>Action requise</strong>Vous devez créer un <b>certificat de non inscription</b>.<span class="cni-callout__sub">Une réquisition est requise, conformément à l\'article 80 du code de la famille.</span></div></div>';
+                lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-exclamation-triangle"></i></div><div class="cni-callout__body"><strong>Action requise</strong>Vous devez créer un <b>certificat de non inscription</b>.<span class="cni-callout__sub">Une réquisition est requise, conformément à la loi.</span></div></div>';
                 type = 'certificat';
             }
-            if (age_mois > 3) {
-                message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai largement dépassé</strong>Nombre de mois sans déclarer : <b>' + age_mois + ' mois</b>.<span class="cni-callout__sub">Une réquisition ou un jugement est requis (article 80 du code de la famille).</span></div></div>';
-                lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-file-signature"></i></div><div class="cni-callout__body"><strong>Étape suivante</strong>Créez un <b>certificat de non inscription</b> pour poursuivre la procédure.</div></div>';
+            if (age_jours > 90) {
+                message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai dépassé</strong>Nombre de jours sans déclarer : <b>' + age_jours + ' jours</b>.<span class="cni-callout__sub">Le délai légal de déclaration est dépassé.</span></div></div>';
+                lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-exclamation-triangle"></i></div><div class="cni-callout__body"><strong>Action requise</strong>Vous devez créer un <b>certificat de non inscription</b>.<span class="cni-callout__sub">Un jugement est requis, conformément à la loi.</span></div></div>';
                 type = 'certificat';
             }
-            if (age_jours <= 30 && age_mois <= 3) {
-                message = '<div class="cni-callout cni-callout--info"><div class="cni-callout__icon"><i class="fas fa-info-circle"></i></div><div class="cni-callout__body"><strong>Délai respecté</strong>Nombre de jours depuis la naissance : <b>' + age_jours + ' jours</b>.</div></div>';
-                lien = '<div class="cni-callout cni-callout--success"><div class="cni-callout__icon"><i class="fas fa-check-circle"></i></div><div class="cni-callout__body"><strong>Déclaration classique</strong>Vous pouvez créer une <b>déclaration de naissance</b> selon le circuit habituel.</div></div>';
-                type = 'declaration';
-            }
+            // if (age_mois > 3) {
+            //     message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai largement dépassé</strong>Nombre de mois sans déclarer : <b>' + age_mois + ' mois</b>.<span class="cni-callout__sub">Un jugement est requis (article 80 du code de la famille).</span></div></div>';
+            //     lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-file-signature"></i></div><div class="cni-callout__body"><strong>Étape suivante</strong>Créez un <b>certificat de non inscription</b> pour poursuivre la procédure.</div></div>';
+            //     type = 'certificat';
+            // }
+            // if (age_mois < 3) {
+            //     message = '<div class="cni-callout cni-callout--deadline"><div class="cni-callout__icon"><i class="fas fa-clock"></i></div><div class="cni-callout__body"><strong>Délai largement dépassé</strong>Nombre de mois sans déclarer : <b>' + age_mois + ' mois</b>.<span class="cni-callout__sub">Une réquisition est requise (article 80 du code de la famille).</span></div></div>';
+            //     lien = '<div class="cni-callout cni-callout--action"><div class="cni-callout__icon"><i class="fas fa-file-signature"></i></div><div class="cni-callout__body"><strong>Étape suivante</strong>Créez un <b>certificat de non inscription</b> pour poursuivre la procédure.</div></div>';
+            //     type = 'certificat';
+            // }
+            // if (age_jours <= 30 && age_mois <= 3) {
+            //     message = '<div class="cni-callout cni-callout--info"><div class="cni-callout__icon"><i class="fas fa-info-circle"></i></div><div class="cni-callout__body"><strong>Délai respecté</strong>Nombre de jours depuis la naissance : <b>' + age_jours + ' jours</b>.</div></div>';
+            //     lien = '<div class="cni-callout cni-callout--success"><div class="cni-callout__icon"><i class="fas fa-check-circle"></i></div><div class="cni-callout__body"><strong>Déclaration classique</strong>Vous pouvez créer une <b>déclaration de naissance</b> selon le circuit habituel.</div></div>';
+            //     type = 'declaration';
+            // }
             $('#texte').html(message);
             $('.validate').html(lien);
             $('#btn-submit').prop('disabled', false);
@@ -457,7 +471,7 @@ certificat de non inscription
         });
 
         let codeTribunal = null;
-        $('.btn-envoyer-tribunal').on('click', function(){
+        $(document).on('click', '.btn-envoyer-tribunal', function(){
             codeTribunal = $(this).data('code');
             $('#input-code-tribunal').val(codeTribunal);
 

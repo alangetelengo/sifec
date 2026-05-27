@@ -9,18 +9,14 @@ use Illuminate\Database\Seeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Services\DeclarationNaissanceService;
-use Modules\Naissance\Services\ActeNaissanceService;
 use Modules\Naissance\Services\MouvementService;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Localite;
-use Exception;
-use Illuminate\Support\Facades\Log;
 
 class DeclarationNaissanceSeeder extends Seeder
 {
-    private const TOTAL_DECLARATIONS = 40;
+    private const TOTAL_DECLARATIONS = 120;
     private const UNIQUE_RATIO = 0.80; // 80 % de familles uniques
     private const FILLE_RATIO = 0.36; // 36 % de filles
 
@@ -30,18 +26,18 @@ class DeclarationNaissanceSeeder extends Seeder
     {
         $this->resetTables();
 
-        $user = User::where('email', 'sandrine@gmail.com')
+        $user = User::where('email', 'agentfs@sifec.cg')
             ->with(['affectations' => fn ($q) => $q->where('active', 1)])
             ->first();
 
         if (!$user) {
-            $this->command?->warn("Utilisateur sandrine@gmail.com introuvable (seeder abandonné).");
+            $this->command?->warn("Utilisateur agentfs@sifec.cg introuvable (seeder abandonné).");
             return;
         }
 
         $affectation = $user->affectationActive();
         if (!$affectation) {
-            $this->command?->warn("Affectation active introuvable pour sandrine@gmail.com (seeder abandonné).");
+            $this->command?->warn("Affectation active introuvable pour agentfs@sifec.cg (seeder abandonné).");
             return;
         }
 
@@ -162,7 +158,7 @@ class DeclarationNaissanceSeeder extends Seeder
             'domicile_arrondissement_enfant' => null,
             'domicile_quartier_enfant' => null,
 
-            'type_declaration' => 'DECLARATION DE NAISSANCE',
+            'type_declaration' => 'CERTIFICAT DE NAISSANCE',
             'type_declarant' => 'Personne physique',
             'personne_declaree' => 'Enfant normal',
 
@@ -186,32 +182,32 @@ class DeclarationNaissanceSeeder extends Seeder
         $service = app(DeclarationNaissanceService::class);
         /** @var MouvementService $mouvementService */
         $mouvementService = app(MouvementService::class);
-        /** @var ActeNaissanceService $acteService */
-        $acteService = app(ActeNaissanceService::class);
 
-        $refMouvement = DB::table('tr_mouvement')->where('code_mouvement', 'MOUV_0024')->first();
-        if (!$refMouvement) {
-            $this->command?->warn("Référentiel mouvement MOUV_0024 introuvable (mouvement non créé).");
+        $now = Carbon::now();
+        $rangesMensuels = [];
+        for ($mois = 1; $mois <= (int) $now->month; $mois++) {
+            $debutMois = Carbon::create((int) $now->year, $mois, 1)->startOfDay();
+            $finMois = $mois === (int) $now->month
+                ? $now->copy()->startOfDay()
+                : $debutMois->copy()->endOfMonth()->startOfDay();
+
+            if ($finMois->lt($debutMois)) {
+                continue;
+            }
+
+            $rangesMensuels[] = [
+                'debut' => $debutMois,
+                'fin' => $finMois,
+                'cursor' => 0,
+            ];
+        }
+
+        if (empty($rangesMensuels)) {
+            $this->command?->warn("Impossible de construire la période mensuelle de génération.");
             return;
         }
 
-        // Récupérer l'utilisateur du centre d'état civil pour l'approbation et la génération des actes
-        $centreEtatCivilUser = User::where('email', 'stephanie@gmail.com')
-            ->with(['affectations' => fn ($q) => $q->where('active', 1)])
-            ->first();
-
-        $affectationCentre = null;
-        $registre = null;
-        if ($centreEtatCivilUser && $centreEtatCivilUser->affectationActive()) {
-            $affectationCentre = $centreEtatCivilUser->affectationActive();
-            $registre = $affectationCentre->registres()
-                ->where('code_type_registre', 'TPRG_0001')
-                ->where('statut', 1)
-                ->first();
-        }
-
         $created = 0;
-        $actesGeneres = 0;
 
         for ($i = 0; $i < self::TOTAL_DECLARATIONS; $i++) {
             $isSharedFamily = $i >= $totalUnique;
@@ -235,23 +231,24 @@ class DeclarationNaissanceSeeder extends Seeder
             // Assigner le sexe selon la proportion (36% filles)
             $payload['sexe_enfant'] = $sexes[$i];
 
-            // Générer une date de naissance en 2025
-            // Pour 2025 : du 1er janvier 2025 au 31 décembre 2025 (ou date actuelle si antérieure)
-            $debutAnnee = Carbon::create(2025, 1, 1);
-            $finAnnee = Carbon::create(2025, 12, 31);
-            $aujourdhui = Carbon::now();
-
-            // La date maximale est soit la fin de l'année 2025, soit aujourd'hui (le plus petit)
-            $dateMax = $finAnnee->isBefore($aujourdhui) ? $finAnnee : $aujourdhui;
-            $joursDisponibles = $debutAnnee->diffInDays($dateMax);
-
-            // Générer une date aléatoire dans la plage de l'année 2025
-            $joursAleatoires = $i % ($joursDisponibles + 1);
-            $dateNaissanceEnfant = $debutAnnee->copy()->addDays((int)$joursAleatoires);
+            // Répartition par mois de janvier jusqu'à aujourd'hui
+            $indexMois = $i % count($rangesMensuels);
+            $debutMois = $rangesMensuels[$indexMois]['debut'];
+            $finMois = $rangesMensuels[$indexMois]['fin'];
+            $joursDansMois = $debutMois->diffInDays($finMois) + 1;
+            $offsetJour = $rangesMensuels[$indexMois]['cursor'] % $joursDansMois;
+            $rangesMensuels[$indexMois]['cursor']++;
+            $dateNaissanceEnfant = $debutMois->copy()->addDays($offsetJour);
             $heureNaissance = Carbon::createFromTime(7, 30)->addMinutes($i % 1440)->format('H:i');
-            $joursDelai = rand(0, 29);
+
+            // Délais légaux : déclaration entre J0 et J+30 après naissance
+            $maxDelaiJours = min(30, $dateNaissanceEnfant->diffInDays($now->copy()->startOfDay()));
+            $joursDelai = $maxDelaiJours > 0 ? rand(0, $maxDelaiJours) : 0;
             $minutesDelai = rand(0, 1439);
             $dateDeclaration = $dateNaissanceEnfant->copy()->addDays($joursDelai)->addMinutes($minutesDelai);
+            if ($dateDeclaration->gt($now)) {
+                $dateDeclaration = $now->copy();
+            }
 
             $payload['date_naissance_enfant'] = $dateNaissanceEnfant->format('Y-m-d');
             $payload['heure_naissance_enfant'] = $heureNaissance;
@@ -281,101 +278,45 @@ class DeclarationNaissanceSeeder extends Seeder
                 continue;
             }
 
-            $mouvement = new MouvementNaissance();
-            $mouvement->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($mouvement, 'code_mouvement_naissance', 4, 'MDN_');
-            $mouvement->code_declaration_naissance = $declaration->code_declaration_naissance;
-            $mouvement->code_mouvement = $refMouvement->code_mouvement;
-            $mouvement->lib_mouvement = $refMouvement->lib_mouvement;
-            $mouvement->statut = 'En cours';
-            $mouvement->cui = $affectation->cui;
-            $mouvement->save();
+            // Mouvement d'enregistrement certificat (MOUV_0033), comme NaissanceController@store
+            [$okMouvement, $messageMouvement] = $mouvementService->ajouterEvenementDeclaration(
+                $user,
+                $declaration,
+                'certificat_naissance',
+                'Certificat enregistré via seeder'
+            );
 
+            if (!$okMouvement) {
+                $this->command?->warn("Mouvement certificat impossible pour {$declaration->code_declaration_naissance} : {$messageMouvement}");
+                continue;
+            }
+
+            $declaration->refresh();
             $created++;
 
-            // Envoyer la déclaration au centre d'état civil et générer l'acte
-            if ($affectationCentre && $registre) {
-                try {
-                    // 1. Envoyer la déclaration au centre d'état civil (MOUV_0001)
-                    if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0001')->exists()) {
-                        [$ok, $message] = $mouvementService->envoyerDeclaration(
-                            $user,
-                            $declaration,
-                            'MOUV_0001',
-                            'Envoyée',
-                            'Envoi automatique via seeder'
-                        );
+            // Envoyer le certificat de naissance au centre d'état civil (MOUV_0035)
+            if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0035')->exists()) {
+                [$ok, $message] = $mouvementService->envoyerDeclaration(
+                    $user,
+                    $declaration,
+                    'MOUV_0035',
+                    'Envoyée',
+                    'Envoi automatique via seeder'
+                );
 
-                        if (!$ok) {
-                            $this->command?->warn("Envoi impossible pour {$declaration->code_declaration_naissance} : {$message}");
-                        } else {
-                            $declaration->refresh();
-                        }
-                    }
-
-                    // 2. Approuver la déclaration
-                    $declaration->cec_approuver = 'OUI';
-                    $declaration->cec_approuve_par = $affectationCentre->cui ?? 'CUI_00000004';
-                    $declaration->cec_approuve_le = now();
-                    $declaration->declarant_approuver = 'OUI';
-                    $declaration->code_institution_destinataire = $affectationCentre->code_institution ?? 'INS_0047';
-                    $declaration->save();
-
-                    // 3. Confirmer la déclaration (MOUV_0019)
-                    if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0019')->exists()) {
-                        [$ok, $message] = $mouvementService->confirmerDeclarationNaissance(
-                            $affectationCentre,
-                            $declaration,
-                            'Confirmée',
-                            null,
-                            'Confirmation automatique via seeder'
-                        );
-
-                        if (!$ok) {
-                            $this->command?->warn("Confirmation impossible pour {$declaration->code_declaration_naissance} : {$message}");
-                        }
-                    }
-
-                    // 4. Vérifier que le registre n'est pas saturé
-                    $registre->refresh();
-                    if ($registre->statut == 0 || ($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) <= 0) {
-                        $this->command?->warn("Registre saturé, arrêt de la génération des actes.");
-                        break;
-                    }
-
-                    // 5. Générer l'acte de naissance
-                    DB::beginTransaction();
-                    try {
-                        $acteService->genererActe($declaration, $registre, $centreEtatCivilUser);
-                        $mouvementService->ajouterEvenementActe(
-                            $centreEtatCivilUser,
-                            $declaration,
-                            'attente_approbation',
-                            'Acte généré automatiquement via seeder'
-                        );
-                        DB::commit();
-                        $actesGeneres++;
-                    } catch (Exception $e) {
-                        DB::rollBack();
-                        Log::channel("sifec")->error("Échec génération acte {$declaration->code_declaration_naissance} : {$e->getMessage()}");
-                        $this->command?->warn("Échec génération acte {$declaration->code_declaration_naissance} : {$e->getMessage()}");
-                    }
-
-                    $registre->refresh();
-                } catch (Exception $e) {
-                    Log::channel("sifec")->error("Erreur lors du traitement de la déclaration {$declaration->code_declaration_naissance} : {$e->getMessage()}");
-                    $this->command?->warn("Erreur lors du traitement de la déclaration {$declaration->code_declaration_naissance} : {$e->getMessage()}");
+                if (!$ok) {
+                    $this->command?->warn("Envoi impossible pour {$declaration->code_declaration_naissance} : {$message}");
+                } else {
+                    $declaration->refresh();
                 }
-            } else {
-                $this->command?->warn("Centre d'état civil ou registre introuvable, les actes ne seront pas générés.");
             }
 
             if ($created % 100 === 0) {
-                $this->command?->info("$created déclarations enregistrées, $actesGeneres actes générés");
+                $this->command?->info("$created certificats enregistrés et envoyés");
             }
         }
 
-        $this->command?->info("Total déclarations créées: $created");
-        $this->command?->info("Total actes générés: $actesGeneres");
+        $this->command?->info("Total certificats créés: $created");
     }
 
     private function createFamilyData(

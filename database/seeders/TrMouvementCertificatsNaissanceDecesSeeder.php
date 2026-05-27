@@ -36,6 +36,11 @@ class TrMouvementCertificatsNaissanceDecesSeeder extends Seeder
                 'lib_mouvement' => 'Certificat de naissance envoyé',
                 'description' => 'La formation sanitaire envoie un certificat de naissance au centre d\'état civil',
             ],
+            [
+                'code_mouvement' => 'MOUV_2012',
+                'lib_mouvement' => 'Certificat transformé en déclaration de décès',
+                'description' => 'La pompe funèbre valide le certificat et enregistre le dossier comme déclaration de décès.',
+            ],
         ];
 
         foreach ($rows as $row) {

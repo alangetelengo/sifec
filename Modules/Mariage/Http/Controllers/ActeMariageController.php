@@ -541,42 +541,16 @@ class ActeMariageController extends Controller
 
     public function repertoire()
     {
-        return view('mariage::acte.repertoire');
+        return redirect()->route('reporting.faits.repertoire.alphabetique', ['type_fait' => 'mariage']);
     }
 
     public function repertoireetat()
     {
-        $dated = request('dated');
-        $datef = request('datef');
-
-        if ($dated == null && $datef == null) {
-            $actes = ActeMariage::where('cui', Auth::user()->affectationActive()->cui)->get();
-        }
-
-        if ($dated != null && $datef == null) {
-            $actes = ActeMariage::where('cui', Auth::user()->affectationActive()->cui)->whereBetween('date_emission', [$dated, $dated])->get();
-        }
-
-        if ($dated == null && $datef != null) {
-            $actes = ActeMariage::where('cui', Auth::user()->affectationActive()->cui)->whereBetween('date_emission', [$datef, $datef])->get();
-        }
-
-        if ($dated != null && $datef != null) {
-            $actes = ActeMariage::where('cui', Auth::user()->affectationActive()->cui)->whereBetween('date_emission', [$dated, $datef])->get();
-        }
-
-        if ($actes == null) {
-            flash()->warning('Aucune donnée trouvée');
-
-            return back();
-        }
-
-        view()->share('tester', [], 'Vincent');
-        $html2pdf = new Html2Pdf('P', 'A4', 'fr');
-        $html2pdf->setDefaultFont('Arial');
-        $html2pdf->writeHTML(view('mariage::etats.repertoire', compact('actes', 'dated', 'datef'))->render());
-
-        return $html2pdf->output('repertoireAlpha.pdf');
+        return redirect()->route('reporting.faits.repertoire.alphabetique', array_filter([
+            'type_fait' => 'mariage',
+            'dated' => request('dated'),
+            'datef' => request('datef'),
+        ], fn ($v) => $v !== null && $v !== ''));
     }
 
     /**

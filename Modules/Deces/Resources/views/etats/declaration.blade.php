@@ -56,16 +56,42 @@
 
 
         <div id="entete_rprt_suite">
+            @php
+                setlocale(LC_TIME, 'fr_FR', 'French');
+                $afficherFormationSanitaire = false;
+                $institutionAffichage = $ddc->institution;
+                $contexteEffectif = $contexteForcage ?? $ddc->contexte_affichage ?? null;
+                if (in_array($ddc->type_declaration ?? '', ['DECLARATION DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true)
+                    || in_array($ddc->type_declaration_origine ?? '', ['CERTIFICAT DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true)) {
+                    if ($contexteEffectif) {
+                        $afficherFormationSanitaire = ($contexteEffectif === 'formation_sanitaire');
+                        if ($contexteEffectif === 'pompe_funebre' && $ddc->institutionDestinataire) {
+                            $institutionAffichage = $ddc->institutionDestinataire;
+                        }
+                    }
+                }
+                if (! $contexteEffectif) {
+                    $codeCategorie = optional(optional($ddc->institution)->typeInstitution)->typeCategorieInstitution->code_type_categorie_ins ?? null;
+                    $afficherFormationSanitaire = ($codeCategorie === 'TCINS_0003');
+                }
+            @endphp
             @if($ddc->type_declaration == "DECLARATION TARDIVE")
                 <strong>{{$dept}}</strong> <BR>
                 <strong>{{$commune}}</strong>
-            @else
-                <strong>{{htmlentities("MINISTERE DE LA SANTE ET DE LA POPULATION  ")}}</strong><br>
+            @elseif($afficherFormationSanitaire)
+                <strong>{{ htmlentities('MINISTERE DE LA SANTE ET DE LA POPULATION  ') }}</strong><br>
                 <strong>************************************************************** </strong>
+            @else
+                @if($institutionAffichage)
+                    @php
+                        $localisationDataPf = \App\Sifec\Sifec::getLocalisationInstitution($institutionAffichage);
+                    @endphp
+                    <span>{{ $localisationDataPf['localiteParent'] ?? '' }}<br>{{ $localisationDataPf['localite'] ?? '' }}</span><br>
+                @endif
             @endif
 
              <BR>
-            <strong>{{ optional(optional($ddc->institutionUser)->institution)->lib_institution ?? '—' }}</strong>
+            <strong>{{ optional(optional($ddc->institutionUser)->institution)->lib_institution ?? optional($institutionAffichage)->lib_institution ?? '—' }}</strong>
 
         </div>
 
@@ -96,7 +122,23 @@
 
 		<tr>
 			<td style="border-right: solid; padding:5px 0px;text-align: center">&nbsp;</td>
-			<td style="border: solid; padding:5px 0px;text-align: center" colspan="2"><span style="font-size: 16px;font-weight:bold;">{{$ddc->type_declaration}}</span></td>
+			<td style="border: solid; padding:5px 0px;text-align: center" colspan="2"><span style="font-size: 16px;font-weight:bold;">
+                @php
+                    $titreAffiche = $typeDeclaration ?? $ddc->type_declaration;
+                    if (in_array($ddc->type_declaration ?? '', ['DECLARATION DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true)
+                        || in_array($ddc->type_declaration_origine ?? '', ['CERTIFICAT DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true)) {
+                        $ctx = $contexteForcage ?? $ddc->contexte_affichage ?? null;
+                        if ($ctx === 'formation_sanitaire') {
+                            $titreAffiche = 'CERTIFICAT DE DECES';
+                        } elseif ($ctx === 'centre_hygiene') {
+                            $titreAffiche = 'CERTIFICAT DE CONSTATATION DE DECES';
+                        } elseif ($ctx === 'pompe_funebre') {
+                            $titreAffiche = 'DECLARATION DE DECES';
+                        }
+                    }
+                @endphp
+                {{ $titreAffiche }}
+            </span></td>
 			<td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
 		</tr>
 

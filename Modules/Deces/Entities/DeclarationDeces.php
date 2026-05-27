@@ -29,6 +29,13 @@ use Modules\Referentiel\Entities\SituationMatrimoniale;
 class DeclarationDeces extends Model
 {
     use HasFactory;
+
+    /** Types utilisés dans les filtres du tableau de bord PF (actes de décès). */
+    public const TYPES_AUTORISES = [
+        'DECLARATION DE DECES',
+        'CERTIFICAT DE CONSTATATION DE DECES',
+    ];
+
     protected $guarded=[];
     protected $table="t_declaration_deces";
     protected $primaryKey="code_declaration_deces";
@@ -167,6 +174,33 @@ class DeclarationDeces extends Model
         public function institutionPompeFunebre(): BelongsTo
         {
             return $this->belongsTo(Institution::class, 'code_institution_destinataire', 'code_institution');
+        }
+
+        public function libelleAffichageType(): string
+        {
+            return $this->type_declaration_origine ?: (string) $this->type_declaration;
+        }
+
+        /**
+         * Contexte PDF du certificat d'origine (formation sanitaire ou centre d'hygiène).
+         */
+        public function contexteCertificatOrigine(): string
+        {
+            if (($this->type_declaration_origine ?? '') === 'CERTIFICAT DE CONSTATATION DE DECES') {
+                return 'centre_hygiene';
+            }
+
+            if (($this->type_declaration ?? '') === 'CERTIFICAT DE CONSTATATION DE DECES') {
+                return 'centre_hygiene';
+            }
+
+            return 'formation_sanitaire';
+        }
+
+        public function estDocumentCertificatOrigine(): bool
+        {
+            return in_array($this->type_declaration, ['DECLARATION DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true)
+                || in_array($this->type_declaration_origine ?? '', ['CERTIFICAT DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true);
         }
 
     }

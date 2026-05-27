@@ -157,10 +157,32 @@ Constatation de décès
                                                             <button type="submit" class="btn btn-danger shadow btn-xs sharp" title="Supprimer"><i class="fa fa-trash"></i></button>
                                                         </form>
                                                     @endif
-                                                    {{-- Consulter le PDF pour impression --}}
-                                                    <a href="{{ route('declarationDeces.etat',$dd->code_declaration_deces) }}" target="_blank" class="btn btn-warning shadow btn-xs sharp me-1" title="Voir document (PDF)">
-                                                        <i class="fas fa-print"></i>
-                                                    </a>
+                                                    {{-- Consulter le PDF --}}
+                                                    @php
+                                                        $contexteCertificat = $dd->contexteCertificatOrigine();
+                                                        $afficherDeclarationPf = $dd->type_declaration === 'DECLARATION DE DECES'
+                                                            && filled($dd->type_declaration_origine);
+                                                    @endphp
+                                                    @if($dd->estDocumentCertificatOrigine())
+                                                        <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'contexte' => $contexteCertificat, 'from' => 'declaration']) }}"
+                                                           class="btn btn-warning shadow btn-xs sharp me-1"
+                                                           title="Voir le certificat de constatation">
+                                                            <i class="fas fa-file-medical"></i>
+                                                        </a>
+                                                        @if($afficherDeclarationPf)
+                                                            <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'contexte' => 'pompe_funebre', 'from' => 'declaration']) }}"
+                                                               class="btn btn-success shadow btn-xs sharp me-1"
+                                                               title="Voir la déclaration de décès">
+                                                                <i class="fas fa-file-alt"></i>
+                                                            </a>
+                                                        @endif
+                                                    @else
+                                                        <a href="{{ route('declarationDeces.voir.etat', ['id' => $dd->code_declaration_deces, 'from' => 'declaration']) }}"
+                                                           class="btn btn-warning shadow btn-xs sharp me-1"
+                                                           title="Voir le document (PDF)">
+                                                            <i class="fas fa-print"></i>
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -267,7 +289,18 @@ Constatation de décès
 
     <script>
         $(function(){
-            $("a.show-to-send").on("click", function(){
+            // Gestionnaire pour le bouton "Envoyer au centre d'état civil"
+            // Utilisation de la délégation d'événements pour gérer les boutons dans DataTables
+            $(document).on("click", ".btn-envoyer-centre", function(){
+                var codeDeclaration = $(this).data('code');
+                
+                $("#codedeclaration").val(codeDeclaration);
+                $("#modal-declaration-send").modal("show");
+                
+                return false;
+            });
+            
+            $(document).on("click", "a.show-to-send", function(){
 
                 var codeDeclaration = $(this).attr('href');
 
@@ -305,7 +338,7 @@ Constatation de décès
                 return false;
             });
 
-            $("a.show-detail-renvoie").on("click", function(){
+            $(document).on("click", "a.show-detail-renvoie", function(){
                 var motif = $(this).attr("title");
                 var cdd = $(this).attr("href");
                 var cmvtn = $(this).attr("cmouvtdeces");

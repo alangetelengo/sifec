@@ -41,13 +41,26 @@ class CertificatNonInscriptionController extends Controller
         $affectationActive = (is_object($user) && method_exists($user, 'affectationActive')) ? $user->affectationActive() : null;
         $certificats = collect();
         $institution = $affectationActive ? $affectationActive->institution : null;
+        $cui = $affectationActive ? $affectationActive->cui : null;
+        $codeInstitution = $affectationActive ? $affectationActive->code_institution : null;
         if (! $institution || $institution->code_type_institution !== 'TPINS_0002') {
             flash()->error("Accès réservé aux agents du centre d'état civil.");
 
             return back();
         }
-        $certificats = Declarationnaissance::where('type_declaration', [], 'CERTIFICAT DE NON INSCRIPTION')
-            ->where('code_user_institution', $affectationActive ? $affectationActive->cui : null)
+
+        // Afficher les certificats du CEC (portée institution), avec fallback sur le CUI créateur.
+        $certificats = Declarationnaissance::where('type_declaration', 'CERTIFICAT DE NON INSCRIPTION')
+            ->where(function ($query) use ($codeInstitution, $cui) {
+                if ($codeInstitution) {
+                    $query->where('code_institution', $codeInstitution)
+                        ->orWhere('code_institution_destinataire', $codeInstitution);
+                }
+                if ($cui) {
+                    $query->orWhere('code_user_institution', $cui);
+                }
+            })
+            ->orderByDesc('created_at')
             ->get();
 
         return view('naissance::certificat-non-inscription.index', compact('certificats'));

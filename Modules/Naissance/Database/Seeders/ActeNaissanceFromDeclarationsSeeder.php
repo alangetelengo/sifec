@@ -17,21 +17,21 @@ class ActeNaissanceFromDeclarationsSeeder extends Seeder
     {
         $this->command?->info('Démarrage de la génération automatique des actes de naissance…');
 
-        $formationSanitaireUser = User::where('email', 'sandrine@gmail.com')
+        $formationSanitaireUser = User::where('email', 'agentfs@sifec.cg')
             ->with(['affectations' => fn ($q) => $q->where('active', 1)])
             ->first();
 
         if (!$formationSanitaireUser || !$formationSanitaireUser->affectationActive()) {
-            $this->command?->warn("Utilisateur formation sanitaire introuvable ou sans affectation active (sandrine@gmail.com).");
+            $this->command?->warn("Utilisateur formation sanitaire introuvable ou sans affectation active (agentfs@sifec.cg).");
             return;
         }
 
-        $centreEtatCivilUser = User::where('email', 'stephanie@gmail.com')
+        $centreEtatCivilUser = User::where('email', 'agentcec@sifec.cg')
             ->with(['affectations' => fn ($q) => $q->where('active', 1)])
             ->first();
 
         if (!$centreEtatCivilUser || !$centreEtatCivilUser->affectationActive()) {
-            $this->command?->warn("Utilisateur centre d'état civil introuvable ou sans affectation active (stephanie@gmail.com).");
+            $this->command?->warn("Utilisateur centre d'état civil introuvable ou sans affectation active (agentcec@sifec.cg).");
             return;
         }
 
@@ -42,7 +42,7 @@ class ActeNaissanceFromDeclarationsSeeder extends Seeder
             ->first();
 
         if (!$registre) {
-            $this->command?->warn("Aucun registre actif (TPRG_0001) disponible pour le centre d'état civil de stephanie@gmail.com.");
+            $this->command?->warn("Aucun registre actif (TPRG_0001) disponible pour le centre d'état civil de agentcec@sifec.cg.");
             return;
         }
 
@@ -52,7 +52,7 @@ class ActeNaissanceFromDeclarationsSeeder extends Seeder
         $acteService = app(ActeNaissanceService::class);
 
         $declarations = Declarationnaissance::with(['acte', 'mouvements'])
-            ->where('type_declaration', 'DECLARATION DE NAISSANCE')
+            ->whereIn('type_declaration', ['DECLARATION DE NAISSANCE', 'CERTIFICAT DE NAISSANCE'])
             ->orderBy('date_heure_declaration')
             ->get();
 
@@ -68,11 +68,15 @@ class ActeNaissanceFromDeclarationsSeeder extends Seeder
                 continue;
             }
 
-            if (!$declaration->mouvements->firstWhere('code_mouvement', 'MOUV_0001')) {
+            $codeMouvementEnvoi = $declaration->type_declaration === 'CERTIFICAT DE NAISSANCE'
+                ? 'MOUV_0035'
+                : 'MOUV_0001';
+
+            if (!$declaration->mouvements->firstWhere('code_mouvement', $codeMouvementEnvoi)) {
                 [$ok, $message] = $mouvementService->envoyerDeclaration(
                     $formationSanitaireUser,
                     $declaration,
-                    'MOUV_0001',
+                    $codeMouvementEnvoi,
                     'Envoyée',
                     'Envoi automatique via seeder'
                 );
@@ -83,16 +87,6 @@ class ActeNaissanceFromDeclarationsSeeder extends Seeder
                 }
                 $declaration->refresh();
             }
-
-            $declaration->cec_approuver = 'OUI';
-            $declaration->cec_approuve_par = 'CUI_00000004';
-            if ($affectationCentre->cui) {
-                $declaration->cec_approuve_par = $affectationCentre->cui;
-            }
-            $declaration->cec_approuve_le = now();
-            $declaration->declarant_approuver = 'OUI';
-            $declaration->code_institution_destinataire = 'INS_0047';
-            $declaration->save();
 
             if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0019')->exists()) {
                 [$ok, $message] = $mouvementService->confirmerDeclarationNaissance(
@@ -108,6 +102,7 @@ class ActeNaissanceFromDeclarationsSeeder extends Seeder
                     continue;
                 }
             }
+            $declaration->refresh();
 
             if ($registre->statut == 0 || ($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) <= 0) {
                 $this->command?->warn("Registre saturé, arrêt de la génération des actes.");

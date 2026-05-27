@@ -133,6 +133,8 @@ class MariageController extends Controller
             // Informations de base du mariage
             "type_declaration" => ["required", "string"],
             "lieu_ceremonie_mariage" => ["required", "string", "min:2"],
+            "date_declaration_mariage" => ["required", "date"],
+            "date_ceremonie_mariage" => ["required", "date"],
             "option_mariage" => ["required"],
             "regime_mariage" => ["required"],
 
@@ -186,11 +188,6 @@ class MariageController extends Controller
             // "code_nationalite_t_epouse_2" => ["required"]
             // "code_localite_t_epouse_2" => ["required"]
         ];
-
-        // Ajouter les règles conditionnelles selon le type de déclaration
-        if ($request->type_declaration === 'DECLARATION DE MARIAGE') {
-            $rules["date_ceremonie_mariage"] = ["required", "date"];
-        }
 
         // Si date_prevue_mariage n'est pas fournie, utiliser date_ceremonie_mariage
         if (!$request->has('date_prevue_mariage') || empty($request->date_prevue_mariage)) {
@@ -306,6 +303,10 @@ class MariageController extends Controller
 
         // Gérer les champs conditionnels
         $this->gererChampsConditionnels($request);
+
+        // Recalculer le type côté serveur (normal / dispense) selon lieu et délai
+        $declarationService = app(DeclarationMariageService::class);
+        $request->merge(['type_declaration' => $declarationService->determinerTypeDeclaration($request)]);
     }
 
     /**
@@ -590,14 +591,28 @@ class MariageController extends Controller
                 ], 400);
             }
 
+            $this->nettoyerDonneesMariage($request);
+            $declarationService = app(DeclarationMariageService::class);
+            $typeDeclaration = $declarationService->determinerTypeDeclaration($request);
+
             DB::beginTransaction();
 
-            // Mise à jour des informations de base
-            $declaration->update([
-                'type_declaration' => $request->type_declaration,
-                'date_prevue_mariage' => $request->date_prevue_mariage,
+            $updateData = [
+                'type_declaration' => $typeDeclaration,
+                'date_prevue_mariage' => $request->date_ceremonie_mariage ?? $request->date_prevue_mariage,
                 'lieu_ceremonie_mariage' => $request->lieu_ceremonie_mariage,
-            ]);
+            ];
+
+            if ($request->filled('date_declaration_mariage')) {
+                $updateData['date_declaration_mariage'] = $request->date_declaration_mariage;
+            }
+
+            if ($typeDeclaration === 'DISPENSE' && empty($declaration->numero_dispense)) {
+                $updateData['numero_dispense'] = Sifec::genererCodeUniqueReferentiel($declaration, 'numero_dispense', 4, '');
+            }
+
+            // Mise à jour des informations de base
+            $declaration->update($updateData);
 
             // Mise à jour des informations de l'époux
             if ($declaration->epoux) {

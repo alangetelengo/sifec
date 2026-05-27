@@ -473,7 +473,7 @@ $(function(){
     });
 
     // Gestion modale envoi au tribunal
-    $('.btn-envoyer-centre').on('click', function(){
+    $(document).on('click', '.btn-envoyer-centre', function(){
         if ($(this).hasClass('disabled')) {
             flashAlert("Réponse","warning",'Cette déclaration a déjà été envoyée au centre d\'état civil.');
             return;

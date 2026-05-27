@@ -314,34 +314,30 @@ class DeclarationMariageService
     }
 
     /**
-     * Déterminer le type de déclaration pour un mariage normal
+     * Déterminer le type de déclaration pour un mariage normal.
+     *
+     * DECLARATION DE MARIAGE : cérémonie >= 60 jours après la déclaration ET lieu au centre d'état civil.
+     * DISPENSE : lieu hors centre d'état civil OU cérémonie < 60 jours après la déclaration.
      */
     private function determinerTypeDeclarationNormal($request)
     {
-        // Vérifier si les dates sont présentes
-        if (!isset($request->date_declaration_mariage) || !isset($request->date_ceremonie_mariage)) {
-            return "DECLARATION DE MARIAGE";
+        if (! isset($request->date_declaration_mariage) || ! isset($request->date_ceremonie_mariage)) {
+            return 'DECLARATION DE MARIAGE';
         }
 
         try {
             $dateDeclaration = Carbon::create($request->date_declaration_mariage);
             $dateMariage = Carbon::create($request->date_ceremonie_mariage);
-            $diffJours = $dateMariage->diffInDays($dateDeclaration);
+            $diffJours = $dateDeclaration->diffInDays($dateMariage);
 
-            // Règles métier pour déterminer le type de déclaration
-            $conditionsDispense = [
-                // Cérémonie hors centre d'état civil
-                isset($request->lieu_ceremonie_mariage) && $request->lieu_ceremonie_mariage == "Hors centre d'état civil",
-                // Date de cérémonie < 60 jours à compter de la date de déclaration
-                $diffJours < 60
-            ];
+            $lieuCentre = ($request->lieu_ceremonie_mariage ?? '') === "Centre d'état civil";
+            $delaiSuffisant = $diffJours >= 60;
 
-            // Si au moins une condition de dispense est remplie
-            if (in_array(true, $conditionsDispense)) {
-                return "DISPENSE";
+            if ($lieuCentre && $delaiSuffisant) {
+                return 'DECLARATION DE MARIAGE';
             }
 
-            return "DECLARATION DE MARIAGE";
+            return 'DISPENSE';
 
         } catch (Exception $e) {
             Log::channel('sifec')->error('Erreur lors de la détermination du type de déclaration', [
@@ -372,23 +368,28 @@ class DeclarationMariageService
                 try {
                     $dateDeclaration = Carbon::create($request->date_declaration_mariage);
                     $dateMariage = Carbon::create($request->date_ceremonie_mariage);
-                    $diffJours = $dateMariage->diffInDays($dateDeclaration);
+                    $diffJours = $dateDeclaration->diffInDays($dateMariage);
+
+                    $lieuCentre = ($request->lieu_ceremonie_mariage ?? '') === "Centre d'état civil";
+                    $delaiSuffisant = $diffJours >= 60;
 
                     $conditions = [
                         'ecart_jours' => $diffJours,
-                        'ecart_inferieur_60_jours' => $diffJours < 60,
-                        'lieu_hors_centre' => isset($request->lieu_ceremonie_mariage) && $request->lieu_ceremonie_mariage == "Hors centre d'état civil"
+                        'delai_au_moins_60_jours' => $delaiSuffisant,
+                        'lieu_centre_etat_civil' => $lieuCentre,
+                        'lieu_hors_centre' => ! $lieuCentre && ($request->lieu_ceremonie_mariage ?? '') === "Hors centre d'état civil",
                     ];
 
                     $details['conditions_verifiees'] = $conditions;
 
-                    // Déterminer la raison selon les nouvelles règles métier
                     if ($conditions['lieu_hors_centre']) {
                         $details['raison_determination'] = "Cérémonie hors centre d'état civil";
-                    } elseif ($conditions['ecart_inferieur_60_jours']) {
+                    } elseif (! $delaiSuffisant) {
                         $details['raison_determination'] = "Date de cérémonie < 60 jours à compter de la déclaration ({$diffJours} jours)";
+                    } elseif ($lieuCentre && $delaiSuffisant) {
+                        $details['raison_determination'] = "Cérémonie >= 60 jours et lieu au centre d'état civil — déclaration normale";
                     } else {
-                        $details['raison_determination'] = "Aucune condition de dispense remplie - Déclaration normale";
+                        $details['raison_determination'] = 'Conditions de déclaration normale non remplies — dispense';
                     }
                 } catch (Exception $e) {
                     $details['raison_determination'] = "Erreur lors de l'analyse des dates: " . $e->getMessage();

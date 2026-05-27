@@ -30,7 +30,7 @@ class EtatsMariageController extends Controller
         $mention = '';
         $dateDeclaration = Carbon::create($dm->date_declaration_mariage);
         $dateMariage = Carbon::create($dm->date_prevue_mariage);
-        $diffJours = $dateMariage->diffInDays($dateDeclaration);
+        $diffJours = $dateDeclaration->diffInDays($dateMariage);
 
         if ($diffJours < 60 || $dm->lieu_ceremonie_mariage == "Hors centre d'état civil") {
             $mention = 'Cette déclaration est soumise à une réquisition';
@@ -206,7 +206,7 @@ class EtatsMariageController extends Controller
             $titreRequisition = '';
             $dateDeclaration = Carbon::create($dm->date_declaration_mariage);
             $dateMariage = Carbon::create($dm->date_prevue_mariage);
-            $diffJours = $dateMariage->diffInDays($dateDeclaration);
+            $diffJours = $dateDeclaration->diffInDays($dateMariage);
 
             if ($diffJours < 60) {
                 $titreRequisition = 'REQUISITION AUX FINS DE DISPENSE DE PUBLICATION DE BANS ET DE DELAI DE CELEBRATION DU MARIAGE';
