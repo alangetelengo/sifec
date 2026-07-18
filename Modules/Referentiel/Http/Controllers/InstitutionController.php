@@ -2,6 +2,7 @@
 
 namespace Modules\Referentiel\Http\Controllers;
 
+use App\Services\GuotInstitutionService;
 use App\Services\InstitutionLienSyncService;
 use App\Sifec\Sifec;
 use Exception;
@@ -17,6 +18,8 @@ use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\TypeInstitution;
 use Modules\Referentiel\Entities\TypeLienInstitution;
 use Modules\Referentiel\Entities\TypeLocalite;
+use PkiSdk\TrustException;
+use RuntimeException;
 
 class InstitutionController extends Controller
 {
@@ -84,6 +87,17 @@ class InstitutionController extends Controller
                 $query->where('code_localite', $request->code_localite);
             }
 
+            // Filtre cachet GUOT (lié / manquant)
+            if ($request->filled('statut_guot')) {
+                if ($request->statut_guot === 'lie') {
+                    $query->whereNotNull('guot_institution_id')->where('guot_institution_id', '!=', '');
+                } elseif ($request->statut_guot === 'manquant') {
+                    $query->where(function ($q) {
+                        $q->whereNull('guot_institution_id')->orWhere('guot_institution_id', '');
+                    });
+                }
+            }
+
             $countInitial = $query->count();
 
             // Trier par date de création (plus récentes en premier)
@@ -107,7 +121,7 @@ class InstitutionController extends Controller
                 'count_initial' => $countInitial,
                 'count_resultat' => $countResultat,
                 'count_affiché' => $institutions->count(),
-                'filtres_appliques' => $request->only(['lib_institution', 'code_type_institution', 'code_localite']),
+                'filtres_appliques' => $request->only(['lib_institution', 'code_type_institution', 'code_localite', 'statut_guot']),
             ]);
 
             $limiteAtteinte = $countResultat > $maxResults;
@@ -232,6 +246,8 @@ class InstitutionController extends Controller
             'code_localite' => ['required', 'string'],
             'code_institution_parent' => ['nullable', 'string'],
             'statut' => ['nullable', 'boolean'],
+            'guot_institution_id' => ['nullable', 'string', 'max:128'],
+            'guot_institution_verifier_url' => ['nullable', 'url', 'max:255'],
             'liens_cec_deces' => ['nullable', 'array'],
             'liens_cec_deces.*' => ['string', 'max:16'],
             'liens_cec_naissance' => ['nullable', 'array'],
@@ -260,6 +276,12 @@ class InstitutionController extends Controller
             $institution->statut = $request->statut ?? 1;
             $institution->code_institution_parent = $request->code_institution_parent ?: null;
             $institution->code_localite = $request->code_localite;
+            $institution->guot_institution_id = $request->filled('guot_institution_id')
+                ? trim($request->guot_institution_id)
+                : null;
+            $institution->guot_institution_verifier_url = $request->filled('guot_institution_verifier_url')
+                ? trim($request->guot_institution_verifier_url)
+                : null;
 
             if ($request->hasFile('sceau')) {
                 $file = $request->file('sceau');
@@ -319,6 +341,8 @@ class InstitutionController extends Controller
                 'code_localite' => ['required', 'string'],
                 'code_institution_parent' => ['nullable', 'string'],
                 'statut' => ['nullable', 'boolean'],
+                'guot_institution_id' => ['nullable', 'string', 'max:128'],
+                'guot_institution_verifier_url' => ['nullable', 'url', 'max:255'],
                 'liens_cec_deces' => ['nullable', 'array'],
                 'liens_cec_deces.*' => ['string', 'max:16'],
                 'liens_cec_naissance' => ['nullable', 'array'],
@@ -346,6 +370,12 @@ class InstitutionController extends Controller
             $institution->statut = $request->statut ?? $institution->statut;
             $institution->code_institution_parent = $request->code_institution_parent ?: null;
             $institution->code_localite = $request->code_localite;
+            $institution->guot_institution_id = $request->filled('guot_institution_id')
+                ? trim($request->guot_institution_id)
+                : null;
+            $institution->guot_institution_verifier_url = $request->filled('guot_institution_verifier_url')
+                ? trim($request->guot_institution_verifier_url)
+                : null;
 
             if ($request->hasFile('sceau')) {
                 $file = $request->file('sceau');
@@ -511,6 +541,57 @@ class InstitutionController extends Controller
         }
 
         return $q->get();
+    }
+
+    /**
+     * Enrôlement cachet institutionnel GUOT via trust-api (POST /v1/institutions).
+     */
+    public function enrollGuot(string $id, GuotInstitutionService $guot)
+    {
+        $institution = Institution::with('typeInstitution')->find($id);
+        if ($institution === null) {
+            return redirect()->route('institution.index')->with('error', 'Institution introuvable.');
+        }
+
+        try {
+            $guot->enroll($institution);
+
+            return redirect()
+                ->route('institution.edit', $institution->code_institution)
+                ->with('success', 'Cachet institutionnel activé avec succès.');
+        } catch (TrustException|RuntimeException|Exception $e) {
+            Log::channel('sifec')->error('Enrôlement cachet institution GUOT', [
+                'code_institution' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('institution.edit', $institution->code_institution)
+                ->with('error', 'Échec d’activation du cachet : '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Resynchronise les métadonnées certificat depuis trust-api.
+     */
+    public function syncGuot(string $id, GuotInstitutionService $guot)
+    {
+        $institution = Institution::find($id);
+        if ($institution === null) {
+            return redirect()->route('institution.index')->with('error', 'Institution introuvable.');
+        }
+
+        try {
+            $guot->syncFromTrustApi($institution);
+
+            return redirect()
+                ->route('institution.edit', $institution->code_institution)
+                ->with('success', 'Cachet institutionnel actualisé.');
+        } catch (TrustException|RuntimeException|Exception $e) {
+            return redirect()
+                ->route('institution.edit', $institution->code_institution)
+                ->with('error', 'Échec d’actualisation du cachet : '.$e->getMessage());
+        }
     }
 
     private function institutionsTribunauxPourLiens(?string $exclureCode = null)

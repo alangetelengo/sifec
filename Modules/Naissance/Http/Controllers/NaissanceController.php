@@ -1264,7 +1264,15 @@ class NaissanceController extends Controller
             abort(404);
         }
 
-        $acte = ActeNaissance::with(['declaration.enfant', 'declaration.pere', 'declaration.mere', 'declaration.declarant', 'retrait'])
+        $acte = ActeNaissance::with([
+            'declaration.enfant',
+            'declaration.pere',
+            'declaration.mere',
+            'declaration.declarant',
+            'retrait',
+            'signataire.user.personne',
+            'institutionUser.institution',
+        ])
             ->where('niupp', $niupp)
             ->first();
 

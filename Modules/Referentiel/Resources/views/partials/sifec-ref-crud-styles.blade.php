@@ -131,6 +131,15 @@
 .sifec-ref-crud-page .sl-btn-action-edit:hover {
     background: rgba(0, 158, 73, .1); border-color: var(--sl-mid); color: var(--sl-green);
 }
+.sifec-ref-crud-page .sl-btn-action-label {
+    gap: .4rem;
+    min-width: auto;
+    height: auto;
+    padding: .4rem .75rem;
+    font-size: .8rem;
+    line-height: 1.2;
+}
+.sifec-ref-crud-page .sl-btn-action-label i { font-size: .85rem; }
 .sifec-ref-crud-page .sl-btn-action-delete {
     color: #b02a37; border-color: rgba(176, 42, 55, .3);
 }

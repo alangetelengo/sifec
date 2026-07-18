@@ -44,7 +44,7 @@
                             Le présent registe est composé de <strong>{{ $registre->nombre_acte_prevu }}</strong> Feuillets numérotés de 1 à <strong>{{ $registre->nombre_acte_prevu }}</strong><br>
                             A <strong>{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->created_at)) }}</strong><br><br>
 
-                            <img src='{{ asset("app/".$registre->signature_tribunal) }}'>
+                            @include('referentiel::registre.partials.registre-paraphe-qrcode', ['registre' => $registre])
                             <br>
                             Les registres sont clos et arrêtés le 31 Décembre par l'officier de l'Etat-civil. <br><br>
                             La clôture est constatée par un procès-verbal qui est rédigé sur chaque registre <br>

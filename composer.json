@@ -16,6 +16,8 @@
         "laravel/tinker": "^2.10",
         "laravel/ui": "^4.0",
         "nwidart/laravel-modules": "^12.0",
+        "poc-signature/laravel-pki": "*",
+        "poc-signature/pki-sdk-php": "*",
         "pragmarx/google2fa": "^8.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spipu/html2pdf": "^5.2",
@@ -69,6 +71,25 @@
             ]
         }
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "docs/packages/pki-sdk-php",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "poc-signature/pki-sdk-php": "0.1.0"
+                }
+            }
+        },
+        {
+            "type": "path",
+            "url": "docs/packages/laravel-pki",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",

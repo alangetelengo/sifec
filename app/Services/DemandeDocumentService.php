@@ -198,17 +198,21 @@ class DemandeDocumentService
         $demande->refresh();
         $demande->load(['signataire.user.personne', 'institution', 'typeActe', 'typeDocumentDemande']);
 
-        if (empty($demande->signature_officier)) {
+        if (empty($demande->code_signataire) || empty($demande->date_signature)) {
             throw new Exception(
-                "Impossible de produire un PDF signé : aucune signature officier enregistrée pour {$demande->code_demande_document}."
+                "Impossible de produire un PDF signé : signataire ou date de délivrance manquant pour {$demande->code_demande_document}."
             );
         }
 
-        $cheminImageSignature = public_path('app/'.$demande->signature_officier);
-        if (! is_file($cheminImageSignature)) {
-            throw new Exception(
-                "Impossible de produire un PDF signé : image de signature introuvable ({$cheminImageSignature})."
-            );
+        if (filled($demande->signature_officier)) {
+            $cheminImageSignature = public_path('app/'.$demande->signature_officier);
+            if (! is_file($cheminImageSignature)) {
+                Log::channel('sifec')->warning('Image de paraphe absente — PDF régénéré avec le nom du signataire uniquement', [
+                    'code_demande' => $demande->code_demande_document,
+                    'chemin' => $cheminImageSignature,
+                ]);
+                $demande->signature_officier = null;
+            }
         }
 
         if (empty($demande->numero_acte) || empty($demande->code_type_acte)) {
@@ -248,14 +252,24 @@ class DemandeDocumentService
         }
 
         $demande->statut = 'En attente de signature';
+        // Pas de signataire figé à la génération : signature = officier en fonction au moment de signer
+        $demande->signature_officier = null;
+        $demande->code_signataire = null;
+        $demande->date_signature = null;
         $demande->save();
 
-        Log::channel('sifec')->info('Demande passée en attente de signature', [
+        Log::channel('sifec')->info('Demande passée en attente de signature de délivrance', [
             'code_demande' => $demande->code_demande_document,
         ]);
 
-        // Notifier les signataires autorisés
-        $this->notifierSignataires($demande);
+        try {
+            $this->notifierSignataires($demande);
+        } catch (\Throwable $e) {
+            Log::channel('sifec')->warning('Notification signataires après génération PDF (non bloquant)', [
+                'code_demande' => $demande->code_demande_document,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return true;
     }

@@ -46,6 +46,8 @@ Route::middleware('auth')->prefix('institution')->group(function() {
     Route::get('create', [InstitutionController::class,'create'])->name('institution.create');
     Route::post('store', [InstitutionController::class,'store'])->name('institution.store');
     Route::get('{id}/edit', [InstitutionController::class,'edit'])->name('institution.edit');
+    Route::post('{id}/guot-enroll', [InstitutionController::class, 'enrollGuot'])->name('institution.guot.enroll');
+    Route::post('{id}/guot-sync', [InstitutionController::class, 'syncGuot'])->name('institution.guot.sync');
     Route::get('getInstitution', [InstitutionController::class,'getInstitution'])->name('institution.get.institution');
     Route::put('{id}/update', [InstitutionController::class,'update'])->name('institution.update');
     Route::delete('{id}/destroy', [InstitutionController::class,'destroy'])->name('institution.destroy');
@@ -106,6 +108,8 @@ Route::middleware("auth")->prefix("registre")->group(function() {
     Route::post("validate-otp-bulk", [RegistreController::class,'validateOtpBulk'])
         ->middleware('throttle:registre-validate-otp')
         ->name("registre.validate.otp.bulk");
+    Route::post("paraphe/prepare", [RegistreController::class, 'prepareParaphe'])->name("registre.paraphe.prepare");
+    Route::post("paraphe/finalize", [RegistreController::class, 'finalizeParaphe'])->name("registre.paraphe.finalize");
     Route::post("close-registre", [RegistreController::class,'cloturerRegistre'])->name("registre.cloture");
     Route::delete("{id}/destroy", [RegistreController::class, 'destroy'])->name("registre.destroy");
 

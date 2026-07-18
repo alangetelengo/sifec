@@ -55,12 +55,12 @@
         <input type="text" name="recherche" class="form-control" placeholder="N° acte, nom..." value="{{ request('recherche') }}">
     </div>
 
-    <div class="col-12">
-        <button type="submit" class="btn btn-primary">
-            <i class="fas fa-filter"></i> Filtrer
+    <div class="col-12 d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary an-btn-search">
+            <i class="fas fa-filter me-1"></i> Filtrer
         </button>
-        <a href="{{ route('demandeDocument.index') }}" class="btn btn-secondary">
-            <i class="fas fa-redo"></i> Réinitialiser
+        <a href="{{ route('demandeDocument.index', request()->only('origine')) }}" class="btn btn-outline-secondary an-btn-reset">
+            <i class="fas fa-redo me-1"></i> Réinitialiser
         </a>
     </div>
 </form>

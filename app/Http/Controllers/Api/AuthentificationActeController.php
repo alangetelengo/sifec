@@ -359,7 +359,10 @@ class AuthentificationActeController extends Controller
             return back();
         }
 
-        $declarationDeces = DeclarationDeces::where('num_acte_naissance', $acte->niupp)->first();
+        $declarationDeces = DeclarationDeces::pourMentionActeNaissance(
+            $acte->niupp,
+            optional($acte->declaration)->date_heure_naissance
+        );
 
         $mariage = null;
         if (DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first() != null) {
@@ -424,7 +427,10 @@ class AuthentificationActeController extends Controller
             return back();
         }
 
-        $declarationDeces = DeclarationDeces::where('num_acte_naissance', $acte->niupp)->first();
+        $declarationDeces = DeclarationDeces::pourMentionActeNaissance(
+            $acte->niupp,
+            optional($acte->declaration)->date_heure_naissance
+        );
 
         $mariage = null;
         if (DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first() != null) {
@@ -640,8 +646,11 @@ class AuthentificationActeController extends Controller
             // Recherche de l'acte annulé (si existe)
             $acteannuler = Declarationnaissance::where('numero_ancien_acte', $acte->niupp)->first();
 
-            // Recherche de déclaration de décès (si existe)
-            $declarationDeces = DeclarationDeces::where('num_acte_naissance', $acte->niupp)->first();
+            // Recherche de déclaration de décès (si existe, et cohérente avec la date de naissance)
+            $declarationDeces = DeclarationDeces::pourMentionActeNaissance(
+                $acte->niupp,
+                optional($acte->declaration)->date_heure_naissance
+            );
 
             // Recherche de mariage (si existe)
             $mariage = null;

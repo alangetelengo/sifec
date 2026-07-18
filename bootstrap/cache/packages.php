@@ -107,6 +107,13 @@
       0 => 'Flasher\\Toastr\\Laravel\\FlasherToastrServiceProvider',
     ),
   ),
+  'poc-signature/laravel-pki' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'LaravelPki\\PkiServiceProvider',
+    ),
+  ),
   'simplesoftwareio/simple-qrcode' => 
   array (
     'aliases' => 

@@ -1,6 +1,22 @@
 <?php
 
 return [
+    /*
+    |--------------------------------------------------------------------------
+    | Signature électronique GUOT (SIGNELEC)
+    |--------------------------------------------------------------------------
+    | Seuls ces postes (tr_fonction) sont éligibles à l’enrôlement PKI.
+    | Les agents de saisie ne portent pas le certificat Signum.
+    */
+    'guot' => [
+        'signataire_fonctions' => [
+            'FONC_0002', // Officier d'état civil (responsable CEC)
+            'FONC_0021', // Consule
+            'FONC_0009', // Président du tribunal (paraphe)
+        ],
+        'signataire_description' => 'Officier d’état civil, Consule, Président du tribunal — pas les agents de saisie.',
+    ],
+
     'demande_document' => [
         /** Utilisé uniquement à la création de la ligne en base si absente (l'admin modifie via l'écran dédié). */
         'validite_mois_par_defaut' => 3,

@@ -10,7 +10,12 @@
         display: none;
     }
 </style>
-<page orientation="landscape" format="148x210" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0" backbottom="17mm" style="font-size: 13px">
+<page orientation="landscape" format="148x210" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0" backbottom="12mm" style="font-size: 13px">
+    <page_footer>
+        <div style="width: 100%; text-align: center; font-size: 8px; color: #5a3d1e; line-height: 1.25; padding: 1mm 3mm 1.5mm 3mm;">
+            Cet extrait d'acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
+        </div>
+    </page_footer>
     @php
     setlocale(LC_TIME, "fr_FR", "French");
     $institution = $acte->institutionUser->institution;
@@ -31,10 +36,15 @@
     }
     $prenomEnfant = \App\Sifec\Sifec::formatPrenomPourActe($prenomEnfant);
     
+    $demandeSignee = $demande->estSignee();
     $signatureOfficier = $demande->signature_officier ?? null;
     $nomSignataire = $demande->signataire 
         ? optional(optional($demande->signataire->user)->personne)->nomcomplet() 
         : '';
+    $qrCode = \Illuminate\Support\Facades\URL::signedRoute(
+        'verification.demande.document',
+        ['code' => $demande->code_demande_document]
+    );
     @endphp
 
     {{-- Entête --}}
@@ -79,24 +89,39 @@
         </table>
     </div>
 
-    {{-- Pied avec signature de la demande --}}
-    <div style="position:absolute; bottom:5mm; width: 100%; text-align: right; padding-right: 10%;">
-        <p style="font-size: 12px;">
-            Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
-            L'officier de l'état civil
-        </p>
-        @if($signatureOfficier)
-            @php
-                $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($signatureOfficier);
-            @endphp
-            @if ($pdfSignature)
-            <img src="{{ $pdfSignature }}" style="max-height: 60px;"><br>
-            @endif
-            <span style="color:black; font-weight:bold">{{ $nomSignataire }}</span>
-        @else
-            <div style="height: 60px; padding-top: 10px;">
-                <span style="color: #999; font-style: italic;">[En attente de signature]</span>
-            </div>
-        @endif
+    {{-- Pied : QR = délivrance (demande) ; signature = officier en fonction --}}
+    <div style="position:absolute; bottom:8mm; left: 8mm; right: 8mm;">
+        <table cellspacing="0" style="width: 100%; table-layout: fixed;">
+            <col style="width: 35%">
+            <col style="width: 65%">
+            <tr>
+                <td style="text-align: left; vertical-align: bottom;">
+                    @if($demandeSignee)
+                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 22mm; border: none;"></qrcode>
+                        <br>
+                        <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                    @endif
+                </td>
+                <td style="text-align: right; vertical-align: bottom; padding-right: 4mm;">
+                    <p style="font-size: 12px; margin: 0;">
+                        Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
+                        L'officier de l'état civil
+                    </p>
+                    @if($demandeSignee)
+                        @php
+                            $pdfSignature = filled($signatureOfficier)
+                                ? \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($signatureOfficier)
+                                : null;
+                        @endphp
+                        @if ($pdfSignature)
+                        <img src="{{ $pdfSignature }}" style="width: 24mm;"><br>
+                        @endif
+                        <span style="color:black; font-weight:bold">{{ $nomSignataire }}</span>
+                    @else
+                        <span style="color: #999; font-style: italic; font-size: 11px;">[En attente de signature de délivrance]</span>
+                    @endif
+                </td>
+            </tr>
+        </table>
     </div>
 </page>

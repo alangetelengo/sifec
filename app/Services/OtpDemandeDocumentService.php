@@ -46,17 +46,15 @@ class OtpDemandeDocumentService
 
         // Vérifier que l'utilisateur est un officier d'état civil
         $user = Auth::user();
+        $user->loadMissing('personne');
         $affectation = $user->affectationActive();
         $cui = $affectation ? $affectation->cui : null;
-        $signature = $user->personne->signature ?? null;
 
         if (is_null($cui)) {
             return [false, 'Aucune affectation active trouvée pour cet officier.', null];
         }
 
-        if (is_null($signature)) {
-            return [false, "La signature numérique de l'officier est absente. Veuillez contacter l'administrateur.", null];
-        }
+        // Image de paraphe optionnelle : la délivrance reste valide avec nom + OTP / signature électronique
 
         // Générer un code OTP à 6 chiffres
         $otp = sprintf('%06d', random_int(0, 999999));
@@ -254,16 +252,13 @@ class OtpDemandeDocumentService
 
         // Vérifier l'officier
         $user = Auth::user();
+        $user->loadMissing('personne');
         $affectation = $user->affectationActive();
         $cui = $affectation ? $affectation->cui : null;
-        $signature = $user->personne->signature ?? null;
+        $signature = filled($user->personne?->signature) ? (string) $user->personne->signature : null;
 
         if (is_null($cui)) {
             return [false, 'Validation impossible : aucune affectation active trouvée pour cet officier.'];
-        }
-
-        if (is_null($signature)) {
-            return [false, "Validation impossible : la signature numérique de l'officier est absente. Veuillez contacter l'administrateur."];
         }
 
         $listePourNotif = [];
@@ -277,6 +272,7 @@ class OtpDemandeDocumentService
                 foreach ($demandes as $demande) {
                     $ancienStatut = $demande->statut;
 
+                    // Chemin image paraphe si présent ; sinon PDF avec nom du signataire seul
                     $demande->signature_officier = $signature;
                     $demande->code_signataire = $cui;
                     $demande->date_signature = now();
@@ -319,7 +315,7 @@ class OtpDemandeDocumentService
             if ($demande === null) {
                 continue;
             }
-            $this->notifierDemandeur($demande);
+            $this->notifierDemandeurApresSignature($demande);
             event(new DemandeDocumentEvent($demande, $row['ancien'], 'Traitée'));
         }
 
@@ -353,6 +349,14 @@ class OtpDemandeDocumentService
         }
 
         return substr($userAgent, 0, 100);
+    }
+
+    /**
+     * Notifier le demandeur par SMS et email après signature (.p12 ou legacy OTP).
+     */
+    public function notifierDemandeurApresSignature(DemandeDocument $demande): void
+    {
+        $this->notifierDemandeur($demande);
     }
 
     /**

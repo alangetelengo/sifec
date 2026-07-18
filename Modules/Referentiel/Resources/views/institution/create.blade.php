@@ -105,6 +105,11 @@
                         <small class="form-text text-muted"><i class="fas fa-info-circle me-1"></i>Image du sceau (facultatif à la création).</small>
                     </div>
 
+                    @include('partials.guot.cachet-institution', [
+                        'institution' => $institution ?? null,
+                        'editable' => true,
+                    ])
+
                     <div class="mb-3 col-md-12">
                         <label class="form-label fw-bold">Statut <span class="text-danger">*</span></label>
                         <select name="statut" class="form-control form-control-lg @error('statut') is-invalid @enderror" required>

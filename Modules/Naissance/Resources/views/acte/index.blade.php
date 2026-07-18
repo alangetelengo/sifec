@@ -355,13 +355,13 @@ Actes de naissance
 </div>
 {{-- FIN MODAL RECHERCHE ACTE DE NAISSACE --}}
 
-{{-- DEBUT MODAL VALIDATION ACTE DE NAISSANCE --}}
+{{-- DEBUT MODAL VALIDATION ACTE DE NAISSANCE (signature électronique) --}}
 <div class="modal fade" id="modal-validate-acte" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-shield-alt me-2"></i>Validation de l'acte de naissance
+                    <i class="fas fa-file-signature me-2"></i>Signature électronique de l’acte
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
@@ -369,76 +369,37 @@ Actes de naissance
                 <input type="hidden" id="code_declaration_naissance_validate">
                 <input type="hidden" id="validation_type">
 
-                {{-- Rappel métier : officier unique du CEC, connecté ; acte définitif après OTP --}}
                 <div class="alert alert-info py-2 mb-3">
-
-                    <p class="mb-2 small">
-                        Après validation, l’acte est <strong>signé</strong> : le <strong>NIUPP</strong> et l’acte PDF officiel (QR de vérification) deviennent disponibles.
-                    </p>
+                    <p class="mb-2 small fw-semibold">Comment procéder</p>
+                    <ol class="small mb-2 ps-3">
+                        <li>Vérifiez l’acte (ou la sélection) à valider.</li>
+                        <li>Sélectionnez votre fichier certificat <strong>.p12</strong> et saisissez sa passphrase.</li>
+                        <li>Cliquez sur <strong>Signer électroniquement</strong> : votre identité valide et scelle l’acte.</li>
+                        <li>Le numéro d’acte (NIUPP) et le PDF officiel sont produits ; le déclarant peut être notifié.</li>
+                    </ol>
                     <p class="mb-0 small text-muted">
-                        <i class="fas fa-lock me-1"></i>
-                        <strong>Sécurité :</strong> au plus <strong>3 renvois</strong> du code tant qu’un code est encore valide,
-                        au plus <strong>3 saisies incorrectes</strong> ; en cas de dépassement, attente <strong>3 minutes</strong> avant de recommencer.
-                        Chaque code reste valide <strong>2 minutes</strong>.
+                        <i class="fas fa-info-circle me-1"></i>
+                        Aucun code SMS n’est demandé. Utilisez uniquement le certificat personnel téléchargé lors de votre enrôlement.
+                        L’institution doit avoir son cachet institutionnel configuré.
                     </p>
                 </div>
 
-                <div id="otp-feedback" class="alert alert-warning py-2 small d-none mb-3" role="status"></div>
-
-                <div class="row g-3">
-                    {{-- Champ OTP --}}
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">
-                            Code de validation <span class="text-danger">*</span>
-                        </label>
-                        <input type="text"
-                               class="form-control form-control-lg text-center fw-bold"
-                               id="otp_approbation_mairie"
-                               name="otp_approbation_mairie"
-                               placeholder="_ _ _ _ _ _ _ _"
-                               maxlength="8"
-                               inputmode="numeric"
-                               pattern="[0-9]{8}"
-                               autocomplete="one-time-code"
-                               required>
-                        <small class="text-muted">Saisissez les <strong>8 chiffres</strong> reçus par SMS (et par mail le cas échéant).</small>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-7">
+                        <label class="form-label small fw-semibold" for="acte_p12_file">Certificat électronique (.p12)</label>
+                        <input type="file" class="form-control form-control-sm" id="acte_p12_file" accept=".p12,.pfx,application/x-pkcs12">
                     </div>
-
-                    {{-- Countdown --}}
-                    <div class="col-md-6 d-flex flex-column justify-content-center">
-                        {{-- Timer actif --}}
-                        <div id="otp-timer-block" class="mb-2">
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <i class="fas fa-clock text-warning"></i>
-                                <span class="small">Code valide encore :
-                                    <strong id="otp-countdown" class="text-warning fs-5">120s</strong>
-                                </span>
-                            </div>
-                            <div class="progress" style="height:6px;">
-                                <div id="otp-progress"
-                                     class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
-                                     role="progressbar"
-                                     style="width:100%;transition:width 1s linear;">
-                                </div>
-                            </div>
-                        </div>
-                        {{-- Timer expiré --}}
-                        <div id="otp-expired-block" class="d-none mb-2">
-                            <div class="alert alert-danger py-2 mb-1">
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                <strong>Code expiré.</strong> Utilisez « Renvoyer le code » (dans la limite des renvois autorisés).
-                            </div>
-                        </div>
-                        {{-- Bouton renvoyer --}}
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-resend-otp" disabled>
-                            <i class="fas fa-redo me-1"></i> Renvoyer le code
-                        </button>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold" for="acte_p12_pin">Passphrase</label>
+                        <input type="password" class="form-control form-control-sm" id="acte_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
                     </div>
                 </div>
+
+                <div id="guot-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success btn-sm" id="btn-validate">
-                    <i class="fas fa-signature me-1"></i> Signer
+                    <i class="fas fa-signature me-1"></i> Signer électroniquement
                 </button>
                 <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">
                     <i class="fas fa-times me-1"></i> Fermer
@@ -447,7 +408,7 @@ Actes de naissance
         </div>
     </div>
 </div>
-{{-- FIN MODAL VALIDATION ACTE DE NAISSACE --}}
+{{-- FIN MODAL VALIDATION ACTE DE NAISSANCE --}}
 
 
 {{-- DEBUT RENVOIS DECLARATION --}}
@@ -738,9 +699,15 @@ Actes de naissance
                                    type="text"
                                    class="form-control"
                                    readonly
-                                   value="R.A.N-2026">
+                                   value="{{ $registre ? ($registre->lib_registre ?: $registre->getcode()) : 'Aucun registre actif' }}">
                         </div>
-                        <small class="form-text text-muted">Registre automatiquement sélectionné</small>
+                        <small class="form-text text-muted">
+                            @if ($registre)
+                                Registre actif ({{ (int) $registre->nombre_acte_transcrit }}/{{ (int) $registre->nombre_acte_prevu }} feuillets)
+                            @else
+                                Aucun registre de naissance actif et paraphé pour ce centre
+                            @endif
+                        </small>
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -806,6 +773,9 @@ Actes de naissance
 <!-- Datatable -->
     <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+    <script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+    <script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+    <script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260717c"></script>
     <script>
 
 
@@ -1509,246 +1479,140 @@ Actes de naissance
 
 
 
-    // Validation d'actes en lot
+    // Validation d'actes en lot — confirmation signature électronique (plus d'OTP)
     $("button.validate-actes").on("click", function(){
         if(actesGeneres.length > 0){
-            var url = "{{ route('acteNaissance.send.otp.bulk') }}";
-            var data = { codes: actesGeneres, resend: 0, _token: '{{ csrf_token() }}' };
-            var btnBulkOtp = this;
-            sifecBtnLoading(btnBulkOtp, 'Envoi OTP...');
-            $.post(url,data,function(response){
-            if(response.code == "200"){
-
-                $(".over-loader-page").fadeOut(600);
-                $("#validation_type").val("bulk");
-                $("#modal-validate-acte").modal('show');
-                var sec = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
-                startOtpTimer(sec);
-                if (response.otp_session === 'reused') {
-                    flashAlert("Info", "info", typeof response.message === "string" ? response.message : "Code toujours valide — utilisez le même SMS ou e-mail.");
-                }
-
-            }else if (response.code == "184") {
-                $(".over-loader-page").fadeOut(600);
-                var m184 = typeof response.message === "string" ? response.message : traiterMessageErreur(response);
-                flashAlert("Sécurité OTP", "error", m184);
-            }else{
-                $(".over-loader-page").fadeOut(600);
-                //notification("error",response.message);
-                // Gestion améliorée des messages d'erreur
-                var messageErreur = traiterMessageErreur(response);
-                flashAlert("Opération échouée","error",messageErreur);
-
-            }
-        }).always(function() {
-                sifecBtnReset(btnBulkOtp);
-            });
+            $("#validation_type").val("bulk");
+            $("#code_declaration_naissance_validate").val('');
+            $("#acte_p12_file").val('');
+            $("#acte_p12_pin").val('');
+            $("#guot-sign-feedback").addClass('d-none').empty();
+            $("#modal-validate-acte").modal('show');
         }
         return false;
     });
 
-    // Validation OTP (singleton ou bulk)
-    $("#btn-validate").on("click", function(){
-        // ── Gardes côté client (UX) — la vraie sécurité est dans OtpService côté serveur ──
-        var otp = $("#otp_approbation_mairie").val().trim();
-        if (!otp) {
-            flashAlert("Attention", "warning", "Veuillez saisir le code à 8 chiffres reçu par SMS (ou par mail).");
-            return false;
-        }
-        if (!/^\d{8}$/.test(otp)) {
-            flashAlert("Attention", "warning", "Le code doit comporter exactement 8 chiffres (0 à 9).");
-            return false;
-        }
+    function resetActeSignBtn($btn) {
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+    }
 
-        // Désactiver le bouton pour éviter la double soumission
-        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signature...');
+    function showActeSignError(msg) {
+        $("#guot-sign-feedback").removeClass('d-none').text(msg);
+        flashAlert("Échec", "error", msg);
+    }
 
-        var code_declaration_naissance = $("#code_declaration_naissance_validate").val();
+    // Signature électronique .p12 (singleton ou bulk)
+    $("#btn-validate").on("click", async function(){
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Préparation…');
+        $("#guot-sign-feedback").addClass('d-none').empty();
+
         var validation_type = $("#validation_type").val();
-        var otp_approbation_mairie = otp;
-        var inputs = {
-            codes : actesGeneres,
-            code_declaration_naissance: code_declaration_naissance,
-            otp_approbation_mairie: otp_approbation_mairie
-        };
-        /**
-         * Extrait le texte lisible d'un message renvoyé par le serveur.
-         * Formats supportés : string | ["msg"] | {reponse:"..."} | {error:"..."}
-         */
-        function extraireMsg(message) {
-            if (!message) return 'Réponse inconnue du serveur.';
-            if (typeof message === 'string')  return message;
-            if (Array.isArray(message))       return message[0] || 'Erreur inconnue.';
-            if (typeof message === 'object') {
-                if (message.reponse) return message.reponse;
-                if (message.error)   return message.error;
-            }
-            return JSON.stringify(message);
+        var codes = validation_type === "bulk"
+            ? actesGeneres.slice()
+            : [$("#code_declaration_naissance_validate").val()].filter(Boolean);
+
+        if (!codes.length) {
+            resetActeSignBtn($btn);
+            showActeSignError('Aucun acte à signer.');
+            return false;
         }
 
-        if(validation_type=="simple"){
-            $.ajax({
-                url: "{{ route('acteNaissance.validate.otp') }}",
-                type: 'POST',
-                data: {
-                    code_declaration_naissance: inputs.code_declaration_naissance,
-                    otp_approbation_mairie: inputs.otp_approbation_mairie
-                },
-                success: function(response){
-                    var msg = extraireMsg(response.message);
-                    if (response.code === '200') {
-                        $('#otp-feedback').addClass('d-none').empty();
-                        flashAlert("Succès", "success", msg);
-                        clearInterval(otpTimerInterval);
-                        $('#modal-validate-acte').modal('hide');
-                        setTimeout(function(){ location.reload(); }, 1500);
-                    } else if (response.code === '184') {
-                        $('#otp-feedback').addClass('d-none').empty();
-                        flashAlert("Sécurité OTP", "error", typeof response.message === "string" ? response.message : msg);
-                        clearInterval(otpTimerInterval);
-                        $('#modal-validate-acte').modal('hide');
-                        $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-signature me-1"></i> Signer');
-                    } else {
-                        if (response.message && typeof response.message === 'object' && response.message.error) {
-                            var fb = response.message.error;
-                            if (response.message.remaining_validate_attempts != null) {
-                                fb += ' — Tentatives de saisie restantes : ' + response.message.remaining_validate_attempts + '.';
-                            }
-                            $('#otp-feedback').removeClass('d-none').text(fb);
-                        } else {
-                            $('#otp-feedback').addClass('d-none').empty();
-                        }
-                        flashAlert("Échec", "error", msg);
-                        $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-signature me-1"></i> Signer');
-                    }
-                },
-                error: function(xhr){
-                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
-                        ? extraireMsg(xhr.responseJSON.message)
-                        : 'Erreur lors de la validation de l\'acte.';
-                    $('#otp-feedback').addClass('d-none').empty();
-                    flashAlert("Erreur", "error", msg);
-                    $('#btn-validate').prop('disabled', false)
-                                     .html('<i class="fas fa-signature me-1"></i> Signer');
-                }
-            });
-        }else{
-            $.ajax({
-                url: "{{ route('acteNaissance.validate.otp.bulk') }}",
-                type: 'POST',
-                data: {
-                    codes: inputs.codes,
-                    otp_approbation_mairie: inputs.otp_approbation_mairie
-                },
-                success: function(response){
-                    var msg = extraireMsg(response.message);
-                    if (response.code === '200') {
-                        $('#otp-feedback').addClass('d-none').empty();
-                        flashAlert("Succès", "success", msg);
-                        clearInterval(otpTimerInterval);
-                        $('#modal-validate-acte').modal('hide');
-                        setTimeout(function(){ location.reload(); }, 1500);
-                    } else if (response.code === '184') {
-                        $('#otp-feedback').addClass('d-none').empty();
-                        flashAlert("Sécurité OTP", "error", typeof response.message === "string" ? response.message : msg);
-                        clearInterval(otpTimerInterval);
-                        $('#modal-validate-acte').modal('hide');
-                        $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-signature me-1"></i> Signer');
-                    } else {
-                        if (response.message && typeof response.message === 'object' && response.message.error) {
-                            var fbB = response.message.error;
-                            if (response.message.remaining_validate_attempts != null) {
-                                fbB += ' — Tentatives de saisie restantes : ' + response.message.remaining_validate_attempts + '.';
-                            }
-                            $('#otp-feedback').removeClass('d-none').text(fbB);
-                        } else {
-                            $('#otp-feedback').addClass('d-none').empty();
-                        }
-                        flashAlert("Échec", "error", msg);
-                        $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-signature me-1"></i> Signer');
-                    }
-                },
-                error: function(xhr){
-                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
-                        ? extraireMsg(xhr.responseJSON.message)
-                        : 'Erreur lors de la validation des actes.';
-                    $('#otp-feedback').addClass('d-none').empty();
-                    flashAlert("Erreur", "error", msg);
-                    $('#btn-validate').prop('disabled', false)
-                                     .html('<i class="fas fa-signature me-1"></i> Signer');
-                }
-            });
+        var fileInput = document.getElementById('acte_p12_file');
+        var pin = $('#acte_p12_pin').val();
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            resetActeSignBtn($btn);
+            showActeSignError('Sélectionnez votre fichier certificat (.p12).');
+            return false;
         }
+        if (!pin || !String(pin).trim()) {
+            resetActeSignBtn($btn);
+            showActeSignError('Saisissez la passphrase de votre certificat.');
+            return false;
+        }
+        if (typeof window.SifecP12Sign === 'undefined') {
+            resetActeSignBtn($btn);
+            showActeSignError('Bibliothèque de signature non chargée. Rechargez la page.');
+            return false;
+        }
+
+        try {
+            var prep = await $.ajax({
+                url: "{{ route('acteNaissance.sign.prepare') }}",
+                type: 'POST',
+                data: { codes: codes, _token: '{{ csrf_token() }}' }
+            });
+
+            if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                resetActeSignBtn($btn);
+                showActeSignError((prep && prep.message) ? prep.message : 'Échec de la préparation.');
+                return false;
+            }
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+            var p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+            var signatures = [];
+            for (var i = 0; i < prep.items.length; i++) {
+                var item = prep.items[i];
+                var signatureHex = await window.SifecP12Sign.signHashHex(
+                    p12Binary,
+                    pin,
+                    item.document_hash,
+                    prep.expected_serial || null
+                );
+                signatures.push({
+                    code_declaration: item.code_declaration,
+                    signature_hex: signatureHex
+                });
+            }
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Validation…');
+            var fin = await $.ajax({
+                url: "{{ route('acteNaissance.sign.finalize') }}",
+                type: 'POST',
+                data: {
+                    token: prep.token,
+                    signatures: signatures,
+                    _token: '{{ csrf_token() }}'
+                }
+            });
+
+            resetActeSignBtn($btn);
+            var msg = typeof fin.message === 'string' ? fin.message : 'Réponse inconnue';
+            if (String(fin.code) === '200') {
+                flashAlert("Succès", "success", msg);
+                $('#modal-validate-acte').modal('hide');
+                setTimeout(function(){ location.reload(); }, 1200);
+                return false;
+            }
+            showActeSignError(msg);
+        } catch (err) {
+            resetActeSignBtn($btn);
+            var emsg = 'Erreur lors de la signature électronique';
+            if (err && err.responseJSON && err.responseJSON.message) {
+                emsg = typeof err.responseJSON.message === 'string'
+                    ? err.responseJSON.message
+                    : JSON.stringify(err.responseJSON.message);
+            } else if (err && err.message) {
+                emsg = err.message;
+            }
+            showActeSignError(emsg);
+        }
+
         return false;
     });
 
-    // ── Renvoyer le code OTP ──────────────────────────────────────────────
+    // ── Renvoyer le code OTP (obsolète pour validation naissance) ──
     $("#btn-resend-otp").on("click", function() {
-        var validationType = $("#validation_type").val();
-        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Envoi...');
-
-        if (validationType === "simple") {
-            var code = $("#code_declaration_naissance_validate").val();
-            $.post("{{ route('acteNaissance.send.otp') }}", {
-                code_declaration_naissance: code,
-                resend: 1,
-                _token: '{{ csrf_token() }}'
-            }, function(response){
-                if (response.code == "200") {
-                    var secR = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
-                    startOtpTimer(secR);
-                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS (et par courriel si configuré).");
-                } else if (response.code == "184") {
-                    var lockMsg = typeof response.message === "string" ? response.message : (response.message && response.message.error) || "Accès temporairement bloqué.";
-                    flashAlert("Sécurité OTP", "error", lockMsg);
-                    clearInterval(otpTimerInterval);
-                    $("#modal-validate-acte").modal("hide");
-                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-                } else {
-                    let msg = response.message && response.message.error ? response.message.error : response.message;
-                    flashAlert("Erreur", "error", msg);
-                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-                }
-            }).fail(function(){
-                flashAlert("Erreur", "error", "Impossible d'envoyer le code.");
-                $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-            });
-        } else {
-            var url  = "{{ route('acteNaissance.send.otp.bulk') }}";
-            var data = { codes: actesGeneres, resend: 1, _token: '{{ csrf_token() }}' };
-            $.post(url, data, function(response){
-                if (response.code == "200") {
-                    var secB = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
-                    startOtpTimer(secB);
-                    flashAlert("Info", "success", "Un nouveau code a été envoyé par SMS (et par courriel si configuré).");
-                } else if (response.code == "184") {
-                    var lockMsgB = typeof response.message === "string" ? response.message : (response.message && response.message.error) || "Accès temporairement bloqué.";
-                    flashAlert("Sécurité OTP", "error", lockMsgB);
-                    clearInterval(otpTimerInterval);
-                    $("#modal-validate-acte").modal("hide");
-                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-                } else {
-                    let msg = typeof response.message === 'object' ? JSON.stringify(response.message) : response.message;
-                    flashAlert("Erreur", "error", msg);
-                    $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-                }
-            }).fail(function(){
-                flashAlert("Erreur", "error", "Impossible d'envoyer le code.");
-                $('#btn-resend-otp').prop('disabled', false).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-            });
-        }
+        return false;
     });
 
-    // ── Nettoyage du timer à la fermeture du modal ────────────────────────
+    // ── Nettoyage à la fermeture du modal ────────────────────────
     $('#modal-validate-acte').on('hidden.bs.modal', function() {
-        clearInterval(otpTimerInterval);
-        otpExpired = false;
-        $('#otp-feedback').addClass('d-none').empty();
-        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer');
+        $("#guot-sign-feedback").addClass('d-none').empty();
+        $("#acte_p12_file").val('');
+        $("#acte_p12_pin").val('');
+        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
     });
 
     // Renvoi individuel (modale)
@@ -2164,38 +2028,15 @@ Actes de naissance
         });
     });
 
-    // Ouvre la modale de validation OTP (singleton) — délégation : lignes rechargées par filtre AJAX
+    // Ouvre la modale de signature électronique (singleton)
     $(document).on('click', '.btn-validate-single', function() {
         var code = $(this).data('id');
-        var btnValSingle = this;
-        sifecBtnLoading(btnValSingle, 'Envoi OTP...');
-        $.post("{{ route('acteNaissance.send.otp') }}", {
-            code_declaration_naissance: code,
-            resend: 0,
-            _token: '{{ csrf_token() }}'
-        }, function(response){
-            if(response.code == "200"){
-                $('#code_declaration_naissance_validate').val(code);
-                $("#validation_type").val("simple");
-                $("#modal-validate-acte").modal('show');
-                var secS = response.valid_for_seconds ? parseInt(response.valid_for_seconds, 10) : 120;
-                startOtpTimer(secS);
-                if (response.otp_session === 'reused') {
-                    flashAlert("Info", "info", typeof response.message === "string" ? response.message : "Code toujours valide — utilisez le même SMS ou e-mail.");
-                }
-            }else if (response.code == "184") {
-                let msg184 = typeof response.message === "string" ? response.message : (response.message && response.message.error) || "Accès temporairement bloqué.";
-                flashAlert("Sécurité OTP", "error", msg184);
-            }else{
-                let msg = response.message && response.message.error ? response.message.error : response.message;
-                flashAlert("Erreur", "error", msg);
-            }
-        }).fail(function(xhr){
-            let msg = xhr.responseJSON?.message || 'Erreur lors de l\'envoi du code OTP';
-            flashAlert("Erreur", "error", msg);
-        }).always(function() {
-            sifecBtnReset(btnValSingle);
-        });
+        $('#code_declaration_naissance_validate').val(code);
+        $("#validation_type").val("simple");
+        $("#acte_p12_file").val('');
+        $("#acte_p12_pin").val('');
+        $("#guot-sign-feedback").addClass('d-none').empty();
+        $("#modal-validate-acte").modal('show');
     });
 
 

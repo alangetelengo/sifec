@@ -313,7 +313,7 @@ Détail demande {{ $demande->code_demande_document }}
                                         </form>
                                     @endif
                                     
-                                    @if(!$demande->estLivree() && !$demande->estRejetee() && !$demande->estExpiree())
+                                    @if(!$demande->estLivree() && !$demande->estRejetee() && !$demande->estExpiree() && !$demande->estSignee() && !$demande->estTraitee())
                                         <button type="button" class="btn btn-danger btn-lg" data-bs-toggle="modal" data-bs-target="#modal-rejeter">
                                             <i class="fas fa-times-circle me-2"></i> Rejeter la demande
                                         </button>
@@ -366,7 +366,10 @@ Détail demande {{ $demande->code_demande_document }}
                 </div>
                 <div class="modal-body" style="padding: 25px;">
                     <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle me-2"></i> Le document sera généré et passera en attente de signature de l'officier d'état civil.
+                        <i class="fas fa-info-circle me-2"></i>
+                        Le PDF sera généré <strong>sans signature</strong>, puis passera en
+                        <strong>attente de signature de délivrance</strong> par l’officier d’état civil
+                        <strong>en fonction</strong> (pas nécessairement celui qui a signé l’acte d’origine).
                     </div>
                     <p class="mb-0">
                         <strong>Type de document :</strong> {{ $demande->getLibelleTypeDocument() }}<br>
@@ -458,397 +461,180 @@ Détail demande {{ $demande->code_demande_document }}
         </div>
     </div>
 </div>
+
+@include('demande-document._modal_signature')
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+<script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+<script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260718a"></script>
+<script src="{{ asset('tpl/wizard/assets/node_modules/sweetalert2/dist/sweetalert2.all.min.js') }}"></script>
 <script>
-// Variables globales pour le timer OTP
-let otpTimerInterval = null;
-let otpTimeRemaining = 120; // 2 minutes
-let resendAttempts = 0;
-const MAX_RESEND = 3;
-
-// Fonction pour démarrer le timer OTP (définie AVANT utilisation)
-function startOtpTimer(seconds) {
-    console.log('⏰ startOtpTimer appelé avec', seconds, 'secondes');
-    
-    otpTimeRemaining = seconds;
-    const totalSeconds = seconds;
-    
-    if (otpTimerInterval) {
-        clearInterval(otpTimerInterval);
-        console.log('✅ Ancien timer nettoyé');
+function showDemandeSignError(msg) {
+    $('#otp-feedback').removeClass('d-none').text(msg);
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     }
-    
-    // Réinitialiser l'UI
-    $('#otp-timer-block').removeClass('d-none').show();
-    $('#otp-expired-block').addClass('d-none').hide();
-    $('#btn-valider-otp').prop('disabled', false);
-    $('#btn-resend-otp').prop('disabled', true);
-    
-    // Réinitialiser les couleurs de la barre
-    $('#otp-progress').css('width', '100%')
-                      .removeClass('bg-danger')
-                      .addClass('bg-warning');
-    $('#otp-countdown').css('color', '');
-    
-    console.log('🎨 UI réinitialisée');
-    
-    otpTimerInterval = setInterval(function() {
-        otpTimeRemaining--;
-        
-        // Mise à jour de l'affichage (format mm:ss)
-        const minutes = Math.floor(otpTimeRemaining / 60);
-        const secs = otpTimeRemaining % 60;
-        $('#otp-countdown').text(`${minutes}:${secs.toString().padStart(2, '0')}`);
-        
-        // Mise à jour de la barre de progression
-        const denom = totalSeconds > 0 ? totalSeconds : 1;
-        const percent = Math.round((otpTimeRemaining / denom) * 100);
-        $('#otp-progress').css('width', percent + '%');
-        
-        if (otpTimeRemaining % 10 === 0) {
-            console.log('⏱️  Timer:', otpTimeRemaining, 's restantes, barre:', percent + '%');
-        }
-        
-        // Passage au rouge dans les 10 dernières secondes
-        if (otpTimeRemaining <= 10) {
-            $('#otp-countdown').css('color', '#DC241F');
-            $('#otp-progress').removeClass('bg-warning').addClass('bg-danger');
-        }
-        
-        // Si expiré
-        if (otpTimeRemaining <= 0) {
-            clearInterval(otpTimerInterval);
-            $('#otp-timer-block').addClass('d-none').hide();
-            $('#otp-expired-block').removeClass('d-none').show();
-            $('#btn-valider-otp').prop('disabled', true);
-            $('#btn-resend-otp').prop('disabled', false);
-            console.log('❌ Timer expiré');
-        }
-    }, 1000);
-    
-    console.log('✅ setInterval démarré, ID:', otpTimerInterval);
 }
 
+function openDemandeSignModal(codes) {
+    $('#codes-demandes-signature').val(JSON.stringify(codes));
+    $('#nb-demandes-signature').text(codes.length);
+    $('#otp-feedback').addClass('d-none').empty();
+    $('#demande_p12_file').val('');
+    $('#demande_p12_pin').val('');
+    $('#btn-valider-otp').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+    $('#modal-signature-otp').modal('show');
+}
+
+async function runDemandeP12Sign($btn) {
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Préparation…');
+    $('#otp-feedback').addClass('d-none').empty();
+
+    let codes = [];
+    try { codes = JSON.parse($('#codes-demandes-signature').val() || '[]'); } catch (e) { codes = []; }
+    if (!codes.length) {
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        showDemandeSignError('Aucune demande à signer.');
+        return;
+    }
+
+    const fileInput = document.getElementById('demande_p12_file');
+    const pin = $('#demande_p12_pin').val();
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        showDemandeSignError('Sélectionnez votre fichier certificat (.p12).');
+        return;
+    }
+    if (!pin || !String(pin).trim()) {
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        showDemandeSignError('Saisissez la passphrase de votre certificat.');
+        return;
+    }
+    if (typeof window.SifecP12Sign === 'undefined') {
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        showDemandeSignError('Bibliothèque de signature non chargée. Rechargez la page.');
+        return;
+    }
+
+    try {
+        const prep = await $.ajax({
+            url: '{{ route("demandeDocument.sign.prepare") }}',
+            type: 'POST',
+            data: { demandes: codes, _token: '{{ csrf_token() }}' }
+        });
+        if (!prep.success || !prep.token || !prep.items || !prep.items.length) {
+            $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+            showDemandeSignError((prep && prep.message) ? prep.message : 'Échec de la préparation.');
+            return;
+        }
+
+        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+        const p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+        const signatures = [];
+        for (let i = 0; i < prep.items.length; i++) {
+            const item = prep.items[i];
+            const signatureHex = await window.SifecP12Sign.signHashHex(
+                p12Binary, pin, item.document_hash, prep.expected_serial || null
+            );
+            signatures.push({ code_demande: item.code_demande, signature_hex: signatureHex });
+        }
+
+        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Validation…');
+        const fin = await $.ajax({
+            url: '{{ route("demandeDocument.sign.finalize") }}',
+            type: 'POST',
+            data: { token: prep.token, signatures: signatures, _token: '{{ csrf_token() }}' }
+        });
+
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        if (fin.success) {
+            $('#modal-signature-otp').modal('hide');
+            Swal.fire({
+                icon: 'success',
+                title: 'Signature effectuée',
+                text: fin.message || 'Documents signés électroniquement',
+                timer: 2200,
+                showConfirmButton: false
+            }).then(function() { location.reload(); });
+        } else {
+            showDemandeSignError(fin.message || 'Échec de la signature.');
+        }
+    } catch (err) {
+        $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        let emsg = 'Erreur lors de la signature électronique';
+        if (err && err.responseJSON && err.responseJSON.message) emsg = err.responseJSON.message;
+        else if (err && err.message) emsg = err.message;
+        showDemandeSignError(emsg);
+    }
+}
 $(document).ready(function() {
-    // Signature unique - Envoyer OTP AVANT d'ouvrir le modal (comme validation actes)
     $('.btn-signer-unique').on('click', function() {
         const code = $(this).data('code');
-        const codes = [code];
-        
-        // Stocker les codes et le nombre
-        $('#codes-demandes-signature').val(JSON.stringify(codes));
-        $('#nb-demandes-signature').text(1);
-        
-        // Envoyer l'OTP AVANT d'ouvrir le modal
-        const $btn = $(this);
-        const originalHtml = $btn.html();
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Envoi OTP...');
-        
-        $.ajax({
-            url: '{{ route("demandeDocument.initierSignature") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                demandes: codes
-            },
-            success: function(response) {
-                $btn.prop('disabled', false).html(originalHtml);
-                
-                if (response.success) {
-                    // Ouvrir le modal APRÈS avoir reçu l'OTP
-                    $('#modal-signature-otp').modal('show');
-                    
-                    // DÉMARRER LE TIMER IMMÉDIATEMENT (fix Bootstrap 5 event issue)
-                    setTimeout(function() {
-                        console.log('🚀 Démarrage du timer OTP...');
-                        startOtpTimer(120);
-                        resendAttempts = 0;
-                        $('#input-otp').val('').trigger('focus');
-                    }, 500);
-                    
-                    // En développement, afficher l'OTP
-                    @if(config('app.debug'))
-                        if (response.otp) {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Code OTP (dev)',
-                                text: response.otp,
-                                timer: 5000,
-                                toast: true,
-                                position: 'top-end',
-                                showConfirmButton: false
-                            });
-                        }
-                    @endif
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Erreur',
-                        text: response.message
-                    });
-                }
-            },
-            error: function(xhr) {
-                $btn.prop('disabled', false).html(originalHtml);
-                
-                let message = 'Erreur lors de la génération de l\'OTP';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    message = xhr.responseJSON.message;
-                } else if (xhr.status === 403) {
-                    message = 'Vous n\'avez pas les droits nécessaires pour signer ce document';
-                }
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erreur',
-                    text: message
-                });
-            }
-        });
+        if (!code) return;
+        openDemandeSignModal([String(code)]);
     });
-    
-    // Validation OTP - Handler principal (doit être dans le script principal)
+
     $('#btn-valider-otp').on('click', function() {
-        console.log('🔐 Click sur btn-valider-otp détecté');
-        
-        const otp = $('#input-otp').val().trim();
-        
-        if (!otp) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Attention',
-                text: 'Veuillez saisir le code à 6 chiffres reçu par SMS et email'
-            });
-            return;
-        }
-        
-        if (!/^\d{6}$/.test(otp)) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Attention',
-                text: 'Le code doit comporter exactement 6 chiffres (0 à 9)'
-            });
-            return;
-        }
-        
-        const $btn = $(this);
-        const originalHtml = $btn.html();
-        
-        console.log('✅ Validation OTP en cours...');
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signature...');
-        
-        $.ajax({
-            url: '{{ route("demandeDocument.validerSignature") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                otp: otp
-            },
-            success: function(response) {
-                console.log('📩 Réponse AJAX:', response);
-                
-                if (response.success) {
-                    $('#otp-feedback').addClass('d-none').empty();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Signature effectuée',
-                        text: response.message || 'Le document a été signé avec succès',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        clearInterval(otpTimerInterval);
-                        $('#modal-signature-otp').modal('hide');
-                        location.reload();
-                    });
-                } else {
-                    // Afficher le feedback avec tentatives restantes si disponible
-                    if (response.remaining_attempts !== undefined) {
-                        $('#otp-feedback').removeClass('d-none').text(
-                            response.message + ' — Tentatives restantes : ' + response.remaining_attempts
-                        );
-                    } else {
-                        $('#otp-feedback').addClass('d-none').empty();
-                    }
-                    
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Erreur',
-                        text: response.message
-                    });
-                    $btn.prop('disabled', false).html(originalHtml);
-                }
-            },
-            error: function(xhr) {
-                console.error('❌ Erreur AJAX:', xhr);
-                
-                let message = 'Erreur lors de la validation de l\'OTP';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    message = xhr.responseJSON.message;
-                }
-                
-                $('#otp-feedback').addClass('d-none').empty();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erreur',
-                    text: message
-                });
-                $btn.prop('disabled', false).html(originalHtml);
-            }
-        });
+        runDemandeP12Sign($(this));
     });
-    
-    // Renvoyer le code OTP
-    $('#btn-resend-otp').on('click', function() {
-        if (resendAttempts >= MAX_RESEND) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Limite atteinte',
-                text: 'Vous avez atteint le nombre maximum de renvois (3)'
-            });
-            return;
-        }
-        
-        const codes = JSON.parse($('#codes-demandes-signature').val());
-        const $btn = $(this);
-        const originalHtml = $btn.html();
-        
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Renvoi...');
-        
-        $.ajax({
-            url: '{{ route("demandeDocument.initierSignature") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                demandes: codes,
-                resend: true
-            },
-            success: function(response) {
-                if (response.success) {
-                    resendAttempts++;
-                    startOtpTimer(120);
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Code renvoyé',
-                        text: 'Un nouveau code a été envoyé par SMS et email',
-                        timer: 2000,
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false
-                    });
-                    
-                    @if(config('app.debug'))
-                        if (response.otp) {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Code OTP (dev)',
-                                text: response.otp,
-                                timer: 5000,
-                                toast: true,
-                                position: 'top-end',
-                                showConfirmButton: false
-                            });
-                        }
-                    @endif
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Erreur',
-                        text: response.message
-                    });
-                    $btn.prop('disabled', false).html(originalHtml);
-                }
-            },
-            error: function(xhr) {
-                let message = 'Erreur lors du renvoi de l\'OTP';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    message = xhr.responseJSON.message;
-                }
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erreur',
-                    text: message
-                });
-                $btn.prop('disabled', false).html(originalHtml);
-            }
-        });
-    });
-    
-    // Réinitialiser le modal à la fermeture
+
     $('#modal-signature-otp').on('hidden.bs.modal', function() {
-        if (otpTimerInterval) {
-            clearInterval(otpTimerInterval);
-        }
-        
-        otpTimeRemaining = 120;
-        resendAttempts = 0;
-        
-        $('#input-otp').val('');
         $('#otp-feedback').addClass('d-none').empty();
-        $('#otp-timer-block').removeClass('d-none').show();
-        $('#otp-expired-block').addClass('d-none').hide();
-        $('#btn-valider-otp').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer');
-        $('#btn-resend-otp').prop('disabled', true).html('<i class="fas fa-redo me-1"></i> Renvoyer le code');
-        
-        // Réinitialiser la barre de progression
-        $('#otp-progress').css('width', '100%')
-                          .removeClass('bg-danger')
-                          .addClass('bg-warning');
-        $('#otp-countdown').text('2:00').css('color', '');
-
-@push('scripts')
-<script>
-// Les handlers pour le modal de signature sont maintenant définis dans les pages parentes (index.blade.php et show.blade.php)
-// afin de garantir que la fonction startOtpTimer() soit disponible au bon moment
-</script>
-@endpush
-
-    $('#form-generer-pdf').on('submit', function(e) {
+        $('#demande_p12_file').val('');
+        $('#demande_p12_pin').val('');
+        $('#btn-valider-otp').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+    });
+$('#form-generer-pdf').on('submit', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const $form = $(this);
         const $btn = $('#btn-confirmer-generation');
         const originalHtml = $btn.html();
         const url = '{{ route("demandeDocument.genererPdf", $demande->code_demande_document) }}';
-        
+
         $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Génération en cours...');
-        
+
         $.ajax({
             url: url,
             type: 'POST',
             data: $form.serialize(),
             success: function(response) {
                 $('#modal-generer-pdf').modal('hide');
-                
-                // Afficher notification de succès
-                if (typeof flash !== 'undefined') {
-                    flash('success', 'Document généré avec succès. En attente de signature.');
-                }
-                
-                // Recharger la page après un court délai
-                setTimeout(function() {
+                const msg = (response && response.message)
+                    ? response.message
+                    : 'Document généré. En attente de signature de l\'officier d\'état civil en fonction.';
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'PDF généré',
+                        text: msg,
+                        timer: 2200,
+                        showConfirmButton: false
+                    }).then(function() {
+                        window.location.reload();
+                    });
+                } else {
                     window.location.reload();
-                }, 1000);
+                }
             },
             error: function(xhr) {
                 $btn.prop('disabled', false).html(originalHtml);
-                
+
                 let errorMsg = 'Une erreur est survenue lors de la génération du PDF';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                
-                // Afficher notification d'erreur
-                if (typeof flash !== 'undefined') {
-                    flash('error', errorMsg);
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Erreur', text: errorMsg });
                 } else {
                     alert(errorMsg);
                 }
-                
+
                 console.error('Erreur AJAX génération PDF:', xhr);
             }
         });

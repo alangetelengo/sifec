@@ -118,60 +118,63 @@
                     <dd class="col-sm-7 col-md-8">{{ $acte->date_emission ? date('d/m/Y H:i', strtotime($acte->date_emission)) : '-' }}</dd>
                 </dl>
 
-                {{-- ── Bloc signature & traçabilité ── --}}
+                {{-- ── Signature électronique (aligné registre / app-civil) ── --}}
+                @php
+                    $sigNom = $acte->actor_nom
+                        ?: ($acte->signataire?->user?->personne?->nomcomplet() ?? null);
+                    $sigDate = $acte->signed_at
+                        ?? $acte->doc_sig_signed_at
+                        ?? $acte->date_heure_approbation_mairie;
+                    $hasPki = filled($acte->doc_sig_id)
+                        || filled($acte->doc_seal_id)
+                        || filled($acte->pdf_content_hash)
+                        || filled($acte->proof_id);
+                @endphp
                 <hr class="my-3" style="border-color:#009E49; opacity:.3;">
                 <h6 class="fw-bold mb-3" style="color:#006B31;">
-                    <i class="fa fa-shield-alt me-2"></i>Signature &amp; Traçabilité
+                    <i class="fa fa-shield-alt me-2"></i>Signature électronique
                 </h6>
-                <dl class="row">
-                    <dt class="col-sm-5 col-md-4">Officier signataire</dt>
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 col-md-4">Signataire</dt>
                     <dd class="col-sm-7 col-md-8">
-                        @if($acte->signataire)
-                            {{ $acte->signataire->user?->personne->nomcomplet() ?? "//" }}
+                        @if($sigNom)
+                            {{ $sigNom }}
                         @else
                             <span class="text-muted fst-italic">Non encore signé</span>
                         @endif
                     </dd>
 
-                    <dt class="col-sm-5 col-md-4">Date de validation</dt>
+                    <dt class="col-sm-5 col-md-4">Signé le</dt>
                     <dd class="col-sm-7 col-md-8">
-                        {{ $acte->date_heure_approbation_mairie
-                            ? \Carbon\Carbon::parse($acte->date_heure_approbation_mairie)->format('d/m/Y \à H:i:s')
+                        {{ $sigDate
+                            ? \Carbon\Carbon::parse($sigDate)->format('d/m/Y à H:i:s')
                             : '—' }}
                     </dd>
 
-                    <dt class="col-sm-5 col-md-4">Code OTP utilisé</dt>
-                    <dd class="col-sm-7 col-md-8">
-                        @if($acte->otp_approbation_mairie)
-                            <span class="badge text-white font-monospace px-3 py-2"
-                                  style="background:#009E49; letter-spacing:.15em; font-size:.9rem;">
-                                {{ $acte->otp_approbation_mairie }}
-                            </span>
-                        @else
-                            <span class="text-muted fst-italic">—</span>
+                    @if($hasPki)
+                        @if(filled($acte->doc_sig_id))
+                            <dt class="col-sm-5 col-md-4">Identifiant signature</dt>
+                            <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->doc_sig_id }}</code></dd>
                         @endif
-                    </dd>
-
-                    <dt class="col-sm-5 col-md-4">Adresse IP</dt>
-                    <dd class="col-sm-7 col-md-8">
-                        @if($acte->adresse_mac_approbation)
-                            <code class="text-dark" style="font-size:.88rem;">{{ $acte->adresse_mac_approbation }}</code>
-                        @else
-                            <span class="text-muted fst-italic">—</span>
+                        @if(filled($acte->doc_seal_id))
+                            <dt class="col-sm-5 col-md-4">Identifiant cachet</dt>
+                            <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->doc_seal_id }}</code></dd>
                         @endif
-                    </dd>
-
-                    <dt class="col-sm-5 col-md-4">Appareil utilisé</dt>
-                    <dd class="col-sm-7 col-md-8">
-                        @if($acte->nom_appareil_approbation)
-                            <span class="d-inline-flex align-items-center gap-2">
-                                <i class="fa fa-laptop" style="color:#2781d5;"></i>
-                                {{ $acte->nom_appareil_approbation }}
-                            </span>
-                        @else
-                            <span class="text-muted fst-italic">—</span>
+                        @if(filled($acte->certificate_ref))
+                            <dt class="col-sm-5 col-md-4">Réf. certificat</dt>
+                            <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->certificate_ref }}</code></dd>
                         @endif
-                    </dd>
+                        @if(filled($acte->pdf_content_hash))
+                            <dt class="col-sm-5 col-md-4">Empreinte document</dt>
+                            <dd class="col-sm-7 col-md-8">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa fa-check-circle text-success"></i>
+                                    <span class="small text-success fw-semibold">Empreinte SHA-256 enregistrée</span>
+                                </div>
+                                <code class="small" style="word-break:break-all;">{{ $acte->pdf_content_hash }}</code>
+                            </dd>
+                        @endif
+                    @endif
                 </dl>
             </div>
 

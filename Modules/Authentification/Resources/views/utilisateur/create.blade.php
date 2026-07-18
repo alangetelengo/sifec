@@ -215,13 +215,16 @@
                         </div>
                     </div>
 
+                    @include('partials.guot.option-enrolement-utilisateur')
+
                     {{-- ── BOUTONS ─────────────────────────────────────────────────────── --}}
                     <div class="pu-form-actions">
                         <a href="{{ route('utilisateur.index') }}" class="btn btn-sm pu-btn-cancel">
                             <i class="fas fa-times me-1"></i> Annuler
                         </a>
                         <button type="submit" class="btn btn-sm pu-btn-submit" id="submitBtn">
-                            <i class="fas fa-save me-1"></i> Créer l'utilisateur
+                            <i class="fas fa-save me-1"></i>
+                            <span id="submitBtnLabel">Créer l'utilisateur</span>
                         </button>
                     </div>
                 </form>
@@ -342,13 +345,41 @@ $(function () {
         });
     });
 
+    function syncGuotEnrollUi() {
+        var on = $('#enroll_now').is(':checked');
+        $('#guot-enroll-params').toggleClass('d-none', !on);
+        $('.guot-req').toggleClass('d-none', !on);
+        $('#submitBtnLabel').text(on ? "Créer et préparer l'enrôlement" : "Créer l'utilisateur");
+    }
+
+    function syncGuotEligibleByFonction() {
+        var $card = $('#guot-enroll-card');
+        if (!$card.length) return;
+        var codes = $card.data('signataire-codes') || [];
+        var fn = String($('#code_fonction_personne').val() || '');
+        var eligible = codes.indexOf(fn) !== -1;
+        $('#guot-enroll-eligible').toggleClass('d-none', !eligible);
+        $('#guot-enroll-agents-notice').toggleClass('d-none', eligible);
+        if (!eligible) {
+            $('#enroll_now').prop('checked', false);
+        }
+        syncGuotEnrollUi();
+    }
+
+    $('#enroll_now').on('change', syncGuotEnrollUi);
+    $('#code_fonction_personne').on('change', syncGuotEligibleByFonction);
+    syncGuotEligibleByFonction();
+
     $('#createUserForm').on('submit', function () {
         var btn = $('#submitBtn');
         if (btn.data('sifec-submitting')) return;
         btn.data('sifec-submitting', 1);
         if (!btn.data('sifec-html')) btn.data('sifec-html', btn.html());
+        var loadingLabel = $('#enroll_now').is(':checked')
+            ? 'Création et préparation…'
+            : 'Création en cours…';
         btn.prop('disabled', true).attr('aria-busy', 'true').addClass('sifec-btn-loading')
-            .html('<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>Création en cours…');
+            .html('<i class="fas fa-spinner fa-spin me-1" aria-hidden="true"></i>' + loadingLabel);
     });
 });
 

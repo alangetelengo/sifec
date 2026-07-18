@@ -351,33 +351,33 @@ class Sifec
     /**
      * Envoi SMS : un seul fournisseur selon config `sifec.sms.provider` (wirepick | infobip).
      */
-    public function sendSms($to, $content)
+    public static function sendSms($to, $content)
     {
         $provider = strtolower((string) config('sifec.sms.provider', 'wirepick'));
-        $phoneNorm = $this->normalizeSmsPhone((string) $to);
+        $phoneNorm = self::normalizeSmsPhone((string) $to);
 
         Log::channel('sifec')->info('SMS sendSms (entrée)', [
             'provider' => $provider,
             'to_brut' => $to,
             'phone_normalise' => $phoneNorm,
-            'phone_masque' => $this->maskMsisdnForLog($phoneNorm),
+            'phone_masque' => self::maskMsisdnForLog($phoneNorm),
             'from_config' => config('sifec.sms.sender_id', 'ETAT-CIVIL'),
             'texte_apercu' => mb_substr((string) $content, 0, 240),
             'texte_longueur' => mb_strlen((string) $content),
         ]);
 
         if ($provider === 'infobip') {
-            return $this->infobipSms($to, $content);
+            return self::infobipSms($to, $content);
         }
 
-        return $this->sendSmsWirepick($to, $content);
+        return self::sendSmsWirepick($to, $content);
     }
 
     /**
      * MSISDN international pour agrégateurs : chiffres uniquement, sans « + » ni espaces.
      * Évite substr($to, 1) qui cassait « 242… » (sans +) en « 42… » et poussait Wirepick vers un expéditeur par défaut (ex. GROWIN-C).
      */
-    protected function normalizeSmsPhone(string $to): string
+    protected static function normalizeSmsPhone(string $to): string
     {
         $digits = preg_replace('/\D/', '', ltrim(trim($to), '+'));
 
@@ -385,7 +385,7 @@ class Sifec
     }
 
     /** Pour les logs : garde le début / la fin du MSISDN, sans exposer tout le numéro. */
-    protected function maskMsisdnForLog(string $digits): string
+    protected static function maskMsisdnForLog(string $digits): string
     {
         $len = strlen($digits);
         if ($len === 0) {
@@ -399,7 +399,7 @@ class Sifec
     }
 
     /** Réponse HTTP / corps tronqué pour éviter des logs énormes. */
-    protected function truncateForLog(?string $raw, int $max = 2000): string
+    protected static function truncateForLog(?string $raw, int $max = 2000): string
     {
         if ($raw === null || $raw === '') {
             return '';
@@ -412,7 +412,7 @@ class Sifec
     }
 
     /** Statut XML Wirepick (<sms><status>…</status>) — ex. ACT, MAX, REJ. */
-    protected function parseWirepickResponseStatus(?string $xmlBody): ?string
+    protected static function parseWirepickResponseStatus(?string $xmlBody): ?string
     {
         if ($xmlBody === null || $xmlBody === '') {
             return null;
@@ -433,9 +433,9 @@ class Sifec
         return null;
     }
 
-    protected function sendSmsWirepick($to, $content)
+    protected static function sendSmsWirepick($to, $content)
     {
-        $phone = $this->normalizeSmsPhone((string) $to);
+        $phone = self::normalizeSmsPhone((string) $to);
         $from = config('sifec.sms.sender_id', 'ETAT-CIVIL');
         $data = [
             'client' => config('sifec.sms.wirepick.client', 'mukinayiseth'),
@@ -449,23 +449,23 @@ class Sifec
         $req = Http::asForm()->get($endpoint, $data);
 
         $responseBody = $req->body();
-        $wirepickStatus = $this->parseWirepickResponseStatus($responseBody);
+        $wirepickStatus = self::parseWirepickResponseStatus($responseBody);
 
         Log::channel('sifec')->info('Wirepick SMS (réponse)', [
             'client' => $data['client'],
             'from_envoye' => $from,
-            'phone_masque' => $this->maskMsisdnForLog($phone),
+            'phone_masque' => self::maskMsisdnForLog($phone),
             'texte_apercu' => mb_substr((string) $content, 0, 240),
             'texte_longueur' => mb_strlen((string) $content),
             'http_status' => $req->status(),
             'wirepick_status' => $wirepickStatus,
-            'corps_reponse' => $this->truncateForLog($responseBody),
+            'corps_reponse' => self::truncateForLog($responseBody),
         ]);
 
         if ($wirepickStatus !== null && strtoupper($wirepickStatus) !== 'ACT') {
             Log::channel('sifec')->warning('Wirepick: statut autre que ACT — livraison non confirmée (contacter le fournisseur API si besoin).', [
                 'wirepick_status' => $wirepickStatus,
-                'phone_masque' => $this->maskMsisdnForLog($phone),
+                'phone_masque' => self::maskMsisdnForLog($phone),
                 'texte_longueur' => mb_strlen((string) $content),
             ]);
         }

@@ -1,0 +1,31 @@
+{
+  "name": "@signum/pki-sdk-typescript",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK base for Signum PKI public verification and signer lifecycle APIs.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "build:test": "node -e \"require('fs').rmSync('dist-test',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
+    "test": "npm run build:test && node --test --experimental-test-isolation=none \"dist-test/**/*.test.js\""
+  },
+  "keywords": [
+    "signum",
+    "pki",
+    "signature",
+    "verification"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

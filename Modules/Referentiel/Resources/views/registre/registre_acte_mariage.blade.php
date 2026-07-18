@@ -210,7 +210,7 @@
                             <h2><span style="margin-left: 730px;"> Fait à <strong>{{ $registre->institutionUser->institution->lieu->localiteparent->lib_localite }}</strong>, le <strong>{{ date("d-m-Y", strtotime($registre->created_at)) }}</strong> </span></h2>
                             <b style="margin-left: 730px;">
                                 <img src='{{ asset("app/".$registre->sceau) }}' alt="">
-                                <img src='{{ asset("app/".$registre->signature_tribunal) }}' alt="" width="200" height="200">
+                                @include('referentiel::registre.partials.registre-paraphe-qrcode', ['registre' => $registre])
                             </b>
                         </div>
                     </div>

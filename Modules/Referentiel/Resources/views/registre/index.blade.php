@@ -375,7 +375,7 @@ Registre Etat civil
                                     <button type="button" class="btn btn-success px-4 fw-semibold" id="btn-parapher-selection" style="border-radius:10px;" disabled>
                                         <i class="fas fa-file-signature me-1"></i> Parapher la sélection (<span id="registre-bulk-count">0</span>)
                                     </button>
-                                    <span class="small text-muted mb-0">Sélectionnez les registres en attente, puis un seul code OTP paraphé le lot (SMS et e-mail si configuré).</span>
+                                    <span class="small text-muted mb-0">Sélectionnez les registres en attente, puis paraphez le lot par signature électronique.</span>
                                 </div>
                                 @endcan
                             @endif
@@ -575,92 +575,57 @@ Registre Etat civil
             </div>
         </div>
     </div>
-    {{-- DEBUT VALIDATION REGISTRE (OTP paraphe — charte SIFEC + compteurs) --}}
+    {{-- DEBUT VALIDATION REGISTRE (paraphe électronique) --}}
     <div class="modal fade" id="modal-registre-paraphage" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content shadow">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-semibold" id="modal-paraphage-title">Validation du registre (paraphe)</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer">
-                    </button>
+                    <h5 class="modal-title fw-semibold" id="modal-paraphage-title">
+                        <i class="fas fa-file-signature me-2" style="color:#006B31;"></i>Paraphe électronique du registre
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body pt-3">
                     <input type="hidden" id="code_registre">
                     <input type="hidden" id="paraphe_mode" value="single">
                     <input type="hidden" id="paraphe_bulk_codes_json" value="">
                     <p id="paraphe-bulk-summary" class="small fw-semibold text-success mb-3 d-none" role="status"></p>
-                    <p class="small text-muted mb-3">
-                        Le code reçu par SMS est valable <strong>1 minute</strong>.
-                        Vous disposez de <strong>3 tentatives</strong> par code.
-                        Après 3 échecs, attendez <strong>3 minutes</strong> avant de pouvoir en demander un nouveau.
-                    </p>
-                    <div id="paraphe-otp-alert" class="alert alert-secondary small py-2 mb-3 d-none" role="status"></div>
 
-                    {{-- Jauge seule sur une ligne (fond neutre) + libellé sous la jauge (masqués ensemble en temporisation) --}}
-                    <div class="mb-3" id="otp-expiry-meter-section">
-                        <div class="sifec-otp-meter sifec-otp-meter--surface w-100"
-                             id="otp-expiry-progress-wrap"
-                             role="progressbar"
-                             aria-label="Temps restant avant expiration du code OTP"
-                             aria-live="polite"
-                             aria-valuemin="0"
-                             aria-valuemax="60"
-                             aria-valuenow="60"
-                             aria-valuetext="60 secondes restantes">
-                            <div class="sifec-otp-meter__track">
-                                <div class="sifec-otp-meter__fill" id="otp-expiry-progress-bar" style="width: 100%;"></div>
-                            </div>
+                    <div class="alert alert-info py-2 mb-3">
+                        <p class="mb-2 small fw-semibold mb-1">Comment procéder</p>
+                        <ol class="small mb-2 ps-3">
+                            <li>Vérifiez qu’il s’agit du bon registre (ou de la bonne sélection).</li>
+                            <li>Sélectionnez votre fichier certificat <strong>.p12</strong> et saisissez sa passphrase.</li>
+                            <li>Cliquez sur <strong>Parapher électroniquement</strong> : votre identité valide et scelle le paraphe.</li>
+                            <li>Le registre passe au statut <strong>Activé</strong> et le centre d’état civil est informé.</li>
+                        </ol>
+                        <p class="mb-0 small text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Aucun code SMS n’est demandé. Utilisez le fichier <code>.p12</code> téléchargé depuis votre profil
+                            et la passphrase affichée à ce moment-là (pas un ancien fichier ni un fichier de test).
+                            Le tribunal doit avoir son cachet institutionnel configuré.
+                        </p>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label small fw-semibold" for="paraphe_p12_file">Certificat électronique (.p12)</label>
+                            <input type="file" class="form-control form-control-sm" id="paraphe_p12_file" accept=".p12,.pfx,application/x-pkcs12">
                         </div>
-                        <p class="small text-muted mt-2 mb-0" id="otp-expiry-hint"></p>
-                        <span id="otp-countdown-expiry" class="visually-hidden">—</span>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold" for="paraphe_p12_pin">Passphrase</label>
+                            <input type="password" class="form-control form-control-sm" id="paraphe_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                        </div>
                     </div>
 
-                    {{-- Tentatives : simple ligne de texte, sans encart coloré --}}
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-2 border-bottom" id="otp-attempts-line">
-                        <span class="small text-muted mb-0">Tentatives (code incorrect ou renvoi du code)</span>
-                        <span class="fw-bold sifec-otp-attempts-count mb-0">
-                            <span id="otp-attempts-used">0</span><span class="text-muted fw-normal"> / </span><span id="otp-max-attempts">3</span>
-                        </span>
-                    </div>
-                    <div id="otp-lockout-wrap" class="alert alert-warning small py-2 mb-3 d-none" role="alert">
-                        <strong>Temporisation active.</strong>
-                        Nouveau code ou nouvelle saisie possible dans
-                        <span class="sifec-otp-badge sifec-otp-badge--timer sifec-otp-badge--compact d-inline-flex ms-1 align-middle" role="status">
-                            <span class="sifec-otp-badge__mesh" aria-hidden="true">
-                                <span class="sifec-otp-badge__orb sifec-otp-badge__orb--light"></span>
-                                <span class="sifec-otp-badge__blob sifec-otp-badge__blob--1"></span>
-                            </span>
-                            <span class="sifec-otp-badge__label"><span id="otp-lockout-countdown">—</span></span>
-                        </span>.
-                    </div>
-                    <div id="otp-expired-wrap" class="alert alert-danger small py-2 mb-3 d-none" role="alert">
-                        Ce code a expiré. Utilisez «&nbsp;Renvoyer le code&nbsp;» pour en recevoir un nouveau (sauf pendant une temporisation).
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-medium" for="otp_paraphage">Code de validation (6 chiffres)<span class="text-danger">*</span></label>
-                        <input type="text"
-                               class="form-control form-control-lg text-center fw-bold mx-auto"
-                               id="otp_paraphage"
-                               maxlength="6"
-                               minlength="6"
-                               inputmode="numeric"
-                               pattern="[0-9]*"
-                               autocomplete="one-time-code"
-                               placeholder="• • • • • •"
-                               title="Saisissez uniquement 6 chiffres (0 à 9)"
-                               style="letter-spacing: 0.45em; font-size: 1.35rem; max-width: 22rem;"
-                               required>
-                    </div>
-                    <p class="small text-muted mb-2">Saisissez le code reçu par SMS (et par e-mail si configuré).</p>
-                    <p class="small mb-0">
-                        <span class="text-muted">Code non reçu ?</span>
-                        <a href="#" id="resend-otp-link" class="fw-semibold" style="color: #009E49;">Renvoyer le code</a>
-                        <span id="resend-otp-disabled" class="text-muted d-none"></span>
-                    </p>
+                    <div id="paraphe-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
                 </div>
                 <div class="modal-footer border-top bg-light">
                     <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
-                    <button type="button" class="btn btn-sm text-white px-4" id="btn-validate" style="background: linear-gradient(135deg, #006B31 0%, #009E49 55%, #21B931 100%); border: none;">Valider</button>
+                    <button type="button" class="btn btn-sm text-white px-4" id="btn-validate"
+                            style="background: linear-gradient(135deg, #006B31 0%, #009E49 55%, #21B931 100%); border: none;">
+                        <i class="fas fa-signature me-1"></i> Parapher électroniquement
+                    </button>
                 </div>
             </div>
         </div>
@@ -740,6 +705,9 @@ Registre Etat civil
       <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
       <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
       @endif
+      <script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+      <script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+      <script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260717c"></script>
 
       <script>
         $(function() {
@@ -768,295 +736,8 @@ Registre Etat civil
                     }
                 });
 
-                var paraphOtpExpiryTimer = null;
-                var paraphOtpLockoutTimer = null;
-                var paraphOtpMaxAttempts = 3;
-                var paraphOtpExpiryTotalSec = 60;
-
-                function clearRegistreParaphTimers() {
-                    if (paraphOtpExpiryTimer) {
-                        clearInterval(paraphOtpExpiryTimer);
-                        paraphOtpExpiryTimer = null;
-                    }
-                    if (paraphOtpLockoutTimer) {
-                        clearInterval(paraphOtpLockoutTimer);
-                        paraphOtpLockoutTimer = null;
-                    }
-                }
-
-                function formatParaphMmSs(totalSeconds) {
-                    totalSeconds = Math.max(0, parseInt(totalSeconds, 10) || 0);
-                    var m = Math.floor(totalSeconds / 60);
-                    var s = totalSeconds % 60;
-                    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-                }
-
-                function updateOtpExpiryProgressVisual(left) {
-                    var total = paraphOtpExpiryTotalSec > 0 ? paraphOtpExpiryTotalSec : 60;
-                    var safeLeft = Math.max(0, parseInt(left, 10) || 0);
-                    var pct = total > 0 ? Math.max(0, Math.min(100, (safeLeft / total) * 100)) : 0;
-                    var $bar = $('#otp-expiry-progress-bar');
-                    var $wrap = $('#otp-expiry-progress-wrap');
-                    $bar.css('width', pct + '%');
-                    $wrap.attr('aria-valuenow', safeLeft);
-                    $wrap.attr('aria-valuemax', total);
-                    var vt = safeLeft <= 0 ? 'Code expiré' : (safeLeft + (safeLeft > 1 ? ' secondes restantes' : ' seconde restante'));
-                    $wrap.attr('aria-valuetext', vt);
-                    $('#otp-countdown-expiry').text(formatParaphMmSs(safeLeft));
-                    var urgent = safeLeft > 0 && safeLeft <= 15;
-                    $bar.toggleClass('sifec-otp-meter__fill--urgent', urgent);
-                    var $hint = $('#otp-expiry-hint');
-                    if (safeLeft > 0) {
-                        $hint.text(safeLeft + (safeLeft > 1 ? ' secondes restantes' : ' seconde restante'))
-                            .removeClass('text-danger fw-semibold')
-                            .addClass('text-muted');
-                    } else {
-                        $hint.text('Délai écoulé — demandez un nouveau code.')
-                            .removeClass('text-muted')
-                            .addClass('text-danger fw-semibold');
-                    }
-                }
-
-                /** Affiche actions déjà comptées / maximum (ex. 0/3 puis 1/3 … 3/3) : mauvais code ou renvoi avec code encore valide. */
-                function setParaphAttemptsUsedDisplay(used, max) {
-                    var $m = $('#modal-registre-paraphage');
-                    var u = parseInt(used, 10);
-                    var m = parseInt(max, 10);
-                    if (isNaN(m) || m < 1) {
-                        m = paraphOtpMaxAttempts;
-                    }
-                    if (isNaN(u) || u < 0) {
-                        u = 0;
-                    }
-                    if (u > m) {
-                        u = m;
-                    }
-                    $m.find('#otp-attempts-used').first().text(u);
-                    $m.find('#otp-max-attempts').first().text(m);
-                }
-
-                function applyParaphAttemptsFromResponse(response) {
-                    if (!response || typeof response !== 'object') {
-                        return;
-                    }
-                    var max = parseInt(response.otp_max_attempts, 10);
-                    if (isNaN(max) || max < 1) {
-                        max = paraphOtpMaxAttempts;
-                    }
-                    var used = NaN;
-                    if (Object.prototype.hasOwnProperty.call(response, 'attempts_used')) {
-                        used = parseInt(response.attempts_used, 10);
-                    } else if (Object.prototype.hasOwnProperty.call(response, 'remaining_attempts')) {
-                        var rem = parseInt(response.remaining_attempts, 10);
-                        if (!isNaN(rem) && rem >= 0) {
-                            used = max - rem;
-                        }
-                    }
-                    if (!isNaN(used) && used >= 0) {
-                        setParaphAttemptsUsedDisplay(used, max);
-                    }
-                }
-
-                /** Accepte code API renvoyé en string ou nombre (JSON PHP / jQuery). */
-                function paraphOtpResponseCode(response) {
-                    if (!response || response.code === undefined || response.code === null) {
-                        return NaN;
-                    }
-                    return parseInt(response.code, 10);
-                }
-
-                function showParaphAlert(type, text) {
-                    var $a = $('#paraphe-otp-alert');
-                    $a.removeClass('d-none alert-secondary alert-success alert-danger alert-warning');
-                    if (type === 'success') {
-                        $a.addClass('alert-success');
-                    } else if (type === 'danger') {
-                        $a.addClass('alert-danger');
-                    } else if (type === 'warning') {
-                        $a.addClass('alert-warning');
-                    } else {
-                        $a.addClass('alert-secondary');
-                    }
-                    $a.text(text);
-                }
-
-                function hideParaphAlert() {
-                    $('#paraphe-otp-alert').addClass('d-none').text('');
-                }
-
-                function enableParaphResendUi() {
-                    $('#resend-otp-link').removeClass('d-none disabled text-muted');
-                    $('#resend-otp-disabled').addClass('d-none').text('');
-                }
-
-                function disableParaphResendUi() {
-                    $('#resend-otp-link').addClass('d-none');
-                    $('#resend-otp-disabled').removeClass('d-none');
-                }
-
-                function startParaphExpiryCountdown(totalSec) {
-                    clearRegistreParaphTimers();
-                    paraphOtpExpiryTotalSec = parseInt(totalSec, 10) || 60;
-                    $('#otp-lockout-wrap').addClass('d-none');
-                    $('#otp-expired-wrap').addClass('d-none');
-                    $('#otp-expiry-meter-section').removeClass('d-none');
-                    $('#otp-attempts-line').removeClass('d-none');
-                    $('#btn-validate').prop('disabled', false);
-                    $('#otp_paraphage').prop('disabled', false).val('');
-                    enableParaphResendUi();
-                    hideParaphAlert();
-
-                    var left = paraphOtpExpiryTotalSec;
-                    updateOtpExpiryProgressVisual(left);
-                    paraphOtpExpiryTimer = setInterval(function () {
-                        left--;
-                        updateOtpExpiryProgressVisual(left);
-                        if (left <= 0) {
-                            clearInterval(paraphOtpExpiryTimer);
-                            paraphOtpExpiryTimer = null;
-                            updateOtpExpiryProgressVisual(0);
-                            $('#otp-expired-wrap').removeClass('d-none');
-                            $('#btn-validate').prop('disabled', true);
-                            $('#otp_paraphage').prop('disabled', true);
-                            showParaphAlert('warning', 'Le délai de validité du code est écoulé. Renvoyez un nouveau code (si aucune temporisation ne s’affiche).');
-                        }
-                    }, 1000);
-                }
-
-                function startParaphLockoutCountdown(totalSec) {
-                    clearRegistreParaphTimers();
-                    $('#otp-expiry-meter-section').addClass('d-none');
-                    $('#otp-attempts-line').addClass('d-none');
-                    $('#otp-expired-wrap').addClass('d-none');
-                    $('#otp-lockout-wrap').removeClass('d-none');
-                    $('#btn-validate').prop('disabled', true);
-                    $('#otp_paraphage').prop('disabled', true).val('');
-                    disableParaphResendUi();
-                    showParaphAlert('danger', 'Trop de tentatives incorrectes ou temporisation serveur. Patientez avant un nouveau code.');
-
-                    var left = totalSec;
-                    $('#otp-lockout-countdown').text(formatParaphMmSs(left));
-                    $('#resend-otp-disabled').text('Nouveau code disponible dans ' + formatParaphMmSs(left));
-
-                    paraphOtpLockoutTimer = setInterval(function () {
-                        left--;
-                        if (left <= 0) {
-                            clearInterval(paraphOtpLockoutTimer);
-                            paraphOtpLockoutTimer = null;
-                            $('#otp-lockout-wrap').addClass('d-none');
-                            enableParaphResendUi();
-                            $('#btn-validate').prop('disabled', false);
-                            $('#otp_paraphage').prop('disabled', false);
-                            hideParaphAlert();
-                            showParaphAlert('secondary', 'Vous pouvez demander un nouveau code.');
-                        } else {
-                            $('#otp-lockout-countdown').text(formatParaphMmSs(left));
-                            $('#resend-otp-disabled').text('Nouveau code disponible dans ' + formatParaphMmSs(left));
-                        }
-                    }, 1000);
-                }
-
-                function requestParaphOtpForRegistre(code_registre, openModalOnSuccess, isResend) {
-                    var url = "{{ route('registre.send.otp', ':id') }}";
-                    url = url.replace(':id', code_registre);
-                    if (isResend) {
-                        url += (url.indexOf('?') === -1 ? '?' : '&') + 'resend=1';
-                    }
-                    $(".over-loader-page").fadeIn(600);
-                    $.ajax({
-                        url: url,
-                        type: 'GET',
-                        dataType: 'json'
-                    }).done(function (response) {
-                        $(".over-loader-page").fadeOut(600);
-                        if (String(response.code) === '200') {
-                            $("#code_registre").val(code_registre);
-                            paraphOtpMaxAttempts = parseInt(response.otp_max_attempts, 10) || 3;
-                            var sentUsed = parseInt(response.attempts_used, 10);
-                            setParaphAttemptsUsedDisplay(!isNaN(sentUsed) ? sentUsed : 0, paraphOtpMaxAttempts);
-                            var validSec = parseInt(response.valid_for_seconds, 10) || 60;
-                            if (openModalOnSuccess) {
-                                $("#modal-registre-paraphage").modal('show');
-                            }
-                            startParaphExpiryCountdown(validSec);
-                            if (openModalOnSuccess) {
-                                showParaphAlert('success', response.message || 'Code envoyé. Saisissez-le avant la fin du compte à rebours.');
-                            } else {
-                                flashAlert('Code OTP', 'success', response.message || 'Nouveau code envoyé.');
-                            }
-                        } else if (String(response.code) === '184' && response.retry_after_seconds) {
-                            if (openModalOnSuccess) {
-                                $("#code_registre").val(code_registre);
-                                $("#modal-registre-paraphage").modal('show');
-                            }
-                            applyParaphAttemptsFromResponse(response);
-                            startParaphLockoutCountdown(parseInt(response.retry_after_seconds, 10) || 180);
-                            flashAlert('Réponse', 'error', response.message || 'Temporisation active.');
-                        } else {
-                            flashAlert('Réponse', 'error', response.message || 'Erreur.');
-                        }
-                    }).fail(function (xhr) {
-                        $(".over-loader-page").fadeOut(600);
-                        var msg = 'Impossible d\'envoyer le code.';
-                        if (xhr.status === 429) {
-                            msg = 'Trop de demandes. Réessayez dans une minute.';
-                        }
-                        flashAlert('Réponse', 'error', msg);
-                    });
-                }
-
                 function getRegistreCsrfToken() {
                     return $('meta[name="csrf-token"]').attr('content') || '';
-                }
-
-                function requestParaphOtpBulk(codes, openModalOnSuccess, isResend) {
-                    var url = "{{ route('registre.send.otp.bulk') }}";
-                    $(".over-loader-page").fadeIn(600);
-                    $.ajax({
-                        url: url,
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ codes: codes, resend: !!isResend }),
-                        dataType: 'json',
-                        headers: {
-                            'X-CSRF-TOKEN': getRegistreCsrfToken(),
-                            'X-Requested-With': 'XMLHttpRequest',
-                            Accept: 'application/json'
-                        }
-                    }).done(function (response) {
-                        $(".over-loader-page").fadeOut(600);
-                        if (String(response.code) === '200') {
-                            paraphOtpMaxAttempts = parseInt(response.otp_max_attempts, 10) || 3;
-                            var sentUsed = parseInt(response.attempts_used, 10);
-                            setParaphAttemptsUsedDisplay(!isNaN(sentUsed) ? sentUsed : 0, paraphOtpMaxAttempts);
-                            var validSec = parseInt(response.valid_for_seconds, 10) || 60;
-                            if (openModalOnSuccess) {
-                                $('#modal-registre-paraphage').modal('show');
-                            }
-                            startParaphExpiryCountdown(validSec);
-                            if (openModalOnSuccess) {
-                                showParaphAlert('success', response.message || 'Code envoyé. Saisissez-le avant la fin du compte à rebours.');
-                            } else {
-                                flashAlert('Code OTP', 'success', response.message || 'Nouveau code envoyé.');
-                            }
-                        } else if (String(response.code) === '184' && response.retry_after_seconds) {
-                            if (openModalOnSuccess) {
-                                $('#modal-registre-paraphage').modal('show');
-                            }
-                            applyParaphAttemptsFromResponse(response);
-                            startParaphLockoutCountdown(parseInt(response.retry_after_seconds, 10) || 180);
-                            flashAlert('Réponse', 'error', response.message || 'Temporisation active.');
-                        } else {
-                            flashAlert('Réponse', 'error', response.message || 'Erreur.');
-                        }
-                    }).fail(function (xhr) {
-                        $(".over-loader-page").fadeOut(600);
-                        var msg = 'Impossible d\'envoyer le code.';
-                        if (xhr.status === 429) {
-                            msg = 'Trop de demandes. Réessayez dans une minute.';
-                        }
-                        flashAlert('Réponse', 'error', msg);
-                    });
                 }
 
                 function updateRegistreBulkSelectionUi() {
@@ -1082,61 +763,48 @@ Registre Etat civil
                     updateRegistreBulkSelectionUi();
                 });
 
+                function openGuotParapheModal(mode, codes) {
+                    $('#paraphe-sign-feedback').addClass('d-none').empty();
+                    $('#paraphe_p12_file').val('');
+                    $('#paraphe_p12_pin').val('');
+                    $('#paraphe_mode').val(mode);
+                    if (mode === 'bulk') {
+                        $('#paraphe_bulk_codes_json').val(JSON.stringify(codes || []));
+                        $('#code_registre').val('');
+                        var n = (codes || []).length;
+                        $('#modal-paraphage-title').html('<i class="fas fa-file-signature me-2" style="color:#006B31;"></i>Paraphe électronique (' + n + ' registre' + (n > 1 ? 's' : '') + ')');
+                        $('#paraphe-bulk-summary').removeClass('d-none').text(n + ' registre(s) seront paraphés par signature électronique.');
+                    } else {
+                        $('#paraphe_bulk_codes_json').val('');
+                        $('#code_registre').val(codes);
+                        $('#modal-paraphage-title').html('<i class="fas fa-file-signature me-2" style="color:#006B31;"></i>Paraphe électronique du registre');
+                        $('#paraphe-bulk-summary').addClass('d-none').text('');
+                    }
+                    $('#modal-registre-paraphage').modal('show');
+                }
+
                 $('#btn-parapher-selection').on('click', function () {
                     var codes = $('.registre-bulk-cb:checked').map(function () { return $(this).val(); }).get();
                     if (!codes.length) {
                         flashAlert('Sélection', 'error', 'Cochez au moins un registre.');
                         return;
                     }
-                    $('#paraphe_mode').val('bulk');
-                    $('#paraphe_bulk_codes_json').val(JSON.stringify(codes));
-                    $('#code_registre').val('');
-                    var n = codes.length;
-                    $('#modal-paraphage-title').text('Validation groupée (' + n + ' registre' + (n > 1 ? 's' : '') + ')');
-                    $('#paraphe-bulk-summary').removeClass('d-none').text(
-                        n + ' registre(s) seront paraphés avec le même code OTP.'
-                    );
-                    requestParaphOtpBulk(codes, true, false);
+                    openGuotParapheModal('bulk', codes);
                 });
 
-                function sanitizeOtpParaphInput($field) {
-                    var v = ($field.val() || '').replace(/\D/g, '').slice(0, 6);
-                    if ($field.val() !== v) {
-                        $field.val(v);
-                    }
-                }
-
-                $('#otp_paraphage').on('input.otpDigits', function () {
-                    sanitizeOtpParaphInput($(this));
-                });
-                $('#otp_paraphage').on('keydown.otpDigits', function (e) {
-                    if ($.inArray(e.keyCode, [8, 9, 13, 27, 46, 35, 36, 37, 38, 39, 40]) !== -1) {
-                        return;
-                    }
-                    if (e.ctrlKey || e.metaKey) {
-                        return;
-                    }
-                    var ch = e.key;
-                    if (ch && ch.length === 1 && !/[0-9]/.test(ch)) {
-                        e.preventDefault();
-                    }
-                });
-                $('#otp_paraphage').on('paste.otpDigits', function (e) {
-                    e.preventDefault();
-                    var clip = (e.originalEvent && e.originalEvent.clipboardData)
-                        ? e.originalEvent.clipboardData.getData('text')
-                        : (window.clipboardData ? window.clipboardData.getData('Text') : '');
-                    var v = (clip || '').replace(/\D/g, '').slice(0, 6);
-                    $(this).val(v);
+                $('a.show-validation-modal').on('click', function () {
+                    openGuotParapheModal('single', $(this).attr('href'));
+                    return false;
                 });
 
                 $('#modal-registre-paraphage').on('hidden.bs.modal', function () {
-                    clearRegistreParaphTimers();
-                    hideParaphAlert();
-                    $('#otp_paraphage').val('');
+                    $('#paraphe-sign-feedback').addClass('d-none').empty();
+                    $('#paraphe_p12_file').val('');
+                    $('#paraphe_p12_pin').val('');
                     $('#paraphe_mode').val('single');
                     $('#paraphe_bulk_codes_json').val('');
-                    $('#modal-paraphage-title').text('Validation du registre (paraphe)');
+                    $('#code_registre').val('');
+                    $('#modal-paraphage-title').html('<i class="fas fa-file-signature me-2" style="color:#006B31;"></i>Paraphe électronique du registre');
                     $('#paraphe-bulk-summary').addClass('d-none').text('');
                     var sa = document.getElementById('registre-bulk-select-all');
                     if (sa) {
@@ -1145,213 +813,124 @@ Registre Etat civil
                     }
                     $('.registre-bulk-cb').prop('checked', false);
                     updateRegistreBulkSelectionUi();
+                    $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Parapher électroniquement');
                 });
 
-                $("a.show-validation-modal").on("click", function () {
-                    var code_registre = $(this).attr("href");
-                    $('#paraphe_mode').val('single');
-                    $('#paraphe_bulk_codes_json').val('');
-                    $('#modal-paraphage-title').text('Validation du registre (paraphe)');
-                    $('#paraphe-bulk-summary').addClass('d-none').text('');
-                    requestParaphOtpForRegistre(code_registre, true);
-                    return false;
-                });
+                function resetParapheBtn($btn) {
+                    $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Parapher électroniquement');
+                }
 
-                $('#resend-otp-link').on('click', function (e) {
-                    e.preventDefault();
-                    if ($(this).hasClass('disabled')) {
-                        return false;
-                    }
-                    if ($('#paraphe_mode').val() === 'bulk') {
-                        var raw = $('#paraphe_bulk_codes_json').val();
-                        var codesBulk = [];
-                        try {
-                            codesBulk = JSON.parse(raw || '[]');
-                        } catch (errBulk) {
-                            codesBulk = [];
-                        }
-                        if (!codesBulk.length) {
-                            return false;
-                        }
-                        requestParaphOtpBulk(codesBulk, false, true);
-                        return false;
-                    }
-                    var code_registre = $('#code_registre').val();
-                    if (!code_registre) {
-                        return false;
-                    }
-                    requestParaphOtpForRegistre(code_registre, false, true);
-                    return false;
-                });
+                function showParapheError(msg) {
+                    $('#paraphe-sign-feedback').removeClass('d-none').text(msg);
+                    flashAlert('Réponse', 'error', msg);
+                }
 
-                $("#btn-validate").on("click", function () {
-                    var otp_paraphage = ($("#otp_paraphage").val() || '').replace(/\D/g, '');
-                    if (otp_paraphage === "" || otp_paraphage.length !== 6 || !/^\d{6}$/.test(otp_paraphage)) {
-                        alert("Veuillez saisir le code à 6 chiffres reçu par SMS (et par e-mail si configuré).");
-                        return false;
-                    }
-                    var mode = $('#paraphe_mode').val();
-                    var $btn = $(this);
-                    $btn.prop("disabled", true);
-                    $btn.html("Traitement en cours ...");
-
-                    function handleParaphValidateResponse(response) {
-                        if (!response || typeof response !== 'object') {
-                            flashAlert("Réponse", "error", "Réponse serveur invalide.");
-                            return;
-                        }
-                        var rc = paraphOtpResponseCode(response);
-                        if (rc === 200) {
-                            clearRegistreParaphTimers();
-                            flashAlert("Réponse", "success", response.message);
-                            $("#modal-registre-paraphage").modal('hide');
-                            setTimeout(function () {
-                                location.reload();
-                            }, 4000);
-                            return;
-                        }
-                        if (rc === 184) {
-                            applyParaphAttemptsFromResponse(response);
-                            if (response.retry_after_seconds) {
-                                startParaphLockoutCountdown(parseInt(response.retry_after_seconds, 10) || 180);
-                            }
-                            flashAlert("Réponse", "error", response.message);
-                            return;
-                        }
-                        if (rc === 185) {
-                            clearRegistreParaphTimers();
-                            $('#otp-expiry-meter-section').addClass('d-none');
-                            $('#otp-expired-wrap').removeClass('d-none');
-                            $('#btn-validate').prop('disabled', true);
-                            $('#otp_paraphage').prop('disabled', true);
-                            flashAlert("Réponse", "error", response.message);
-                            return;
-                        }
-                        if (rc === 183) {
-                            applyParaphAttemptsFromResponse(response);
-                            flashAlert("Réponse", "error", response.message);
-                            return;
-                        }
-                        if (rc === 180) {
-                            flashAlert("Réponse", "error", response.message || 'Données invalides.');
-                            return;
-                        }
-                        flashAlert("Réponse", "error", response.message || 'Erreur inattendue.');
-                    }
-
-                    function finishParaphValidateAjax() {
-                        $btn.prop("disabled", false);
-                        $btn.html("Valider");
-                    }
-
-                    if (mode === 'bulk') {
-                        var rawCodes = $('#paraphe_bulk_codes_json').val();
-                        var codesBulkVal = [];
-                        try {
-                            codesBulkVal = JSON.parse(rawCodes || '[]');
-                        } catch (errVal) {
-                            codesBulkVal = [];
-                        }
-                        if (!codesBulkVal.length) {
-                            finishParaphValidateAjax();
-                            alert('La sélection groupée est invalide. Fermez le modal et recommencez.');
-                            return false;
-                        }
-                        $.ajax({
-                            url: "{{ route('registre.validate.otp.bulk') }}",
-                            method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({ codes: codesBulkVal, otp_paraphage: otp_paraphage }),
-                            dataType: 'json',
-                            headers: {
-                                'X-CSRF-TOKEN': getRegistreCsrfToken(),
-                                'X-Requested-With': 'XMLHttpRequest',
-                                Accept: 'application/json'
-                            }
-                        }).done(function (response) {
-                            finishParaphValidateAjax();
-                            handleParaphValidateResponse(response);
-                        }).fail(function (xhr) {
-                            finishParaphValidateAjax();
-                            var parsed = xhr.responseJSON;
-                            if (!parsed && xhr.responseText) {
-                                try {
-                                    parsed = JSON.parse(xhr.responseText);
-                                } catch (e) {
-                                    parsed = null;
-                                }
-                            }
-                            if (parsed && typeof parsed === 'object') {
-                                var rc = paraphOtpResponseCode(parsed);
-                                if (rc === 183) {
-                                    applyParaphAttemptsFromResponse(parsed);
-                                    flashAlert("Réponse", "error", parsed.message || 'Code OTP incorrect.');
-                                    return;
-                                }
-                                if (rc === 180) {
-                                    flashAlert("Réponse", "error", parsed.message || 'Données invalides.');
-                                    return;
-                                }
-                            }
-                            var msg = 'Erreur lors de la validation.';
-                            if (xhr.status === 429) {
-                                msg = 'Trop de tentatives. Patientez quelques instants.';
-                            }
-                            flashAlert('Réponse', 'error', msg);
-                        });
-                        return false;
-                    }
-
-                    var code_registre = $("#code_registre").val();
-                    if (code_registre === "") {
-                        finishParaphValidateAjax();
-                        alert("Identifiant registre manquant. Fermez le modal et rouvrez depuis Parapher.");
-                        return false;
-                    }
-
-                    $.ajax({
-                        url: "{{ route('registre.validate.otp') }}",
+                function ajaxJson(url, data) {
+                    return $.ajax({
+                        url: url,
                         method: 'POST',
-                        data: {
-                            code_registre: code_registre,
-                            otp_paraphage: otp_paraphage
-                        },
+                        contentType: 'application/json',
+                        data: JSON.stringify(data),
                         dataType: 'json',
                         headers: {
+                            'X-CSRF-TOKEN': getRegistreCsrfToken(),
                             'X-Requested-With': 'XMLHttpRequest',
                             Accept: 'application/json'
                         }
-                    }).done(function (response) {
-                        finishParaphValidateAjax();
-                        handleParaphValidateResponse(response);
-                    }).fail(function (xhr) {
-                        finishParaphValidateAjax();
-                        var parsed = xhr.responseJSON;
-                        if (!parsed && xhr.responseText) {
-                            try {
-                                parsed = JSON.parse(xhr.responseText);
-                            } catch (e) {
-                                parsed = null;
-                            }
-                        }
-                        if (parsed && typeof parsed === 'object') {
-                            var rc = paraphOtpResponseCode(parsed);
-                            if (rc === 183) {
-                                applyParaphAttemptsFromResponse(parsed);
-                                flashAlert("Réponse", "error", parsed.message || 'Code OTP incorrect.');
-                                return;
-                            }
-                            if (rc === 180) {
-                                flashAlert("Réponse", "error", parsed.message || 'Données invalides.');
-                                return;
-                            }
-                        }
-                        var msg = 'Erreur lors de la validation.';
-                        if (xhr.status === 429) {
-                            msg = 'Trop de tentatives. Patientez quelques instants.';
-                        }
-                        flashAlert('Réponse', 'error', msg);
                     });
+                }
+
+                $('#btn-validate').on('click', async function () {
+                    var mode = $('#paraphe_mode').val();
+                    var $btn = $(this);
+                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Préparation…');
+                    $('#paraphe-sign-feedback').addClass('d-none').empty();
+
+                    var codes = [];
+                    if (mode === 'bulk') {
+                        try { codes = JSON.parse($('#paraphe_bulk_codes_json').val() || '[]'); } catch (e) { codes = []; }
+                        if (!codes.length) {
+                            resetParapheBtn($btn);
+                            flashAlert('Sélection', 'error', 'Sélection groupée invalide.');
+                            return false;
+                        }
+                    } else {
+                        var code = $('#code_registre').val();
+                        if (!code) {
+                            resetParapheBtn($btn);
+                            flashAlert('Erreur', 'error', 'Identifiant registre manquant.');
+                            return false;
+                        }
+                        codes = [code];
+                    }
+
+                    var fileInput = document.getElementById('paraphe_p12_file');
+                    var pin = $('#paraphe_p12_pin').val();
+                    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                        resetParapheBtn($btn);
+                        showParapheError('Sélectionnez votre fichier certificat (.p12).');
+                        return false;
+                    }
+                    if (!pin || !String(pin).trim()) {
+                        resetParapheBtn($btn);
+                        showParapheError('Saisissez la passphrase de votre certificat.');
+                        return false;
+                    }
+                    if (typeof window.SifecP12Sign === 'undefined') {
+                        resetParapheBtn($btn);
+                        showParapheError('Bibliothèque de signature non chargée. Rechargez la page.');
+                        return false;
+                    }
+
+                    try {
+                        var prep = await ajaxJson("{{ route('registre.paraphe.prepare') }}", { codes: codes });
+                        if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                            resetParapheBtn($btn);
+                            showParapheError((prep && prep.message) ? prep.message : 'Échec de la préparation du paraphe.');
+                            return false;
+                        }
+
+                        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+                        var p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+                        var signatures = [];
+                        for (var i = 0; i < prep.items.length; i++) {
+                            var item = prep.items[i];
+                            var signatureHex = await window.SifecP12Sign.signHashHex(
+                                p12Binary,
+                                pin,
+                                item.document_hash,
+                                prep.expected_serial || null
+                            );
+                            signatures.push({
+                                code_registre: item.code_registre,
+                                signature_hex: signatureHex
+                            });
+                        }
+
+                        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Validation…');
+                        var fin = await ajaxJson("{{ route('registre.paraphe.finalize') }}", {
+                            token: prep.token,
+                            signatures: signatures
+                        });
+
+                        resetParapheBtn($btn);
+                        if (String(fin.code) === '200') {
+                            flashAlert('Réponse', 'success', fin.message || 'Paraphe effectué.');
+                            $('#modal-registre-paraphage').modal('hide');
+                            setTimeout(function () { location.reload(); }, 1500);
+                            return false;
+                        }
+                        showParapheError((fin && fin.message) ? fin.message : 'Échec du paraphe électronique.');
+                    } catch (err) {
+                        resetParapheBtn($btn);
+                        var msg = 'Erreur lors de la signature électronique.';
+                        if (err && err.responseJSON && err.responseJSON.message) {
+                            msg = err.responseJSON.message;
+                        } else if (err && err.message) {
+                            msg = err.message;
+                        }
+                        showParapheError(msg);
+                    }
 
                     return false;
                 });

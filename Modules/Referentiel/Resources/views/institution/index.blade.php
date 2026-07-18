@@ -76,6 +76,14 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="col-md-4 col-lg-3">
+                    <label class="sl-filter-label d-block" for="filter-statut-guot">Cachet institutionnel</label>
+                    <select name="statut_guot" id="filter-statut-guot" class="form-select border rounded-3 shadow-sm">
+                        <option value="">Tous</option>
+                        <option value="lie">Configuré</option>
+                        <option value="manquant">Manquant</option>
+                    </select>
+                </div>
                 <div class="col-12 d-flex flex-wrap gap-2">
                     <button type="submit" class="btn btn-success px-4" style="border-radius:10px;font-weight:600;">
                         <i class="fas fa-search me-1"></i> Rechercher
@@ -102,6 +110,7 @@
                                 <th>Type</th>
                                 <th>Lieu</th>
                                 <th>Sceau</th>
+                                <th>Cachet électronique</th>
                                 <th>Statut</th>
                                 <th class="text-end sl-actions">Actions</th>
                             </tr>
@@ -111,7 +120,7 @@
                                 @include('referentiel::institution.partials.table-institutions', ['institutions' => $institutions])
                             @else
                                 <tr>
-                                    <td colspan="8" class="text-center py-5">
+                                    <td colspan="9" class="text-center py-5">
                                         <div class="sl-empty-icon mx-auto mb-2"><i class="fas fa-inbox"></i></div>
                                         <p class="text-muted mb-0">Aucune institution dans l’aperçu.</p>
                                     </td>

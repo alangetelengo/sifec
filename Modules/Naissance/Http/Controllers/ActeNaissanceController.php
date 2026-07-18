@@ -22,6 +22,7 @@ use Modules\Naissance\Entities\Declarationnaissance;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Exceptions\ActeNaissanceOtpLockedException;
 use Modules\Naissance\Http\Requests\GenerateActeRequest;
+use Modules\Naissance\Services\ActeNaissanceGuotValidationService;
 use Modules\Naissance\Services\ActeNaissanceService;
 use Modules\Naissance\Services\ActeNaissanceSignatureFinalizer;
 use Modules\Naissance\Services\CecNaissanceActeDashboardService;
@@ -51,7 +52,7 @@ class ActeNaissanceController extends Controller
         $documentsAControler = $dashboard->documentsAControlerPreview($institution, 20);
         $actesGestion = $dashboard->actesGestionPreview($institution, 20);
 
-        $registre = Registre::where('cui', $affectation->cui)->where('statut', 1)->where('code_type_registre', 'TPRG_0001')->first();
+        $registre = $this->resolveRegistreNaissanceDisponible($affectation);
 
         // Liste fixe des types autorisés (filtres) — pas de distinct() sur toute la table
         $typesDeclaration = collect(Declarationnaissance::TYPES_AUTORISES)->sort()->values();
@@ -410,8 +411,11 @@ class ActeNaissanceController extends Controller
             // Recherche de l'acte annulé (si existe)
             $acteannuler = Declarationnaissance::where('numero_ancien_acte', $acte->niupp)->first();
 
-            // Recherche de déclaration de décès (si existe)
-            $declarationDeces = DeclarationDeces::where('num_acte_naissance', $acte->niupp)->first();
+            // Recherche de déclaration de décès (si existe, et cohérente avec la date de naissance)
+            $declarationDeces = DeclarationDeces::pourMentionActeNaissance(
+                $acte->niupp,
+                optional($acte->declaration)->date_heure_naissance
+            );
 
             // Recherche de mariage (si existe)
             $mariage = null;
@@ -554,7 +558,10 @@ class ActeNaissanceController extends Controller
                 return back();
             }
 
-            $declarationDeces = DeclarationDeces::where('num_acte_naissance', $acte->niupp)->first();
+            $declarationDeces = DeclarationDeces::pourMentionActeNaissance(
+                $acte->niupp,
+                optional($acte->declaration)->date_heure_naissance
+            );
 
             $mariage = null;
             if (DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)->first() != null) {
@@ -567,9 +574,8 @@ class ActeNaissanceController extends Controller
             view()->share('tester', [], 'Alange');
             $html2pdf = new Html2Pdf('P', 'A4', 'fr');
             $html2pdf->setDefaultFont('Arial');
-            $verificationUrl = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
-            $qrCode = $verificationUrl;
-            $html2pdf->writeHTML(view('naissance::etats.copieActeNaissance', compact('acte', 'dummy', 'declarationDeces', 'mariage', 'qrCode'))->render());
+            // Copie hors demande : pas de QR de délivrance (signature = officier en fonction via Demande document)
+            $html2pdf->writeHTML(view('naissance::etats.copieActeNaissance', compact('acte', 'dummy', 'declarationDeces', 'mariage'))->render());
 
             $pdfBinary = $html2pdf->output($acte->code_acte_naissance.'.pdf');
 
@@ -593,8 +599,9 @@ class ActeNaissanceController extends Controller
     public function generateActe(GenerateActeRequest $request, ActeNaissanceService $service, MouvementService $mouvementService)
     {
         $user = Auth::user();
+        $affectation = $user->affectationActive();
         $declaration = Declarationnaissance::findOrFail($request->code_declaration_naissance);
-        $registre = $user->affectationActive()->registres()->where('code_type_registre', [], 'TPRG_0001')->where('statut', 1)->first();
+        $registre = $this->resolveRegistreNaissanceDisponible($affectation);
 
         if (! Gate::allows('module.acteNaissance.generate')) {
             return response()->json([
@@ -602,18 +609,20 @@ class ActeNaissanceController extends Controller
                 'message' => "Vous n'êtes pas autorisé à générer un acte",
             ], 403);
         }
-        if (! $registre || $registre->statut == 0 || ($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) == 0) {
+
+        if ($registre === null) {
             return response()->json([
                 'code' => '400',
-                'message' => 'Registre non disponible ou complet',
+                'message' => $this->messageRegistreNaissanceIndisponible($affectation),
             ], 400);
         }
+
         DB::beginTransaction();
         try {
             $service->genererActe($declaration, $registre, $user);
             $mouvementService->ajouterEvenementActe($user, $declaration, 'attente_approbation');
             // Lien vers l’acte : code déclaration (le NIUPP n’existe qu’après signature)
-            $codeInstitutionCentre = $user->affectationActive()->institution->code_institution;
+            $codeInstitutionCentre = $affectation->institution->code_institution;
             NotificationService::notifierAgentsInstitution(
                 $codeInstitutionCentre,
                 new ActeAValiderNotification(
@@ -644,8 +653,8 @@ class ActeNaissanceController extends Controller
     {
         $codes = $request->codes;
         $user = Auth::user();
-
-        $rn = $user->affectationActive()->registres()->where('code_type_registre', 'TPRG_0001')->where('statut', 1)->first();
+        $affectation = $user->affectationActive();
+        $rn = $this->resolveRegistreNaissanceDisponible($affectation);
 
         if (! Gate::allows('module.acteNaissance.generate')) {
             return response()->json([
@@ -654,17 +663,10 @@ class ActeNaissanceController extends Controller
             ]);
         }
 
-        if ($rn == null) {
+        if ($rn === null) {
             return response()->json([
                 'code' => '182',
-                'message' => ['error' => 'Aucun registre disponible'],
-            ]);
-        }
-
-        if ($rn->statut == 0) {
-            return response()->json([
-                'code' => '183',
-                'message' => ['error' => 'Ce registre est déjà clôturé'],
+                'message' => ['error' => $this->messageRegistreNaissanceIndisponible($affectation)],
             ]);
         }
 
@@ -737,44 +739,24 @@ class ActeNaissanceController extends Controller
         if (Gate::allows('module.acteNaissance.signature')) {
 
             try {
-                DB::beginTransaction();
-                app(ActeNaissanceSignatureFinalizer::class)
-                    ->assignNiuppFeuilletRegistre($acte, Auth::user());
-                $acte->refresh();
+                $result = app(ActeNaissanceGuotValidationService::class)->signerActes(
+                    Auth::user(),
+                    [$acte->code_declaration_naissance],
+                    request()->ip(),
+                    request()->userAgent()
+                );
 
-                $affectation = Auth::user()->affectationActive();
-                if ($affectation === null || $affectation->cui === null || $affectation->cui === '') {
-                    throw new Exception("Impossible d'approuver : aucune affectation active (CUI) pour cet utilisateur.");
+                if (! $result['ok']) {
+                    flash()->error($result['message']);
+
+                    return back();
                 }
-                $acte->approbation_mairie = $affectation->cui;
-                $acte->signature_mairie = Auth::user()->personne->signature;
-                $acte->save();
-                DB::commit();
 
-                $temp = config('sifec.sms.templates.actions.acte_naissance');
-                $temp = str_replace(':declarant', $acte->declaration->declarant->nomcomplet(), $temp);
-                $temp = str_replace(':code_acte_naissance', $acte->niupp, $temp);
-                $temp = str_replace(':libCec', $acte->institutionUser->institution->lib_institution, $temp);
-                flash()->success('Acte approuvé avec succès');
-
-                $contactDeclarant = $acte->declaration->declarant->contacts->first();
-                if ($contactDeclarant !== null) {
-                    $to = $contactDeclarant->indicatif.$contactDeclarant->telephone;
-                    SifecFacade::sendSms($to, $temp);
-                    $emailsDecl = $contactDeclarant->adressesEmailPourNotification();
-                    if ($emailsDecl !== []) {
-                        dispatch(new DeclarantActeDisponibleInformationJob(
-                            $emailsDecl,
-                            $temp,
-                            'SIFEC — Acte de naissance disponible'
-                        ));
-                    }
-                }
+                flash()->success($result['message']);
 
                 return back();
 
             } catch (Exception $e) {
-                DB::rollBack();
                 flash()->error($e->getMessage());
 
                 return back();
@@ -939,6 +921,91 @@ class ActeNaissanceController extends Controller
             'code' => '200',
             'message' => 'Acte de naissance validé avec succès',
         ]);
+    }
+
+    /**
+     * Prépare la signature électronique (.p12) — empreintes PDF.
+     */
+    public function prepareSignature(Request $request, ActeNaissanceGuotValidationService $guotValidation)
+    {
+        if (! Gate::allows('module.acteNaissance.signature')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer un acte de naissance",
+            ]);
+        }
+
+        $codes = $request->input('codes', []);
+        if (! is_array($codes) || $codes === []) {
+            $single = (string) $request->input('code_declaration_naissance', '');
+            $codes = $single !== '' ? [$single] : [];
+        }
+        $codes = array_values(array_unique(array_filter(array_map('strval', $codes))));
+        if ($codes === []) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Aucun acte sélectionné',
+            ]);
+        }
+
+        $result = $guotValidation->prepare(Auth::user(), $codes);
+
+        return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'message' => $result['message'],
+            'token' => $result['token'] ?? null,
+            'expected_serial' => $result['expected_serial'] ?? null,
+            'items' => $result['items'] ?? [],
+        ]);
+    }
+
+    /**
+     * Finalise la signature électronique après signature locale .p12.
+     */
+    public function finalizeSignature(Request $request, ActeNaissanceGuotValidationService $guotValidation)
+    {
+        if (! Gate::allows('module.acteNaissance.signature')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer un acte de naissance",
+            ]);
+        }
+
+        $token = (string) $request->input('token', '');
+        $signatures = $request->input('signatures', []);
+        if (! is_array($signatures)) {
+            $signatures = [];
+        }
+
+        $result = $guotValidation->finalize(
+            Auth::user(),
+            $token,
+            $signatures,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'message' => $result['message'],
+            'signed' => $result['signed'],
+        ]);
+    }
+
+    /**
+     * @deprecated Remplacé par prepareSignature + finalizeSignature (.p12).
+     */
+    public function signGuot(Request $request, ActeNaissanceGuotValidationService $guotValidation)
+    {
+        return $this->prepareSignature($request, $guotValidation);
+    }
+
+    /**
+     * @deprecated Remplacé par prepareSignature + finalizeSignature (.p12).
+     */
+    public function signGuotBulk(Request $request, ActeNaissanceGuotValidationService $guotValidation)
+    {
+        return $this->prepareSignature($request, $guotValidation);
     }
 
     public function sendOtpBulk(Request $request, OtpService $otpService)
@@ -1474,9 +1541,8 @@ class ActeNaissanceController extends Controller
             $html2pdf = new Html2Pdf('P', 'A4', 'fr');
             $html2pdf->setDefaultFont('Arial');
 
-            $qrCode = URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
-
-            $html2pdf->writeHTML(view('naissance::etats.extrait', compact('acte', 'dummy', 'numExtrait', 'qrCode'))->render());
+            // Extrait hors demande : pas de QR de délivrance (cf. Demande document)
+            $html2pdf->writeHTML(view('naissance::etats.extrait', compact('acte', 'dummy', 'numExtrait'))->render());
 
             $pdfBinary = $html2pdf->output($acte->code_acte_naissance.'.pdf');
 
@@ -1604,13 +1670,10 @@ class ActeNaissanceController extends Controller
             }
 
             // Vérifier qu'un registre est disponible
-            $registre = $user->affectationActive()->registres()
-                ->where('code_type_registre', 'TPRG_0001')
-                ->where('statut', 1)
-                ->first();
+            $registre = $this->resolveRegistreNaissanceDisponible($affectation);
                 
             if (!$registre) {
-                flash()->error('Aucun registre disponible pour créer le nouvel acte');
+                flash()->error($this->messageRegistreNaissanceIndisponible($affectation));
                 return back();
             }
 
@@ -2068,5 +2131,89 @@ class ActeNaissanceController extends Controller
                 'message' => 'Erreur lors de l\'annulation des actes: '.$e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Registre de naissance utilisable pour générer un acte :
+     * paraphé (approbation tribunal), statut actif, places restantes.
+     * Recherche d’abord sur le CUI de l’agent, sinon sur le CEC de l’affectation.
+     */
+    private function resolveRegistreNaissanceDisponible($affectation): ?Registre
+    {
+        if ($affectation === null) {
+            return null;
+        }
+
+        $base = Registre::query()
+            ->where('code_type_registre', 'TPRG_0001')
+            ->where('statut', 1)
+            ->whereNotNull('approbation_tribunal')
+            ->whereColumn('nombre_acte_transcrit', '<', 'nombre_acte_prevu')
+            ->orderByDesc('updated_at');
+
+        $byCui = (clone $base)->where('cui', $affectation->cui)->first();
+        if ($byCui !== null) {
+            return $byCui;
+        }
+
+        $codeInstitution = $affectation->code_institution ?? $affectation->institution?->code_institution;
+        if (! filled($codeInstitution)) {
+            return null;
+        }
+
+        return (clone $base)
+            ->whereHas('institutionUser', function ($q) use ($codeInstitution) {
+                $q->where('code_institution', $codeInstitution);
+            })
+            ->first();
+    }
+
+    private function messageRegistreNaissanceIndisponible($affectation): string
+    {
+        if ($affectation === null) {
+            return 'Aucune affectation active : impossible de déterminer le registre.';
+        }
+
+        $candidats = Registre::query()
+            ->where('code_type_registre', 'TPRG_0001')
+            ->where(function ($q) use ($affectation) {
+                $q->where('cui', $affectation->cui);
+                $codeInstitution = $affectation->code_institution ?? $affectation->institution?->code_institution;
+                if (filled($codeInstitution)) {
+                    $q->orWhereHas('institutionUser', function ($q2) use ($codeInstitution) {
+                        $q2->where('code_institution', $codeInstitution);
+                    });
+                }
+            })
+            ->orderByDesc('updated_at')
+            ->get();
+
+        if ($candidats->isEmpty()) {
+            return 'Aucun registre de naissance trouvé pour ce centre. Créez un registre puis faites-le parapher par le tribunal.';
+        }
+
+        $enAttente = $candidats->first(function (Registre $r) {
+            return (int) $r->statut === 0 && ! filled($r->approbation_tribunal);
+        });
+        if ($enAttente !== null) {
+            return 'Le registre est en attente de paraphe du tribunal. Impossible de générer un acte tant qu’il n’est pas activé.';
+        }
+
+        $plein = $candidats->first(function (Registre $r) {
+            return filled($r->approbation_tribunal)
+                && ((int) $r->nombre_acte_prevu - (int) $r->nombre_acte_transcrit) <= 0;
+        });
+        if ($plein !== null) {
+            return 'Le registre est plein. Ajoutez des feuillets pour continuer.';
+        }
+
+        $cloture = $candidats->first(function (Registre $r) {
+            return (int) $r->statut === 0 && filled($r->approbation_tribunal);
+        });
+        if ($cloture !== null) {
+            return 'Le registre est clôturé ou inactif. Ouvrez un nouveau registre de naissance.';
+        }
+
+        return 'Aucun registre de naissance actif et paraphé disponible pour générer un acte.';
     }
 }

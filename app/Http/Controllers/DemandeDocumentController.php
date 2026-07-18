@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DemandeDocumentGuotSignatureService;
 use App\Services\DemandeDocumentService;
 use App\Services\OtpDemandeDocumentService;
 use Exception;
@@ -20,10 +21,16 @@ class DemandeDocumentController extends Controller
 
     protected $otpService;
 
-    public function __construct(DemandeDocumentService $demandeService, OtpDemandeDocumentService $otpService)
-    {
+    protected DemandeDocumentGuotSignatureService $guotSignature;
+
+    public function __construct(
+        DemandeDocumentService $demandeService,
+        OtpDemandeDocumentService $otpService,
+        DemandeDocumentGuotSignatureService $guotSignature,
+    ) {
         $this->demandeService = $demandeService;
         $this->otpService = $otpService;
+        $this->guotSignature = $guotSignature;
     }
 
     /**
@@ -246,13 +253,14 @@ class DemandeDocumentController extends Controller
                 'code' => $code,
             ]);
 
-            $message = 'Document généré avec succès. En attente de signature.';
+            $demande->refresh();
+            $message = 'Document généré sans signature. En attente de signature de délivrance par l\'officier d\'état civil en fonction.';
 
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json([
                     'message' => $message,
                     'code_demande' => $code,
-                    'statut' => $demande->statut,
+                    'statut' => $demande->fresh()->statut,
                 ], 200);
             }
 
@@ -279,94 +287,98 @@ class DemandeDocumentController extends Controller
     }
 
     /**
-     * Initier la signature (génération OTP)
+     * Prépare les empreintes PDF à signer localement (.p12).
      */
-    public function initierSignature(Request $request)
+    public function prepareSignature(Request $request)
     {
-        $codesDemandes = $request->input('demandes', []);
+        $codesDemandes = $request->input('demandes', $request->input('codes', []));
+        if (! is_array($codesDemandes)) {
+            $codesDemandes = [];
+        }
 
-        if (empty($codesDemandes)) {
+        if ($codesDemandes === []) {
             return response()->json([
+                'code' => '400',
                 'success' => false,
                 'message' => 'Aucune demande sélectionnée',
             ]);
         }
 
-        // Récupérer les demandes et vérifier les permissions
-        $demandes = DemandeDocument::whereIn('code_demande_document', $codesDemandes)->get();
-
-        $permissionsManquantes = [];
-        foreach ($demandes as $demande) {
-            $permission = $demande->getPermissionSignature();
-            if (! Gate::allows($permission)) {
-                $permissionsManquantes[] = $demande->getLibelleTypeDocument().' de '.$demande->getLibelleTypeActe();
-            }
-        }
-
-        if (! empty($permissionsManquantes)) {
-            Log::channel('sifec')->warning('Tentative signature sans permissions suffisantes', [
-                'user_id' => auth()->id(),
-                'user_email' => auth()->user()->email,
-                'permissions_manquantes' => $permissionsManquantes,
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'avez pas les droits pour signer : '.implode(', ', $permissionsManquantes),
-            ], 403);
-        }
-
-        Log::channel('sifec')->info('Initier signature demandes', [
+        Log::channel('sifec')->info('Prepare signature .p12 demandes', [
             'user_id' => auth()->id(),
             'nb_demandes' => count($codesDemandes),
         ]);
 
-        [$success, $message, $otp] = $this->otpService->genererOtp($codesDemandes);
+        $result = $this->guotSignature->prepare(Auth::user(), $codesDemandes);
 
         return response()->json([
-            'success' => $success,
-            'message' => $message,
-            'otp' => config('app.debug') ? $otp : null,
-        ]);
+            'code' => $result['ok'] ? '200' : '183',
+            'success' => $result['ok'],
+            'message' => $result['message'],
+            'token' => $result['token'] ?? null,
+            'expected_serial' => $result['expected_serial'] ?? null,
+            'items' => $result['items'] ?? [],
+        ], $result['ok'] ? 200 : 422);
     }
 
     /**
-     * Valider la signature avec OTP
+     * Finalise après signature locale .p12.
      */
-    public function validerSignature(Request $request)
+    public function finalizeSignature(Request $request)
     {
-        $request->validate([
-            'otp' => 'required|string|size:6',
-        ]);
+        $token = (string) $request->input('token', '');
+        $signatures = $request->input('signatures', []);
+        if (! is_array($signatures)) {
+            $signatures = [];
+        }
 
-        $ipAddress = $request->ip();
-        $userAgent = $request->userAgent();
-
-        Log::channel('sifec')->info('Validation signature OTP', [
+        Log::channel('sifec')->info('Finalize signature .p12 demandes', [
             'user_id' => auth()->id(),
-            'ip' => $ipAddress,
+            'nb_signatures' => count($signatures),
+            'ip' => $request->ip(),
         ]);
 
-        [$success, $message] = $this->otpService->validerOtpEtSigner(
-            $request->otp,
-            $ipAddress,
-            $userAgent
+        $result = $this->guotSignature->finalize(
+            Auth::user(),
+            $token,
+            $signatures,
+            $request->ip(),
+            $request->userAgent()
         );
 
-        if ($success) {
-            flash()->success($message);
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'redirect' => route('demandeDocument.index'),
-            ]);
+        if ($result['ok']) {
+            flash()->success($result['message']);
         }
 
         return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'success' => $result['ok'],
+            'message' => $result['message'],
+            'signed' => $result['signed'],
+            'redirect' => $result['ok'] ? route('demandeDocument.index') : null,
+        ], $result['ok'] ? 200 : 422);
+    }
+
+    /**
+     * @deprecated Remplacé par prepareSignature (.p12).
+     */
+    public function initierSignature(Request $request)
+    {
+        return response()->json([
             'success' => false,
-            'message' => $message,
-        ]);
+            'message' => 'La signature par OTP est désactivée. Utilisez votre certificat électronique (.p12).',
+        ], 410);
+    }
+
+    /**
+     * @deprecated Remplacé par finalizeSignature (.p12).
+     */
+    public function validerSignature(Request $request)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'La signature par OTP est désactivée. Utilisez votre certificat électronique (.p12).',
+        ], 410);
     }
 
     /**
@@ -379,6 +391,12 @@ class DemandeDocumentController extends Controller
         ]);
 
         $demande = DemandeDocument::findOrFail($code);
+
+        if ($demande->estSignee() || $demande->estTraitee() || $demande->estLivree()) {
+            flash()->error('Impossible de rejeter une demande déjà signée ou livrée.');
+
+            return redirect()->route('demandeDocument.show', $code);
+        }
 
         try {
             $this->demandeService->rejeterDemande($demande, $request->motif);
@@ -553,5 +571,39 @@ class DemandeDocumentController extends Controller
                 'message' => 'Erreur lors de la vérification de l\'acte. Veuillez réessayer.',
             ], 500);
         }
+    }
+
+    /**
+     * Page publique d’authentification d’une copie / extrait délivré(e) (QR code).
+     * Signature = officier en fonction au moment de la demande (pas celle de l’acte d’origine).
+     */
+    public function verification(Request $request, string $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $demande = DemandeDocument::with([
+            'typeActe',
+            'typeDocumentDemande',
+            'institution',
+            'signataire.user.personne',
+        ])->where('code_demande_document', $code)->first();
+
+        if ($demande === null) {
+            abort(404);
+        }
+
+        $acte = null;
+        try {
+            $acte = $demande->getActeConcerne();
+            if ($acte && method_exists($acte, 'load')) {
+                $acte->loadMissing(['declaration.enfant']);
+            }
+        } catch (\Throwable) {
+            $acte = null;
+        }
+
+        return view('demande-document.verification', compact('demande', 'acte'));
     }
 }

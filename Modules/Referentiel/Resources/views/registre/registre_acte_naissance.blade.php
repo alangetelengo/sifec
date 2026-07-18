@@ -301,7 +301,7 @@
                             <h2><span style="margin-left: 730px;">Fait à <strong>{{ $villeParapheNaissance }}</strong>, le <strong>{{ date('d-m-Y', strtotime($registre->updated_at)) }}</strong></span></h2>
                             <b style="margin-left: 730px;">
                                 <img src='{{ asset("app/".$registre->sceau) }}' alt="">
-                                <img src='{{ asset("app/".$registre->signature_tribunal) }}' alt="" width="200" height="200">
+                                @include('referentiel::registre.partials.registre-paraphe-qrcode', ['registre' => $registre])
                             </b>
 
                         </div>
@@ -555,27 +555,46 @@
                                         Nombre d'enfant nés vivant y compris celui-ci : <strong>{{ (int)$acte->declaration->nombre_enfant + 1 }}</strong><br>
                                         @endif
                                     </div><br><br>
-                                    Le déclarant,
-                                    <div class="col-xl-12 d-flex align-items-start" style="margin-left: 100px; gap: 12px;">
-                                        @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
-                                        <div>
-                                        <p>Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
-                                            @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
-                                                L'Officier de l'Etat Civil
-                                            @else
-                                                Consule
-                                            @endif
-                                        </p>
-                                        @if ($acte->approbation_mairie != "")
-                                            <img src='{{ asset("app/".$acte->signature_mairie) }}'><br>
-                                            {{ $acte->signataire->user->personne->nomcomplet() }}
-                                        @endif
+                                    <div class="col-xl-12" style="margin-top: 28px;">
+                                        <div class="d-flex align-items-start justify-content-between" style="gap: 12px; width: 100%;">
+                                            <div style="min-width: 90px; padding-top: 8px;">Le déclarant,</div>
+                                            <div class="text-center">
+                                                @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
+                                            </div>
+                                            <div class="text-end" style="min-width: 200px; flex: 1;">
+                                                <p class="mb-1">
+                                                    Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
+                                                    @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
+                                                        L'Officier de l'Etat Civil
+                                                    @else
+                                                        Consule
+                                                    @endif
+                                                </p>
+                                                @if ($acte->approbation_mairie != "")
+                                                    @php
+                                                        $sigRel = ltrim(str_replace('\\', '/', (string) ($acte->signature_mairie ?? '')), '/');
+                                                        if (str_starts_with($sigRel, 'app/')) {
+                                                            $sigRel = substr($sigRel, 4);
+                                                        }
+                                                        $sigUrl = ($sigRel !== '' && is_file(public_path('app/'.$sigRel)))
+                                                            ? asset('app/'.$sigRel)
+                                                            : null;
+                                                    @endphp
+                                                    @if ($sigUrl)
+                                                        <img src="{{ $sigUrl }}" alt="" style="max-height: 56px; max-width: 120px;"><br>
+                                                    @endif
+                                                    <strong>{{ $acte->signataire?->user?->personne?->nomcomplet() }}</strong>
+                                                @endif
+                                            </div>
                                         </div>
+                                        <p class="text-center mb-0 mt-3" style="font-size: 10px; color: #5a3d1e; line-height: 1.25;">
+                                            Cet acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-xl-12" style="padding-left: 500px">
-                                <br><br><br><br><br>
+                                <br>
                                 @php
                                 // Récupérer la position depuis les 4 derniers caractères du niupp (code_acte)
                                 $positionActe = (int) substr($acte->niupp, -4);

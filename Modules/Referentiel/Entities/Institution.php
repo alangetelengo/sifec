@@ -32,6 +32,11 @@ class Institution extends Model
 
     public $incrementing = false;
 
+    protected $casts = [
+        'guot_institution_cert_not_before' => 'datetime',
+        'guot_institution_cert_not_after' => 'datetime',
+    ];
+
     public function typeInstitution(): BelongsTo
     {
         return $this->belongsTo(TypeInstitution::class, 'code_type_institution', 'code_type_institution');

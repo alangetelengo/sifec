@@ -22,6 +22,22 @@
                     <h5 class="mb-0"><i class="fas fa-building me-2"></i>{{ $institution->lib_institution }}</h5>
                 </div>
                 <div class="card-body">
+                    @if(session('success'))
+                        <div class="alert alert-success border-0">
+                            <i class="fas fa-check-circle me-1"></i>{{ session('success') }}
+                        </div>
+                    @endif
+                    @if(session('error'))
+                        <div class="alert alert-danger border-0">
+                            <i class="fas fa-exclamation-circle me-1"></i>{{ session('error') }}
+                        </div>
+                    @endif
+                    @if($errors->any())
+                        <div class="alert alert-danger border-0">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            {{ $errors->first() }}
+                        </div>
+                    @endif
                     <form action="{{ route('institution.update', $institution->code_institution) }}" method="POST" enctype="multipart/form-data" id="editInstitutionForm">
                         @csrf
                         @method('PUT')
@@ -120,6 +136,11 @@
                                 </small>
                             </div>
 
+                            @include('partials.guot.cachet-institution', [
+                                'institution' => $institution,
+                                'editable' => true,
+                            ])
+
                             <!-- 7. Statut -->
                             <div class="mb-3 col-md-12">
                                 <label class="form-label fw-bold">Statut <span class="text-danger">*</span></label>
@@ -148,6 +169,14 @@
                                 <i class="fas fa-times me-1"></i>Annuler
                             </a>
                         </div>
+                    </form>
+
+                    {{-- Formulaires cachet hors du form principal (évite les <form> imbriqués) --}}
+                    <form id="guot-institution-enroll-form" action="{{ route('institution.guot.enroll', $institution->code_institution) }}" method="post" class="d-none">
+                        @csrf
+                    </form>
+                    <form id="guot-institution-sync-form" action="{{ route('institution.guot.sync', $institution->code_institution) }}" method="post" class="d-none">
+                        @csrf
                     </form>
                 </div>
             </div>

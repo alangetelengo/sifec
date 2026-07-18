@@ -65,7 +65,10 @@ class DocumentPdfService
         $acte->load(Declarationnaissance::eagerLoadDeclarationTribunalMentionDepuisActeNaissance());
 
         // Mentions de décès et mariage
-        $declarationDeces = DeclarationDeces::where('num_acte_naissance', $acte->niupp)->first();
+        $declarationDeces = DeclarationDeces::pourMentionActeNaissance(
+            $acte->niupp,
+            optional($acte->declaration)->date_heure_naissance
+        );
         $mariage = DeclarationMariage::where('numero_acte_naissance_epoux', $acte->niupp)
             ->orWhere('numero_acte_naissance_epouse', $acte->niupp)
             ->first();

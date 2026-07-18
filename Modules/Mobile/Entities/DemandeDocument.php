@@ -199,7 +199,7 @@ class DemandeDocument extends Model
 
     public function estSignee(): bool
     {
-        return ! empty($this->signature_officier) && ! empty($this->code_signataire);
+        return ! empty($this->code_signataire) && ! empty($this->date_signature);
     }
 
     public function peutEtreGeneree(): bool

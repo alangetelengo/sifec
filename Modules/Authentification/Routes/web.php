@@ -17,6 +17,10 @@ Route::middleware('auth')->prefix('utilisateur')->group(function() {
     Route::post('store', [UserController::class, 'store'])->name('utilisateur.store');//->middleware("can:module.users.store");
     Route::get('{id}/edit', [UserController::class, 'edit'])->name('utilisateur.edit');//->middleware("can:module.users.edit");
     Route::get('{id}/profile', [UserController::class, 'profile'])->name('utilisateur.profile');//->middleware("can:module.users.profile");
+    Route::post('{id}/profile/guot-enroll', [UserController::class, 'enrollGuot'])->name('utilisateur.guot.enroll');
+    Route::match(['get', 'post'], '{id}/profile/guot-p12', [UserController::class, 'downloadGuotP12'])->name('utilisateur.guot.p12');
+    Route::get('{id}/profile/guot-p12/ready/{token}', [UserController::class, 'readyGuotP12'])->name('utilisateur.guot.p12.ready');
+    Route::get('{id}/profile/guot-p12/file/{token}', [UserController::class, 'fileGuotP12'])->name('utilisateur.guot.p12.file');
     Route::middleware('can:module.users')->group(function () {
         Route::get('{id}/profil/mise-a-jour', [UserController::class, 'editProfileData'])->name('utilisateur.profile.mise-a-jour');
         Route::put('{id}/profil/mise-a-jour', [UserController::class, 'updateProfileData'])->name('utilisateur.profile.mise-a-jour.update');

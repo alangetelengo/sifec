@@ -760,6 +760,8 @@
                     </dl>
                 </div>
 
+                @include('partials.guot.certificat-utilisateur', ['affectation' => $aff, 'user' => $user])
+
                 <div class="sifec-profile-card">
                     <div class="sifec-profile-card-h"><i class="fas fa-signature"></i> Signature de l’agent</div>
                     <div class="p-3">

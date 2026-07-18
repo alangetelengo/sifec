@@ -30,6 +30,7 @@ use Modules\Notification\Services\NotificationService;
 use Modules\Referentiel\Entities\Institution;
 use Modules\Referentiel\Entities\Registre;
 use Modules\Referentiel\Entities\TypeRegistre;
+use Modules\Referentiel\Services\RegistreGuotParapheService;
 
 class RegistreController extends Controller
 {
@@ -505,6 +506,107 @@ class RegistreController extends Controller
     }
 
     /**
+     * Prépare le paraphe : génère les PDF + empreintes à signer avec le .p12.
+     */
+    public function prepareParaphe(Request $request, RegistreGuotParapheService $service): JsonResponse
+    {
+        $codes = $this->normalizeParapheCodes($request);
+        if ($codes === []) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Sélectionnez au moins un registre (maximum 40).',
+            ]);
+        }
+
+        if ($auth = $this->authorizeParapheCodes($codes)) {
+            return $auth;
+        }
+
+        $result = $service->prepare(Auth::user(), $codes);
+
+        return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'message' => $result['message'],
+            'token' => $result['token'] ?? null,
+            'expected_serial' => $result['expected_serial'] ?? null,
+            'items' => $result['items'] ?? [],
+        ]);
+    }
+
+    /**
+     * Finalise le paraphe après signature locale des empreintes (.p12).
+     */
+    public function finalizeParaphe(Request $request, RegistreGuotParapheService $service): JsonResponse
+    {
+        $token = (string) $request->input('token', '');
+        $signatures = $request->input('signatures', []);
+        if (! is_array($signatures)) {
+            $signatures = [];
+        }
+
+        $result = $service->finalize(
+            Auth::user(),
+            $token,
+            $signatures,
+            $request->ip(),
+            $request->userAgent(),
+        );
+
+        return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'message' => $result['message'],
+            'signed' => $result['signed'] ?? 0,
+            'errors' => $result['errors'] ?? [],
+        ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeParapheCodes(Request $request): array
+    {
+        $codes = $request->input('codes', []);
+        if (! is_array($codes) || $codes === []) {
+            $single = (string) $request->input('code_registre', '');
+            $codes = $single !== '' ? [$single] : [];
+        }
+        $codes = array_values(array_unique(array_filter(array_map('strval', $codes))));
+        if (count($codes) > 40) {
+            return [];
+        }
+
+        return $codes;
+    }
+
+    /**
+     * @param  list<string>  $codes
+     */
+    private function authorizeParapheCodes(array $codes): ?JsonResponse
+    {
+        $regs = Registre::whereIn('code_registre', $codes)->get();
+        if ($regs->count() !== count($codes)) {
+            return response()->json([
+                'code' => '180',
+                'message' => 'Un ou plusieurs registres sont introuvables.',
+            ]);
+        }
+
+        foreach ($regs as $reg) {
+            if ($auth = $this->ensureParapherAuthorizedForRegistre($reg)) {
+                return $auth;
+            }
+            if ((int) $reg->statut === 1) {
+                return response()->json([
+                    'code' => '186',
+                    'message' => 'Un registre sélectionné est déjà validé : '.$reg->code_registre,
+                ]);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Envoi d’un OTP unique pour parapher plusieurs registres (tribunal).
      */
     public function sendOtpBulk(Request $request): JsonResponse
@@ -859,17 +961,13 @@ class RegistreController extends Controller
     /**
      * Après paraphe tribunal : notification in-app + e-mails aux agents actifs du CEC (ne bloque pas la validation).
      */
-    private function notifyCecApresValidationTribunal(Registre $reg): void
+    public function notifyCecApresValidationTribunal(Registre $reg): void
     {
         try {
             $reg->loadMissing(['typeRegistre', 'institutionUser.institution.institutionParent']);
 
             $cecInst = $reg->institutionUser->institution ?? null;
             if (! $cecInst) {
-                Log::channel('sifec')->warning('[Registre][validateOtp] Notification CEC: institution absente', [
-                    'code_registre' => $reg->code_registre,
-                ]);
-
                 return;
             }
 
@@ -878,13 +976,7 @@ class RegistreController extends Controller
             $cecLib = $cecInst->lib_institution ?? '';
 
             $notification = new RegistreValideParTribunalNotification($reg, $tribunalLib);
-            $count = NotificationService::notifierAgentsInstitution($cecInst->code_institution, $notification);
-
-            Log::channel('sifec')->info('[Registre][validateOtp] Notifications CEC (registre validé par tribunal)', [
-                'code_registre' => $reg->code_registre,
-                'code_institution_cec' => $cecInst->code_institution,
-                'agents_notifies' => $count,
-            ]);
+            NotificationService::notifierAgentsInstitution($cecInst->code_institution, $notification);
 
             $typeLib = $reg->typeRegistre->lib_type_registre ?? 'Registre';
             $numero = $reg->numeroOrdreRegistre();
@@ -894,7 +986,9 @@ class RegistreController extends Controller
                     ->where(function ($q2) {
                         $q2->where('active', 1)->orWhere('active', true);
                     });
-            })->whereNotNull('email')->where('email', '!=', [], '')
+            })
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
                 ->pluck('email')
                 ->unique()
                 ->filter()
@@ -903,19 +997,10 @@ class RegistreController extends Controller
             foreach ($emails as $email) {
                 RegistreValideParTribunalJob::dispatch($tribunalLib, $typeLib, $numero, $cecLib, $email);
             }
-
-            if ($emails->isEmpty()) {
-                Log::channel('sifec')->warning('[Registre][validateOtp] Aucun e-mail agent CEC pour envoi (registre validé)', [
-                    'code_registre' => $reg->code_registre,
-                    'code_institution_cec' => $cecInst->code_institution,
-                ]);
-            }
         } catch (\Throwable $e) {
-            Log::channel('sifec')->error('[Registre][validateOtp] Échec notification CEC après validation tribunal', [
+            Log::channel('sifec')->warning('Notification CEC après paraphe échouée', [
                 'code_registre' => $reg->code_registre,
                 'message' => $e->getMessage(),
-                'exception' => $e::class,
-                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -1343,5 +1428,31 @@ class RegistreController extends Controller
             ]);
         }
 
+    }
+
+    /**
+     * Page publique d’authentification d’un registre paraphé (QR code).
+     */
+    public function verificationRegistre(Request $request, string $code)
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $registre = Registre::with([
+            'typeRegistre',
+            'institutionUser.institution.institutionParent',
+            'signataire.fonction',
+        ])->where('code_registre', $code)->first();
+
+        if ($registre === null) {
+            abort(404);
+        }
+
+        if ((int) $registre->statut !== 1 && ! filled($registre->approbation_tribunal)) {
+            abort(404);
+        }
+
+        return view('referentiel::verification.registre', compact('registre'));
     }
 }

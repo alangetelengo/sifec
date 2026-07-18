@@ -26,6 +26,9 @@ class Registre extends Model
         'otp_expire_at' => 'datetime',
         'otp_locked_until' => 'datetime',
         'otp_paraphage_attempts' => 'integer',
+        'signed_at' => 'datetime',
+        'doc_sig_signed_at' => 'datetime',
+        'doc_seal_sealed_at' => 'datetime',
     ];
 
     public function typeRegistre(): BelongsTo

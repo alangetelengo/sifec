@@ -6,12 +6,15 @@ use App\Mail\TwoFactorBulkMailable;
 use App\Models\InstitutionUser;
 use App\Models\User;
 use App\Models\UserAuditTrail;
+use App\Services\GuotEnrollmentService;
 use App\Sifec\Sifec;
+use App\Support\GuotSignataires;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -117,6 +120,11 @@ class UserController extends Controller
             'code_institution' => ['required'],
             'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', 'email')],
             'email_professionnel' => ['nullable', 'email', 'max:255', Rule::unique('tr_user', 'email_professionnel')],
+            'enroll_now' => ['nullable', 'in:1'],
+            'guot_organization' => ['required_if:enroll_now,1', 'nullable', 'string', 'max:150'],
+            'guot_organizational_unit' => ['nullable', 'string', 'max:150'],
+            'guot_country' => ['required_if:enroll_now,1', 'nullable', 'string', 'size:2'],
+            'guot_profile' => ['required_if:enroll_now,1', 'nullable', 'in:user_auth_enc,tls_client,tls_server,tls_dual'],
         ]);
 
         // dd($request->all());
@@ -170,6 +178,8 @@ class UserController extends Controller
                 $user->status = 1;
                 $user->must_change_password = true;
                 $user->save();
+            } else {
+                $user = $existeCompte;
             }
 
             // Vérification du poste libre dans cette institution
@@ -194,6 +204,57 @@ class UserController extends Controller
             $insUser->save();
 
             DB::commit();
+
+            $enrollNow = $request->boolean('enroll_now')
+                && GuotSignataires::isSignataire($request->input('code_fonction'));
+
+            if ($enrollNow) {
+                $params = [
+                    'organization' => $request->input('guot_organization'),
+                    'organizational_unit' => $request->input('guot_organizational_unit'),
+                    'country' => strtoupper((string) $request->input('guot_country', 'CG')),
+                    'profile' => $request->input('guot_profile', 'user_auth_enc'),
+                ];
+
+                try {
+                    $enrollment = app(GuotEnrollmentService::class);
+                    if ($enrollment->isConfigured()) {
+                        $enrollment->enrollInstitutionUser($insUser, $user, $params, Auth::user());
+                        flash()->success('Utilisateur créé et certificat numérique activé avec succès.');
+
+                        return redirect()->route('utilisateur.profile', $user->code_user);
+                    }
+
+                    Log::channel('sifec')->info('Création utilisateur avec enrôlement PKI demandé (trust-api non prêt)', [
+                        'code_user' => $user->code_user,
+                        'cui' => $insUser->cui,
+                    ] + $params);
+
+                    flash()->warning(
+                        'Utilisateur créé. Activation du certificat en attente : service de signature non configuré. '
+                        .'Finalisez depuis le profil une fois le service disponible.'
+                    );
+
+                    return redirect()
+                        ->route('utilisateur.profile', $user->code_user)
+                        ->with('guot_enroll_pending', true)
+                        ->with('guot_enroll_params', $params);
+                } catch (Exception $e) {
+                    Log::channel('sifec')->error('Enrôlement GUOT après création utilisateur', [
+                        'code_user' => $user->code_user,
+                        'error' => $e->getMessage(),
+                    ]);
+                    flash()->warning(
+                        'Utilisateur créé, mais l’activation du certificat a échoué : '.$e->getMessage()
+                        .' Vous pouvez réessayer depuis le profil.'
+                    );
+
+                    return redirect()
+                        ->route('utilisateur.profile', $user->code_user)
+                        ->with('guot_enroll_pending', true)
+                        ->with('guot_enroll_params', $params);
+                }
+            }
 
             flash()->success('Utilisateur crée avec succès');
 
@@ -403,7 +464,13 @@ class UserController extends Controller
     public function profile($id)
     {
 
-        $user = User::query()->with(['personne.contacts'])->find($id);
+        $user = User::query()
+            ->with([
+                'personne.contacts',
+                'affectations.institution.typeInstitution',
+                'affectations.fonction',
+            ])
+            ->find($id);
         // charger les permissions
         $permissions = Fonctionnalite::all();
         if ($user == null) {
@@ -413,6 +480,158 @@ class UserController extends Controller
         }
 
         return view('authentification::utilisateur.profile', compact('user', 'permissions'));
+    }
+
+    /**
+     * Enrôlement PKI GUOT depuis le profil (responsable éligible).
+     */
+    public function enrollGuot(Request $request, string $id, GuotEnrollmentService $enrollment)
+    {
+        $request->validate([
+            'guot_organization' => ['nullable', 'string', 'max:150'],
+            'guot_organizational_unit' => ['nullable', 'string', 'max:150'],
+            'guot_country' => ['nullable', 'string', 'size:2'],
+            'guot_profile' => ['nullable', 'in:user_auth_enc,tls_client,tls_server,tls_dual'],
+        ]);
+
+        $user = User::with(['personne', 'affectations'])->find($id);
+        if ($user === null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
+
+            return back();
+        }
+
+        $affectation = $user->affectationActive() ?? $user->affectations->firstWhere('active', 1);
+        if ($affectation === null) {
+            flash()->error('Aucune affectation active pour cet utilisateur.');
+
+            return back();
+        }
+
+        try {
+            $enrollment->enrollInstitutionUser($affectation, $user, [
+                'organization' => $request->input('guot_organization', session('guot_enroll_params.organization', 'SIFEC')),
+                'organizational_unit' => $request->input('guot_organizational_unit', session('guot_enroll_params.organizational_unit')),
+                'country' => strtoupper((string) $request->input('guot_country', session('guot_enroll_params.country', 'CG'))),
+                'profile' => $request->input('guot_profile', session('guot_enroll_params.profile', 'user_auth_enc')),
+            ], Auth::user());
+
+            flash()->success('Certificat numérique activé avec succès.');
+        } catch (Exception $e) {
+            flash()->error('Échec d’activation du certificat : '.$e->getMessage());
+        }
+
+        return redirect()->route('utilisateur.profile', $user->code_user);
+    }
+
+    /**
+     * Prépare le .p12 (escrow) puis affiche la page passphrase + téléchargement.
+     */
+    public function downloadGuotP12(Request $request, string $id, GuotEnrollmentService $enrollment)
+    {
+        $user = User::with(['personne', 'affectations'])->find($id);
+        if ($user === null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
+
+            return back();
+        }
+
+        $affectation = $user->affectationActive() ?? $user->affectations->first(fn (InstitutionUser $a) => (int) $a->active === 1);
+        if ($affectation === null || ! filled($affectation->guot_user_id)) {
+            flash()->error('Aucun certificat numérique disponible.');
+
+            return back();
+        }
+
+        try {
+            $p12 = $enrollment->downloadP12($affectation);
+            if ($p12['p12_binary'] === '') {
+                throw new Exception('Fichier .p12 vide.');
+            }
+
+            $filename = 'certificat-'.$affectation->cui.'.p12';
+            $token = bin2hex(random_bytes(16));
+
+            cache()->put('guot_p12:'.$token, [
+                'binary' => $p12['p12_binary'],
+                'filename' => $filename,
+                'code_user' => $user->code_user,
+                'passphrase' => (string) $p12['passphrase'],
+            ], now()->addMinutes(10));
+
+            Log::channel('sifec')->info('Préparation .p12 GUOT', [
+                'cui' => $affectation->cui,
+                'actor_id' => $affectation->guot_user_id,
+                'bytes' => strlen($p12['p12_binary']),
+            ]);
+
+            return redirect()
+                ->route('utilisateur.guot.p12.ready', ['id' => $user->code_user, 'token' => $token])
+                ->with('guot_p12_passphrase', $p12['passphrase'])
+                ->with('guot_p12_filename', $filename);
+        } catch (Exception $e) {
+            Log::channel('sifec')->error('Téléchargement .p12 GUOT échoué', [
+                'cui' => $affectation->cui ?? null,
+                'actor_id' => $affectation->guot_user_id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error('Téléchargement .p12 impossible : '.$e->getMessage());
+
+            return redirect()->route('utilisateur.profile', $user->code_user);
+        }
+    }
+
+    /**
+     * Page passphrase + lien de téléchargement du .p12 préparé.
+     */
+    public function readyGuotP12(string $id, string $token)
+    {
+        $user = User::find($id);
+        $payload = cache()->get('guot_p12:'.$token);
+
+        if ($user === null || ! is_array($payload) || ($payload['code_user'] ?? null) !== $user->code_user) {
+            flash()->error('Lien de téléchargement .p12 invalide ou expiré. Relancez le téléchargement.');
+
+            return $user
+                ? redirect()->route('utilisateur.profile', $user->code_user)
+                : back();
+        }
+
+        return view('partials.guot.p12-download', [
+            'user' => $user,
+            'filename' => $payload['filename'],
+            'passphrase' => $payload['passphrase'] ?? session('guot_p12_passphrase', '—'),
+            'downloadUrl' => route('utilisateur.guot.p12.file', ['id' => $user->code_user, 'token' => $token], false),
+            'profileUrl' => route('utilisateur.profile', $user->code_user, false),
+        ]);
+    }
+
+    /**
+     * Stream du fichier .p12 depuis le cache (jeton one-shot).
+     */
+    public function fileGuotP12(string $id, string $token)
+    {
+        $user = User::find($id);
+        $payload = cache()->pull('guot_p12:'.$token);
+
+        if ($user === null || ! is_array($payload) || ($payload['code_user'] ?? null) !== $user->code_user) {
+            flash()->error('Fichier .p12 introuvable ou déjà téléchargé. Relancez le téléchargement.');
+
+            return $user
+                ? redirect()->route('utilisateur.profile', $user->code_user)
+                : back();
+        }
+
+        return response()->streamDownload(
+            static function () use ($payload): void {
+                echo $payload['binary'];
+            },
+            $payload['filename'],
+            [
+                'Content-Type' => 'application/x-pkcs12',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            ]
+        );
     }
 
     /**

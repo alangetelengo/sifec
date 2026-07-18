@@ -36,6 +36,8 @@ class InstitutionUser extends Model
 
     protected $casts = [
         'active' => 'boolean',
+        'guot_user_cert_not_before' => 'datetime',
+        'guot_user_cert_not_after' => 'datetime',
     ];
 
 

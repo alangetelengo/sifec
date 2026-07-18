@@ -53,7 +53,12 @@
         word-break: normal;
     }
 </style>
-  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="52%" backimgw="55%" backtop="0" backbottom="34mm" style="font-size: 12px">
+  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="52%" backimgw="55%" backtop="0" backbottom="14mm" style="font-size: 12px">
+    <page_footer>
+        <div style="width: 100%; text-align: center; font-size: 9px; color: #5a3d1e; line-height: 1.25; padding: 1mm 4mm 2mm 4mm;">
+            Cet acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
+        </div>
+    </page_footer>
     @php
     $infos = "";
     // Tribunal : t_declaration_naissance → réquisition/jugement (code_* ou code_declaration) → tr_institution
@@ -200,7 +205,7 @@
 
             @if ($declarationDeces != NULL)
                 <small>Décédé le: <br> {{utf8_encode(strftime("%d %B %Y", strtotime($declarationDeces->date_heure_deces)))." à ".date("H:i", strtotime($declarationDeces->date_heure_deces))}} minute(s)</small><br>
-                <small>A : {{$declarationDeces->lieu_deces}}</small><br>
+                <small>A : {{ optional($declarationDeces->lieuDeces)->lib_localite }}</small><br>
                 @if ($declarationDeces->acte != NULL)
                 <small>N° acte de décès : {{$declarationDeces->acte->code_acte_deces}}</small>
                 @endif
@@ -382,45 +387,36 @@
     </div>
 
     {{-- Pied en flux : l’absolute bottom:0 faisait souvent une 2e page fantôme (filigrane seul) avec Html2Pdf/TCPDF. --}}
-    <div style="margin-top: 4mm; margin-left: 8px; margin-right: 8px;">
-        <table class="historique" cellspacing="0" style="width: 100%; font-size: 12px;">
-            <col style="width: 35%">
-            <col style="width: 25%">
-            <col style="width: 40%">
-            <thead>
-              <tr style="text-align: center">
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
-              </tr>
-            </thead>
+    <div style="margin-top: 14mm; margin-left: 6px; margin-right: 10px;">
+        <table class="historique" cellspacing="0" style="width: 100%; table-layout: fixed; font-size: 12px;">
+            <col style="width: 30%">
+            <col style="width: 28%">
+            <col style="width: 42%">
             <tbody>
                 <tr>
-                    <td style="text-align: center;">Le déclarant</td>
-                    <td style="text-align: left;">
+                    <td style="text-align: center; vertical-align: top;">Le déclarant</td>
+                    <td style="text-align: center; vertical-align: top;">
                          @if($acte->approbation_mairie != "")
-                         <div style="margin-bottom:0;">
                              @isset($qrCode)
-                                <div style="width: 24mm;">
-                                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
-                                </div>
+                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 24mm; border: none;"></qrcode>
+                                <br>
+                                <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
                              @endisset
-                         </div>
                          @endif
-
-                        {{-- <div style="margin-bottom:0;"><qrcode value="http://172.16.41.11/sifec-20-12-2023/public/qrcode?niupp={{ $acte->niupp }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div> --}}
                     </td>
-                    <td style="text-align: left;">
-                     <p style="font-size: 12px; margin: 0 0 1mm 0;">Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>L'officier de l'état civil</p>
+                    <td style="text-align: right; vertical-align: top; padding-right: 3mm;">
+                     <p style="font-size: 12px; margin: 0 0 1mm 0;">
+                         Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
+                         L'officier de l'état civil
+                     </p>
                          @if ($acte->approbation_mairie != "")
                              @php
                                  $__pdfSignatureSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->signature_mairie);
                              @endphp
                              @if ($__pdfSignatureSrc)
-                             <img src="{{ $__pdfSignatureSrc }}"><br>
-
+                             <img src="{{ $__pdfSignatureSrc }}" style="width: 28mm;"><br>
                              @endif
-                             <span style="color:black; font-weight:bold"> {{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
+                             <span style="color:black; font-weight:bold">{{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
                          @endif
                      </td>
                   </tr>

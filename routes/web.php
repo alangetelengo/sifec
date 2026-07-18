@@ -77,11 +77,13 @@ Auth::routes();
 // ==========================================
 
 use App\Http\Controllers\Admin\DemandeDocumentConfigController;
+use App\Http\Controllers\Admin\SignelecController;
 use App\Http\Controllers\Admin\TarificationController;
 use App\Http\Controllers\DemandeDocumentController;
 use App\Http\Controllers\TwoFactorController;
 use Modules\Deces\Http\Controllers\DecesController;
 use Modules\Mariage\Http\Controllers\MariageController;
+use Modules\Referentiel\Http\Controllers\RegistreController;
 
 // Routes de configuration 2FA (nécessite authentification)
 Route::middleware(['auth'])->group(function () {
@@ -125,6 +127,10 @@ Route::middleware(['signed', 'throttle:10,1'])
     ->name('verification.acte');
 
 Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/registre/{code}', [RegistreController::class, 'verificationRegistre'])
+    ->name('verification.registre');
+
+Route::middleware(['signed', 'throttle:10,1'])
     ->get('/verification/acte/deces/{code}', [DecesController::class, 'verificationActe'])
     ->name('verification.acte.deces');
 
@@ -143,6 +149,10 @@ Route::middleware(['signed', 'throttle:10,1'])
 Route::middleware(['signed', 'throttle:10,1'])
     ->get('/verification/declaration/mariage/{code}', [MariageController::class, 'verificationDeclaration'])
     ->name('verification.declaration.mariage');
+
+Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/demande-document/{code}', [DemandeDocumentController::class, 'verification'])
+    ->name('verification.demande.document');
 
 /*
 |--------------------------------------------------------------------------
@@ -172,9 +182,11 @@ Route::middleware(['auth'])->prefix('demande-document')->name('demandeDocument.'
     // Workflow
     Route::post('/{code}/generer-pdf', [DemandeDocumentController::class, 'passerEnAttenteSignature'])->name('genererPdf');
 
-    // Signature (vérification dynamique des permissions dans le contrôleur)
-    Route::post('/signature/initier', [DemandeDocumentController::class, 'initierSignature'])->name('initierSignature');
-    Route::post('/signature/valider', [DemandeDocumentController::class, 'validerSignature'])->name('validerSignature');
+    // Signature électronique .p12 (vérification dynamique des permissions dans le contrôleur)
+    Route::post('/signature/prepare', [DemandeDocumentController::class, 'prepareSignature'])->name('sign.prepare');
+    Route::post('/signature/finalize', [DemandeDocumentController::class, 'finalizeSignature'])->name('sign.finalize');
+    Route::post('/signature/initier', [DemandeDocumentController::class, 'initierSignature'])->name('initierSignature'); // deprecated OTP
+    Route::post('/signature/valider', [DemandeDocumentController::class, 'validerSignature'])->name('validerSignature'); // deprecated OTP
 
     Route::post('/{code}/rejeter', [DemandeDocumentController::class, 'rejeter'])->name('rejeter');
     Route::post('/{code}/livree', [DemandeDocumentController::class, 'marquerLivree'])->name('livree');
@@ -202,4 +214,13 @@ Route::middleware(['auth', 'can:module.admin.tarifs'])->prefix('admin/tarifs')->
     Route::put('/{code}', [TarificationController::class, 'update'])->name('update')->middleware('can:module.admin.tarifs.modifier');
     Route::post('/{code}/toggle', [TarificationController::class, 'toggleActif'])->name('toggle')->middleware('can:module.admin.tarifs.modifier');
     Route::delete('/{code}', [TarificationController::class, 'destroy'])->name('destroy')->middleware('can:module.admin.tarifs.modifier');
+});
+
+// Admin — SIGNELEC (signature électronique GUOT)
+Route::middleware(['auth', 'can:module.admin.signelec'])->prefix('admin/signelec')->name('admin.signelec.')->group(function () {
+    Route::get('/', [SignelecController::class, 'dashboard'])->name('dashboard');
+    Route::get('/institutions', [SignelecController::class, 'institutions'])->name('institutions');
+    Route::get('/signataires', [SignelecController::class, 'signataires'])->name('signataires');
+    Route::get('/parametres', [SignelecController::class, 'parametres'])->name('parametres');
+    Route::put('/parametres', [SignelecController::class, 'updateParametres'])->name('parametres.update');
 });

@@ -146,6 +146,35 @@ class DeclarationDeces extends Model
         }
 
         /**
+         * Déclaration de décès liée à un acte de naissance (mention marginale).
+         * Ignore les liens incohérents (date de décès antérieure à la naissance).
+         */
+        public static function pourMentionActeNaissance(?string $niupp, $dateHeureNaissance = null): ?self
+        {
+            if (! filled($niupp)) {
+                return null;
+            }
+
+            $declaration = static::with(['lieuDeces', 'acte'])
+                ->where('num_acte_naissance', $niupp)
+                ->first();
+
+            if ($declaration === null) {
+                return null;
+            }
+
+            if ($dateHeureNaissance !== null && filled($declaration->date_heure_deces)) {
+                $naissanceTs = strtotime((string) $dateHeureNaissance);
+                $decesTs = strtotime((string) $declaration->date_heure_deces);
+                if ($naissanceTs !== false && $decesTs !== false && $decesTs < $naissanceTs) {
+                    return null;
+                }
+            }
+
+            return $declaration;
+        }
+
+        /**
          * Permet de savoir l'institution dont la déclaration a été envoyée
          */
         public function institutionDestinataire(): BelongsTo

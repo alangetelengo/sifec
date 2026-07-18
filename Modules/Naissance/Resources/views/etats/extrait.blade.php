@@ -11,7 +11,12 @@
    }
 
 </style>
- <page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="30mm" style="font-size: 12pt">
+ <page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="12mm" style="font-size: 12pt">
+    <page_footer>
+        <div style="width: 100%; text-align: center; font-size: 8px; color: #5a3d1e; line-height: 1.25; padding: 1mm 3mm 1.5mm 3mm;">
+            Cet extrait d'acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
+        </div>
+    </page_footer>
 
    @php
    $infos = "";
@@ -114,30 +119,30 @@
 
            </table>
 
-                @if (! empty($qrCode ?? null))
                 <div style="position:absolute; left: 12px; top: 228px; width: 32mm;">
-                    <div style="width: 30mm;">
-                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
-                    </div>
+                    @if ($delivranceSignature && ! empty($qrCode ?? null))
+                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 24mm; border: none;"></qrcode>
+                        <br>
+                        <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                    @endif
                 </div>
-                @endif
 
                 <div style="text-align:right">
                     <p style="margin-right:150px;margin-top:70px">L’officier de l’état civil</p><br>
                 </div>
-                <div style="position:absolute; right:60px; top:250px">
+                <div style="position:absolute; right:60px; top:250px; text-align: right;">
                             @if ($delivranceSignature)
                                @php
                                    $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($delivranceSignature);
                                @endphp
                                @if ($pdfSignature)
-                               <img src="{{ $pdfSignature }}" style="">
+                               <img src="{{ $pdfSignature }}" style="width: 28mm;">
                                @endif
                                @if ($delivranceNomSignataire !== '')
                                 <p style="font-weight:bold;">{{ $delivranceNomSignataire }}</p>
                                @endif
                             @else
-                                <p style="color: #999; font-style: italic;">[En attente de signature de délivrance]</p>
+                                <p style="color: #999; font-style: italic; font-size: 11px;">[En attente de signature de délivrance]</p>
                             @endif
 
                 </div>
