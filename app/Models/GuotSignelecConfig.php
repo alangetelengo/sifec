@@ -20,6 +20,7 @@ class GuotSignelecConfig extends Model
 
     protected $casts = [
         'signataire_fonctions' => 'array',
+        'certificat_signature_obligatoire' => 'boolean',
     ];
 
     /**
@@ -47,5 +48,17 @@ class GuotSignelecConfig extends Model
         }
 
         return array_values(array_unique(array_filter(array_map('strval', $codes))));
+    }
+
+    /**
+     * La signature du certificat de naissance est-elle obligatoire avant l'envoi au CEC ?
+     */
+    public static function certificatSignatureObligatoire(): bool
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('t_guot_signelec_config', 'certificat_signature_obligatoire')) {
+            return false;
+        }
+
+        return (bool) static::instance()->certificat_signature_obligatoire;
     }
 }

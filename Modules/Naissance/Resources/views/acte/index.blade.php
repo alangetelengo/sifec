@@ -466,17 +466,31 @@ Actes de naissance
             <div class="modal-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
-                    <strong>Information :</strong> Cette action va confirmer que tous les dossiers sélectionnés sont conformes et prêts pour la génération des actes de naissance.
+                    <strong>Information :</strong> La confirmation signe électroniquement les déclarations de naissance sélectionnées
+                    (responsable du centre d'état civil) puis les rend prêtes pour la génération des actes.
                 </div>
                 <div class="row">
+                    <div class="col-md-7 mb-2">
+                        <label class="form-label small fw-semibold" for="decl_bulk_p12_file">Certificat électronique (.p12)</label>
+                        <input type="file" class="form-control form-control-sm" id="decl_bulk_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                    </div>
+                    <div class="col-md-5 mb-2">
+                        <label class="form-label small fw-semibold" for="decl_bulk_p12_pin">Passphrase</label>
+                        <input type="password" class="form-control form-control-sm" id="decl_bulk_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                    </div>
                     <div class="mb-2 col-md-12">
                         <label class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-confirmation-bulk" class="form-control" rows="3" placeholder="Ajoutez une observation pour tous les dossiers..."></textarea>
                     </div>
+                    <div class="col-md-12">
+                        <div id="decl-bulk-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-bulk-final">Confirmer</button>
+                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-bulk-final">
+                    <i class="fas fa-signature me-1"></i> Signer et confirmer
+                </button>
                 <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Annuler</button>
             </div>
         </div>
@@ -649,21 +663,35 @@ Actes de naissance
             <div class="modal-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
-                    <strong>Information :</strong> Cette action va confirmer que le dossier est conforme et prêt pour la génération de l'acte de naissance.
+                    <strong>Information :</strong> La confirmation du dossier signe électroniquement la déclaration de naissance
+                    (responsable du centre d'état civil) puis la rend prête pour la génération de l'acte.
                 </div>
                 <div class="row">
                     <div class="mb-2 col-md-12">
                         <label class="form-label">Code de la déclaration</label>
                         <input type="text" readonly class="form-control" id="code-declaration-confirmation">
                     </div>
+                    <div class="col-md-7 mb-2">
+                        <label class="form-label small fw-semibold" for="decl_p12_file">Certificat électronique (.p12)</label>
+                        <input type="file" class="form-control form-control-sm" id="decl_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                    </div>
+                    <div class="col-md-5 mb-2">
+                        <label class="form-label small fw-semibold" for="decl_p12_pin">Passphrase</label>
+                        <input type="password" class="form-control form-control-sm" id="decl_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                    </div>
                     <div class="mb-2 col-md-12">
                         <label class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-confirmation" class="form-control" rows="3" placeholder="Ajoutez une observation..."></textarea>
                     </div>
+                    <div class="col-md-12">
+                        <div id="decl-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-final">Confirmer</button>
+                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-final">
+                    <i class="fas fa-signature me-1"></i> Signer et confirmer
+                </button>
                 <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Annuler</button>
             </div>
         </div>
@@ -1658,33 +1686,95 @@ Actes de naissance
         updateActeButtons();
     });
 
-    // Remplacement du JS de confirmation groupée
-    $("#btn-confirmer-bulk-final").on("click", function(){
+    function showDeclBulkSignError(msg) {
+        $("#decl-bulk-sign-feedback").removeClass('d-none').text(msg);
+        flashAlert("Échec", "error", msg);
+    }
+
+    // Confirmation groupée : signature électronique .p12 des déclarations (CEC) puis confirmation.
+    $("#btn-confirmer-bulk-final").on("click", async function(){
+        var $btn = $(this);
         var observation = $("#observation-confirmation-bulk").val();
-        var btnConfBulk = this;
-        sifecBtnLoading(btnConfBulk, 'Confirmation...');
-        $.ajax({
-            url: "{{ route('acteNaissance.confirmer.bulk') }}",
-            type: 'POST',
-            data: {
-                codes: codesDocuments,
-                observation: observation,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response){
-                let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
+        var fileInput = document.getElementById('decl_bulk_p12_file');
+        var pin = $('#decl_bulk_p12_pin').val();
+
+        $("#decl-bulk-sign-feedback").addClass('d-none').empty();
+
+        if (!codesDocuments.length) {
+            showDeclBulkSignError('Aucun dossier sélectionné.');
+            return false;
+        }
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            showDeclBulkSignError('Sélectionnez votre fichier certificat (.p12).');
+            return false;
+        }
+        if (!pin || !String(pin).trim()) {
+            showDeclBulkSignError('Saisissez la passphrase de votre certificat.');
+            return false;
+        }
+        if (typeof window.SifecP12Sign === 'undefined') {
+            showDeclBulkSignError('Bibliothèque de signature non chargée. Rechargez la page.');
+            return false;
+        }
+
+        sifecBtnLoading($btn[0], 'Préparation…');
+        try {
+            var prep = await $.ajax({
+                url: "{{ route('declarationNaissance.sign.prepare') }}",
+                type: 'POST',
+                data: { phase: 'cec', codes: codesDocuments, _token: '{{ csrf_token() }}' }
+            });
+            if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                sifecBtnReset($btn[0], "Signer et confirmer");
+                showDeclBulkSignError(prep && prep.message ? prep.message : 'Échec de la préparation.');
+                return false;
+            }
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+            var p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+            var signatures = [];
+            for (var i = 0; i < prep.items.length; i++) {
+                var item = prep.items[i];
+                var signatureHex = await window.SifecP12Sign.signHashHex(
+                    p12Binary, pin, item.document_hash, prep.expected_serial || null
+                );
+                signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+            }
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Confirmation…');
+            var fin = await $.ajax({
+                url: "{{ route('declarationNaissance.sign.finalize') }}",
+                type: 'POST',
+                data: { phase: 'cec', token: prep.token, signatures: signatures, observation: observation, _token: '{{ csrf_token() }}' }
+            });
+
+            sifecBtnReset($btn[0], "Signer et confirmer");
+            var msg = typeof fin.message === 'string' ? fin.message : 'Réponse inconnue';
+            if (String(fin.code) === '200') {
                 flashAlert("Réponse","success",msg);
                 $('#modal-confirmation-dossiers-bulk').modal('hide');
-                setTimeout(()=>location.reload(), 1000);
-            },
-            error: function(xhr){
-                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation des documents';
-                flashAlert("Réponse","error",msg);
-            },
-            complete: function() {
-                sifecBtnReset(btnConfBulk);
+                setTimeout(()=>location.reload(), 1200);
+                return false;
             }
-        });
+            showDeclBulkSignError(msg);
+        } catch (err) {
+            sifecBtnReset($btn[0], "Signer et confirmer");
+            var emsg = 'Erreur lors de la signature électronique';
+            if (err && err.responseJSON && err.responseJSON.message) {
+                emsg = typeof err.responseJSON.message === 'string' ? err.responseJSON.message : JSON.stringify(err.responseJSON.message);
+            } else if (err && err.message) {
+                emsg = err.message;
+            }
+            showDeclBulkSignError(emsg);
+        }
+        return false;
+    });
+
+    $('#modal-confirmation-dossiers-bulk').on('hidden.bs.modal', function() {
+        $("#decl-bulk-sign-feedback").addClass('d-none').empty();
+        $("#decl_bulk_p12_file").val('');
+        $("#decl_bulk_p12_pin").val('');
+        $('#btn-confirmer-bulk-final').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer et confirmer');
     });
 
     // Remplacement du JS de renvoi groupé
@@ -1845,38 +1935,97 @@ Actes de naissance
         }, 1000);
     }
 
-    // Ajout du JS pour la confirmation singleton
-    $("#btn-confirmer-final").on("click", function(){
+    function showDeclSignError(msg) {
+        $("#decl-sign-feedback").removeClass('d-none').text(msg);
+        flashAlert("Échec", "error", msg);
+    }
+
+    // Confirmation individuelle : signature électronique .p12 de la déclaration (CEC) puis confirmation.
+    $("#btn-confirmer-final").on("click", async function(){
         var $btn = $(this);
         var codeDeclaration = $("#code-declaration-confirmation").val();
         var observation = $("#observation-confirmation").val();
-        sifecBtnLoading(this, "Confirmation...");
-        $.ajax({
-            url: "{{ route('acteNaissance.confirmer') }}",
-            type: 'POST',
-            data: {
-                code_declaration_naissance: codeDeclaration,
-                observation: observation,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(resp){
-                sifecBtnReset($btn[0], "Confirmer");
-                if(resp.code == "200"){
-                    let msg = Array.isArray(resp.message) ? resp.message[0] : (typeof resp.message === 'object' && resp.message.reponse) ? resp.message.reponse : resp.message;
-                    flashAlert("Réponse","success",msg);
-                    $('#modal-confirmation-dossier').modal('hide');
-                    setTimeout(()=>location.reload(), 1000);
-                }else{
-                    let msg = Array.isArray(resp.message) ? resp.message[0] : resp.message;
-                    flashAlert("Réponse","error",msg);
-                }
-            },
-            error: function(xhr){
-                sifecBtnReset($btn[0], "Confirmer");
-                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation du dossier';
-                flashAlert("Erreur","error",msg);
+        var fileInput = document.getElementById('decl_p12_file');
+        var pin = $('#decl_p12_pin').val();
+
+        $("#decl-sign-feedback").addClass('d-none').empty();
+
+        if (!codeDeclaration) {
+            showDeclSignError('Aucune déclaration sélectionnée.');
+            return false;
+        }
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            showDeclSignError('Sélectionnez votre fichier certificat (.p12).');
+            return false;
+        }
+        if (!pin || !String(pin).trim()) {
+            showDeclSignError('Saisissez la passphrase de votre certificat.');
+            return false;
+        }
+        if (typeof window.SifecP12Sign === 'undefined') {
+            showDeclSignError('Bibliothèque de signature non chargée. Rechargez la page.');
+            return false;
+        }
+
+        sifecBtnLoading(this, "Préparation…");
+        try {
+            var prep = await $.ajax({
+                url: "{{ route('declarationNaissance.sign.prepare') }}",
+                type: 'POST',
+                data: { phase: 'cec', codes: [codeDeclaration], _token: '{{ csrf_token() }}' }
+            });
+
+            if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                sifecBtnReset($btn[0], "Signer et confirmer");
+                showDeclSignError(prep && prep.message ? prep.message : 'Échec de la préparation.');
+                return false;
             }
-        });
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+            var p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+            var signatures = [];
+            for (var i = 0; i < prep.items.length; i++) {
+                var item = prep.items[i];
+                var signatureHex = await window.SifecP12Sign.signHashHex(
+                    p12Binary, pin, item.document_hash, prep.expected_serial || null
+                );
+                signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+            }
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Confirmation…');
+            var fin = await $.ajax({
+                url: "{{ route('declarationNaissance.sign.finalize') }}",
+                type: 'POST',
+                data: { phase: 'cec', token: prep.token, signatures: signatures, observation: observation, _token: '{{ csrf_token() }}' }
+            });
+
+            sifecBtnReset($btn[0], "Signer et confirmer");
+            var msg = typeof fin.message === 'string' ? fin.message : 'Réponse inconnue';
+            if (String(fin.code) === '200') {
+                flashAlert("Réponse","success",msg);
+                $('#modal-confirmation-dossier').modal('hide');
+                setTimeout(()=>location.reload(), 1200);
+                return false;
+            }
+            showDeclSignError(msg);
+        } catch (err) {
+            sifecBtnReset($btn[0], "Signer et confirmer");
+            var emsg = 'Erreur lors de la signature électronique';
+            if (err && err.responseJSON && err.responseJSON.message) {
+                emsg = typeof err.responseJSON.message === 'string' ? err.responseJSON.message : JSON.stringify(err.responseJSON.message);
+            } else if (err && err.message) {
+                emsg = err.message;
+            }
+            showDeclSignError(emsg);
+        }
+        return false;
+    });
+
+    $('#modal-confirmation-dossier').on('hidden.bs.modal', function() {
+        $("#decl-sign-feedback").addClass('d-none').empty();
+        $("#decl_p12_file").val('');
+        $("#decl_p12_pin").val('');
+        $('#btn-confirmer-final').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer et confirmer');
     });
 
      // Génération d'actes en lot

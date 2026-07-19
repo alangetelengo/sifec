@@ -562,8 +562,15 @@
                                                 @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
                                             </div>
                                             <div class="text-end" style="min-width: 200px; flex: 1;">
+                                                @php
+                                                    // Date du document : date de signature de l'officier si signé, sinon date d'émission.
+                                                    $dateActeRegistre = $acte->signed_at
+                                                        ?? $acte->doc_sig_signed_at
+                                                        ?? $acte->date_heure_approbation_mairie
+                                                        ?? $acte->date_emission;
+                                                @endphp
                                                 <p class="mb-1">
-                                                    Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
+                                                    Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateActeRegistre)))}}<br>
                                                     @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
                                                         L'Officier de l'Etat Civil
                                                     @else

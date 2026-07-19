@@ -133,12 +133,26 @@ class NaissanceController extends Controller
             : $this->generateDeclarationQr($dn->code_declaration_naissance);
 
         if (in_array($dn->type_declaration, ['CERTIFICAT DE NAISSANCE', 'DECLARATION DE NAISSANCE'], true)) {
-            $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
+            try {
+                $html2pdf->writeHTML(view('naissance::etats.declaration', compact('dummy', 'qrCode', 'typeDeclaration', 'contexteForcage'), ['dn' => $dn])->render());
 
-            return $this->pdfInlineResponse(
-                $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
-                $dn->code_declaration_naissance.'.pdf'
-            );
+                return $this->pdfInlineResponse(
+                    $html2pdf->output($dn->code_declaration_naissance.'.pdf'),
+                    $dn->code_declaration_naissance.'.pdf'
+                );
+            } catch (\Throwable $e) {
+                Log::channel('sifec')->error('Echec affichage PDF certificat/declaration naissance', [
+                    'code' => $dn->code_declaration_naissance,
+                    'type_declaration' => $dn->type_declaration,
+                    'contexte' => $contexteForcage ?? $dn->contexte_affichage ?? null,
+                    'signe_fs' => filled($dn->sig_fs_proof_id ?? null),
+                    'signe_cec' => filled($dn->sig_cec_proof_id ?? null),
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile().':'.$e->getLine(),
+                ]);
+
+                throw $e;
+            }
         }
 
         if ($dn->type_declaration === 'CERTIFICAT DE NON INSCRIPTION') {
@@ -562,6 +576,16 @@ class NaissanceController extends Controller
         }
         $statut = 'Envoyée';
         $observation = $request->observation;
+
+        // Signature obligatoire du certificat de naissance avant transmission au CEC (paramétrable).
+        if ($dn->type_declaration === 'CERTIFICAT DE NAISSANCE'
+            && \App\Models\GuotSignelecConfig::certificatSignatureObligatoire()
+            && ! filled($dn->sig_fs_proof_id)) {
+            return response()->json([
+                'code' => '183',
+                'message' => "Le certificat de naissance doit être signé électroniquement par un responsable avant l'envoi au centre d'état civil.",
+            ]);
+        }
 
         try {
             DB::transaction(function () use ($mouvement, $dn, $observation) {

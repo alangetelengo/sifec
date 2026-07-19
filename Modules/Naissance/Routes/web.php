@@ -14,6 +14,7 @@ use Modules\Naissance\Http\Controllers\CertificatTranscriptionController;
 use Modules\Naissance\Http\Controllers\CertificatNonInscriptionController;
 use Modules\Naissance\Http\Controllers\RequisitionTranscriptionController;
 use Modules\Naissance\Http\Controllers\DeclarationNaissanceController;
+use Modules\Naissance\Http\Controllers\DeclarationSignatureController;
 
 Route::middleware('auth')->prefix('declarationNaissance')->group(function() {
     Route::get('/', [NaissanceController::class,'index'])->name("declarationNaissance.index");
@@ -28,6 +29,8 @@ Route::middleware('auth')->prefix('declarationNaissance')->group(function() {
     Route::get('{id}/show', [NaissanceController::class,'show'])->name("declarationNaissance.show");
     Route::get('{id}/joindre/document', [NaissanceController::class,'joindreDocument'])->name("declarationNaissance.joindre.document");
     Route::post('mouvement', [NaissanceController::class,'mouvement'])->name("declarationNaissance.mouvement");
+    Route::post('sign/prepare', [DeclarationSignatureController::class, 'prepare'])->name('declarationNaissance.sign.prepare');
+    Route::post('sign/finalize', [DeclarationSignatureController::class, 'finalize'])->name('declarationNaissance.sign.finalize');
     Route::put('{id}/mouvement', [NaissanceController::class,'mouvementEdit'])->name("declarationNaissance.mouvement.edit");
     Route::delete('{id}/mouvement/destroy', [NaissanceController::class,'mouvementDelete'])->name("declarationNaissance.mouvement.delete");
     Route::put('{id}/update', [NaissanceController::class,'update'])->name("declarationNaissance.update");

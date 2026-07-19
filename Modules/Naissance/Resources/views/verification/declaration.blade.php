@@ -111,6 +111,20 @@
                     <dt class="col-sm-5 col-md-4">Mère</dt>
                     <dd class="col-sm-7 col-md-8">{{ $declaration->mere?->nomcomplet() ?? '-' }}</dd>
                 </dl>
+
+                @include('naissance::verification.partials.signature-mention', [
+                    'doc' => $declaration,
+                    'prefix' => 'sig_cec_',
+                    'titre' => "Signature électronique de la déclaration (centre d'état civil)",
+                ])
+
+                @if(filled($declaration->sig_fs_proof_id))
+                    @include('naissance::verification.partials.signature-mention', [
+                        'doc' => $declaration,
+                        'prefix' => 'sig_fs_',
+                        'titre' => 'Signature électronique du certificat (formation sanitaire)',
+                    ])
+                @endif
             </div>
 
             <div class="card-footer bg-light py-3 text-center">

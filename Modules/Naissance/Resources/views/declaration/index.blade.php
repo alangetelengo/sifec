@@ -132,6 +132,8 @@ Déclaration
                                                     <button class="btn btn-warning btn-envoyer-centre shadow btn-xs sharp"
                                                         title="Envoyer la déclaration au centre d'état civil"
                                                         data-code="{{ $dn->code_declaration_naissance }}"
+                                                        data-type="{{ $dn->type_declaration }}"
+                                                        data-signe="{{ filled($dn->sig_fs_proof_id) ? '1' : '0' }}"
                                                         data-piece-declarant="{{ $dn->piece_declarant }}"
                                                         data-piece-pere="{{ $dn->piece_pere }}"
                                                         data-piece-mere="{{ $dn->piece_mere }}"
@@ -326,6 +328,24 @@ Déclaration
                         <strong>Attention :</strong> Certaines pièces d'identité sont manquantes.
                         Il est recommandé de les ajouter avant l'envoi au centre d'état civil.
                     </div>
+                    <div id="bloc-signature-certificat" class="d-none">
+                        <div class="alert alert-secondary py-2 small mb-2">
+                            <i class="fas fa-file-signature me-1"></i>
+                            La signature électronique du certificat par un responsable est requise avant l'envoi.
+                            Sélectionnez votre certificat <strong>.p12</strong> et saisissez sa passphrase.
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold" for="cert_p12_file">Certificat électronique (.p12)</label>
+                                <input type="file" class="form-control form-control-sm" id="cert_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold" for="cert_p12_pin">Passphrase</label>
+                                <input type="password" class="form-control form-control-sm" id="cert_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                            </div>
+                        </div>
+                        <div id="cert-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
+                    </div>
                     <div class="mb-2">
                         <label for="observation-centre" class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-centre" name="observation" class="form-control" rows="3" placeholder="Ajoutez une observation pour le centre d'état civil..."></textarea>
@@ -347,9 +367,18 @@ Déclaration
 @endsection
 @section("scripts")
 
+<!-- Signature électronique .p12 -->
+    <script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+    <script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+    <script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260717c"></script>
+
 <!-- Datatable -->
     <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+
+    <script>
+        window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+    </script>
 
     <script>
         $(function(){
@@ -418,11 +447,28 @@ Déclaration
 
             // Gestion modale envoi au centre d'état civil depuis index
             let codeDeclaration = null;
+            let typeDeclarationEnvoi = null;
+            let dejaSigneEnvoi = false;
+
+            // Signature du certificat requise ? (paramètre admin + type certificat + non déjà signé)
+            function certificatSignatureRequise() {
+                return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true
+                    && typeDeclarationEnvoi === 'CERTIFICAT DE NAISSANCE'
+                    && !dejaSigneEnvoi;
+            }
+
+            function showCertSignError(msg) {
+                $("#cert-sign-feedback").removeClass('d-none').text(msg);
+                flashAlert("Échec", "error", msg);
+            }
+
             $(document).on('click', '.btn-envoyer-centre', function(){
                 if ($(this).hasClass('disabled')) {
                     toastr.warning('Cette déclaration a déjà été envoyée au centre d\'état civil.');
                     return;
                 }
+                typeDeclarationEnvoi = $(this).data('type');
+                dejaSigneEnvoi = String($(this).data('signe')) === '1';
                 // Récupération des infos de la ligne sélectionnée
                 const declarantNom = $(this).attr('data-identiteDeclarant');
                 const pereNom = $(this).attr('data-identitePere');
@@ -461,18 +507,29 @@ Déclaration
                 $('#btn-envoyer-final').prop('disabled', piecesManquantes);
 
                 codeDeclaration = $(this).data('code');
+                // Afficher le bloc signature .p12 uniquement si requis
+                $('#cert-sign-feedback').addClass('d-none').empty();
+                $('#cert_p12_file').val('');
+                $('#cert_p12_pin').val('');
+                if (certificatSignatureRequise()) {
+                    $('#bloc-signature-certificat').removeClass('d-none');
+                } else {
+                    $('#bloc-signature-certificat').addClass('d-none');
+                }
                 $('#modal-envoyer-centre').modal('show');
                 $('#input-code-declaration').val(codeDeclaration);
             });
-            $('#form-envoyer-centre').on('submit', function(e){
-                e.preventDefault();
-                var $btn = $('#btn-envoyer-final');
-                sifecBtnLoading($btn[0], "Envoi...");
-                let url = "{{ route('declarationNaissance.mouvement') }}";
+
+            // Envoi direct (sans signature requise)
+            function envoyerDirect($btn, observation) {
                 $.ajax({
-                    url: url,
+                    url: "{{ route('declarationNaissance.mouvement') }}",
                     type: 'POST',
-                    data: $(this).serialize(),
+                    data: {
+                        code_declaration_naissance: codeDeclaration,
+                        observation: observation,
+                        _token: '{{ csrf_token() }}'
+                    },
                     success: function(resp){
                         sifecBtnReset($btn[0], "Envoyer");
                         if(resp.code == "200"){
@@ -488,6 +545,91 @@ Déclaration
                         flashAlert("Erreur","error",xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
                     }
                 });
+            }
+
+            // Signature .p12 du certificat puis envoi au CEC (une seule étape)
+            async function signerPuisEnvoyer($btn, observation) {
+                var fileInput = document.getElementById('cert_p12_file');
+                var pin = $('#cert_p12_pin').val();
+                $('#cert-sign-feedback').addClass('d-none').empty();
+
+                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                    sifecBtnReset($btn[0], "Envoyer");
+                    showCertSignError('Sélectionnez votre fichier certificat (.p12).');
+                    return;
+                }
+                if (!pin || !String(pin).trim()) {
+                    sifecBtnReset($btn[0], "Envoyer");
+                    showCertSignError('Saisissez la passphrase de votre certificat.');
+                    return;
+                }
+                if (typeof window.SifecP12Sign === 'undefined') {
+                    sifecBtnReset($btn[0], "Envoyer");
+                    showCertSignError('Bibliothèque de signature non chargée. Rechargez la page.');
+                    return;
+                }
+
+                try {
+                    var prep = await $.ajax({
+                        url: "{{ route('declarationNaissance.sign.prepare') }}",
+                        type: 'POST',
+                        data: { phase: 'fs', codes: [codeDeclaration], _token: '{{ csrf_token() }}' }
+                    });
+                    if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                        sifecBtnReset($btn[0], "Envoyer");
+                        showCertSignError(prep && prep.message ? prep.message : 'Échec de la préparation.');
+                        return;
+                    }
+
+                    $btn.html('<i class="fas fa-spinner fa-spin"></i> Signature locale…');
+                    var p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+                    var signatures = [];
+                    for (var i = 0; i < prep.items.length; i++) {
+                        var item = prep.items[i];
+                        var signatureHex = await window.SifecP12Sign.signHashHex(
+                            p12Binary, pin, item.document_hash, prep.expected_serial || null
+                        );
+                        signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+                    }
+
+                    $btn.html('<i class="fas fa-spinner fa-spin"></i> Envoi…');
+                    var fin = await $.ajax({
+                        url: "{{ route('declarationNaissance.sign.finalize') }}",
+                        type: 'POST',
+                        data: { phase: 'fs', token: prep.token, signatures: signatures, observation: observation, _token: '{{ csrf_token() }}' }
+                    });
+
+                    sifecBtnReset($btn[0], "Envoyer");
+                    var msg = typeof fin.message === 'string' ? fin.message : 'Réponse inconnue';
+                    if (String(fin.code) === '200') {
+                        flashAlert("Réponse","success",msg);
+                        $('#modal-envoyer-centre').modal('hide');
+                        setTimeout(()=>location.reload(), 1200);
+                        return;
+                    }
+                    showCertSignError(msg);
+                } catch (err) {
+                    sifecBtnReset($btn[0], "Envoyer");
+                    var emsg = 'Erreur lors de la signature électronique';
+                    if (err && err.responseJSON && err.responseJSON.message) {
+                        emsg = typeof err.responseJSON.message === 'string' ? err.responseJSON.message : JSON.stringify(err.responseJSON.message);
+                    } else if (err && err.message) {
+                        emsg = err.message;
+                    }
+                    showCertSignError(emsg);
+                }
+            }
+
+            $('#form-envoyer-centre').on('submit', function(e){
+                e.preventDefault();
+                var $btn = $('#btn-envoyer-final');
+                var observation = $('#observation-centre').val();
+                sifecBtnLoading($btn[0], "Traitement…");
+                if (certificatSignatureRequise()) {
+                    signerPuisEnvoyer($btn, observation);
+                } else {
+                    envoyerDirect($btn, observation);
+                }
             });
 
             $(document).on('click', '.declaration-naissance-list .btn-delete', function (e) {

@@ -617,6 +617,13 @@ class ActeNaissanceController extends Controller
             ], 400);
         }
 
+        if (! filled($declaration->sig_cec_proof_id)) {
+            return response()->json([
+                'code' => '400',
+                'message' => "La déclaration de naissance doit être signée électroniquement par un responsable du centre d'état civil avant la génération de l'acte.",
+            ], 400);
+        }
+
         DB::beginTransaction();
         try {
             $service->genererActe($declaration, $registre, $user);
@@ -688,9 +695,22 @@ class ActeNaissanceController extends Controller
             ]);
         }
 
+        // Prérequis : déclaration signée électroniquement par le CEC.
+        $nonSignees = $dn->filter(fn ($d) => ! filled($d->sig_cec_proof_id));
+        if ($nonSignees->isNotEmpty()) {
+            $dn = $dn->filter(fn ($d) => filled($d->sig_cec_proof_id))->values();
+        }
+
+        if ($dn->count() === 0) {
+            return response()->json([
+                'code' => '400',
+                'message' => ['error' => "Aucune déclaration signée : la signature électronique du centre d'état civil est requise avant la génération de l'acte."],
+            ]);
+        }
+
         // Limiter le nombre d'actes à générer si le registre n'a pas assez de place
-        if ($regResteplace < count($codes)) {
-            $dn = Declarationnaissance::whereIn('code_declaration_naissance', $codes)->take($regResteplace)->get();
+        if ($regResteplace < $dn->count()) {
+            $dn = $dn->take($regResteplace);
         }
 
         DB::beginTransaction();

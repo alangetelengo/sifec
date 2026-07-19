@@ -106,6 +106,26 @@
                     <div class="alert alert-danger py-2">{{ $message }}</div>
                 @enderror
 
+                <div class="sl-config-info mt-4 mb-3">
+                    <div class="fw-semibold text-dark mb-2">
+                        <i class="fas fa-file-signature me-1" style="color: #006B31;"></i> Certificat de naissance (formation sanitaire)
+                    </div>
+                    <label class="sl-fonction-check form-check d-flex align-items-start gap-2 mb-0">
+                        <input type="checkbox"
+                               class="form-check-input mt-1"
+                               name="certificat_signature_obligatoire"
+                               value="1"
+                               {{ ($config->certificat_signature_obligatoire ?? false) ? 'checked' : '' }}>
+                        <span>
+                            <span class="d-block fw-semibold text-dark">Signature électronique obligatoire avant l'envoi au centre d'état civil</span>
+                            <span class="small text-muted">
+                                Si activé, un certificat de naissance ne peut être transmis au CEC qu'après sa signature
+                                électronique par un responsable de la formation sanitaire.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+
                 <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top">
                     <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold">
                         <i class="fas fa-check me-1"></i> Enregistrer

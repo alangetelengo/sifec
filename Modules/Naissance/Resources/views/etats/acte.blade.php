@@ -405,8 +405,15 @@
                          @endif
                     </td>
                     <td style="text-align: right; vertical-align: top; padding-right: 3mm;">
+                     @php
+                         // Date du document : date de signature de l'officier si signé, sinon date d'émission.
+                         $dateActe = $acte->signed_at
+                             ?? $acte->doc_sig_signed_at
+                             ?? $acte->date_heure_approbation_mairie
+                             ?? $acte->date_emission;
+                     @endphp
                      <p style="font-size: 12px; margin: 0 0 1mm 0;">
-                         Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
+                         Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateActe)))}}<br>
                          L'officier de l'état civil
                      </p>
                          @if ($acte->approbation_mairie != "")

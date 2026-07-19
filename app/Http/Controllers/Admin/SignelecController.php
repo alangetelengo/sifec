@@ -18,6 +18,14 @@ use Modules\Referentiel\Entities\Institution;
 class SignelecController extends Controller
 {
     /**
+     * Catégories d'institution devant disposer d'un cachet institutionnel GUOT (L3) :
+     * centre d'état civil (TCINS_0001) et formation sanitaire (TCINS_0003).
+     *
+     * @var list<string>
+     */
+    private const CATEGORIES_CACHET = ['TCINS_0001', 'TCINS_0003'];
+
+    /**
      * Tableau de bord SIGNELEC (pilotage enrôlements + cachets).
      */
     public function dashboard(): View
@@ -38,7 +46,7 @@ class SignelecController extends Controller
         $query = Institution::query()
             ->with(['typeInstitution', 'lieu'])
             ->whereHas('typeInstitution', function ($builder) {
-                $builder->where('code_type_categorie_ins', 'TCINS_0001');
+                $builder->whereIn('code_type_categorie_ins', self::CATEGORIES_CACHET);
             })
             ->when($q !== '', function ($builder) use ($q) {
                 $builder->where(function ($inner) use ($q) {
@@ -68,7 +76,7 @@ class SignelecController extends Controller
 
         $compteurs = [
             'total' => Institution::query()
-                ->whereHas('typeInstitution', fn ($b) => $b->where('code_type_categorie_ins', 'TCINS_0001'))
+                ->whereHas('typeInstitution', fn ($b) => $b->whereIn('code_type_categorie_ins', self::CATEGORIES_CACHET))
                 ->count(),
             'liees' => 0,
             'manquantes' => 0,
@@ -76,7 +84,7 @@ class SignelecController extends Controller
         ];
 
         if (Schema::hasColumn('tr_institution', 'guot_institution_id')) {
-            $base = Institution::query()->whereHas('typeInstitution', fn ($b) => $b->where('code_type_categorie_ins', 'TCINS_0001'));
+            $base = Institution::query()->whereHas('typeInstitution', fn ($b) => $b->whereIn('code_type_categorie_ins', self::CATEGORIES_CACHET));
             $compteurs['liees'] = (clone $base)->whereNotNull('guot_institution_id')->where('guot_institution_id', '!=', '')->count();
             $compteurs['manquantes'] = $compteurs['total'] - $compteurs['liees'];
             $compteurs['expire_bientot'] = (clone $base)
@@ -182,19 +190,19 @@ class SignelecController extends Controller
     private function buildDashboardStats(): array
     {
         $cecTotal = Institution::query()
-            ->whereHas('typeInstitution', fn ($b) => $b->where('code_type_categorie_ins', 'TCINS_0001'))
+            ->whereHas('typeInstitution', fn ($b) => $b->whereIn('code_type_categorie_ins', self::CATEGORIES_CACHET))
             ->count();
 
         $cecLiees = 0;
         $cecExpireBientot = 0;
         if (Schema::hasColumn('tr_institution', 'guot_institution_id')) {
             $cecLiees = Institution::query()
-                ->whereHas('typeInstitution', fn ($b) => $b->where('code_type_categorie_ins', 'TCINS_0001'))
+                ->whereHas('typeInstitution', fn ($b) => $b->whereIn('code_type_categorie_ins', self::CATEGORIES_CACHET))
                 ->whereNotNull('guot_institution_id')
                 ->where('guot_institution_id', '!=', '')
                 ->count();
             $cecExpireBientot = Institution::query()
-                ->whereHas('typeInstitution', fn ($b) => $b->where('code_type_categorie_ins', 'TCINS_0001'))
+                ->whereHas('typeInstitution', fn ($b) => $b->whereIn('code_type_categorie_ins', self::CATEGORIES_CACHET))
                 ->whereNotNull('guot_institution_cert_not_after')
                 ->whereBetween('guot_institution_cert_not_after', [now(), now()->addDays(30)])
                 ->count();
@@ -280,15 +288,20 @@ class SignelecController extends Controller
         $validated = $request->validate([
             'signataire_fonctions' => ['nullable', 'array'],
             'signataire_fonctions.*' => ['string', 'exists:tr_fonction,code_fonction'],
+            'certificat_signature_obligatoire' => ['nullable', 'boolean'],
         ]);
 
         try {
             $config = GuotSignelecConfig::instance();
             $config->signataire_fonctions = array_values($validated['signataire_fonctions'] ?? []);
+            if (Schema::hasColumn('t_guot_signelec_config', 'certificat_signature_obligatoire')) {
+                $config->certificat_signature_obligatoire = (bool) $request->boolean('certificat_signature_obligatoire');
+            }
             $config->save();
 
-            Log::channel('sifec')->info('Paramètres SIGNELEC (fonctions signataires) mis à jour', [
+            Log::channel('sifec')->info('Paramètres SIGNELEC mis à jour', [
                 'signataire_fonctions' => $config->signataire_fonctions,
+                'certificat_signature_obligatoire' => $config->certificat_signature_obligatoire ?? null,
             ]);
 
             return redirect()

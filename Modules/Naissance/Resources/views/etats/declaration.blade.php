@@ -98,15 +98,7 @@
 
             </div>
 
-            @if($dn->declarant_approuver == "OUI")
-            <div style="margin-top: 55px; text-align: right;">
-                @isset($qrCode)
-                <div style="width: 25mm;">
-                    <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
-                </div>
-                @endisset
-            </div>
-            @endif
+            {{-- QR code déplacé en bas, dans la zone de signature (conforme à l'acte de naissance). --}}
         </div>
 
     </page_header>
@@ -481,26 +473,48 @@
             </fieldset>
     </div>
 
-    {{-- QR code déplacé dans l'en-tête --}}
-
     <div style="bottom:0;margin-left:8px;margin-top:5px">
-        <table class="historique" cellspacing="0" style="width: 95%; font-size: 12px;">
-            <col style="width: 50%">
-            <col style="width: 50%">
-            <thead>
-              <tr style="text-align: center">
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
-              </tr>
-            </thead>
+        @php
+            $ctxSig = $contexteForcage ?? $dn->contexte_affichage ?? null;
+            $prefixSig = $ctxSig === 'centre_etat_civil' ? 'sig_cec_' : 'sig_fs_';
+            $roleSig = $prefixSig === 'sig_cec_' ? "Responsable du centre d'état civil" : 'Chef de service';
+            $signataireNom = $dn->{$prefixSig.'actor_nom'} ?? null;
+            $signeLe = $dn->{$prefixSig.'signed_at'} ?? ($dn->{$prefixSig.'doc_sig_signed_at'} ?? null);
+            $estSigne = filled($dn->{$prefixSig.'proof_id'} ?? null);
+            // Date du document : date de signature si signé, sinon date de création.
+            $dateDocument = $signeLe ?: $dn->created_at;
+            $mentionSignature = 'Signé électroniquement';
+            if ($signeLe) {
+                $mentionSignature .= ' le '.\Carbon\Carbon::parse($signeLe)->format('d/m/Y à H:i');
+            }
+            $afficherQr = $estSigne || $dn->declarant_approuver == "OUI";
+        @endphp
+        <table class="historique" cellspacing="0" style="width: 95%; font-size: 12px; table-layout: fixed;">
+            <col style="width: 34%">
+            <col style="width: 32%">
+            <col style="width: 34%">
             <tbody>
                 <tr>
-                    <td style="text-align: left;"> Lu et approuvé <br><strong>(<span style="color: red;">{{ $dn->declarant_approuver }}</span>)</strong>
+                    <td style="text-align: left; vertical-align: top;"> Lu et approuvé <br><strong>(<span style="color: red;">{{ $dn->declarant_approuver }}</span>)</strong>
 
                         <br> Le déclarant
                      </td>
-                    <td style="text-align: center;">
-                        Fait à Brazzaville, le {{utf8_encode(strftime("%d %B %Y", strtotime( $dn->created_at)))}}<br> Chef de service
+                    <td style="text-align: center; vertical-align: top;">
+                        @if($afficherQr)
+                            @isset($qrCode)
+                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 24mm; border: none;"></qrcode>
+                                <br>
+                                <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                            @endisset
+                        @endif
+                     </td>
+                    <td style="text-align: center; vertical-align: top;">
+                        Fait à Brazzaville, le {{ utf8_encode(strftime("%d %B %Y", strtotime((string) $dateDocument))) }}<br>
+                        {{ $roleSig }}
+                        @if($estSigne)
+                            <br><span style="font-size: 9px;">{{ $signataireNom ?: '' }}</span>
+                            <br><span style="font-size: 8px; color:#006B31;">{{ $mentionSignature }}</span>
+                        @endif
                      </td>
                   </tr>
             </tbody>
