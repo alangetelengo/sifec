@@ -11,7 +11,11 @@
    }
 
 </style>
- <page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="30mm" style="font-size: 12pt">
+ <page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="12mm" style="font-size: 12pt">
+
+    <page_footer>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'extrait_deces'])
+    </page_footer>
 
    @php
    $infos = "";
@@ -20,6 +24,10 @@
    $num = "";
    $titre = "";
    $top = "";
+
+   // Règle métier : l'extrait n'est signé que sur demande de l'intéressé (flux « Demande de
+   // document » → extraitActeDecesDemande). Hors demande, la signature ne s'affiche pas.
+   $estSigneDelivrance = isset($signatureOfficier) && filled($signatureOfficier);
 
    // Utiliser le service Sifec pour obtenir les informations de localisation
    $institution = $acte->declaration->institutionUser->institution;
@@ -85,7 +93,7 @@
         <br><br>
         <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;margin-bottom:-50px">
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>Le: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_deces)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_deces))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
+                <td>Le: <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_deces)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_deces))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
                 </td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
@@ -118,7 +126,13 @@
             </tr>
             @endif
             <tr style="width:100%; text-align: center; padding-bottom: 4px;">
-                <td><br> Pour extrait conforme, le <strong>{{ date('d-m-Y') }}</strong> </td>
+                {{-- La date n'apparaît qu'une fois l'extrait signé sur demande. --}}
+                <td>
+                    <br> Pour extrait conforme
+                    @if($estSigneDelivrance)
+                        , le <strong>{{ date('d-m-Y') }}</strong>
+                    @endif
+                </td>
             </tr>
 
            </table>
@@ -127,7 +141,7 @@
                     <p style="margin-right:150px;margin-top:70px">L'officier de l'état civil</p><br>
                 </div>
                 <div style="position:absolute; right:60px; top:250px">
-                            @if ($acte->approbation_mairie != "" && $acte->signature_mairie)
+                            @if ($estSigneDelivrance && $acte->signature_mairie)
 
                                <img src='{{ public_path('app/'.$acte->signature_mairie)}}' style="">
                                 <p style="font-weight:bold;"> {{ $acte->signataire ? $acte->signataire->user->personne->nomcomplet() : '' }}</p>

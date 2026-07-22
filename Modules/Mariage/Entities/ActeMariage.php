@@ -22,6 +22,13 @@ class ActeMariage extends Model
     protected $primaryKey = "code_acte_mariage";
     public $incrementing = false;
 
+    protected $casts = [
+        'signed_at' => 'datetime',
+        'doc_sig_signed_at' => 'datetime',
+        'doc_seal_sealed_at' => 'datetime',
+        'first_delivered_at' => 'datetime',
+    ];
+
 
 
     public function declaration(): BelongsTo

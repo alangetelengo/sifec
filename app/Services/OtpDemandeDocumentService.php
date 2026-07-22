@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Events\DemandeDocumentEvent;
 use App\Jobs\ValidationDemandeDocumentJob;
 use App\Models\DemandeDocumentConfig;
 use App\Models\User;
@@ -316,7 +315,6 @@ class OtpDemandeDocumentService
                 continue;
             }
             $this->notifierDemandeurApresSignature($demande);
-            event(new DemandeDocumentEvent($demande, $row['ancien'], 'Traitée'));
         }
 
         Log::channel('sifec')->info('Demandes signées avec succès (PDF régénéré avec signature)', [
@@ -352,7 +350,8 @@ class OtpDemandeDocumentService
     }
 
     /**
-     * Notifier le demandeur par SMS et email après signature (.p12 ou legacy OTP).
+     * Notifier le demandeur après signature (.p12 ou legacy OTP).
+     * Métier portail : envoi du PDF signé par e-mail (si adresse renseignée).
      */
     public function notifierDemandeurApresSignature(DemandeDocument $demande): void
     {
@@ -360,8 +359,7 @@ class OtpDemandeDocumentService
     }
 
     /**
-     * Notifier le demandeur par SMS et email après signature
-     * (Même pattern que OtpService pour actes de naissance)
+     * Après signature : e-mail au demandeur avec le PDF en pièce jointe.
      */
     private function notifierDemandeur(DemandeDocument $demande): void
     {
@@ -379,50 +377,51 @@ class OtpDemandeDocumentService
             $emailValide = $demande->email_demandeur
                 && filter_var($demande->email_demandeur, FILTER_VALIDATE_EMAIL);
 
-            // SMS court (pas de pièce jointe)
-            if ($demande->telephone_demander) {
-                if ($emailValide) {
-                    $sms = "SIFEC : {$typeDocument} ({$typeActe} n°{$numeroActe}) signé. PDF par e-mail. Code {$codeDemande}.";
-                } else {
-                    $sms = "SIFEC : document signé. Retrait au centre d'état civil {$nomCec}. Code {$codeDemande}. Pièce d'identité requise.";
-                }
-                SifecFacade::sendSms($demande->telephone_demander, $sms);
+            if (! $emailValide) {
+                Log::channel('sifec')->warning('Demandeur non notifié par e-mail (adresse absente ou invalide)', [
+                    'code_demande' => $codeDemande,
+                    'email' => $demande->email_demandeur,
+                    'pdf_joint' => $pdfOk,
+                ]);
+
+                return;
             }
 
-            if ($emailValide) {
-                $lignes = [
-                    'Bonjour,',
-                    '',
-                    'Votre document signé est joint à cet e-mail.',
-                    '',
-                    "{$typeDocument} — acte de {$typeActe} (n° {$numeroActe}). Code demande : {$codeDemande}.",
-                ];
+            $lignes = [
+                'Bonjour,',
+                '',
+                'Votre document signé est joint à cet e-mail.',
+                '',
+                "{$typeDocument} — acte de {$typeActe} (n° {$numeroActe}). Code demande : {$codeDemande}.",
+            ];
 
-                if ($demande->estSurSite()) {
-                    $lignes[] = '';
-                    $lignes[] = "Vous pouvez aussi le retirer au centre d'état civil {$nomCec}.";
-                }
-
-                if (! $pdfOk) {
-                    $lignes[] = '';
-                    $lignes[] = 'La pièce jointe PDF est indisponible : présentez-vous au centre avec votre code demande.';
-                }
-
-                $messageEmail = implode("\n", $lignes);
-
-                dispatch(new DeclarantActeDisponibleInformationJob(
-                    [$demande->email_demandeur],
-                    $messageEmail,
-                    'SIFEC — Votre document est disponible',
-                    $pdfOk ? $pdfPath : null,
-                    $pdfOk ? $nomPieceJointe : null
-                ));
+            if ($demande->estSurSite()) {
+                $lignes[] = '';
+                $lignes[] = "Vous pouvez aussi le retirer au centre d'état civil {$nomCec}.";
             }
 
-            Log::channel('sifec')->info('Demandeur notifié', [
+            if (! $pdfOk) {
+                $lignes[] = '';
+                $lignes[] = 'La pièce jointe PDF est indisponible : présentez-vous au centre avec votre code demande.';
+                Log::channel('sifec')->warning('E-mail demandeur sans PDF (fichier introuvable)', [
+                    'code_demande' => $codeDemande,
+                    'chemin' => $pdfPath,
+                ]);
+            }
+
+            $messageEmail = implode("\n", $lignes);
+
+            dispatch(new DeclarantActeDisponibleInformationJob(
+                [$demande->email_demandeur],
+                $messageEmail,
+                'SIFEC — Votre document est disponible',
+                $pdfOk ? $pdfPath : null,
+                $pdfOk ? $nomPieceJointe : null
+            ));
+
+            Log::channel('sifec')->info('Demandeur notifié par e-mail', [
                 'code_demande' => $demande->code_demande_document,
                 'origine' => $demande->origine_demande,
-                'telephone' => $demande->telephone_demander,
                 'email' => $demande->email_demandeur,
                 'pdf_joint' => $pdfOk,
             ]);

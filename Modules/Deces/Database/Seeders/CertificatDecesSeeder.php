@@ -5,6 +5,7 @@ namespace Modules\Deces\Database\Seeders;
 use App\Models\User;
 use App\Sifec\Sifec;
 use Carbon\Carbon;
+use Database\Seeders\Concerns\PurgesDemoFaitData;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,22 +15,20 @@ use Modules\Deces\Services\MouvementService;
 use Modules\Referentiel\Entities\Personne;
 
 /**
- * Certificats de décès (formation sanitaire → PF) et certificats de constatation
- * (centre d'hygiène → PF), arrêtés après envoi (sans confirmation ni acte).
+ * Certificats de décès (formation sanitaire) et certificats de constatation
+ * (centre d'hygiène), enregistrés en brouillon (sans envoi au PF).
  *
- * @see agentfs@sifec.cg (INS_0094) — type DECLARATION DE DECES — MOUV_0032 + MOUV_0002
- * @see centre.hygiene@sifec.cg (INS_0198) — CERTIFICAT DE CONSTATATION DE DECES — MOUV_2005 + MOUV_2006
- * Destinataire attendu : INS_0192 (agentpf@sifec.cg)
+ * @see agentfs@sifec.cg (INS_0094) — type DECLARATION DE DECES — MOUV_0032
+ * @see centre.hygiene@sifec.cg (INS_0198) — CERTIFICAT DE CONSTATATION DE DECES — MOUV_2005
  */
 class CertificatDecesSeeder extends Seeder
 {
-    private const TOTAL_CERTIFICATS_FS = 60;
+    use PurgesDemoFaitData;
+    private const TOTAL_CERTIFICATS_FS = 5;
 
-    private const TOTAL_CERTIFICATS_CONSTATATION = 60;
+    private const TOTAL_CERTIFICATS_CONSTATATION = 5;
 
     private const UNIQUE_RATIO = 0.80;
-
-    private const CODE_PF_BRAZZAVILLE = 'INS_0192';
 
     private const CODE_LIEU_DECES_BRAZZAVILLE = 'LOC_0026';
 
@@ -115,9 +114,8 @@ class CertificatDecesSeeder extends Seeder
             $rangesMensuels
         );
 
-        $this->command?->info("Certificats FS (MOUV_0032→MOUV_0002) : {$createdFs}");
-        $this->command?->info('Certificats constatation (MOUV_2005→MOUV_2006) : '.$createdConstatation);
-        $this->command?->info('Destinataire attendu pour tous : '.self::CODE_PF_BRAZZAVILLE.' (agentpf@sifec.cg)');
+        $this->command?->info("Certificats FS (brouillon, MOUV_0032) : {$createdFs}");
+        $this->command?->info('Certificats constatation (brouillon, MOUV_2005) : '.$createdConstatation);
     }
 
     private function resolveUser(string $email): ?User
@@ -213,6 +211,10 @@ class CertificatDecesSeeder extends Seeder
             'profession_pere' => 'PROF_0010',
             'profession_mere' => 'PROF_0011',
             'profession_declarant' => 'PROF_0010',
+            'code_profession_pere' => 'PROF_0010',
+            'code_profession_mere' => 'PROF_0011',
+            'code_profession_declarant' => 'PROF_0010',
+            'profession_defunt' => 'PROF_0010',
             'code_pays_pere' => '+242',
             'code_pays_mere' => '+242',
             'code_pays_declarant' => '+242',
@@ -333,32 +335,9 @@ class CertificatDecesSeeder extends Seeder
             }
 
             $declaration->refresh();
-
-            if (! $declaration->mouvements()->where('code_mouvement', $codeMouvementEnvoiAttendu)->exists()) {
-                [$ok, $message] = $mouvementService->envoyerDeclaration(
-                    $user,
-                    $declaration,
-                    $typeEvenementEnregistrement,
-                    'Envoyée',
-                    'Envoi automatique vers PF via seeder'
-                );
-
-                if (! $ok) {
-                    $this->command?->warn("Envoi impossible pour {$declaration->code_declaration_deces} : {$message}");
-                } else {
-                    $declaration->refresh();
-                    if ($declaration->code_institution_destinataire !== self::CODE_PF_BRAZZAVILLE) {
-                        $this->command?->warn(
-                            "{$declaration->code_declaration_deces} : destinataire {$declaration->code_institution_destinataire} "
-                            .'(attendu '.self::CODE_PF_BRAZZAVILLE.')'
-                        );
-                    }
-                }
-            }
-
             $created++;
 
-            if ($created % 30 === 0) {
+            if ($created % 5 === 0) {
                 $this->command?->info("[{$typeDeclaration}] {$created}/{$total} certificats traités");
             }
         }
@@ -599,38 +578,6 @@ class CertificatDecesSeeder extends Seeder
 
     private function resetTables(): void
     {
-        $personCodes = DB::table('t_declaration_deces')
-            ->select('code_defunt', 'code_pere', 'code_mere', 'code_declarant', 'code_conjoint')
-            ->get()
-            ->flatMap(function ($row) {
-                return collect([
-                    $row->code_defunt,
-                    $row->code_pere,
-                    $row->code_mere,
-                    $row->code_declarant,
-                    $row->code_conjoint,
-                ]);
-            })
-            ->filter()
-            ->unique()
-            ->values();
-
-        $driver = DB::getDriverName();
-        if ($driver === 'mysql') {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        }
-
-        DB::table('t_acte_deces')->truncate();
-        DB::table('t_mouvement_deces')->truncate();
-        DB::table('t_ddecescause')->truncate();
-        DB::table('t_declaration_deces')->truncate();
-
-        if ($driver === 'mysql') {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        }
-
-        if ($personCodes->isNotEmpty()) {
-            Personne::whereIn('code_personne', $personCodes)->delete();
-        }
+        $this->purgeDecesDemoData();
     }
 }

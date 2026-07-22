@@ -1146,7 +1146,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                       var numeroActe = $("#NumActe").val();
                       //récupération
                       var data = {type_acte:typeActe,numero_acte:numeroActe, administration:admin};
-                      var connexion = 'http://192.168.100.184/sifec/public/api/v1/authentification';
+                      var connexion = 'http://192.168.100.11/sifec/public/api/v1/authentification';
                       //gestion de la connexion
                       var httpRequest =  $.post(connexion, data);
 
@@ -1780,7 +1780,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
 
 
         //récupération de la liste des CEC
-        var connexion1 = 'http://192.168.100.184/sifec/public/api/v1/listeCec'   ;
+        var connexion1 = 'http://192.168.100.11/sifec/public/api/v1/listeCec'   ;
         //kendo.alert("ok");
         var data1 ="";
         var httpRequest1 =  $.get(connexion1, data1);
@@ -1892,68 +1892,77 @@ box-shadow: 0px 3px 9px -3px #000000;">
                     //exit();
 
                      //Appel du service demandeActe
-                     var connexion = 'http://192.168.100.184/sifec/public/api/v1/demandeActe';
+                     var connexion = 'http://192.168.100.11/sifec/public/api/v1/demandeActe';
                     //Traitement de la réponse
                     var httpRequest =  $.post(connexion, dataDemande);
                     //Retour en cas de succès
 					          httpRequest.done(function(reponse){
-
-                        //kendo.alert(reponse);
-
                         $('#loaderDemandeActe').hide();
 
-                        // //retour en cas de non succès
-                        // if(reponse.code == "180"){
-                        //     //validationSuccess.html("<div class='k-messagebox k-messagebox-error'>"+reponse.message+"</div>");
+                        // Réponse texte héritée
+                        if (reponse === "Acte non trouvé") {
+                            $('#displayEtat').attr("src", "");
+                            kendo.alert("Acte non trouvé. Veuillez vérifier les informations saisies et réessayer");
+                            return;
+                        }
 
-                        //     $('#displayEtat').attr("src", "");
-                        //     //resultat.html("<center><h1 style='color:red; font-weight:bolder'>Résultat</h1></center><hr/><div class='k-messagebox k-messagebox-error'>"+reponse.message+"</div>");
-                        //     kendo.alert(reponse.message);
-                        // }else{
-
-
-                            // $.when(
-                            //         $.getScript("assets/js/pdf.js"),
-                            //         $.getScript("assets/js/worker.js")
-                            //     )
-                            //     .done(function () {
-                            //         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/worker.js';
-                            //     }).then(function(){
-                            //         $("#pdfViewerRecu").kendoPDFViewer({
-                            //             pdfjsProcessing: {
-                            //                 file: reponse.etat
-                            //             },
-                            //             width: "100%",
-                            //             height: 1200
-
-                            //         });
-                            //         $('a[title="Print"]').show();
-                            //         $('a[title="Download"]').hide();
-                            //         $('a[title="Open"]').hide();
-                            //   });
-
-                            //affichage de la fenêtre reçu
-                           //alert(reponse);
-                            $("#frmEtat").data("kendoWindow").open();
-                            //     $("#pdfViewerRecu").show();
-                            if(reponse=="Acte non trouvé"){
+                        // Réponse JSON API (demande créée)
+                        if (reponse && typeof reponse === "object") {
+                            if (String(reponse.code) === "180") {
                                 $('#displayEtat').attr("src", "");
-                                kendo.alert("Acte non trouvé. Veuillez vérifier les informations saisies et réessayer");
-                            }else{
-                                $("#displayEtat").attr("src", reponse);
+                                kendo.alert(reponse.message || "Acte non trouvé. Veuillez vérifier les informations saisies et réessayer");
+                                return;
                             }
+                            if (String(reponse.code) === "200") {
+                                var urlEtat = reponse.etat || reponse.etatRecu || "";
+                                if (urlEtat) {
+                                    $("#frmEtat").data("kendoWindow").open();
+                                    $("#displayEtat").attr("src", urlEtat);
+                                } else {
+                                    kendo.alert(
+                                        "Demande enregistrée.<br><strong>Code :</strong> " +
+                                        (reponse.code_demande || "") +
+                                        (reponse.montant !== undefined && reponse.montant !== null
+                                            ? "<br><strong>Montant :</strong> " + reponse.montant + " FCFA"
+                                            : "") +
+                                        "<br><br>Le document PDF signé vous sera envoyé par e-mail après validation au centre d'état civil."
+                                    );
+                                }
+                                return;
+                            }
+                            kendo.alert(reponse.message || "Erreur lors de la création de la demande.");
+                            return;
+                        }
 
+                        // Ancien format : URL directe vers un PDF / état
+                        if (typeof reponse === "string" && reponse.indexOf("http") === 0) {
+                            $("#frmEtat").data("kendoWindow").open();
+                            $("#displayEtat").attr("src", reponse);
+                            return;
+                        }
 
-
-						// }
+                        kendo.alert("Réponse inattendue du serveur.");
             });
 
                       httpRequest.fail(function(error){
                         //état connexion échouée
+                        $('#loaderDemandeActe').hide();
                         $('#dataLoader').hide();
                         $('#displayEtat').attr("src", "");
 
-                        resultat.html("<div class='k-messagebox k-messagebox-error'>Connexion échouée. Veuillez réessayer plus tard!</div>");
+                        var msg = "Connexion échouée. Veuillez réessayer plus tard!";
+                        if (error && error.responseJSON) {
+                            if (error.responseJSON.message) {
+                                msg = error.responseJSON.message;
+                            } else if (error.responseJSON.errors) {
+                                var errs = [];
+                                $.each(error.responseJSON.errors, function(k, v) {
+                                    errs.push(($.isArray(v) ? v.join(" ") : v));
+                                });
+                                if (errs.length) msg = errs.join("<br>");
+                            }
+                        }
+                        kendo.alert(msg);
                     });
 
 
@@ -2062,12 +2071,13 @@ box-shadow: 0px 3px 9px -3px #000000;">
                                   validation: { required: true },
 
                               },
-							                /*{
+                              {
                                   field: "email_demandeur",
                                   label: "Email du demandeur",
-                                  validation: { required: true },
+                                  hint: "Le document PDF signé vous sera envoyé à cette adresse après validation au centre d'état civil.",
+                                  validation: { required: true, email: true },
 
-                              },*/
+                              },
                               /*{
                                   field: 'nombre_exemplaire',
                                   editor: "NumericTextBox",
@@ -2385,7 +2395,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                 dataSource: {
                     transport: {
                         read: {
-                            url: "http://192.168.100.184/sifec/public/api/v1/banMariage",
+                            url: "http://192.168.100.11/sifec/public/api/v1/banMariage",
                             dataType: "json",
                             type: "GET"
                         }
@@ -2738,7 +2748,7 @@ box-shadow: 0px 3px 9px -3px #000000;">
                 var data = {code_administration:idAdmin};
 
                         //récuépration historique des authentifications
-                      var connexion = 'http://192.168.100.184/sifec/public/api/v1/historiqueAuthentification';
+                      var connexion = 'http://192.168.100.11/sifec/public/api/v1/historiqueAuthentification';
                       //gestion de la connexion
                        var httpRequest =  $.post(connexion, data);
 

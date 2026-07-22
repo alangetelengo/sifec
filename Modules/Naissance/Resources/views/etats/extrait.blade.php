@@ -13,9 +13,7 @@
 </style>
  <page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="12mm" style="font-size: 12pt">
     <page_footer>
-        <div style="width: 100%; text-align: center; font-size: 8px; color: #5a3d1e; line-height: 1.25; padding: 1mm 3mm 1.5mm 3mm;">
-            Cet extrait d'acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
-        </div>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'extrait_naissance'])
     </page_footer>
 
    @php
@@ -31,8 +29,42 @@
 
    $prenomEnfantExtrait = \App\Sifec\Sifec::formatPrenomPourActe($acte->declaration->enfant->prenom ?? '');
 
-   $delivranceSignature = isset($signatureOfficier) ? $signatureOfficier : null;
-   $delivranceNomSignataire = isset($nomSignataireDelivrance) ? (string) $nomSignataireDelivrance : '';
+   // Signature/QR : UNIQUEMENT les valeurs de délivrance (flux « Demande de document »).
+   // Règle métier : l'extrait n'est pas pré-signé par l'officier de l'acte d'origine ; il est signé
+   // sur demande de l'intéressé par l'officier EN COURS DE FONCTION. Hors demande, pas de signature.
+   $delivranceSignature = $signatureOfficier ?? null;
+   $delivranceNomSignataire = isset($nomSignataireDelivrance)
+       ? (string) $nomSignataireDelivrance
+       : '';
+
+   $dateSignatureExtrait = (isset($dateSignatureDelivrance) && $dateSignatureDelivrance !== null && $dateSignatureDelivrance !== '')
+       ? $dateSignatureDelivrance
+       : null;
+
+   if (empty($qrCode ?? null) && filled($acte->niupp ?? null) && \Illuminate\Support\Facades\Route::has('verification.acte')) {
+       $qrCode = \Illuminate\Support\Facades\URL::signedRoute('verification.acte', ['niupp' => $acte->niupp]);
+   }
+   $acteEstSigne = filled($acte->approbation_mairie ?? null) || filled($acte->niupp ?? null);
+
+   $roleDelivrance = "L'officier de l'état civil";
+   $blocsPkiDelivrance = [];
+   if (isset($demande) && $demande) {
+       $roleDelivrance = \App\Support\GuotSignatureAffichage::roleSignataire($demande, '', "L'officier de l'état civil");
+       $bloc = \App\Support\GuotSignatureAffichage::blocPki(
+           $demande,
+           '',
+           'PKI — DÉLIVRANCE',
+           "L'officier de l'état civil",
+           '#006B31',
+           '#f4faf6',
+       );
+       if ($bloc) {
+           $blocsPkiDelivrance[] = $bloc;
+       }
+       if ($delivranceNomSignataire === '' && filled($demande->actor_nom)) {
+           $delivranceNomSignataire = (string) $demande->actor_nom;
+       }
+   }
 
    @endphp
 
@@ -94,7 +126,7 @@
         <br><br>
         <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;margin-bottom:-50px">
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>Le: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong> à <br>
+                <td>Le: <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong> à <br>
                     <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ \App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong>
                 </td>
             </tr>
@@ -114,38 +146,56 @@
                 <td>Et de : <strong>{{ $acte->declaration->mere ? \App\Sifec\Sifec::formatNomPrenomPourActe($acte->declaration->mere->nom, $acte->declaration->mere->prenom) : $dummy }}</strong></td>
             </tr>
             <tr style="width:100%; text-align: center; padding-bottom: 4px;">
-                <td><br> Pour extrait conforme, le <strong>{{ date('d-m-Y') }}</strong> </td>
+                {{-- La date n'apparaît qu'une fois l'extrait signé sur demande. --}}
+                <td>
+                    <br> Pour extrait conforme
+                    @if($delivranceSignature || $delivranceNomSignataire !== '')
+                        , le <strong>{{ date('d-m-Y') }}</strong>
+                    @endif
+                </td>
             </tr>
 
            </table>
 
-                <div style="position:absolute; left: 12px; top: 228px; width: 32mm;">
-                    @if ($delivranceSignature && ! empty($qrCode ?? null))
-                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 24mm; border: none;"></qrcode>
+                <div style="position:absolute; left: 18mm; top: 228px; width: 32mm;">
+                    {{-- Le QR atteste de la signature : il n'apparaît que si l'extrait est signé sur demande. --}}
+                    @if (! empty($qrCode ?? null) && ($delivranceSignature || $delivranceNomSignataire !== ''))
+                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 20mm; border: none;"></qrcode>
                         <br>
-                        <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                        <span style="font-size: 6px; color: #555;">Scanner pour authentifier</span>
                     @endif
                 </div>
 
                 <div style="text-align:right">
-                    <p style="margin-right:150px;margin-top:70px">L’officier de l’état civil</p><br>
+                    <p style="margin-right:150px;margin-top:70px">{{ $roleDelivrance }}</p><br>
                 </div>
                 <div style="position:absolute; right:60px; top:250px; text-align: right;">
-                            @if ($delivranceSignature)
+                            @if ($delivranceSignature || $delivranceNomSignataire !== '')
                                @php
-                                   $pdfSignature = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($delivranceSignature);
+                                   $pdfSignature = $delivranceSignature
+                                       ? \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($delivranceSignature)
+                                       : null;
                                @endphp
                                @if ($pdfSignature)
                                <img src="{{ $pdfSignature }}" style="width: 28mm;">
                                @endif
                                @if ($delivranceNomSignataire !== '')
-                                <p style="font-weight:bold;">{{ $delivranceNomSignataire }}</p>
+                                <p style="font-weight:bold; margin-bottom:0;">{{ $delivranceNomSignataire }}</p>
+                               @endif
+                               @if ($dateSignatureExtrait)
+                                <p style="font-size: 8px; color:#006B31; margin-top:2px;">Signé électroniquement le {{ \Illuminate\Support\Carbon::parse($dateSignatureExtrait)->format('d/m/Y à H:i') }}</p>
                                @endif
                             @else
                                 <p style="color: #999; font-style: italic; font-size: 11px;">[En attente de signature de délivrance]</p>
                             @endif
 
                 </div>
+
+                @if(! empty($blocsPkiDelivrance))
+                <div style="position:absolute; left: 18mm; right: 18mm; top: 310px; width: auto;">
+                    @include('partials.guot.signature-pki-blocs', ['blocs' => $blocsPkiDelivrance, 'compact' => true])
+                </div>
+                @endif
 
 
         </div>

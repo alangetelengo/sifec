@@ -3,9 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Deces\Entities\ActeDeces;
 use Modules\Deces\Http\Controllers\ActeDecesController;
+use Modules\Deces\Http\Controllers\ActeDecesSignatureController;
 use Modules\Deces\Http\Controllers\CentreHygieneController;
 use Modules\Deces\Http\Controllers\CertificatNonInscriptionController;
 use Modules\Deces\Http\Controllers\CertificatTranscriptionController;
+use Modules\Deces\Http\Controllers\DeclarationDecesSignatureController;
 use Modules\Deces\Http\Controllers\DecesController;
 use Modules\Deces\Http\Controllers\RequisitionNonInscriptionDeceController;
 use Modules\Deces\Http\Controllers\RequisitionTardiveController;
@@ -44,6 +46,9 @@ Route::middleware('auth')->prefix('declarationDeces')->group(function () {
 
     Route::post('declaration-deces/{code}/piece/{type}', [DecesController::class, 'storePiece'])->name('declarationDeces.piece.store');
 
+    Route::post('sign/prepare', [DeclarationDecesSignatureController::class, 'prepare'])->name('declarationDeces.sign.prepare');
+    Route::post('sign/finalize', [DeclarationDecesSignatureController::class, 'finalize'])->name('declarationDeces.sign.finalize');
+
 });
 
 Route::middleware('auth')->prefix('centreHygiene')->group(function () {
@@ -61,12 +66,10 @@ Route::middleware('auth')->prefix('acteDeces')->group(function () {
     Route::get('/', [ActeDecesController::class, 'index'])->name('acteDeces.index');
     Route::post('filter-documents', [ActeDecesController::class, 'filterDocuments'])->name('acteDeces.filter.documents');
     Route::post('filter-actes', [ActeDecesController::class, 'filterActes'])->name('acteDeces.filter.actes');
-    Route::post('send-otp', [ActeDecesController::class, 'sendOtp'])->name('acteDeces.send.otp');
-    Route::post('validate-otp', [ActeDecesController::class, 'validateOtp'])->name('acteDeces.validate.otp');
+    Route::post('sign/prepare', [ActeDecesSignatureController::class, 'prepare'])->name('acteDeces.sign.prepare');
+    Route::post('sign/finalize', [ActeDecesSignatureController::class, 'finalize'])->name('acteDeces.sign.finalize');
     Route::get('{id}/generate', [ActeDecesController::class, 'displayActe'])->name('acteDeces.display');
-    Route::post('validate-otp-bulk', [ActeDecesController::class, 'validateOtpBulk'])->name('acteDeces.validate.otp.bulk');
     // Route::post('generate',[ActeDecesController::class,"generateActe"])->name('acteDeces.generate');
-    Route::post('send-otp-bulk', [ActeDecesController::class, 'sendOtpBulk'])->name('acteDeces.send.otp.bulk');
     Route::put('{id}/acte/deces/approuver', [ActeDecesController::class, 'decesApprouver'])->name('acteDeces.approuver');
     Route::post('generate-bulk', [ActeDecesController::class, 'generateActeBulk'])->name('acteDeces.generate.bulk');
     Route::get('{id}/generateCopie', [ActeDecesController::class, 'displayCopie'])->name('acteDeces.displayCopie');

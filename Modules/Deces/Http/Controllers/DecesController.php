@@ -2,6 +2,7 @@
 
 namespace Modules\Deces\Http\Controllers;
 
+use App\Models\GuotSignelecConfig;
 use App\Sifec\Sifec;
 use Carbon\Carbon;
 use Exception;
@@ -12,6 +13,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Modules\Deces\Entities\ActeDeces;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Deces\Entities\MouvementDeces;
@@ -129,7 +131,7 @@ class DecesController extends Controller
 
         $ddc = DeclarationDeces::with([
             'institution', 'institutionDestinataire', 'institutionUser.institution',
-            'defunt', 'pere', 'mere', 'declarant', 'religion', 'situationMat', 'regime', 'conjoint', 'filiation', 'lieuDeces', 'lieuSurvenance',
+            'defunt', 'pere', 'mere', 'declarant', 'religion', 'situationMat', 'regime', 'conjoint', 'filiation', 'lieuDeces', 'lieuSurvenance', 'mouvements',
         ])->where('code_declaration_deces', $id)->first();
 
         if ($ddc === null) {
@@ -146,10 +148,11 @@ class DecesController extends Controller
 
         $typeDeclaration = $ddc->libelleAffichageType();
         $contexteEffectif = $contexteForcage ?? $ddc->contexte_affichage ?? $ddc->contexteCertificatOrigine();
+        $qrCode = $this->resolveQrCodeDocument($ddc->code_declaration_deces, $contexteEffectif);
 
         if ($contexteEffectif === 'centre_hygiene'
             || ($ddc->type_declaration === 'CERTIFICAT DE CONSTATATION DE DECES' && $contexteForcage !== 'pompe_funebre')) {
-            $html2pdf->writeHTML(view('deces::etats.certificats.certificat_constatation_deces', compact('ddc'))->render());
+            $html2pdf->writeHTML(view('deces::etats.certificats.certificat_constatation_deces', compact('ddc', 'qrCode', 'contexteForcage'))->render());
 
             return $this->pdfInlineResponse(
                 $html2pdf->output($ddc->code_declaration_deces.'.pdf'),
@@ -157,7 +160,7 @@ class DecesController extends Controller
             );
         }
 
-        $html2pdf->writeHTML(view('deces::etats.declaration', compact('ddc', 'diffJour', 'typeDeclaration', 'contexteForcage'))->render());
+        $html2pdf->writeHTML(view('deces::etats.declaration', compact('ddc', 'diffJour', 'typeDeclaration', 'contexteForcage', 'qrCode'))->render());
 
         return $this->pdfInlineResponse(
             $html2pdf->output($ddc->code_declaration_deces.'.pdf'),
@@ -634,6 +637,32 @@ class DecesController extends Controller
         $statut = 'Envoyée';
         $observation = $request->observation;
 
+        if (GuotSignelecConfig::certificatSignatureObligatoire()) {
+            if ($dn->estCertificatFormationSanitaire() && ! filled($dn->sig_fs_proof_id)) {
+                return response()->json([
+                    'code' => '183',
+                    'message' => "Le certificat de décès doit être signé électroniquement par un responsable avant l'envoi au centre d'état civil.",
+                    'flashAlert' => [
+                        'type' => 'error',
+                        'title' => 'Signature requise',
+                        'message' => "Le certificat de décès doit être signé électroniquement avant l'envoi.",
+                    ],
+                ]);
+            }
+
+            if ($dn->estConstatation() && ! filled($dn->sig_ch_proof_id)) {
+                return response()->json([
+                    'code' => '183',
+                    'message' => "Le certificat de constatation doit être signé électroniquement avant l'envoi au centre d'état civil.",
+                    'flashAlert' => [
+                        'type' => 'error',
+                        'title' => 'Signature requise',
+                        'message' => "Le certificat de constatation doit être signé électroniquement avant l'envoi.",
+                    ],
+                ]);
+            }
+        }
+
         try {
             DB::transaction(function () use ($mouvement, $dn, $observation, $typeEvenement) {
 
@@ -896,7 +925,7 @@ class DecesController extends Controller
             abort(404);
         }
 
-        $acte = ActeDeces::with(['declaration.defunt', 'declaration.declarant', 'declaration.pere', 'declaration.mere'])
+        $acte = ActeDeces::with(['declaration.defunt', 'declaration.declarant', 'declaration.pere', 'declaration.mere', 'signataire.user.personne'])
             ->where('code_acte_deces', $code)
             ->first();
 
@@ -905,5 +934,46 @@ class DecesController extends Controller
         }
 
         return view('deces::verification.acte', compact('acte'));
+    }
+
+    public function verificationCertificatDeces(Request $request, string $code)
+    {
+        return $this->verificationDocumentDeces($request, $code, 'certificat');
+    }
+
+    public function verificationConstatationDeces(Request $request, string $code)
+    {
+        return $this->verificationDocumentDeces($request, $code, 'constatation');
+    }
+
+    public function verificationDeclarationDeces(Request $request, string $code)
+    {
+        return $this->verificationDocumentDeces($request, $code, 'declaration');
+    }
+
+    private function verificationDocumentDeces(Request $request, string $code, string $type): Renderable
+    {
+        if ($request->filled('verif_email')) {
+            abort(404);
+        }
+
+        $declaration = DeclarationDeces::with(['defunt', 'declarant', 'institution', 'institutionDestinataire'])
+            ->where('code_declaration_deces', $code)
+            ->first();
+
+        if ($declaration === null) {
+            abort(404);
+        }
+
+        return view('deces::verification.document', compact('declaration', 'type'));
+    }
+
+    private function resolveQrCodeDocument(string $code, string $contexte): string
+    {
+        return match ($contexte) {
+            'formation_sanitaire' => URL::signedRoute('verification.certificat.deces', ['code' => $code]),
+            'centre_hygiene' => URL::signedRoute('verification.constatation.deces', ['code' => $code]),
+            default => URL::signedRoute('verification.declaration.deces', ['code' => $code]),
+        };
     }
 }

@@ -83,7 +83,7 @@
         <br><br>
         <table align="left" style="margin-left: 2%;border-radius: 1mm; border: none;margin-bottom:-50px">
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">
-                <td>Le: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_deces)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_deces))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
+                <td>Le: <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_deces)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_deces))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
                 </td>
             </tr>
             <tr style="width:100%; text-align: left; padding-bottom: 4px;">

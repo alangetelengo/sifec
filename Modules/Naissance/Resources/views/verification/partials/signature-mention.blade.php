@@ -1,10 +1,13 @@
 @php
+    use App\Support\GuotSignatureAffichage;
+
     /**
      * Bloc de mention de signature électronique pour les pages de vérification.
      * Variables attendues : $doc (Declarationnaissance), $prefix ('sig_fs_'|'sig_cec_'), $titre.
      */
     $proofId = $doc->{$prefix.'proof_id'} ?? null;
     $signataireNom = $doc->{$prefix.'actor_nom'} ?? null;
+    $signataireFonction = GuotSignatureAffichage::roleSignataire($doc, $prefix);
     $signeLe = $doc->{$prefix.'signed_at'} ?? ($doc->{$prefix.'doc_sig_signed_at'} ?? null);
     $docSigId = $doc->{$prefix.'doc_sig_id'} ?? null;
     $docSealId = $doc->{$prefix.'doc_seal_id'} ?? null;
@@ -21,6 +24,10 @@
     <p class="text-muted fst-italic mb-0">Ce document n'a pas encore été signé électroniquement.</p>
 @else
     <dl class="row mb-0">
+        @if(filled($signataireFonction))
+            <dt class="col-sm-5 col-md-4">Fonction</dt>
+            <dd class="col-sm-7 col-md-8">{{ $signataireFonction }}</dd>
+        @endif
         <dt class="col-sm-5 col-md-4">Signataire</dt>
         <dd class="col-sm-7 col-md-8">{{ $signataireNom ?: '—' }}</dd>
 

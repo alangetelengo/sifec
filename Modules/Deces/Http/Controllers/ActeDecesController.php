@@ -611,156 +611,35 @@ class ActeDecesController extends Controller
         }
     }
 
-    public function sendOtp(Request $request, OtpDecesService $otpService)
+    /**
+     * Ancien flux OTP désactivé : la validation d'acte passe par acteDeces.sign.*.
+     */
+    public function sendOtp()
     {
-        $code = $request->code_declaration_deces;
-        $ad = ActeDeces::where('code_declaration_deces', $code)->get();
-        $user = Auth::user();
-        if ($ad->count() == 0) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé',
-            ]);
-        }
-        try {
-            $otpService->envoyerOtpValidationActes($user, $ad);
-
-            return response()->json([
-                'code' => '200',
-                'message' => 'SMS envoyé avec succès',
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => $e->getMessage()],
-            ]);
-        }
+        return $this->otpActeDesactive();
     }
 
-    public function sendOtpBulk(Request $request, OtpDecesService $otpService)
+    public function sendOtpBulk()
     {
-        $codes = $request->codes;
-        $ad = ActeDeces::whereIn('code_declaration_deces', $codes)->get();
-        $user = Auth::user();
-        if ($ad->count() == 0) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé',
-            ]);
-        }
-        try {
-            $otpService->envoyerOtpValidationActes($user, $ad);
-
-            return response()->json([
-                'code' => '200',
-                'message' => 'SMS envoyé avec succès',
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => $e->getMessage()],
-            ]);
-        }
+        return $this->otpActeDesactive();
     }
 
-    public function validateOtp(Request $request, OtpDecesService $otpService)
+    public function validateOtp()
     {
-        $rules = [
-            'otp_approbation_pompe_funebre' => ['required', 'numeric'],
-            'code_declaration_deces' => ['required', 'string'],
-        ];
-        $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé pour ce code',
-            ]);
-        }
-        if (! Gate::allows('module.acteDeces.signature')) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => "Vous n'êtes pas autorisé à valider un acte de décès"],
-            ]);
-        }
-        $cdn = $request->code_declaration_deces;
-        $otp = $request->otp_approbation_pompe_funebre;
-        [$ok, $result] = $otpService->validerOtpActes(
-            [$cdn], $otp,
-            $request->ip(),
-            $request->userAgent()
-        );
-        if (! $ok) {
-            return response()->json([
-                'code' => '183',
-                'message' => ['error' => $result],
-            ]);
-        }
-        // Notification après validation OTP (single)
-        foreach ($result as $ad) {
-            $numeroActe = $ad->code_acte_deces;
-            $codeInstitution = $ad->declaration->institution->code_institution;
-            NotificationService::notifierAgentsInstitution(
-                $codeInstitution,
-                new ActeDecesAValiderNotification(
-                    $numeroActe, [], 'Acte de décès produit avec succès')
-            );
-        }
+        return $this->otpActeDesactive();
+    }
 
+    public function validateOtpBulk()
+    {
+        return $this->otpActeDesactive();
+    }
+
+    private function otpActeDesactive()
+    {
         return response()->json([
-            'code' => '200',
-            'message' => 'Acte de décès validé avec succès',
-        ]);
-    }
-
-    public function validateOtpBulk(Request $request, OtpDecesService $otpService)
-    {
-        $rules = [
-            'otp_approbation_pompe_funebre' => ['required', 'numeric'],
-            'codes' => ['required'],
-        ];
-        $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé pour ce code',
-            ]);
-        }
-        if (! Gate::allows('module.acteDeces.signature')) {
-            return response()->json([
-                'code' => '181',
-                'message' => "Vous n'êtes pas autorisé à valider un acte de deces",
-            ]);
-        }
-        $codes = $request->codes;
-        $otp = $request->otp_approbation_pompe_funebre;
-        [$ok, $result] = $otpService->validerOtpActes(
-            $codes, $otp,
-            $request->ip(),
-            $request->userAgent()
-        );
-        if (! $ok) {
-            return response()->json([
-                'code' => '183',
-                'message' => ['error' => $result],
-            ]);
-        }
-        // Notification après validation OTP (bulk)
-        foreach ($result as $ad) {
-            $numeroActe = $ad->code_acte_deces;
-            $codeInstitution = $ad->declaration->institution->code_institution;
-            NotificationService::notifierAgentsInstitution(
-                $codeInstitution,
-                new ActeDecesAValiderNotification(
-                    $numeroActe,
-                    'Acte de décès produit avec succès'
-                )
-            );
-        }
-
-        return response()->json([
-            'code' => '200',
-            'message' => ['Actes des décès validés avec succès'],
-        ]);
+            'code' => '410',
+            'message' => ['error' => 'La validation par OTP est désactivée. Utilisez la signature électronique (.p12).'],
+        ], 410);
     }
 
     public function generateActe(Request $request, ActeDecesService $service, MouvementService $mouvementService)
@@ -787,6 +666,20 @@ class ActeDecesController extends Controller
             return response()->json([
                 'code' => '180',
                 'message' => ['error' => "Cette déclaration de décès n'est pas reconnue"],
+            ]);
+        }
+
+        if ($dd->cec_approuver !== 'OUI') {
+            return response()->json([
+                'code' => '184',
+                'message' => ['error' => 'Le dossier doit être confirmé avant la génération de l\'acte.'],
+            ]);
+        }
+
+        if (! filled($dd->sig_cec_proof_id)) {
+            return response()->json([
+                'code' => '184',
+                'message' => ['error' => 'Le document doit être signé électroniquement (validation CEC/PF) avant la génération de l\'acte.'],
             ]);
         }
 
@@ -900,6 +793,14 @@ class ActeDecesController extends Controller
         $regResteplace = $rd->nombre_acte_prevu - $rd->nombre_acte_transcrit;
         if ($regResteplace < count($codes)) {
             $dd = DeclarationDeces::whereIn('code_declaration_deces', $codes)->take($regResteplace)->get();
+        }
+
+        $nonConfirmes = $dd->filter(fn ($d) => $d->cec_approuver !== 'OUI' || ! filled($d->sig_cec_proof_id));
+        if ($nonConfirmes->isNotEmpty()) {
+            return response()->json([
+                'code' => '185',
+                'message' => ['error' => 'Certains dossiers ne sont pas confirmés ou signés électroniquement (validation CEC/PF).'],
+            ]);
         }
 
         DB::beginTransaction();
@@ -1125,6 +1026,16 @@ class ActeDecesController extends Controller
             $observation = $request->observation;
             $statut = 'Confirmée';
 
+            $estTribunal = optional(optional(optional($affectation->institution)->typeInstitution)->typeCategorieInstitution)->code_type_categorie_ins === 'TCINS_0002';
+            if (! $estTribunal && ! filled($declaration->sig_cec_proof_id)) {
+                DB::rollBack();
+
+                return response()->json([
+                    'code' => '403',
+                    'message' => ["La confirmation du centre d'état civil / pompe funèbre requiert la signature électronique. Utilisez l'action « Signer et confirmer »."],
+                ]);
+            }
+
             [$ok, $result] = $mouvementService->confirmerDeclarationDeces(
                 $affectation,
                 $declaration,
@@ -1177,10 +1088,17 @@ class ActeDecesController extends Controller
                 ]);
             }
 
+            $estTribunal = optional(optional(optional($affectation->institution)->typeInstitution)->typeCategorieInstitution)->code_type_categorie_ins === 'TCINS_0002';
+
             $confirmes = 0;
             $erreurs = [];
 
             foreach ($declarations as $declaration) {
+                if (! $estTribunal && ! filled($declaration->sig_cec_proof_id)) {
+                    $erreurs[] = $declaration->code_declaration_deces.' : signature électronique requise (utilisez « Signer et confirmer »)';
+                    continue;
+                }
+
                 [$ok, $result] = $mouvementService->confirmerDeclarationDeces(
                     $affectation,
                     $declaration,

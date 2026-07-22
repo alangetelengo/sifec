@@ -483,6 +483,23 @@ class UserController extends Controller
     }
 
     /**
+     * Vérifie que l'utilisateur connecté peut gérer le certificat numérique GUOT du profil ciblé :
+     * soit il en est le titulaire, soit il dispose de l'habilitation d'administration des comptes.
+     */
+    private function authorizeGuotProfileAccess(User $user): void
+    {
+        $current = Auth::user();
+        if ($current === null) {
+            abort(403);
+        }
+
+        $estTitulaire = (string) $current->code_user === (string) $user->code_user;
+        if (! $estTitulaire && ! $current->can('module.users')) {
+            abort(403, "Vous n'êtes pas autorisé à accéder au certificat numérique de cet utilisateur.");
+        }
+    }
+
+    /**
      * Enrôlement PKI GUOT depuis le profil (responsable éligible).
      */
     public function enrollGuot(Request $request, string $id, GuotEnrollmentService $enrollment)
@@ -500,6 +517,8 @@ class UserController extends Controller
 
             return back();
         }
+
+        $this->authorizeGuotProfileAccess($user);
 
         $affectation = $user->affectationActive() ?? $user->affectations->firstWhere('active', 1);
         if ($affectation === null) {
@@ -535,6 +554,8 @@ class UserController extends Controller
 
             return back();
         }
+
+        $this->authorizeGuotProfileAccess($user);
 
         $affectation = $user->affectationActive() ?? $user->affectations->first(fn (InstitutionUser $a) => (int) $a->active === 1);
         if ($affectation === null || ! filled($affectation->guot_user_id)) {
@@ -587,6 +608,9 @@ class UserController extends Controller
     public function readyGuotP12(string $id, string $token)
     {
         $user = User::find($id);
+        if ($user !== null) {
+            $this->authorizeGuotProfileAccess($user);
+        }
         $payload = cache()->get('guot_p12:'.$token);
 
         if ($user === null || ! is_array($payload) || ($payload['code_user'] ?? null) !== $user->code_user) {
@@ -612,6 +636,9 @@ class UserController extends Controller
     public function fileGuotP12(string $id, string $token)
     {
         $user = User::find($id);
+        if ($user !== null) {
+            $this->authorizeGuotProfileAccess($user);
+        }
         $payload = cache()->pull('guot_p12:'.$token);
 
         if ($user === null || ! is_array($payload) || ($payload['code_user'] ?? null) !== $user->code_user) {
@@ -1171,7 +1198,7 @@ class UserController extends Controller
 
         $action = $request->input('action');
         $userIds = $request->input('user_ids');
-        $users = User::whereIn('code_user', $userIds)->get();
+        $users = User::whereIn('code_user', $userIds)->with('personne')->get();
 
         Log::channel('sifec')->info('[bulk2FA] Utilisateurs trouvés : '.$users->count());
 
@@ -1188,6 +1215,8 @@ class UserController extends Controller
         $google2fa = new Google2FA;
         $successCount = 0;
         $mailErrors = [];
+        $pendingMails = [];
+        $failedSetups = [];
         $appName = config('app.name', 'SIFEC');
 
         DB::beginTransaction();
@@ -1214,37 +1243,26 @@ class UserController extends Controller
                     $otpUrl = "otpauth://totp/{$label}?secret={$rawSecret}&issuer=".urlencode($appName);
                     $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data='.urlencode($otpUrl);
 
-                    $mail2fa = $user->emailForTwoFactorMail();
-                    if ($mail2fa !== null) {
-                        try {
-                            Mail::to($mail2fa)
-                                ->send(new TwoFactorBulkMailable($user, $codes, 'enabled', $rawSecret, $qrUrl));
-                            Log::channel('sifec')->info("[bulk2FA] Email 2FA envoyé à {$mail2fa} (user #{$user->code_user}).");
-                        } catch (\Throwable $mailEx) {
-                            Log::channel('sifec')->warning("[bulk2FA] Email non envoyé à {$mail2fa} : ".$mailEx->getMessage());
-                            $mailErrors[] = ($user->personne->nom ?? '').' <'.$mail2fa.'>';
-                        }
-                    } else {
-                        Log::channel('sifec')->warning("[bulk2FA] Aucune adresse e-mail (compte ou professionnelle) pour #{$user->code_user} — e-mail 2FA non envoyé.");
-                    }
-
+                    $pendingMails[] = [
+                        'user' => $user,
+                        'codes' => $codes,
+                        'action' => 'enabled',
+                        'rawSecret' => $rawSecret,
+                        'qrUrl' => $qrUrl,
+                    ];
                 } else {
                     // Désactivation
                     if ($user->hasTwoFactorEnabled()) {
                         $user->disableTwoFactor();
                         Log::channel('sifec')->info("[bulk2FA] 2FA désactivée pour #{$user->code_user}.");
 
-                        $mail2fa = $user->emailForTwoFactorMail();
-                        if ($mail2fa !== null) {
-                            try {
-                                Mail::to($mail2fa)
-                                    ->send(new TwoFactorBulkMailable($user, [], 'disabled', null, null));
-                                Log::channel('sifec')->info("[bulk2FA] Email désactivation envoyé à {$mail2fa}.");
-                            } catch (\Throwable $mailEx) {
-                                Log::channel('sifec')->warning("[bulk2FA] Email désactivation non envoyé à {$mail2fa} : ".$mailEx->getMessage());
-                                $mailErrors[] = ($user->personne->nom ?? '').' <'.$mail2fa.'>';
-                            }
-                        }
+                        $pendingMails[] = [
+                            'user' => $user,
+                            'codes' => [],
+                            'action' => 'disabled',
+                            'rawSecret' => null,
+                            'qrUrl' => null,
+                        ];
                     } else {
                         Log::channel('sifec')->info("[bulk2FA] 2FA déjà inactive pour #{$user->code_user} — ignoré.");
                     }
@@ -1254,34 +1272,6 @@ class UserController extends Controller
             }
 
             DB::commit();
-            Log::channel('sifec')->info("[bulk2FA] Opération terminée. Succès: {$successCount}, Emails en erreur: ".count($mailErrors));
-
-            $label = $action === 'enable' ? 'activée' : 'désactivée';
-            $msg = "2FA <strong>{$label}</strong> pour <strong>{$successCount}</strong> utilisateur(s).";
-
-            if (! empty($mailErrors)) {
-                $msg .= '<br><small style="color:#856404;">⚠️ Emails non envoyés : '.implode(', ', $mailErrors).'</small>';
-            }
-
-            // Réponse JSON pour les appels AJAX
-            if ($request->expectsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $msg,
-                    'count' => $successCount,
-                    'mailErrors' => $mailErrors,
-                ]);
-            }
-
-            // Fallback non-AJAX
-            if (! empty($mailErrors)) {
-                flash()->warning(strip_tags($msg), [], 'Gestion 2FA');
-            } else {
-                flash()->success(strip_tags($msg), [], 'Gestion 2FA');
-            }
-
-            return redirect()->route('utilisateur.index');
-
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::channel('sifec')->error('[bulk2FA] ERREUR : '.$e->getMessage(), [
@@ -1300,6 +1290,85 @@ class UserController extends Controller
 
             return back();
         }
+
+        // Envoi des e-mails après commit (évite de bloquer la transaction sur SMTP)
+        foreach ($pendingMails as $pending) {
+            /** @var User $user */
+            $user = $pending['user'];
+            $mail2fa = $user->emailForTwoFactorMail();
+            $displayName = trim(($user->personne->nom ?? '').' '.($user->personne->prenom ?? ''));
+
+            if ($mail2fa === null) {
+                Log::channel('sifec')->warning("[bulk2FA] Aucune adresse e-mail (compte ou professionnelle) pour #{$user->code_user} — e-mail 2FA non envoyé.");
+                $mailErrors[] = e($displayName !== '' ? $displayName : $user->code_user).' (aucune adresse e-mail)';
+                if ($pending['action'] === 'enabled') {
+                    $failedSetups[] = [
+                        'name' => $displayName !== '' ? $displayName : $user->code_user,
+                        'email' => null,
+                        'secret' => $pending['rawSecret'],
+                        'qrUrl' => $pending['qrUrl'],
+                        'codes' => $pending['codes'],
+                    ];
+                }
+
+                continue;
+            }
+
+            try {
+                Mail::to($mail2fa)->send(new TwoFactorBulkMailable(
+                    $user,
+                    $pending['codes'],
+                    $pending['action'],
+                    $pending['rawSecret'],
+                    $pending['qrUrl']
+                ));
+                Log::channel('sifec')->info("[bulk2FA] Email 2FA ({$pending['action']}) envoyé à {$mail2fa} (user #{$user->code_user}).");
+            } catch (\Throwable $mailEx) {
+                Log::channel('sifec')->warning("[bulk2FA] Email non envoyé à {$mail2fa} : ".$mailEx->getMessage());
+                $mailErrors[] = e($displayName !== '' ? $displayName : ($user->personne->nom ?? $user->code_user)).' ('.e($mail2fa).')';
+                if ($pending['action'] === 'enabled') {
+                    $failedSetups[] = [
+                        'name' => $displayName !== '' ? $displayName : $user->code_user,
+                        'email' => $mail2fa,
+                        'secret' => $pending['rawSecret'],
+                        'qrUrl' => $pending['qrUrl'],
+                        'codes' => $pending['codes'],
+                    ];
+                }
+            }
+        }
+
+        Log::channel('sifec')->info("[bulk2FA] Opération terminée. Succès: {$successCount}, Emails en erreur: ".count($mailErrors));
+
+        $label = $action === 'enable' ? 'activée' : 'désactivée';
+        $msg = "2FA <strong>{$label}</strong> pour <strong>{$successCount}</strong> utilisateur(s).";
+
+        if (! empty($mailErrors)) {
+            $msg .= '<br><small style="color:#856404;">⚠️ Emails non envoyés : '.implode(', ', $mailErrors).'</small>';
+            if ($action === 'enable' && ! empty($failedSetups)) {
+                $msg .= '<br><small style="color:#856404;">Les QR codes et codes de récupération sont affichés ci-dessous pour transmission manuelle.</small>';
+            }
+        }
+
+        // Réponse JSON pour les appels AJAX
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'count' => $successCount,
+                'mailErrors' => $mailErrors,
+                'failedSetups' => $failedSetups,
+            ]);
+        }
+
+        // Fallback non-AJAX
+        if (! empty($mailErrors)) {
+            flash()->warning(strip_tags($msg), [], 'Gestion 2FA');
+        } else {
+            flash()->success(strip_tags($msg), [], 'Gestion 2FA');
+        }
+
+        return redirect()->route('utilisateur.index');
     }
 
     /**

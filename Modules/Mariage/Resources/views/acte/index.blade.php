@@ -212,13 +212,13 @@ Actes de mariage
                                                            title="Voir l'acte">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <a href="{{ route('acteMariage.copie',$dm->code_declaration_mariage) }}"
+                                                        <a href="{{ route('acteMariage.print.copie',$dm->code_declaration_mariage) }}"
                                                            target="_blank"
                                                            class="btn btn-info btn-sm"
                                                            title="Voir copie">
                                                             <i class="fas fa-copy"></i>
                                                         </a>
-                                                        <a href="{{ route('acteMariage.displayExtrait',$dm->code_declaration_mariage) }}"
+                                                        <a href="{{ route('acteMariage.print.extrait',$dm->code_declaration_mariage) }}"
                                                            target="_blank"
                                                            class="btn btn-warning btn-sm"
                                                            title="Voir extrait">
@@ -451,28 +451,52 @@ Actes de mariage
     </div>
     {{-- FIN MODAL RECHERCHE ACTE DE NAISSACE --}}
 
-    {{-- DEBUT MODAL VALIDATION ACTE DE MARIAGE --}}
+    {{-- DEBUT MODAL VALIDATION ACTE DE MARIAGE (signature électronique .p12) --}}
     <div class="modal fade" id="modal-validate-acte" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Validation de l'acte de mariage</h5>
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-signature me-2"></i>Signature électronique de l'acte de mariage
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal">
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="mb-2 col-md-6">
-                            <input type="hidden" id="code_declaration_mariage_validate">
-                            <input type="hidden" id="validation_type">
-                            <label class="form-label">Code de validation<span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-lg text-center fw-bold" id="otp_approbation_mairie" placeholder="_ _ _ _ _ _ _ _" maxlength="8" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="one-time-code" required>
-                        </div>
-                        <span class="text-success"><i>Veuillez saisir le code de validation reçu par SMS.</i> Code non reçu ? <a href="#" class="resend_otp">Renvoyez le code de validation</a></span>
+                    <input type="hidden" id="code_declaration_mariage_validate">
+                    <input type="hidden" id="validation_type">
+
+                    <div class="alert alert-info py-2 mb-3">
+                        <p class="mb-2 small fw-semibold">Comment procéder</p>
+                        <ol class="small mb-2 ps-3">
+                            <li>Vérifiez l'acte (ou la sélection) à valider.</li>
+                            <li>Sélectionnez votre fichier certificat <strong>.p12</strong> et saisissez sa passphrase.</li>
+                            <li>Cliquez sur <strong>Signer électroniquement</strong> : votre identité valide et scelle l'acte.</li>
+                        </ol>
+                        <p class="mb-0 small text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Aucun code SMS n'est demandé. Utilisez uniquement le certificat personnel téléchargé lors de votre enrôlement.
+                            L'institution doit avoir son cachet institutionnel configuré.
+                        </p>
                     </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label small fw-semibold" for="acte_p12_file">Certificat électronique (.p12)</label>
+                            <input type="file" class="form-control form-control-sm" id="acte_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold" for="acte_p12_pin">Passphrase</label>
+                            <input type="password" class="form-control form-control-sm" id="acte_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                        </div>
+                    </div>
+
+                    <div id="guot-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-info btn-sm text-white" id="btn-validate">Valider</button>
+                    <button type="button" class="btn btn-success btn-sm text-white" id="btn-validate">
+                        <i class="fas fa-signature me-1"></i> Signer électroniquement
+                    </button>
                     <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
                 </div>
             </div>
@@ -619,6 +643,10 @@ Actes de mariage
 <!-- Datatable -->
     <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
+    <!-- Signature électronique .p12 -->
+    <script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+    <script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+    <script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260719a"></script>
     <script>
 
         $(function() {
@@ -741,31 +769,119 @@ Actes de mariage
                     }
                 },
 
-                // Validation multiple d'actes
+                // Validation multiple d'actes : ouvre le modal de signature .p12
                 handleValidateMultiple: function(e) {
                     e.preventDefault();
                     if (this.actesGeneres.length > 0) {
-                        this.sendOtpMultiple(this.actesGeneres, e.currentTarget);
+                        $("#validation_type").val("bulk");
+                        $("#code_declaration_mariage_validate").val("");
+                        $("#guot-sign-feedback").addClass('d-none').empty();
+                        $("#acte_p12_file").val('');
+                        $("#acte_p12_pin").val('');
+                        $("#modal-validate-acte").modal('show');
                     }
                 },
 
 
 
 
-                // Validation d'actes
-                handleValidate: function(e) {
+                // Signature électronique .p12 de l'acte (singleton ou bulk) : prepare → sign → finalize
+                handleValidate: async function(e) {
                     e.preventDefault();
-                    const codeDeclaration = $("#code_declaration_mariage_validate").val();
-                    const validationType = $("#validation_type").val();
-                    const otp = $("#otp_approbation_mairie").val();
-
-                    const inputs = {
-                        codes: this.actesGeneres,
-                        code_declaration_mariage: codeDeclaration,
-                        otp_approbation_mairie: otp
+                    const $btn = $("#btn-validate");
+                    const resetBtn = () => $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+                    const showErr = (msg) => {
+                        $("#guot-sign-feedback").removeClass('d-none').text(msg);
+                        flashAlert("Échec", "error", msg);
                     };
 
-                    this.validateActes(validationType, inputs, $(this));
+                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Préparation…');
+                    $("#guot-sign-feedback").addClass('d-none').empty();
+
+                    const validationType = $("#validation_type").val();
+                    const codes = validationType === "bulk"
+                        ? this.actesGeneres.slice()
+                        : [$("#code_declaration_mariage_validate").val()].filter(Boolean);
+
+                    if (!codes.length) {
+                        resetBtn();
+                        showErr('Aucun acte à signer.');
+                        return false;
+                    }
+
+                    const fileInput = document.getElementById('acte_p12_file');
+                    const pin = $('#acte_p12_pin').val();
+                    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                        resetBtn();
+                        showErr('Sélectionnez votre fichier certificat (.p12).');
+                        return false;
+                    }
+                    if (!pin || !String(pin).trim()) {
+                        resetBtn();
+                        showErr('Saisissez la passphrase de votre certificat.');
+                        return false;
+                    }
+                    if (typeof window.SifecP12Sign === 'undefined') {
+                        resetBtn();
+                        showErr('Bibliothèque de signature non chargée. Rechargez la page.');
+                        return false;
+                    }
+
+                    try {
+                        const prep = await $.ajax({
+                            url: "{{ route('acteMariage.sign.prepare') }}",
+                            type: 'POST',
+                            data: { codes: codes, _token: '{{ csrf_token() }}' }
+                        });
+
+                        if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                            resetBtn();
+                            showErr((prep && prep.message) ? prep.message : 'Échec de la préparation.');
+                            return false;
+                        }
+
+                        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+                        const p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+                        const signatures = [];
+                        for (let i = 0; i < prep.items.length; i++) {
+                            const item = prep.items[i];
+                            const signatureHex = await window.SifecP12Sign.signHashHex(
+                                p12Binary,
+                                pin,
+                                item.document_hash,
+                                prep.expected_serial || null
+                            );
+                            signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+                        }
+
+                        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Validation…');
+                        const fin = await $.ajax({
+                            url: "{{ route('acteMariage.sign.finalize') }}",
+                            type: 'POST',
+                            data: { token: prep.token, signatures: signatures, _token: '{{ csrf_token() }}' }
+                        });
+
+                        resetBtn();
+                        const msg = typeof fin.message === 'string' ? fin.message : 'Réponse inconnue';
+                        if (String(fin.code) === '200') {
+                            flashAlert("Succès", "success", msg);
+                            $('#modal-validate-acte').modal('hide');
+                            setTimeout(() => location.reload(), 1200);
+                            return false;
+                        }
+                        showErr(msg);
+                    } catch (err) {
+                        resetBtn();
+                        let emsg = 'Erreur lors de la signature électronique';
+                        if (err && err.responseJSON && err.responseJSON.message) {
+                            emsg = typeof err.responseJSON.message === 'string' ? err.responseJSON.message : JSON.stringify(err.responseJSON.message);
+                        } else if (err && err.message) {
+                            emsg = err.message;
+                        }
+                        showErr(emsg);
+                    }
+
+                    return false;
                 },
 
                 // Méthodes utilitaires pour les appels API
@@ -800,123 +916,6 @@ Actes de mariage
                                 sifecBtnReset(btnEl);
                             }
                         });
-                },
-
-                sendOtpMultiple: function(codes, btnEl) {
-                    $(".over-loader-page").fadeIn(600);
-                    if (btnEl) {
-                        sifecBtnLoading(btnEl, 'Envoi OTP...');
-                    }
-                    const url = "{{ route('acteMariage.send.otp.bulk') }}";
-
-                    $.post(url, { codes: codes, _token: '{{ csrf_token() }}' })
-                        .done((response) => {
-                            if (response.code === "200") {
-                                $("#validation_type").val("bulk");
-                                $("#modal-validate-acte").modal('show');
-                            } else {
-                                var outString = "<ul>";
-                                for (const [key, value] of Object.entries(response.message)) {
-                                    outString += `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                                }
-                                outString += "</ul>";
-                                flashAlert("ALERTE", "error", outString);
-                            }
-                        })
-                        .fail(() => {
-                            flashAlert("Erreur", "error", "Erreur de communication avec le serveur");
-                        })
-                        .always(() => {
-                            $(".over-loader-page").fadeOut(600);
-                            if (btnEl) {
-                                sifecBtnReset(btnEl);
-                            }
-                        });
-                },
-
-                validateActes: function(type, inputs, trigger) {
-                    if (type === "simple") {
-                        if (!inputs.code_declaration_mariage || !inputs.otp_approbation_mairie) {
-                            flashAlert("Erreur", "error", "Veuillez renseigner le code du formulaire type et le code de validation reçu par SMS");
-                            return;
-                        }
-                        this.validateSingleActe(inputs, trigger);
-                    } else {
-                        if (inputs.codes.length === 0 || !inputs.otp_approbation_mairie) {
-                            flashAlert("Erreur", "error", "Veuillez renseigner le code de validation reçu par SMS");
-                            return;
-                        }
-                        this.validateMultipleActes(inputs, trigger);
-                    }
-                },
-
-                extraireMsg: function(message) {
-                    if (!message) return 'Réponse inconnue du serveur.';
-                    if (typeof message === 'string')  return message;
-                    if (Array.isArray(message))       return message[0] || 'Erreur inconnue.';
-                    if (typeof message === 'object') {
-                        if (message.reponse) return message.reponse;
-                        if (message.error)   return message.error;
-                    }
-                    return JSON.stringify(message);
-                },
-
-                validateSingleActe: function(inputs, trigger) {
-                    trigger.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
-                    const url = "{{ route('acteMariage.validate.otp') }}";
-
-                    $.post(url, {
-                        code_declaration_mariage: inputs.code_declaration_mariage,
-                        otp_approbation_mairie: inputs.otp_approbation_mairie,
-                        _token: '{{ csrf_token() }}'
-                    })
-                    .done((response) => {
-                        var msg = this.extraireMsg(response.message);
-                        if (response.code === "200") {
-                            flashAlert("Succès", "success", msg);
-                            $('#modal-validate-acte').modal('hide');
-                            setTimeout(function(){ location.reload(); }, 1500);
-                        } else {
-                            flashAlert("Échec", "error", msg);
-                            trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
-                        }
-                    })
-                    .fail((xhr) => {
-                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
-                            ? this.extraireMsg(xhr.responseJSON.message)
-                            : 'Erreur lors de la validation de l\'acte.';
-                        flashAlert("Erreur", "error", msg);
-                        trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
-                    });
-                },
-
-                validateMultipleActes: function(inputs, trigger) {
-                    trigger.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
-                    const url = "{{ route('acteMariage.validate.otp.bulk') }}";
-
-                    $.post(url, {
-                        codes: inputs.codes,
-                        otp_approbation_mairie: inputs.otp_approbation_mairie,
-                        _token: '{{ csrf_token() }}'
-                    })
-                    .done((response) => {
-                        var msg = this.extraireMsg(response.message);
-                        if (response.code === "200") {
-                            flashAlert("Succès", "success", msg);
-                            $('#modal-validate-acte').modal('hide');
-                            setTimeout(function(){ location.reload(); }, 1500);
-                        } else {
-                            flashAlert("Échec", "error", msg);
-                            trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
-                        }
-                    })
-                    .fail((xhr) => {
-                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
-                            ? this.extraireMsg(xhr.responseJSON.message)
-                            : 'Erreur lors de la validation des actes.';
-                        flashAlert("Erreur", "error", msg);
-                        trigger.prop("disabled", false).html('<i class="fas fa-check me-1"></i> Valider');
-                    });
                 },
 
             };
@@ -975,27 +974,23 @@ Actes de mariage
             });
         });
 
-        // Validation d'un acte individuel (délégation : cohérent avec rechargements futurs)
+        // Signature d'un acte individuel : ouvre directement le modal de signature .p12
         $(document).on('click', '.btn-validate-single', function() {
             var code = $(this).data('id');
-            var btnValM = this;
-            sifecBtnLoading(btnValM, 'Envoi OTP...');
-            $.post("{{ route('acteMariage.send.otp') }}", {code_declaration_mariage: code, _token: '{{ csrf_token() }}'}, function(response){
-                if(response.code == "200"){
-                    $('#code_declaration_mariage_validate').val(code);
-                    $('#otp_approbation_mairie').val('');
-                    $("#validation_type").val("simple");
-                    $("#modal-validate-acte").modal('show');
-                }else{
-                    let msg = response.message && response.message.error ? response.message.error : response.message;
-                    flashAlert("Erreur", "error", msg);
-                }
-            }).fail(function(xhr){
-                let msg = xhr.responseJSON?.message || 'Erreur lors de l\'envoi du code OTP';
-                flashAlert("Erreur", "error", msg);
-            }).always(function() {
-                sifecBtnReset(btnValM);
-            });
+            $('#code_declaration_mariage_validate').val(code);
+            $("#validation_type").val("simple");
+            $("#guot-sign-feedback").addClass('d-none').empty();
+            $("#acte_p12_file").val('');
+            $("#acte_p12_pin").val('');
+            $("#modal-validate-acte").modal('show');
+        });
+
+        // Nettoyage du modal de signature à la fermeture
+        $('#modal-validate-acte').on('hidden.bs.modal', function() {
+            $("#guot-sign-feedback").addClass('d-none').empty();
+            $("#acte_p12_file").val('');
+            $("#acte_p12_pin").val('');
+            $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
         });
 
         // Annulation d'un acte individuel

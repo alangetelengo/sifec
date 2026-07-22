@@ -137,22 +137,23 @@ class MouvementService
                 $declaration->cec_approuve_par = $user->cui;
                 $declaration->cec_approuve_le = now();
 
-                $etaitConstatation = ($declaration->type_declaration === 'CERTIFICAT DE CONSTATATION DE DECES');
+                // Règle métier CEC/PF (ne pas fusionner les deux flux) :
+                // - Certificat FS (DECLARATION DE DECES sans origine) → transformation en déclaration PF
+                //   (type_declaration_origine, contexte_affichage, MOUV_2012).
+                // - Constatation CH (CERTIFICAT DE CONSTATATION DE DECES) → validation/signing seule :
+                //   le type reste inchangé ; l'acte se génère depuis ce type (voir PfDecesActeDashboardService,
+                //   Institution::getDeclarationsFormationSanitaireApprouvees).
                 $etaitCertificatFs = ($declaration->type_declaration === 'DECLARATION DE DECES'
                     && empty($declaration->type_declaration_origine));
 
-                if ($etaitConstatation) {
-                    $declaration->type_declaration_origine = 'CERTIFICAT DE CONSTATATION DE DECES';
-                    $declaration->type_declaration = 'DECLARATION DE DECES';
-                    $declaration->contexte_affichage = 'pompe_funebre';
-                } elseif ($etaitCertificatFs) {
+                if ($etaitCertificatFs) {
                     $declaration->type_declaration_origine = 'CERTIFICAT DE DECES';
                     $declaration->contexte_affichage = 'pompe_funebre';
                 }
 
                 $declaration->save();
 
-                if ($etaitConstatation || $etaitCertificatFs) {
+                if ($etaitCertificatFs) {
                     $refTransform = DB::table('tr_mouvement')->where('code_mouvement', 'MOUV_2012')->first();
                     if (! $refTransform) {
                         throw new Exception('Mouvement référentiel MOUV_2012 introuvable (certificat transformé en déclaration de décès).');

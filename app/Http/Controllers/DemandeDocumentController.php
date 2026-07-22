@@ -227,7 +227,7 @@ class DemandeDocumentController extends Controller
                     'statut' => $demande->statut,
                 ]);
 
-                $message = "La demande doit être en statut 'En traitement' pour générer le PDF.";
+                $message = "La demande doit être en traitement (paiement désactivé) pour générer le PDF.";
 
                 if (request()->ajax() || request()->wantsJson()) {
                     return response()->json(['message' => $message], 400);
@@ -478,18 +478,44 @@ class DemandeDocumentController extends Controller
 
     /**
      * Télécharger le PDF
+     *
+     * Sert le PDF de consultation figé à la signature (chemin_document).
+     * Ne régénère pas à chaque download (évite divergence avec l'empreinte GUOT
+     * si l'acte a été rectifié ensuite). Réparation ponctuelle uniquement si
+     * le fichier servi est encore le binaire scellé (échec de régénération à la signature).
      */
     public function telechargerPdf($code)
     {
         $demande = DemandeDocument::findOrFail($code);
+        $docService = app(DemandeDocumentService::class);
 
-        if (empty($demande->chemin_document) || ! file_exists($demande->chemin_document)) {
+        if ($demande->estSignee() && ! $docService->estPdfConsultationPret($demande)) {
+            try {
+                $docService->assurerPdfConsultation($demande);
+                $demande->refresh();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::channel('sifec')->warning('Réparation PDF consultation au téléchargement échouée', [
+                    'code' => $code,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $chemin = $demande->chemin_document;
+        if ((empty($chemin) || ! is_file($chemin)) && filled($demande->pdf_path)) {
+            $fallback = storage_path('app/'.$demande->pdf_path);
+            if (is_file($fallback)) {
+                $chemin = $fallback;
+            }
+        }
+
+        if (empty($chemin) || ! is_file($chemin)) {
             flash()->error('Document PDF non disponible.');
 
             return back();
         }
 
-        return response()->download($demande->chemin_document);
+        return response()->download($chemin);
     }
 
     /**

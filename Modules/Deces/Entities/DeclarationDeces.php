@@ -41,6 +41,18 @@ class DeclarationDeces extends Model
     protected $primaryKey="code_declaration_deces";
     public $incrementing = false;
 
+    protected $casts = [
+        'sig_fs_signed_at' => 'datetime',
+        'sig_fs_doc_sig_signed_at' => 'datetime',
+        'sig_fs_doc_seal_sealed_at' => 'datetime',
+        'sig_ch_signed_at' => 'datetime',
+        'sig_ch_doc_sig_signed_at' => 'datetime',
+        'sig_ch_doc_seal_sealed_at' => 'datetime',
+        'sig_cec_signed_at' => 'datetime',
+        'sig_cec_doc_sig_signed_at' => 'datetime',
+        'sig_cec_doc_seal_sealed_at' => 'datetime',
+    ];
+
        public function lieuSurvenance(): BelongsTo
        {
            return $this->belongsTo(LieuSurvenance::class, 'code_lieu_survenance', 'code_lieu_survenance');
@@ -230,6 +242,49 @@ class DeclarationDeces extends Model
         {
             return in_array($this->type_declaration, ['DECLARATION DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true)
                 || in_array($this->type_declaration_origine ?? '', ['CERTIFICAT DE DECES', 'CERTIFICAT DE CONSTATATION DE DECES'], true);
+        }
+
+        public function estConstatation(): bool
+        {
+            return ($this->type_declaration ?? '') === 'CERTIFICAT DE CONSTATATION DE DECES';
+        }
+
+        public function estCertificatFormationSanitaire(): bool
+        {
+            return ($this->type_declaration ?? '') === 'DECLARATION DE DECES'
+                && empty($this->type_declaration_origine);
+        }
+
+        /**
+         * Phase de signature à l'origine (envoi) : fs pour certificat FS, ch pour constatation.
+         */
+        public function phaseSignatureOrigine(): ?string
+        {
+            if ($this->estConstatation()) {
+                return 'ch';
+            }
+
+            if ($this->estCertificatFormationSanitaire()) {
+                return 'fs';
+            }
+
+            return null;
+        }
+
+        public function estSigneePhase(string $phase): bool
+        {
+            $prefix = match ($phase) {
+                'fs' => 'sig_fs_',
+                'ch' => 'sig_ch_',
+                'cec' => 'sig_cec_',
+                default => null,
+            };
+
+            if ($prefix === null) {
+                return false;
+            }
+
+            return filled($this->{$prefix.'proof_id'});
         }
 
     }

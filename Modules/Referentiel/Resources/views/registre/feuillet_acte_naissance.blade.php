@@ -205,7 +205,7 @@
                                         @endif
                                           <br>
 
-                                        Est informé que le : <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong><br>
+                                        Est informé que le : <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong><br>
                                         Est né(e), un enfant de sexe: <strong>{{$acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin" }}</strong><br>
                                         @if($acte->declaration->type_declarant == "Personne physique")
                                         Nom(s): <strong style="color: red">{{ $acte->declaration->enfant->nom }}</strong><br>
@@ -216,7 +216,7 @@
                                         Filiation: <strong>{{$acte->declaration->type_declarant == "Personne physique" ? $acte->declaration->filiation->lib_filiation : $dummy }}</strong><br>
                                         Situation matrimoniale des parents: <strong>{{$acte->declaration->sitMatParent ? $acte->declaration->sitMatParent->lib_situation_matrimoniale : $dummy }}</strong><br>
                                         Fils de:<strong> {{$acte->declaration->pere ? $acte->declaration->pere->nom." ".$acte->declaration->pere->prenom : $dummy }}</strong><br>
-                                        Né le : <strong> {{ $acte->declaration->pere ?  \App\Sifec\Sifec::asLetters((int)date("d",strtotime($acte->declaration->pere->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) : $dummy }}</strong><br>
+                                        Né le : <strong> {{ $acte->declaration->pere ?  \App\Sifec\Sifec::jourEnLettres((int)date("d",strtotime($acte->declaration->pere->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) : $dummy }}</strong><br>
                                         A : <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->lieu_naissance : $dummy }}</strong><br>
                                         Nationalité: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->nationalite->lib_nationalite : $dummy}}</strong><br>
                                         Niveau d'instruction: <strong>{{ $acte->declaration->pere ? $acte->declaration->pere->niveau_instruction : $dummy}}</strong><br>
@@ -230,12 +230,12 @@
                     </div>
 
                     <div class="col-sm-6">
-                        <div class="card" style="height: 670px; border: 2px solid">
+                        <div class="card" style="min-height: 670px; border: 2px solid">
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-xl-12" style="text-align:left; font-size:14px"><br><br>
                                         Et de :<strong> {{ $acte->declaration->mere ? $acte->declaration->mere->nom." ".$acte->declaration->mere->prenom : $dummy }}</strong><br>
-                                        Né le : <strong> {{ $acte->declaration->mere ?  \App\Sifec\Sifec::asLetters((int)date("d",strtotime($acte->declaration->mere->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) : $dummy }}</strong><br>
+                                        Né le : <strong> {{ $acte->declaration->mere ?  \App\Sifec\Sifec::jourEnLettres((int)date("d",strtotime($acte->declaration->mere->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) : $dummy }}</strong><br>
                                         A : <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->lieu_naissance : $dummy }}</strong><br>
                                         Nationalité: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->nationalite->lib_nationalite : $dummy }}</strong><br>
                                         Niveau d'instruction: <strong>{{ $acte->declaration->mere ? $acte->declaration->mere->niveau_instruction : $dummy }}</strong><br>
@@ -252,13 +252,20 @@
                                                 @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
                                             </div>
                                             <div class="text-end" style="min-width: 200px; flex: 1;">
+                                                @php
+                                                    $dateActeFeuillet = $acte->signed_at
+                                                        ?? $acte->doc_sig_signed_at
+                                                        ?? $acte->date_heure_approbation_mairie
+                                                        ?? $acte->date_emission;
+                                                    $roleActeFeuillet = \App\Support\GuotSignatureAffichage::roleSignataire(
+                                                        $acte,
+                                                        '',
+                                                        "L'officier de l'état civil"
+                                                    );
+                                                @endphp
                                                 <p class="mb-1">
-                                                    Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime(date($acte->date_emission))))}}<br>
-                                                    @if( Auth::user()->affectationActive()->institution->code_institution != "INS_0170")
-                                                        L'Officier de l'Etat Civil
-                                                    @else
-                                                        Consule
-                                                    @endif
+                                                    Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateActeFeuillet)))}}<br>
+                                                    {{ $roleActeFeuillet }}
                                                 </p>
                                                 @if ($acte->approbation_mairie != "")
                                                     @php
@@ -277,6 +284,7 @@
                                                 @endif
                                             </div>
                                         </div>
+                                        @include('referentiel::registre.partials.acte-naissance-signature-pki', ['acte' => $acte])
                                         <p class="text-center mb-0 mt-3" style="font-size: 10px; color: #5a3d1e; line-height: 1.25;">
                                             Cet acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
                                         </p>

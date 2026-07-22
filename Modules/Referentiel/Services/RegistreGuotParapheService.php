@@ -4,6 +4,7 @@ namespace Modules\Referentiel\Services;
 
 use App\Models\User;
 use App\Services\GuotDocumentSignatureService;
+use App\Support\GuotSignatureAffichage;
 use App\Support\GuotSignataires;
 use Exception;
 use Illuminate\Support\Facades\Cache;
@@ -335,6 +336,8 @@ class RegistreGuotParapheService
             $reg->payload_hash = $hash;
             $reg->actor_id = $actorId;
             $reg->actor_nom = $actorNom;
+            $reg->actor_fonction = \App\Models\InstitutionUser::with('fonction')->find($cui)?->fonction?->lib_fonction
+                ?? GuotSignatureAffichage::fonctionUtilisateur($user);
             $reg->certificate_ref = $l2['certificate_ref'] ?? null;
             $reg->signed_at = $l2['signed_at'] ?? now();
             $reg->rfc3161_l1_serial = $l2['rfc3161_serial'] ?? ($l2['timestamp_serial'] ?? null);

@@ -53,12 +53,16 @@ $localisation = $localisationData['localisation'];
 
 <page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ public_path("tpl/armoirie_congo.png") }}"  backimgw="100%"
 	  backtop="10mm"
-	  backbottom="15mm"
+	  backbottom="12mm"
 	  backleft="10mm"
 	  backright="20mm"
 	  footer="page" >
 
 	<bookmark title="Lettre" level="0" ></bookmark>
+
+    <page_footer>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'declaration_mariage'])
+    </page_footer>
 
     <page_header >
 
@@ -129,7 +133,7 @@ $localisation = $localisationData['localisation'];
     </table>
     <div style="width: 100%;">
         <p style="font-size: 13px;"> <strong>Centre d’état civil principal de : </strong>{!! nl2br(e(wordwrap($inst ?? '', 55, "\n", true))) !!}<br>
-             Le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->date_declaration_mariage)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->date_declaration_mariage)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->date_declaration_mariage))) }}</strong> <br>
+             Le <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($dm->date_declaration_mariage)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->date_declaration_mariage)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->date_declaration_mariage))) }}</strong> <br>
              Par devant nous, </p>
             <br>
             <legend>Les futurs époux</legend>
@@ -142,7 +146,7 @@ $localisation = $localisationData['localisation'];
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;;"> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epoux->date_naissance))) }} </span>  </td>
+                    <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;;"> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epoux->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epoux->date_naissance))) }} </span>  </td>
                     <td style="border: none; padding:5px 0px;">&nbsp;</td>
                 </tr>
                 <tr>
@@ -220,7 +224,7 @@ $localisation = $localisationData['localisation'];
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
-                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;"> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epouse->date_naissance))) }} </span>  </td>
+                <td style="border: none; padding:5px 0px;" colspan="3"><strong>Date de naissance :</strong><span style="font-size:13px;"> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($dm->epouse->date_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($dm->epouse->date_naissance))) }} </span>  </td>
                 <td style="border: none; padding:5px 0px;">&nbsp;</td>
             </tr>
             <tr>
@@ -526,8 +530,31 @@ $localisation = $localisationData['localisation'];
                 <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
                 <td style="border: none; padding:5px 0px;text-align:">&nbsp;</td>
                 <td style="text-align: right;">
-                     Fait à <span style="text-transform:capitalize">{{ $localisation }}</span>, le {{ date("d-m-Y", strtotime($dm->date_declaration_mariage)) }}<br>
-                    <p style="text-align:left;margin-left:120px">L’officier de l'état civil</p><br><br><br><br><br><br><br><br><br><br>
+                    @php
+                        use App\Support\GuotSignatureAffichage;
+
+                        // Même logique que la déclaration de naissance : la date « Fait à … » reflète
+                        // la date de signature électronique du CEC lorsque le document est signé,
+                        // sinon la date de déclaration.
+                        $signeLeDecl = $dm->sig_cec_signed_at ?? $dm->sig_cec_doc_sig_signed_at ?? null;
+                        $estSigneDecl = filled($dm->sig_cec_proof_id);
+                        $dateDocumentDecl = $signeLeDecl ?: $dm->date_declaration_mariage;
+                        $signataireNomDecl = $dm->sig_cec_actor_nom ?? null;
+                        $roleSigDecl = GuotSignatureAffichage::roleSignataire($dm, 'sig_cec_', "Responsable du centre d'état civil");
+                        $mentionSignatureDecl = 'Signé électroniquement';
+                        if ($signeLeDecl) {
+                            $mentionSignatureDecl .= ' le '.\Carbon\Carbon::parse($signeLeDecl)->format('d/m/Y à H:i');
+                        }
+                    @endphp
+                     Fait à <span style="text-transform:capitalize">{{ $localisation }}</span>, le {{ date("d-m-Y", strtotime((string) $dateDocumentDecl)) }}<br>
+                    <p style="text-align:left;margin-left:120px">{{ $roleSigDecl }}</p>
+                    @if($estSigneDecl)
+                        <br><span style="font-size: 11px;">{{ $signataireNomDecl ?: '' }}</span>
+                        <br><span style="font-size: 10px; color:#006B31;">{{ $mentionSignatureDecl }}</span>
+                        <br><br><br><br><br><br><br>
+                    @else
+                        <br><br><br><br><br><br><br><br><br>
+                    @endif
                 </td>
               </tr>
 
@@ -550,12 +577,14 @@ $localisation = $localisationData['localisation'];
 
 
 
-@if($dm->epoux_approuver == "OUI" && $dm->epouse_approuver == "OUI")
+{{-- Un document signé électroniquement (CEC) est marqué d'un QR code d'authentification. --}}
+@if(($forceSignatureQr ?? false) || filled($dm->sig_cec_proof_id) || ($dm->epoux_approuver == "OUI" && $dm->epouse_approuver == "OUI"))
     @php
         $declarationVerificationUrl = \Illuminate\Support\Facades\URL::signedRoute('verification.declaration.mariage', ['code' => $dm->code_declaration_mariage]);
     @endphp
-    <div style="position:absolute; margin-left:40px;margin-top: 550px;">
+    <div style="position:absolute; margin-left:40px;margin-top: 550px; text-align:center;">
         <qrcode value="{{ $declarationVerificationUrl }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+        <br><span style="font-size: 7px; color: #555;">Scanner pour authentifier</span>
     </div>
 @endif
 

@@ -93,7 +93,8 @@
                     </dd>
 
                     @php
-                        $fonctionSignataire = $registre->signataire?->fonction?->lib_fonction;
+                        $fonctionSignataire = $registre->actor_fonction
+                            ?: $registre->signataire?->fonction?->lib_fonction;
                     @endphp
                     <dt class="col-sm-5 col-md-4">{{ $fonctionSignataire ?: 'Signataire' }}</dt>
                     <dd class="col-sm-7 col-md-8">{{ $registre->actor_nom ?: '—' }}</dd>

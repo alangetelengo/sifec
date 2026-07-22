@@ -294,7 +294,7 @@
             <div class="bb-item">
                 <div class="row">
                     <div class="col-sm-12">
-                        <div class="card registre-livret-doc-inner" style="height: 680px; border: 2px solid; text-align: left; font-size: 12px">
+                        <div class="card registre-livret-doc-inner" style="min-height: 680px; border: 2px solid; text-align: left; font-size: 12px">
                             <h2>
                                 {!! $registre->getTexteParapheRegistre('deces') !!}<br><br>
                             </h2>
@@ -304,6 +304,10 @@
                                 <img src='{{ asset("app/".$registre->sceau) }}' alt="">
                                 @include('referentiel::registre.partials.registre-paraphe-qrcode', ['registre' => $registre])
                             </b>
+                            @include('referentiel::registre.partials.registre-paraphe-signature-pki', [
+                                'registre' => $registre,
+                                'contexte' => 'deces',
+                            ])
                         </div>
                     </div>
                 </div>
@@ -494,7 +498,7 @@
                                     </div>
                                     <div class="col-xl-12" style="text-align:left; font-size:14px">
                                         Centre d'état civil secondaire :  <strong> {{ $acteReg->institutionUser->institution->lib_institution }}</strong><br>
-                                        le <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
+                                        le <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime( $acteReg->declaration->date_heure_declaration)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acteReg->declaration->date_heure_declaration))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acteReg->declaration->date_heure_declaration)))." à ".date("H", strtotime($acteReg->declaration->date_heure_declaration)). " heure(s) ".date("s", strtotime($acteReg->declaration->date_heure_declaration)) }} minutes</strong><br>
                                         S'est présenté(e) <strong> {{ $acteReg->declaration->declarant->nom.' '.$acteReg->declaration->declarant->prenom }}</strong>, &ensp; Filiation: <strong>{{ $acteReg->declaration->filiation->lib_filiation }} </strong><br>
                                         Domicilié(e) : <strong>{{ $acteReg->declaration->declarant->adresse }}</strong><br>
                                         qui a déclaré le décès de : <strong style="color: red">{{ $acteReg->declaration->defunt->nomComplet() }} </strong><br>

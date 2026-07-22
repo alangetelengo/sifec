@@ -7,6 +7,8 @@ use Modules\Mariage\Http\Controllers\ActeMariageController;
 use Modules\Mariage\Http\Controllers\PublicationController;
 use Modules\Mariage\Http\Controllers\EtatsMariageController;
 use Modules\Mariage\Http\Controllers\RegistreMariageController;
+use Modules\Mariage\Http\Controllers\ActeMariageSignatureController;
+use Modules\Mariage\Http\Controllers\DeclarationMariageSignatureController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +51,10 @@ Route::middleware(['auth', 'mariage.cec'])->prefix('declarationMariage')->group(
     // Route pour les mouvements
     Route::post('mouvement', [MariageController::class,'mouvement'])->name("declarationMariage.mouvement");
 
+    // Signature électronique .p12 de la déclaration (confirmation par le CEC)
+    Route::post('sign/prepare', [DeclarationMariageSignatureController::class, 'prepare'])->name('declarationMariage.sign.prepare');
+    Route::post('sign/finalize', [DeclarationMariageSignatureController::class, 'finalize'])->name('declarationMariage.sign.finalize');
+
 });
 
 Route::middleware('auth')->prefix('publicationMariage')->group(function() {
@@ -60,13 +66,10 @@ Route::middleware('auth')->prefix('publicationMariage')->group(function() {
 Route::middleware(['auth', 'mariage.cec'])->prefix('acteMariage')->group(function() {
     Route::get('/', [ActeMariageController::class,'index'])->name("acteMariage.index");
     Route::get("acte/search/{id}", [ActeMariageController::class,'searchActe'])->name('acteMariage.search');
-    Route::put('{id}/acte/mariage/approuver', [ActeMariageController::class,'mariageApprouver'])->name('acteMariage.mariage.approuver');
 
-    // Routes pour la gestion des OTP et validation
-    Route::post("send-otp", [ActeMariageController::class,'sendOtp'])->name("acteMariage.send.otp");
-    Route::post("send-otp-bulk", [ActeMariageController::class,'sendOtpBulk'])->name("acteMariage.send.otp.bulk");
-    Route::post("validate-otp", [ActeMariageController::class,'validateOtp'])->name("acteMariage.validate.otp");
-    Route::post("validate-otp-bulk", [ActeMariageController::class,'validateOtpBulk'])->name("acteMariage.validate.otp.bulk");
+    // Signature électronique .p12 de l'acte de mariage (remplace le flux OTP)
+    Route::post('sign/prepare', [ActeMariageSignatureController::class, 'prepare'])->name('acteMariage.sign.prepare');
+    Route::post('sign/finalize', [ActeMariageSignatureController::class, 'finalize'])->name('acteMariage.sign.finalize');
 
     // Routes pour la génération des actes
     Route::post('generate-single', [ActeMariageController::class,'generateActe'])->name('acteMariage.generate.single');
@@ -98,6 +101,8 @@ Route::middleware(['auth', 'mariage.cec'])->prefix('acteMariage')->group(functio
 
     // Routes d'impression pour les notifications
     Route::get('{id}/print/acte',[ActeMariageController::class,"printActe"])->name('acteMariage.print.acte');
+    Route::get('{id}/print/copie',[ActeMariageController::class,"printCopie"])->name('acteMariage.print.copie');
+    Route::get('{id}/print/extrait',[ActeMariageController::class,"printExtrait"])->name('acteMariage.print.extrait');
 });
 
 Route::middleware(['auth', 'mariage.cec'])->prefix('etatMariage')->group(function() {

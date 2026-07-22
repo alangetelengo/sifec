@@ -4,6 +4,7 @@ namespace Modules\Naissance\Services;
 
 use App\Models\User;
 use App\Services\GuotDocumentSignatureService;
+use App\Support\GuotSignatureAffichage;
 use App\Support\GuotSignataires;
 use Exception;
 use Illuminate\Support\Facades\Cache;
@@ -80,7 +81,7 @@ class DeclarationNaissanceSignatureService
 
         foreach ($codes as $code) {
             try {
-                $prepared = $this->prepareUn($code, $phase);
+                $prepared = $this->prepareUn($user, $code, $phase);
             } catch (Exception $e) {
                 return ['ok' => false, 'message' => $code.': '.$e->getMessage(), 'items' => []];
             }
@@ -266,7 +267,7 @@ class DeclarationNaissanceSignatureService
     /**
      * @return array{cache: array{pdf: string, hash: string}, public: array{code_declaration: string, document_hash: string, libelle: string}}
      */
-    private function prepareUn(string $codeDeclaration, string $phase): array
+    private function prepareUn(User $user, string $codeDeclaration, string $phase): array
     {
         $cfg = $this->phaseConfig($phase);
 
@@ -282,6 +283,8 @@ class DeclarationNaissanceSignatureService
         if (filled($declaration->{$cfg['prefix'].'proof_id'})) {
             throw new Exception(ucfirst($cfg['label']).' déjà signé électroniquement.');
         }
+
+        GuotSignatureAffichage::applySignerPreview($declaration, $user, $cfg['prefix']);
 
         $pdfBinary = $this->pdfRenderer->renderBinary($declaration, $cfg['contexte']);
         $hash = hash('sha256', $pdfBinary);
@@ -345,6 +348,7 @@ class DeclarationNaissanceSignatureService
 
             $user->loadMissing('personne');
             $actorNom = trim(($user->personne?->nom ?? '').' '.($user->personne?->prenom ?? '')) ?: (string) $user->email;
+            $actorFonction = GuotSignatureAffichage::fonctionUtilisateur($user);
             $documentRef = $cfg['ref'].$codeDeclaration;
 
             $l2 = $this->guot->verifyClientDocumentSignature(
@@ -370,6 +374,7 @@ class DeclarationNaissanceSignatureService
             $declaration->{$prefix.'payload_hash'} = $hash;
             $declaration->{$prefix.'actor_id'} = $actorId;
             $declaration->{$prefix.'actor_nom'} = $actorNom;
+            $declaration->{$prefix.'actor_fonction'} = $actorFonction;
             $declaration->{$prefix.'cui'} = $cui;
             $declaration->{$prefix.'certificate_ref'} = $l2['certificate_ref'] ?? null;
             $declaration->{$prefix.'signed_at'} = $l2['signed_at'] ?? now();

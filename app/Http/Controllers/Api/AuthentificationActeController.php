@@ -316,12 +316,16 @@ class AuthentificationActeController extends Controller
                 'code_institution' => $codeInstitution,
             ]);
 
-            // 7. Retour avec les informations de la demande
+            // 7. Retour avec les informations de la demande + URL d'accusé (iframe portail)
             Log::channel('sifec')->info('[Portail][demandeActe] Demande créée', [
                 'code_demande' => $demande->code_demande_document,
                 'numero_acte' => $numeroActe,
                 'code_institution' => $codeInstitution,
             ]);
+
+            // Même hôte/base que la requête (ex. /sifec/public) pour éviter un 404 iframe
+            $etatUrl = rtrim($request->getSchemeAndHttpHost().$request->getBasePath(), '/')
+                .'/api/v1/demande/'.rawurlencode($demande->code_demande_document).'/accuse';
 
             return response()->json([
                 'code' => '200',
@@ -329,6 +333,7 @@ class AuthentificationActeController extends Controller
                 'code_demande' => $demande->code_demande_document,
                 'montant' => $demande->prix,
                 'statut' => $demande->statut,
+                'etat' => $etatUrl,
                 // URL paiement (commentée pour l'instant)
                 // 'url_paiement' => route('api.paiement', ['code_demande' => $demande->code_demande_document]),
             ]);

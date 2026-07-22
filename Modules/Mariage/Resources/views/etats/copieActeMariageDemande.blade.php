@@ -1,4 +1,4 @@
-{{-- 
+{{--
     Vue copie acte de mariage pour demande de document
     Utilise la signature de la demande
 --}}
@@ -28,7 +28,11 @@
    }
 </style>
 
-<page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+<page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="14mm" style="font-size: 12pt">
+
+    <page_footer>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'copie_mariage'])
+    </page_footer>
     @php
         $f = $acte->institutionUser->where("code_fonction","FONC_0002")->first();
         $nomcomplet = "";
@@ -50,19 +54,19 @@
         // Utiliser le service Sifec pour obtenir les informations de localisation
         $institution = $acte->institutionUser->institution;
         $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-        
+
         $localite = $localisationData['localite'];
         $localiteParent = $localisationData['localiteParent'];
         $inst = $localisationData['inst'];
         $localisation = $localisationData['localisation'];
-        
+
         $dept = $localisationData['localiteParent'];
         $commune = $localisationData['localite'];
-        
+
         // N'utiliser QUE la signature de la demande
         $signatureOfficier = $demande->signature_officier ?? null;
-        $nomSignataire = $demande->signataire 
-            ? optional(optional($demande->signataire->user)->personne)->nomcomplet() 
+        $nomSignataire = $demande->signataire
+            ? optional(optional($demande->signataire->user)->personne)->nomcomplet()
             : '';
     @endphp
 
@@ -108,17 +112,17 @@
             <tr style="margin-right: 8px;">
                 <td class="compact">
                     Centre d'état civil principal : {!! nl2br(e(wordwrap($institution->lib_institution ?? '', 55, "\n", true))) !!} <br>
-                    <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong> <br>
+                    <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong> <br>
                     Par devant nous {{ $nomcomplet }} Officier de l'Etat Civil ont comparu publiquement : <br>
                     <span style="margin-left: 30px;"><strong>M. {{ $acte->declaration->epoux->nomcomplet() }}</strong></span> <br>
-                    Né le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
+                    Né le <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
                     Acte de naissance n° <strong>{{ $acte->declaration->numero_acte_naissance_epoux }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epoux))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) }}</strong> dressé à la <strong>{!! nl2br(e(wordwrap($acte->declaration->cec_naissance_epoux ?? '', 55, "\n", true))) !!}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epoux->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpoux->lib_profession }}</strong> <br>
                     Domicilié : <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->adresse ?? '', 55, "\n", true))) !!}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpoux->lib_situation_matrimoniale }}</strong> <br>
                     Fils de : {!! nl2br(e(wordwrap($acte->declaration->pere_epoux ?? '', 55, "\n", true))) !!} <br>
                     Et de : {!! nl2br(e(wordwrap($acte->declaration->mere_epoux ?? '', 55, "\n", true))) !!} <br>
                     <span style="margin-left: 30px;">Et <strong>Mme. {{ $acte->declaration->epouse->nomcomplet() }}</strong></span> <br>
-                    Née le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
+                    Née le <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
                     Acte de naissance n° <strong>{{  $acte->declaration->numero_acte_naissance_epouse  }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epouse))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) }}</strong> dressé à la <strong>{!! nl2br(e(wordwrap($acte->declaration->cec_naissance_epouse ?? '', 55, "\n", true))) !!}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epouse->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpouse->lib_profession }}</strong> <br>
                     Domiciliée : <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->adresse ?? '', 55, "\n", true))) !!}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpouse->lib_situation_matrimoniale }}</strong> <br>
@@ -145,14 +149,15 @@
                 </td>
             </tr>
            </table>
-           
+
            {{-- Pied avec signature de la demande --}}
            <table class="historique" cellspacing="0" style="width: 100%; font-size: 18px; margin-top: 20px;">
                 <tbody>
                         <tr>
                             <td></td>
                             <td style="text-align: center;padding-top: 5px;">
-                                <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower($commune)) }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
+                                {{-- <p style="font-size: 14px;">Fait à {{ ucfirst(strtolower($commune)) }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br> --}}
+                                <p style="font-size: 14px;">Fait à {{ "Brazzaville" }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
                                 L'officier d'état civil</p>
                                 @if($signatureOfficier)
                                     <img src="{{ public_path('app/'.$signatureOfficier) }}" width="100" height="100" alt=""><br>

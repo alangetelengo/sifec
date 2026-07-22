@@ -1,4 +1,4 @@
-{{-- 
+{{--
     Vue extrait acte de mariage pour demande de document
     Utilise la signature de la demande
 --}}
@@ -25,19 +25,23 @@
    }
 </style>
 
-<page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="30mm" style="font-size: 12pt">
+<page orientation="landscape" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="70%" backimgw="70%" backtop="0" backbottom="12mm" style="font-size: 12pt">
+
+    <page_footer>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'extrait_mariage'])
+    </page_footer>
     @php
         // Utiliser le service Sifec pour obtenir les informations de localisation
         $institution = $acte->institutionUser->institution;
         $localisationData = \App\Sifec\Sifec::getLocalisationInstitution($institution);
-        
+
         $dept = $localisationData['localiteParent'];
         $commune = $localisationData['localite'];
-        
+
         // N'utiliser QUE la signature de la demande
         $signatureOfficier = $demande->signature_officier ?? null;
-        $nomSignataire = $demande->signataire 
-            ? optional(optional($demande->signataire->user)->personne)->nomcomplet() 
+        $nomSignataire = $demande->signataire
+            ? optional(optional($demande->signataire->user)->personne)->nomcomplet()
             : '';
     @endphp
 
@@ -75,7 +79,7 @@
     <table align="left" style="border-radius: 1mm; border: none; width: 100%; font-size: 14px;">
         <tr class="compact">
             <td>
-                Le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong>
+                Le <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong>
             </td>
         </tr>
         <tr class="compact">
@@ -95,7 +99,7 @@
         </tr>
         <tr class="compact">
             <td>
-                Né le <strong>{{ date("d", strtotime($acte->declaration->epoux->date_naissance)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->epoux->date_naissance)) }}</strong> 
+                Né le <strong>{{ date("d", strtotime($acte->declaration->epoux->date_naissance)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) ." ".date("Y", strtotime($acte->declaration->epoux->date_naissance)) }}</strong>
                 à <strong>{{ $acte->declaration->epoux->lieu_naissance }}</strong>
             </td>
         </tr>
@@ -131,7 +135,8 @@
 {{-- Pied avec signature de la demande --}}
 <div style="position:absolute; bottom:5mm; width: 100%; text-align: right; padding-right: 10%;">
     <p style="font-size: 12px;">
-        Fait à {{ ucfirst(strtolower($commune)) }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
+        {{-- Fait à {{ ucfirst(strtolower($commune)) }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br> --}}
+        Fait à {{ "Brazzaville" }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
         L'officier de l'état civil
     </p>
     @if($signatureOfficier)

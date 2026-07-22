@@ -1,27 +1,38 @@
-{{-- 
-    Vue extrait acte de naissance pour demande de document
-    Utilise la signature de la demande
+{{--
+    Vue extrait acte de naissance pour demande de document.
+    A5 paysage — flux normal (pas de position:absolute) pour 1 page sans débordement.
 --}}
 <style>
     td {
-        font-size: 13px;
+        font-size: 12px;
     }
     button#print {
         display: none;
     }
 </style>
-<page orientation="landscape" format="148x210" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0" backbottom="12mm" style="font-size: 13px">
+<page
+    orientation="landscape"
+    format="A5"
+    backimg="{{ public_path('tpl/back-border.png') }}"
+    backcolor="#FEFEFE"
+    backimgx="center"
+    backimgy="50%"
+    backimgw="70%"
+    backtop="4mm"
+    backbottom="10mm"
+    backleft="12mm"
+    backright="12mm"
+    style="font-size: 12px"
+>
     <page_footer>
-        <div style="width: 100%; text-align: center; font-size: 8px; color: #5a3d1e; line-height: 1.25; padding: 1mm 3mm 1.5mm 3mm;">
-            Cet extrait d'acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
-        </div>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'extrait_naissance'])
     </page_footer>
     @php
-    setlocale(LC_TIME, "fr_FR", "French");
+    setlocale(LC_TIME, 'fr_FR', 'French');
     $institution = $acte->institutionUser->institution;
     $departement = $institution->lieu->localiteParent->localiteParent;
     $communeDistrict = $institution->lieu->localiteParent;
-    
+
     $nomEnfant = $acte->declaration->enfant->nom ?? '';
     $prenomEnfant = $acte->declaration->enfant->prenom ?? '';
     if ($acte->lastRectification && $acte->lastRectification->detailsRectification && $acte->lastRectification->detailsRectification->count() > 0) {
@@ -35,77 +46,86 @@
         }
     }
     $prenomEnfant = \App\Sifec\Sifec::formatPrenomPourActe($prenomEnfant);
-    
+
     $demandeSignee = $demande->estSignee();
     $signatureOfficier = $demande->signature_officier ?? null;
-    $nomSignataire = $demande->signataire 
-        ? optional(optional($demande->signataire->user)->personne)->nomcomplet() 
-        : '';
+    $nomSignataire = $demande->actor_nom
+        ?: ($demande->signataire
+            ? optional(optional($demande->signataire->user)->personne)->nomcomplet()
+            : '');
+    $roleDelivrance = \App\Support\GuotSignatureAffichage::roleSignataire($demande, '', "L'officier de l'état civil");
+    $blocDelivrance = \App\Support\GuotSignatureAffichage::blocPki(
+        $demande,
+        '',
+        'PKI — DÉLIVRANCE',
+        "L'officier de l'état civil",
+        '#006B31',
+        '#f4faf6',
+    );
     $qrCode = \Illuminate\Support\Facades\URL::signedRoute(
         'verification.demande.document',
         ['code' => $demande->code_demande_document]
     );
     @endphp
 
-    {{-- Entête --}}
-    <table cellspacing="0" style="width: 100%; font-size: 11px;">
+    {{-- Entête : institution à gauche, République à droite --}}
+    <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 10px;">
         <tr>
-            <td style="width:33%; text-align: center;">
+            <td style="width: 42%; text-align: center; vertical-align: top;">
+                {{ 'DEPARTEMENT DE '.$departement->lib_localite }}<br>
+                {{ 'COMMUNE DE '.$communeDistrict->lib_localite }}<br>
+                <strong>{{ $institution->lib_institution }}</strong>
+            </td>
+            <td style="width: 16%;"></td>
+            <td style="width: 42%; text-align: center; vertical-align: top;">
                 <strong>REPUBLIQUE DU CONGO</strong><br>
                 Unit&eacute; - Travail - Progr&egrave;s
             </td>
-            <td style="width:34%; text-align: center;">
-                <p>
-                    <span>{{ "DEPARTEMENT DE ".$departement->lib_localite }}</span><br>
-                    <span>{{ "COMMUNE DE ".$communeDistrict->lib_localite }}</span><br>
-                    <span><strong>{{ $institution->lib_institution }}</strong></span>
-                </p>
-            </td>
-            <td style="width:33%; text-align: center;"></td>
         </tr>
     </table>
 
-    <table align="center" style="border-radius: 1mm; border: none; margin-top: 10mm;">
+    <table cellspacing="0" cellpadding="0" style="width: 100%; margin-top: 4mm;">
         <tr>
-            <td style="width:100%; text-align: center;">
-                <p><strong style="font-size: 16px;">EXTRAIT D'ACTE DE NAISSANCE</strong><br>
-                   @if(filled($acte->approbation_mairie))
-                   N°: <strong style="color: red; font-size: 14px;">{{ $acte->niupp }}</strong>
-                   @endif
-                </p>
+            <td style="width: 100%; text-align: center;">
+                <strong style="font-size: 14px;">EXTRAIT D'ACTE DE NAISSANCE</strong><br>
+                @if(filled($acte->approbation_mairie))
+                    N°: <strong style="color: red; font-size: 12px;">{{ $acte->niupp }}</strong>
+                @endif
             </td>
         </tr>
     </table>
 
     @include('demande-document._mention_validite_pdf')
 
-    <div style="margin-top: 5mm; margin-left: 8%; margin-right: 8%; font-size: 13px;">
-        <table align="left" style="width: 100%;">
-            <tr><td>Nom : <strong>{{ strtoupper($nomEnfant) }}</strong></td></tr>
-            <tr><td>Prénom(s) : <strong>{{ $prenomEnfant }}</strong></td></tr>
-            <tr><td>Sexe : <strong>{{ $acte->declaration->enfant->sexe == "M" ? "Masculin" : "Féminin" }}</strong></td></tr>
-            <tr><td>Né(e) le : <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ".\App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance)))." ".\App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong></td></tr>
-            <tr><td>A : <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td></tr>
+    <div style="margin-top: 4mm; font-size: 12px; line-height: 1.4;">
+        <table cellspacing="0" cellpadding="1" align="center" style="width: 70%; margin: 0 auto;">
+            <tr><td style="text-align: center;">Nom : <strong>{{ strtoupper($nomEnfant) }}</strong></td></tr>
+            <tr><td style="text-align: center;">Prénom(s) : <strong>{{ $prenomEnfant }}</strong></td></tr>
+            <tr><td style="text-align: center;">Sexe : <strong>{{ $acte->declaration->enfant->sexe == 'M' ? 'Masculin' : 'Féminin' }}</strong></td></tr>
+            <tr><td style="text-align: center;">Né(e) le : <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date('d', strtotime($acte->declaration->date_heure_naissance))).' '.\App\Sifec\Sifec::mois(date('m', strtotime($acte->declaration->date_heure_naissance))).' '.\App\Sifec\Sifec::asLetters(date('Y', strtotime($acte->declaration->date_heure_naissance))) }}</strong></td></tr>
+            <tr><td style="text-align: center;">A : <strong>{{ $acte->declaration->enfant->lieu_naissance }}</strong></td></tr>
         </table>
     </div>
 
-    {{-- Pied : QR = délivrance (demande) ; signature = officier en fonction --}}
-    <div style="position:absolute; bottom:8mm; left: 8mm; right: 8mm;">
-        <table cellspacing="0" style="width: 100%; table-layout: fixed;">
-            <col style="width: 35%">
-            <col style="width: 65%">
+    {{-- Pied : QR au centre, signature à droite --}}
+    <div style="margin-top: 5mm;">
+        <table cellspacing="0" cellpadding="0" style="width: 100%; table-layout: fixed;">
+            <col style="width: 33%">
+            <col style="width: 34%">
+            <col style="width: 33%">
             <tr>
-                <td style="text-align: left; vertical-align: bottom;">
+                <td style="vertical-align: top;"></td>
+                <td style="text-align: center; vertical-align: top;">
                     @if($demandeSignee)
-                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 22mm; border: none;"></qrcode>
+                        <qrcode value="{{ $qrCode }}" ec="H" style="width: 16mm; border: none;"></qrcode>
                         <br>
-                        <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                        <span style="font-size: 5.5px; color: #555;">Scanner pour authentifier</span>
                     @endif
                 </td>
-                <td style="text-align: right; vertical-align: bottom; padding-right: 4mm;">
-                    <p style="font-size: 12px; margin: 0;">
-                        Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
-                        L'officier de l'état civil
+                <td style="text-align: right; vertical-align: top;">
+                    <p style="font-size: 10px; margin: 0 0 0.5mm 0;">
+                        Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite))) }}, le {{ $demande->date_signature ? $demande->date_signature->format('d/m/Y') : now()->format('d/m/Y') }}<br>
+                        {{ $roleDelivrance }}
                     </p>
                     @if($demandeSignee)
                         @php
@@ -114,14 +134,18 @@
                                 : null;
                         @endphp
                         @if ($pdfSignature)
-                        <img src="{{ $pdfSignature }}" style="width: 24mm;"><br>
+                            <img src="{{ $pdfSignature }}" style="width: 16mm;"><br>
                         @endif
-                        <span style="color:black; font-weight:bold">{{ $nomSignataire }}</span>
+                        <span style="color: black; font-weight: bold; font-size: 10px;">{{ $nomSignataire }}</span>
                     @else
-                        <span style="color: #999; font-style: italic; font-size: 11px;">[En attente de signature de délivrance]</span>
+                        <span style="color: #999; font-style: italic; font-size: 9px;">[En attente de signature de délivrance]</span>
                     @endif
                 </td>
             </tr>
         </table>
+        @include('partials.guot.signature-pki-blocs', [
+            'blocs' => array_values(array_filter([$blocDelivrance])),
+            'compact' => true,
+        ])
     </div>
 </page>

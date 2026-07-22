@@ -349,11 +349,26 @@ class Sifec
     }
 
     /**
+     * Jour du mois en lettres (état civil) : le 1er → « premier », les autres → cardinal (asLetters).
+     * Ne pas utiliser asLetters(1) pour un jour de date (sinon « un janvier »).
+     */
+    public static function jourEnLettres(int|string $jour): string
+    {
+        $j = (int) $jour;
+        if ($j === 1) {
+            return 'premier';
+        }
+
+        return (string) self::asLetters($j);
+    }
+
+    /**
      * Envoi SMS : un seul fournisseur selon config `sifec.sms.provider` (wirepick | infobip).
      */
     public static function sendSms($to, $content)
     {
         $provider = strtolower((string) config('sifec.sms.provider', 'wirepick'));
+        $content = self::sanitizeSmsText((string) $content);
         $phoneNorm = self::normalizeSmsPhone((string) $to);
 
         Log::channel('sifec')->info('SMS sendSms (entrée)', [
@@ -362,30 +377,123 @@ class Sifec
             'phone_normalise' => $phoneNorm,
             'phone_masque' => self::maskMsisdnForLog($phoneNorm),
             'from_config' => config('sifec.sms.sender_id', 'ETAT-CIVIL'),
-            'texte_apercu' => mb_substr((string) $content, 0, 240),
-            'texte_longueur' => mb_strlen((string) $content),
+            'texte_apercu' => mb_substr($content, 0, 240),
+            'texte_longueur' => mb_strlen($content),
         ]);
 
-        if ($provider === 'infobip') {
-            return self::infobipSms($to, $content);
+        if ($phoneNorm === '') {
+            Log::channel('sifec')->warning('SMS sendSms: numéro vide ou invalide après normalisation Congo', [
+                'to_brut' => $to,
+            ]);
+
+            return false;
         }
 
-        return self::sendSmsWirepick($to, $content);
+        if ($provider === 'infobip') {
+            return app(static::class)->infobipSms($phoneNorm, $content);
+        }
+
+        $client = config('sifec.sms.wirepick.client');
+        $password = config('sifec.sms.wirepick.password');
+        if (! filled($client) || ! filled($password) || $password === '123456789@123456789') {
+            Log::channel('sifec')->warning('Wirepick: identifiants non configurés ou encore par défaut — renseigner SIFEC_SMS_WIREPICK_CLIENT / SIFEC_SMS_WIREPICK_PASSWORD dans .env', [
+                'client_present' => filled($client),
+                'password_defaut' => $password === '123456789@123456789',
+            ]);
+        }
+
+        return self::sendSmsWirepick($phoneNorm, $content);
     }
 
     /**
-     * MSISDN international pour agrégateurs : chiffres uniquement, sans « + » ni espaces.
-     * Évite substr($to, 1) qui cassait « 242… » (sans +) en « 42… » et poussait Wirepick vers un expéditeur par défaut (ex. GROWIN-C).
+     * Texte SMS compatible GSM (évite UCS-2 : tirets Unicode, accents, etc.)
+     * qui multiplie les segments et fait parfois échouer la livraison réseau.
      */
-    protected static function normalizeSmsPhone(string $to): string
+    public static function sanitizeSmsText(string $text): string
+    {
+        $replacements = [
+            '—' => '-', '–' => '-', '−' => '-', '‐' => '-',
+            '‘' => "'", '’' => "'", '‚' => "'", '‛' => "'",
+            '“' => '"', '”' => '"', '„' => '"',
+            '…' => '...', '«' => '"', '»' => '"',
+            '°' => ' ', '€' => 'EUR',
+            'à' => 'a', 'á' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a',
+            'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ý' => 'y', 'ÿ' => 'y', 'ç' => 'c', 'ñ' => 'n',
+            'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ä' => 'A',
+            'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Ö' => 'O',
+            'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
+            'Ý' => 'Y', 'Ç' => 'C', 'Ñ' => 'N',
+        ];
+        $text = strtr($text, $replacements);
+
+        $trans = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        if (is_string($trans) && $trans !== '') {
+            $text = $trans;
+        }
+
+        // Ne garder que caractères SMS « sûrs »
+        $text = preg_replace('/[^\x20-\x7E\n]/', '', $text) ?? $text;
+        $text = preg_replace('/[ \t]+/', ' ', $text) ?? $text;
+        $text = preg_replace('/ ?- ?/', '-', $text) ?? $text;
+
+        return trim($text);
+    }
+
+    /**
+     * MSISDN international Congo pour Wirepick / Infobip : chiffres uniquement.
+     * Ex. 066835332, 66835332, +242066835332 → 242066835332
+     * Wirepick rejette (RTN) les formats nationaux sans indicatif 242.
+     */
+    public static function normalizeSmsPhone(string $to): string
     {
         $digits = preg_replace('/\D/', '', ltrim(trim($to), '+'));
+        if (! is_string($digits) || $digits === '') {
+            return '';
+        }
 
-        return is_string($digits) ? $digits : '';
+        $cc = '242';
+
+        // Déjà international Congo (242…)
+        if (str_starts_with($digits, $cc)) {
+            $national = substr($digits, strlen($cc));
+            // 242 + 8 chiffres (0 national manquant) → 2420…
+            if (strlen($national) === 8 && ! str_starts_with($national, '0')) {
+                return $cc.'0'.$national;
+            }
+
+            return $digits;
+        }
+
+        // National avec 0 : 06xxxxxxx / 04xxxxxxx (9 chiffres)
+        if (strlen($digits) === 9 && str_starts_with($digits, '0')) {
+            return $cc.$digits;
+        }
+
+        // National sans 0 : 6xxxxxxx / 4xxxxxxx (8 chiffres) — Wirepick retire parfois le 0
+        if (strlen($digits) === 8) {
+            return $cc.'0'.$digits;
+        }
+
+        // Autre longueur : préfixer l'indicatif si le numéro reste court
+        if (strlen($digits) <= 10) {
+            if (! str_starts_with($digits, '0')) {
+                $digits = '0'.$digits;
+            }
+
+            return $cc.$digits;
+        }
+
+        return $digits;
     }
 
     /** Pour les logs : garde le début / la fin du MSISDN, sans exposer tout le numéro. */
-    protected static function maskMsisdnForLog(string $digits): string
+    public static function maskMsisdnForLog(string $digits): string
     {
         $len = strlen($digits);
         if ($len === 0) {
@@ -414,23 +522,36 @@ class Sifec
     /** Statut XML Wirepick (<sms><status>…</status>) — ex. ACT, MAX, REJ. */
     protected static function parseWirepickResponseStatus(?string $xmlBody): ?string
     {
+        return self::parseWirepickResponseDetails($xmlBody)['status'];
+    }
+
+    /**
+     * @return array{status: ?string, msgid: ?string, phone: ?string, num_sms: ?int}
+     */
+    public static function parseWirepickResponseDetails(?string $xmlBody): array
+    {
+        $empty = ['status' => null, 'msgid' => null, 'phone' => null, 'num_sms' => null];
         if ($xmlBody === null || $xmlBody === '') {
-            return null;
+            return $empty;
         }
 
         try {
             $sx = @simplexml_load_string($xmlBody);
-            if ($sx === false) {
-                return null;
+            if ($sx === false || ! isset($sx->sms)) {
+                return $empty;
             }
-            if (isset($sx->sms->status)) {
-                return trim((string) $sx->sms->status);
-            }
-        } catch (\Throwable $e) {
-            return null;
-        }
 
-        return null;
+            $numSms = isset($sx->sms->num_sms) ? (int) (string) $sx->sms->num_sms : null;
+
+            return [
+                'status' => isset($sx->sms->status) ? trim((string) $sx->sms->status) : null,
+                'msgid' => isset($sx->sms->msgid) ? trim((string) $sx->sms->msgid) : null,
+                'phone' => isset($sx->sms->phone) ? trim((string) $sx->sms->phone) : null,
+                'num_sms' => $numSms > 0 ? $numSms : null,
+            ];
+        } catch (\Throwable $e) {
+            return $empty;
+        }
     }
 
     protected static function sendSmsWirepick($to, $content)
@@ -445,20 +566,39 @@ class Sifec
             'text' => $content,
         ];
         $endpoint = config('sifec.sms.wirepick.endpoint', 'https://api.wirepick.com/httpsms/send');
+        $method = strtolower((string) config('sifec.sms.wirepick.http_method', 'get'));
 
-        $req = Http::asForm()->get($endpoint, $data);
+        // Connexion HTTP isolée : après les appels GUOT (signature), la réutilisation cURL
+        // peut faire accepter Wirepick (ACT) sans livrer — Tinkerwell (seul appel) fonctionne.
+        $http = Http::withOptions([
+            'curl' => [
+                CURLOPT_FORBID_REUSE => true,
+                CURLOPT_FRESH_CONNECT => true,
+            ],
+        ])->timeout(30);
+
+        if ($method === 'post') {
+            $req = $http->asForm()->post($endpoint, $data);
+        } else {
+            $req = $http->get($endpoint, $data);
+        }
 
         $responseBody = $req->body();
-        $wirepickStatus = self::parseWirepickResponseStatus($responseBody);
+        $wirepick = self::parseWirepickResponseDetails($responseBody);
+        $wirepickStatus = $wirepick['status'];
 
         Log::channel('sifec')->info('Wirepick SMS (réponse)', [
             'client' => $data['client'],
+            'http_method' => $method,
             'from_envoye' => $from,
+            'phone_envoye' => $phone,
             'phone_masque' => self::maskMsisdnForLog($phone),
             'texte_apercu' => mb_substr((string) $content, 0, 240),
             'texte_longueur' => mb_strlen((string) $content),
             'http_status' => $req->status(),
             'wirepick_status' => $wirepickStatus,
+            'wirepick_msgid' => $wirepick['msgid'],
+            'wirepick_num_sms' => $wirepick['num_sms'],
             'corps_reponse' => self::truncateForLog($responseBody),
         ]);
 
@@ -599,13 +739,15 @@ class Sifec
                         $request->input('telephone'.$sufix),
                         $request->input('email'.$sufix)
                     );
-                    $contact = new ContactPersonne;
-                    $contact->indicatif = $indicatif;
-                    $contact->telephone = $telephone;
-                    $contact->email_personnelle = $email;
-                    $contact->email_professionnelle = self::normalizeEmailForContact($request->input('email_professionnel'.$sufix));
-                    $contact->code_personne = $personne->code_personne;
-                    $contact->save();
+                    $contact = self::upsertContactPersonne(
+                        $personne->code_personne,
+                        $indicatif,
+                        $telephone,
+                        $email,
+                        $request->input('email_professionnel'.$sufix)
+                    );
+                    $personne->telephone = $contact->telephone;
+                    $personne->save();
 
                     $adresse = new AdressePersonne;
                     $adresse->lib_pays = $request->input('domicile_pays'.$sufix) ?? 'Congo';
@@ -866,24 +1008,33 @@ class Sifec
             }
             // Log::channel("sifec")->error(["document"=>$dop]);
 
-            // modifier contacts
-            if ($sufix == '_enfant' && $request->input('telephone'.$sufix) != '' || $request->input('domicile_typevoie'.$sufix) != '' && $request->input('statut_personne'.$sufix) == 'VIVANT') {
-                // if ($sufix == "_enfant" && $request->input("statut_personne".$sufix) == "VIVANT") {
-
-                $addContact = new ContactPersonne;
-                $addContact->indicatif = $request->input('code_pays'.$sufix);
-                $addContact->telephone = $request->input('telephone'.$sufix);
-                $addContact->email_professionnelle = $request->input('email_professionnel'.$sufix);
-                $addContact->email_personnelle = $request->input('email'.$sufix);
-                $addContact->code_personne = $request->input('code'.$sufix);
-                $addContact->save();
+            // Modifier contacts / adresse pour l'enfant vivant uniquement
+            if (
+                $sufix === '_enfant'
+                && $request->input('statut_personne'.$sufix) == 'VIVANT'
+                && (
+                    $request->input('telephone'.$sufix) != ''
+                    || $request->input('domicile_typevoie'.$sufix) != ''
+                )
+            ) {
+                $addContact = self::upsertContactPersonne(
+                    $personne->code_personne,
+                    $request->input('code_pays'.$sufix),
+                    $request->input('telephone'.$sufix),
+                    $request->input('email'.$sufix),
+                    $request->input('email_professionnel'.$sufix)
+                );
 
                 [$numRue, $typeVoieAddr, $nomVoieAddr] = self::normalizeAdresseValues(
                     $request->input('domicile_numero'.$sufix),
                     $request->input('domicile_typevoie'.$sufix),
                     $request->input('domicile_nomvoie'.$sufix)
                 );
-                $addAdresse = new AdressePersonne;
+                $addAdresse = AdressePersonne::where('code_personne', $personne->code_personne)->orderBy('id')->first();
+                if ($addAdresse === null) {
+                    $addAdresse = new AdressePersonne;
+                    $addAdresse->code_personne = $personne->code_personne;
+                }
                 $addAdresse->lib_pays = $request->input('domicile_pays'.$sufix);
                 $addAdresse->lib_ville = $request->input('domicile_ville'.$sufix);
                 $addAdresse->type_voie = $typeVoieAddr;
@@ -900,7 +1051,6 @@ class Sifec
                     $codeLocalite = $request->input('domicile_ville'.$sufix);
                 }
                 $addAdresse->code_localite = $codeLocalite;
-                $addAdresse->code_personne = $personne->code_personne;
                 $addAdresse->save();
 
                 $personne->telephone = $addContact->telephone;
@@ -912,21 +1062,26 @@ class Sifec
             }
 
             if ($sufix != '_enfant' && $request->input('statut_personne'.$sufix) == 'VIVANT') {
-                $contact = ContactPersonne::where('code_personne', $personne->code_personne)->first();
-                Log::channel('sifec')->error(['contact' => $contact]);
-
-                $contact->indicatif = $request->input('code_pays'.$sufix);
-                $contact->telephone = $request->input('telephone'.$sufix);
-                $contact->email_personnelle = self::normalizeEmailForContact($request->input('email'.$sufix));
-                $contact->email_professionnelle = self::normalizeEmailForContact($request->input('email_professionnel'.$sufix));
-                $contact->save();
+                $contact = self::upsertContactPersonne(
+                    $personne->code_personne,
+                    $request->input('code_pays'.$sufix),
+                    $request->input('telephone'.$sufix),
+                    $request->input('email'.$sufix),
+                    $request->input('email_professionnel'.$sufix)
+                );
+                $personne->telephone = $contact->telephone;
+                $personne->save();
 
                 [$numRue, $typeVoieAddr2, $nomVoieAddr2] = self::normalizeAdresseValues(
                     $request->input('domicile_numero'.$sufix),
                     $request->input('domicile_typevoie'.$sufix),
                     $request->input('domicile_nomvoie'.$sufix)
                 );
-                $adresse = AdressePersonne::where('code_personne', $personne->code_personne)->first();
+                $adresse = AdressePersonne::where('code_personne', $personne->code_personne)->orderBy('id')->first();
+                if ($adresse === null) {
+                    $adresse = new AdressePersonne;
+                    $adresse->code_personne = $personne->code_personne;
+                }
                 $adresse->lib_pays = $request->input('domicile_pays'.$sufix);
                 $adresse->lib_ville = $request->input('domicile_ville'.$sufix);
                 $adresse->type_voie = $typeVoieAddr2;
@@ -943,7 +1098,6 @@ class Sifec
                     $codeLocalite = $request->input('domicile_ville'.$sufix);
                 }
                 $adresse->code_localite = $codeLocalite;
-                $adresse->code_personne = $personne->code_personne;
                 $adresse->save();
             }
 
@@ -1129,13 +1283,13 @@ class Sifec
                 $request->input('telephone'.$sufix),
                 $request->input('email'.$sufix)
             );
-            $contact = new ContactPersonne;
-            $contact->indicatif = $indicatif;
-            $contact->telephone = $telephone;
-            $contact->email_personnelle = $email;
-            $contact->email_professionnelle = self::normalizeEmailForContact($request->input('email_professionnel'.$sufix));
-            $contact->code_personne = $personne->code_personne;
-            $contact->save();
+            self::upsertContactPersonne(
+                $personne->code_personne,
+                $indicatif,
+                $telephone,
+                $email,
+                $request->input('email_professionnel'.$sufix)
+            );
 
             DB::commit();
 
@@ -1145,6 +1299,102 @@ class Sifec
             Log::channel('sifec')->error($e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Crée ou met à jour le contact d'une personne (évite les doublons dans t_contact_personne).
+     * Les e-mails ne sont écrasés que si une valeur est fournie (non null).
+     */
+    public static function upsertContactPersonne(
+        string $codePersonne,
+        $indicatif,
+        $telephone,
+        $emailPersonnelle = null,
+        $emailProfessionnelle = null,
+        bool $forceEmails = false
+    ): ContactPersonne {
+        [$indicatifNorm, $telephoneNorm, $emailPersoNorm] = self::normalizeContactValues(
+            $indicatif,
+            $telephone,
+            $emailPersonnelle
+        );
+        $emailProNorm = self::normalizeEmailForContact($emailProfessionnelle);
+
+        $contact = ContactPersonne::where('code_personne', $codePersonne)
+            ->orderBy('id')
+            ->first();
+
+        if ($contact === null) {
+            $contact = new ContactPersonne;
+            $contact->code_personne = $codePersonne;
+        }
+
+        if ($indicatif !== null && $indicatif !== '') {
+            $contact->indicatif = $indicatifNorm;
+        } elseif ($contact->indicatif === null || $contact->indicatif === '') {
+            $contact->indicatif = $indicatifNorm ?: '+242';
+        }
+
+        if ($telephoneNorm !== null) {
+            $contact->telephone = $telephoneNorm;
+        }
+
+        if ($forceEmails || $emailPersonnelle !== null) {
+            $contact->email_personnelle = $emailPersoNorm;
+        }
+        if ($forceEmails || $emailProfessionnelle !== null) {
+            $contact->email_professionnelle = $emailProNorm;
+        }
+
+        $contact->save();
+
+        return $contact;
+    }
+
+    /**
+     * Construit un MSISDN international (chiffres) depuis un contact.
+     * Format Wirepick Congo : 242 + numéro national avec le 0
+     * Ex. +242 + 066835332 → 242066835332
+     */
+    public static function msisdnFromContact(?ContactPersonne $contact): ?string
+    {
+        if ($contact === null) {
+            return null;
+        }
+
+        $tel = preg_replace('/\D/', '', (string) ($contact->telephone ?? ''));
+        if (! is_string($tel) || $tel === '') {
+            return null;
+        }
+
+        $ind = preg_replace('/\D/', '', ltrim((string) ($contact->indicatif ?? ''), '+'));
+        $raw = (is_string($ind) && $ind !== '' && ! str_starts_with($tel, $ind))
+            ? $ind.$tel
+            : $tel;
+
+        $msisdn = self::normalizeSmsPhone($raw);
+
+        return $msisdn !== '' ? $msisdn : null;
+    }
+
+    /**
+     * Contact le plus pertinent pour notifier (téléphone renseigné, plus récent).
+     */
+    public static function contactPourNotification(?Personne $personne): ?ContactPersonne
+    {
+        if ($personne === null) {
+            return null;
+        }
+
+        $contacts = $personne->relationLoaded('contacts')
+            ? $personne->contacts
+            : $personne->contacts()->get();
+
+        return $contacts
+            ->filter(fn (ContactPersonne $c) => trim((string) ($c->telephone ?? '')) !== '')
+            ->sortByDesc('id')
+            ->first()
+            ?? $contacts->sortByDesc('id')->first();
     }
 
     /**
@@ -1193,8 +1443,14 @@ class Sifec
         $indicatif = substr($indicatif, 0, 5);
 
         $telephone = $telephone === null ? '' : (string) $telephone;
-        if (strlen($telephone) > 12 || $telephone === $dummy) {
-            $telephone = '0000000';
+        if (
+            $telephone === $dummy
+            || str_contains($telephone, 'X')
+            || preg_match('/^[0Xx\-—]+$/', $telephone)
+        ) {
+            $telephone = '';
+        } elseif (strlen($telephone) > 12) {
+            $telephone = '';
         }
         $telephone = substr($telephone, 0, 12) ?: null;
 

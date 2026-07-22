@@ -1515,6 +1515,17 @@ class MariageController extends Controller
             $observation = $request->observation;
             $statut = "Confirmée";
 
+            // La confirmation par le centre d'état civil requiert la signature électronique
+            // préalable de la déclaration (flux « Signer et confirmer »). Le tribunal, qui utilise
+            // la même route pour son propre visa, n'est pas concerné.
+            $estTribunal = optional(optional(optional($affectation->institution)->typeInstitution)->typeCategorieInstitution)->code_type_categorie_ins === 'TCINS_0002';
+            if (! $estTribunal && ! filled($declaration->sig_cec_proof_id)) {
+                DB::rollBack();
+                return response()->json([
+                    'code' => '403',
+                    'message' => ["La confirmation du centre d'état civil requiert la signature électronique. Utilisez l'action « Signer et confirmer »."]
+                ]);
+            }
 
             [$ok, $result] = $mouvementService->confirmerDeclaration(
                 $affectation,
@@ -1568,10 +1579,18 @@ class MariageController extends Controller
                 ]);
             }
 
+            $estTribunal = optional(optional(optional($affectation->institution)->typeInstitution)->typeCategorieInstitution)->code_type_categorie_ins === 'TCINS_0002';
+
             $confirmes = 0;
             $erreurs = [];
 
             foreach ($declarations as $declaration) {
+                // Un centre d'état civil ne peut confirmer sans signature électronique préalable.
+                if (! $estTribunal && ! filled($declaration->sig_cec_proof_id)) {
+                    $erreurs[] = $declaration->code_declaration_mariage . ' : signature électronique requise (utilisez « Signer et confirmer »)';
+                    continue;
+                }
+
                 [$ok, $result] = $mouvementService->confirmerDeclaration(
                     $affectation,
                     $declaration,

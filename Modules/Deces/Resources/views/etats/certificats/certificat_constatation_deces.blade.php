@@ -68,9 +68,7 @@
     </page_header>
 
 	<page_footer>
-        <div id="pied_de_page">
-            Plate-forme système des faits d'état civil
-        </div>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'certificat_constatation_deces'])
     </page_footer>
 
 
@@ -226,65 +224,13 @@
             </table>
         </fieldset>
     </div>
-    {{-- <div style="width: 100%;">
-        <fieldset>
-            <legend><strong>Renseignements du déclarant</strong></legend>
-            <table cellspacing="0" style="border-collapse: collapse; font-size: 12pt;" >
-                <col style="width: 25%">
-                <col style="width: 25%">
-                <col style="width: 25%">
-                <col style="width: 25%">
-                <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">{{ $ddc->declarant->sexe == "M" ? "Nommé" : "Nommée" }} : <span style="font-size: 15px;font-weight:bold;">{{ $ddc->declarant->nom."  ".$ddc->declarant->prenom}} </span></td>
-                    <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="4">Date et lieu de naissance : <span style="font-size: 15px;font-weight:bold;"> {{ strftime("%d %B %Y", strtotime($ddc->declarant->date_naissance)) }} </span> à<span style="font-size: 15px;font-weight:bold;"> {{ $ddc->lieu_deces }}</span></td>
-                    <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Filiation : <span style="font-size: 15px;font-weight:bold;"> {{ $ddc->filiation->lib_filiation }} </span></td>
-                    <td style="border: none; padding:5px 0px;text-align: ">&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Domicile : <span style="font-size: 15px;font-weight:bold;">{{ \App\Sifec\Sifec::adressepersonne($ddc->declarant->code_personne) }} </span> </td>
-                    <td style="border: none; padding:5px 0px;text-align: " >&nbsp;</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding:5px 0px;text-align: " colspan="3">Profession : <span style="font-size: 15px;font-weight:bold;"> {{ $ddc->declarant->profession->lib_profession}} </span> </td>
-                    <td style="border: none; padding:5px 0px;text-align: " >&nbsp;</td>
-                </tr>
-            </table>
-        </fieldset>
-        <div style="position: absolute; margin-top:60px;margin-left:550px;"><qrcode value="{{env('QRCODE_URL')}}/qrcode/deces/certificat?niupp={{ $ddc->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
-        <strong style="margin-left: 85%">Signature</strong>
-
-
-    </div> --}}
-    {{-- <div style="margin-top: 0px; bottom:0;margin-left:10px;">
-        <table class="historique" cellspacing="0" style="width: 95%; font-size: 100%;">
-            <col style="width: 15%">
-            <col style="width: 25%">
-            <col style="width: 60%">
-            <thead>
-              <tr style="text-align: center">
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
-                <td style="text-align: center;"></td>
-              </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="text-align: center;"></td>
-                    <td style="text-align: left;">
-                        <div style="margin-bottom:0;"><qrcode value="{{env('QRCODE_URL')}}/qrcode/deces/certificat?niupp={{ $ddc->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode></div>
-                    </td>
-                    <td style="text-align: left;">
-                    </td>
-                  </tr>
-            </tbody>
-        </table>
-    </div> --}}
-
+    @php
+        $localisationConst = \App\Sifec\Sifec::getLocalisationInstitution($ddc->institution)['localisation'] ?? 'Brazzaville';
+    @endphp
+    @include('deces::etats.partials.signature-pied', [
+        'ddc' => $ddc,
+        'localisation' => $localisationConst,
+        'contexteForcage' => $contexteForcage ?? 'centre_hygiene',
+    ])
 
 </page>

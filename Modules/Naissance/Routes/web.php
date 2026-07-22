@@ -69,10 +69,12 @@ Route::middleware('auth')->prefix('acteNaissance')->group(function() {
     Route::post("validate-otp-bulk", [ActeNaissanceController::class,'validateOtpBulk'])->name("acteNaissance.validate.otp.bulk");
     Route::post("sign/prepare", [ActeNaissanceController::class, 'prepareSignature'])->name("acteNaissance.sign.prepare");
     Route::post("sign/finalize", [ActeNaissanceController::class, 'finalizeSignature'])->name("acteNaissance.sign.finalize");
+    Route::post("annulation/prepare", [ActeNaissanceController::class, 'prepareAnnulationSignature'])->name("acteNaissance.annulation.prepare");
+    Route::post("annulation/finalize", [ActeNaissanceController::class, 'finalizeAnnulationSignature'])->name("acteNaissance.annulation.finalize");
     Route::post("sign-guot", [ActeNaissanceController::class, 'signGuot'])->name("acteNaissance.sign.guot");
     Route::post("sign-guot-bulk", [ActeNaissanceController::class, 'signGuotBulk'])->name("acteNaissance.sign.guot.bulk");
     
-    // Routes OTP pour l'annulation d'acte
+    /** @deprecated Annulation OTP — utiliser annulation/prepare + annulation/finalize */
     Route::post("send-otp-annulation", [ActeNaissanceController::class,'sendOtpAnnulation'])->name("acteNaissance.send.otp.annulation");
     Route::post("send-otp-annulation-bulk", [ActeNaissanceController::class,'sendOtpAnnulationBulk'])->name("acteNaissance.send.otp.annulation.bulk");
     Route::post("validate-otp-annulation", [ActeNaissanceController::class,'validateOtpAnnulation'])->name("acteNaissance.validate.otp.annulation");
@@ -80,7 +82,6 @@ Route::middleware('auth')->prefix('acteNaissance')->group(function() {
     Route::get('{id}/generate',[ActeNaissanceController::class,"displayActe"])->name('acteNaissance.display');
     Route::post('generate-bulk',[ActeNaissanceController::class,"generateActeBulk"])->name('acteNaissance.generate.bulk');
     Route::get('{id}/acte/copie',[ActeNaissanceController::class,"displayCopie"])->name('acteNaissance.copie');
-    Route::put('{id}/acte/naissance/approuver', [ActeNaissanceController::class,'naissanceApprouver'])->name('acteNaissance.naissance.approuver');
     Route::post('generate',[ActeNaissanceController::class,"generateActe"])->name('acteNaissance.generate.single');
     Route::get("acte/search", [ActeNaissanceController::class,'searchActe'])->name('ActeNaissance.search');
     Route::get("{id}/generate/duplicata", [ActeNaissanceController::class,'displayDuplicata'])->name('ActeNaissance.generate.duplicata');

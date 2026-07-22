@@ -27,6 +27,11 @@
 
    <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
 
+    {{-- Mention légale en bas de page, conforme à l'acte de naissance. --}}
+    <page_footer>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'acte_mariage'])
+    </page_footer>
+
     {{-- <page orientation="portrait" backimg="" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
     @php
         $f = $acte->institutionUser->where("code_fonction","FONC_0002")->first();
@@ -97,6 +102,7 @@
                    $acteVerificationUrl = \Illuminate\Support\Facades\URL::signedRoute('verification.acte.mariage', ['code' => $acte->code_acte_mariage]);
                @endphp
                <qrcode value="{{ $acteVerificationUrl }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
+               <br><span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
                 @else
                 <br><br><br><br><br><br>
                @endif
@@ -121,17 +127,17 @@
             <tr style="margin-right: 8px;">
                 <td class="compact">
                     Centre d'état civil principal : {!! nl2br(e(wordwrap($institution->lib_institution ?? '', 55, "\n", true))) !!} <br>
-                    <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong> <br>
+                    <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_prevue_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_prevue_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_prevue_mariage)))}}</strong> <br>
                     Par devant nous {{ $nomcomplet }} Officier de l'Etat Civil ont comparu publiquement : <br>
                     <span style="margin-left: 30px;"><strong>M. {{ $acte->declaration->epoux->nomcomplet() }}</strong></span> <br>
-                    Né le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
+                    Né le <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->epoux->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epoux->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epoux->date_naissance)))}}</strong>, à <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
                     Acte de naissance n° <strong>{{ $acte->declaration->numero_acte_naissance_epoux }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epoux))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epoux)) }}</strong> dressé à la <strong>{!! nl2br(e(wordwrap($acte->declaration->cec_naissance_epoux ?? '', 55, "\n", true))) !!}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epoux->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpoux->lib_profession }}</strong> <br>
                     Domicilié : <strong>{!! nl2br(e(wordwrap($acte->declaration->epoux->adresse ?? '', 55, "\n", true))) !!}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpoux->lib_situation_matrimoniale }}</strong> <br>
                     Fils de : {!! nl2br(e(wordwrap($acte->declaration->pere_epoux ?? '', 55, "\n", true))) !!} <br>
                     Et de : {!! nl2br(e(wordwrap($acte->declaration->mere_epoux ?? '', 55, "\n", true))) !!} <br>
                     <span style="margin-left: 30px;">Et <strong>Mme. {{ $acte->declaration->epouse->nomcomplet() }}</strong></span> <br>
-                    Née le <strong>{{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
+                    Née le <strong>{{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->epouse->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->epouse->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->epouse->date_naissance)))}}</strong> , à <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->lieu_naissance ?? '', 55, "\n", true))) !!}</strong> <br>
                     Acte de naissance n° <strong>{{  $acte->declaration->numero_acte_naissance_epouse  }}</strong> du <strong>{{ date("d", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) ." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_emission_acte_naissance_epouse))) ." ".date("Y", strtotime($acte->declaration->date_emission_acte_naissance_epouse)) }}</strong> dressé à la <strong>{!! nl2br(e(wordwrap($acte->declaration->cec_naissance_epouse ?? '', 55, "\n", true))) !!}</strong> <br>
                     Nationalité : <strong>{{ $acte->declaration->epouse->nationalite->lib_nationalite }}</strong> Profession : <strong>{{ $acte->declaration->professionEpouse->lib_profession }}</strong> <br>
                     Domiciliée : <strong>{!! nl2br(e(wordwrap($acte->declaration->epouse->adresse ?? '', 55, "\n", true))) !!}</strong><br> Situation matrimoniale : <strong>{{ $acte->declaration->situationMatEpouse->lib_situation_matrimoniale }}</strong> <br>
@@ -229,19 +235,28 @@
                             </td>
                             <td style="text-align: center;padding-top: 5px;">L'officier d'état civil <br>
 
-                                {{-- Colonne BD : signature_maire (t_acte_mariage), pas signature_mairie. Même logique que naissance : public/app + chemin avec / pour Html2Pdf (Windows). --}}
-                                @if ($acte->approbation_mairie != null && filled($acte->signature_maire))
-                                    @php
-                                        $pathSigMariage = public_path('app/'.ltrim(trim((string) $acte->signature_maire), '/'));
-                                        $srcSigMariagePdf = (is_file($pathSigMariage) && is_readable($pathSigMariage))
-                                            ? str_replace('\\', '/', $pathSigMariage)
-                                            : '';
-                                    @endphp
-                                    @if ($srcSigMariagePdf !== '')
-                                        <img src="{{ $srcSigMariagePdf }}" width="100" height="100" alt="">
+                                {{-- Conforme à l'acte de naissance : nom de l'officier + mention « Signé électroniquement le … ».
+                                     L'image de signature s'affiche si disponible ; le QR reste en en-tête (inchangé). --}}
+                                @if ($acte->approbation_mairie != null)
+                                    @if (filled($acte->signature_maire))
+                                        @php
+                                            $pathSigMariage = public_path('app/'.ltrim(trim((string) $acte->signature_maire), '/'));
+                                            $srcSigMariagePdf = (is_file($pathSigMariage) && is_readable($pathSigMariage))
+                                                ? str_replace('\\', '/', $pathSigMariage)
+                                                : '';
+                                        @endphp
+                                        @if ($srcSigMariagePdf !== '')
+                                            <img src="{{ $srcSigMariagePdf }}" width="100" height="100" alt=""><br>
+                                        @endif
                                     @endif
                                     @if (optional(optional($acte->signataire)->user)->personne)
-                                        {{ $acte->signataire->user->personne->nomcomplet() }}
+                                        <span style="color:black; font-weight:bold">{{ $acte->signataire->user->personne->nomcomplet() }}</span>
+                                    @endif
+                                    @php
+                                        $__signeLeActeMariage = $acte->signed_at ?? $acte->doc_sig_signed_at ?? $acte->date_heure_approbation_mairie ?? null;
+                                    @endphp
+                                    @if ($__signeLeActeMariage)
+                                        <br><span style="font-size: 8px; color:#006B31;">Signé électroniquement le {{ \Carbon\Carbon::parse($__signeLeActeMariage)->format('d/m/Y à H:i') }}</span>
                                     @endif
                                 @endif
                             </td>

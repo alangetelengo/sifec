@@ -836,6 +836,34 @@ function clearSelection() {
     document.querySelectorAll('.user-row').forEach(function(r) { r.classList.remove('row-selected'); });
 }
 
+function buildFailedSetupsHtml(setups) {
+    if (!setups || !setups.length) return '';
+    var html = '<div style="text-align:left;margin-top:14px;max-height:360px;overflow:auto;">';
+    setups.forEach(function(s) {
+        html += '<div style="border:1px solid #e5e0d5;border-radius:10px;padding:12px;margin-bottom:10px;background:#faf8f4;">';
+        html += '<div style="font-weight:700;margin-bottom:6px;">' + $('<div>').text(s.name || '').html() + '</div>';
+        if (s.email) {
+            html += '<div style="font-size:12px;color:#666;margin-bottom:8px;">E-mail prévu : ' + $('<div>').text(s.email).html() + '</div>';
+        }
+        if (s.qrUrl) {
+            html += '<div style="text-align:center;margin:8px 0;"><img src="' + s.qrUrl + '" alt="QR 2FA" width="160" height="160" style="border:1px solid #ddd;border-radius:6px;"></div>';
+        }
+        if (s.secret) {
+            html += '<div style="font-size:12px;margin:6px 0;"><strong>Clé secrète :</strong><br><code style="word-break:break-all;user-select:all;">' + $('<div>').text(s.secret).html() + '</code></div>';
+        }
+        if (s.codes && s.codes.length) {
+            html += '<div style="font-size:12px;margin-top:8px;"><strong>Codes de récupération :</strong><ul style="margin:4px 0 0 18px;padding:0;">';
+            s.codes.forEach(function(c) {
+                html += '<li><code style="user-select:all;">' + $('<div>').text(c).html() + '</code></li>';
+            });
+            html += '</ul></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
 function executeBulk2FA(action, userIds) {
     $('.btn-bulk-enable, .btn-bulk-disable').prop('disabled', true).css('opacity','0.6');
     $.ajax({
@@ -846,8 +874,15 @@ function executeBulk2FA(action, userIds) {
         dataType: 'json',
         success: function(response) {
             if (response.success) {
+                var html = response.message || '';
+                if (response.failedSetups && response.failedSetups.length) {
+                    html += buildFailedSetupsHtml(response.failedSetups);
+                }
                 Swal.fire({
-                    title: 'Opération réussie', html: response.message, icon: 'success',
+                    title: 'Opération réussie',
+                    html: html,
+                    icon: response.mailErrors && response.mailErrors.length ? 'warning' : 'success',
+                    width: response.failedSetups && response.failedSetups.length ? '640px' : undefined,
                     confirmButtonColor: '#1b6f4a',
                     confirmButtonText: 'OK'
                 }).then(function() { window.location.reload(); });

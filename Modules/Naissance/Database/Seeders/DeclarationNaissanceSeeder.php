@@ -5,18 +5,20 @@ namespace Modules\Naissance\Database\Seeders;
 use App\Models\User;
 use App\Sifec\Sifec;
 use Carbon\Carbon;
+use Database\Seeders\Concerns\PurgesDemoFaitData;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Naissance\Services\DeclarationNaissanceService;
 use Modules\Naissance\Services\MouvementService;
-use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Localite;
+use Modules\Referentiel\Entities\Personne;
 
 class DeclarationNaissanceSeeder extends Seeder
 {
-    private const TOTAL_DECLARATIONS = 120;
+    use PurgesDemoFaitData;
+    private const TOTAL_DECLARATIONS = 10;
     private const UNIQUE_RATIO = 0.80; // 80 % de familles uniques
     private const FILLE_RATIO = 0.36; // 36 % de filles
 
@@ -141,6 +143,9 @@ class DeclarationNaissanceSeeder extends Seeder
             'profession_pere' => 'PROF_0010',
             'profession_mere' => 'PROF_0011',
             'profession_declarant' => 'PROF_0010',
+            'code_profession_pere' => 'PROF_0010',
+            'code_profession_mere' => 'PROF_0011',
+            'code_profession_declarant' => 'PROF_0010',
             'code_pays_pere' => '+242',
             'code_pays_mere' => '+242',
             'code_pays_declarant' => '+242',
@@ -294,29 +299,12 @@ class DeclarationNaissanceSeeder extends Seeder
             $declaration->refresh();
             $created++;
 
-            // Envoyer le certificat de naissance au centre d'état civil (MOUV_0035)
-            if (!$declaration->mouvements()->where('code_mouvement', 'MOUV_0035')->exists()) {
-                [$ok, $message] = $mouvementService->envoyerDeclaration(
-                    $user,
-                    $declaration,
-                    'MOUV_0035',
-                    'Envoyée',
-                    'Envoi automatique via seeder'
-                );
-
-                if (!$ok) {
-                    $this->command?->warn("Envoi impossible pour {$declaration->code_declaration_naissance} : {$message}");
-                } else {
-                    $declaration->refresh();
-                }
-            }
-
-            if ($created % 100 === 0) {
-                $this->command?->info("$created certificats enregistrés et envoyés");
+            if ($created % 5 === 0) {
+                $this->command?->info("$created certificats enregistrés (brouillon)");
             }
         }
 
-        $this->command?->info("Total certificats créés: $created");
+        $this->command?->info("Total certificats créés (brouillon) : $created");
     }
 
     private function createFamilyData(
@@ -518,37 +506,6 @@ class DeclarationNaissanceSeeder extends Seeder
 
     private function resetTables(): void
     {
-        $personCodes = DB::table('t_declaration_naissance')
-            ->select('code_enfant', 'code_pere', 'code_mere', 'code_declarant', 'code_adoptant')
-            ->get()
-            ->flatMap(function ($row) {
-                return collect([
-                    $row->code_enfant,
-                    $row->code_pere,
-                    $row->code_mere,
-                    $row->code_declarant,
-                    $row->code_adoptant,
-                ]);
-            })
-            ->filter()
-            ->unique()
-            ->values();
-
-        $driver = DB::getDriverName();
-        if ($driver === 'mysql') {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        }
-
-        DB::table('t_acte_naissance')->truncate();
-        DB::table('t_mouvement_naissance')->truncate();
-        DB::table('t_declaration_naissance')->truncate();
-
-        if ($driver === 'mysql') {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        }
-
-        if ($personCodes->isNotEmpty()) {
-            Personne::whereIn('code_personne', $personCodes)->delete();
-        }
+        $this->purgeNaissanceDemoData();
     }
 }

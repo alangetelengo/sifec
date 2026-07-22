@@ -106,9 +106,20 @@
     </page_header>
 
 	<page_footer>
-        <div id="pied_de_page">
-            Plate-forme système des faits d'état civil
-        </div>
+        @php
+            $ctxMention = $contexteForcage ?? $ddc->contexte_affichage ?? null;
+            $typeMentionLegale = match ($ctxMention) {
+                'formation_sanitaire' => 'certificat_deces',
+                'centre_hygiene' => 'certificat_constatation_deces',
+                'pompe_funebre' => 'declaration_deces',
+                default => match (true) {
+                    ($ddc->type_declaration ?? '') === 'CERTIFICAT DE CONSTATATION DE DECES' => 'certificat_constatation_deces',
+                    str_contains((string) ($ddc->type_declaration ?? ''), 'CERTIFICAT') => 'certificat_deces',
+                    default => 'declaration_deces',
+                },
+            };
+        @endphp
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => $typeMentionLegale])
     </page_footer>
 
 
@@ -347,49 +358,7 @@
                 </tr>
             </table>
         </fieldset>
-        @if($ddc->mouvements->last()->statut == "Envoyée")
-            <div style="position:absolute; margin-left:570px;top:60px;">
-                <qrcode value="{{env('QRCODE_URL')}}/qrcode/deces/certificat?niupp={{ $ddc->code_declaration_deces }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
-            </div>
-        @endif
-
-        {{-- <div style="position:absolute; margin-left:570px;">
-            <qrcode value="{{env('QRCODE_URL')}}/qrcode/naissance/certificat?niupp={{ $dn->code_declaration_naissance }}" ec="H" style="width: 30mm; background-color: white; color: black;"></qrcode>
-        </div> --}}
-
-        <div style="bottom:0;margin-left:10px;margin-top:10px">
-            <table class="historique" cellspacing="0" style="width: 95%; font-size: 15px;margin-top:20px">
-                <col style="width: 50%">
-                <col style="width: 50%">
-                <thead>
-                  <tr style="text-align: center">
-                    <td style="text-align: center;"></td>
-                    <td style="text-align: center;"></td>
-                  </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="text-align: left;"> Lu et approuvé <br><strong>(<span style="color: red;">{{ $ddc->declarant_approuver }}</span>)</strong>
-                            <br> Le déclarant
-                         </td>
-
-                        <td>
-                           <span> Fait à {{ ucfirst(strtolower($localisation)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $ddc->created_at)))}}<br></span>
-                            <span style='text-align:left; margin-top:10px'>@if(optional(optional(optional($ddc->institutionUser)->institution)->institutionParent)->code_institution == "INS_0193")
-                                        Chef de bureau
-        s
-                                    @elseif(optional(optional(optional($ddc->institutionUser)->institution)->typeInstitution)->code_type_institution == "TPINS_0002" && isset($diffJour) && $diffJour < 15)
-                                        Chef de bureau:
-                                    @else
-                                        Chef de service
-                                    @endif
-                            </span>
-
-                         </td>
-                      </tr>
-                </tbody>
-            </table>
-        </div>
+        @include('deces::etats.partials.signature-pied', ['ddc' => $ddc, 'localisation' => $localisation, 'contexteForcage' => $contexteForcage ?? null])
     </div>
 
 

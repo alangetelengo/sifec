@@ -94,7 +94,7 @@
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;"><strong> Le
-                        {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration))). " ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) . " ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date( "H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minute(s)
+                        {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_declaration))). " ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) . " ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date( "H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minute(s)
                     </strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left; padding-bottom: 4px;">
@@ -107,7 +107,7 @@
                     <td>qui a déclaré le décès de: <b  style="color: red">{{ $acte->declaration->defunt->nom." ".$acte->declaration->defunt->prenom }}</b></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td style="height: 15px;">Date de décès: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_deces))). " " . \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) . " " . \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters(( (int)date("H", strtotime( $acte->declaration->date_heure_deces))))}} heure(s) {{ \App\Sifec\Sifec::asLetters( (int) date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
+                    <td style="height: 15px;">Date de décès: <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_deces))). " " . \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) . " " . \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters(( (int)date("H", strtotime( $acte->declaration->date_heure_deces))))}} heure(s) {{ \App\Sifec\Sifec::asLetters( (int) date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
                 </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
@@ -185,7 +185,7 @@
                     </tr>
                     <tr style="width:100%; text-align: left;">
                         <td style="height: 15px;">Date de mariage: <strong>
-                            {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_mariage))) ." à ".date("H", strtotime( $acte->declaration->date_mariage)). " heure(s) ".date("i", strtotime( $acte->declaration->date_mariage)) }} minute(s)
+                            {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_mariage))) ." à ".date("H", strtotime( $acte->declaration->date_mariage)). " heure(s) ".date("i", strtotime( $acte->declaration->date_mariage)) }} minute(s)
                         </strong></td>
                     </tr>
                 @endif

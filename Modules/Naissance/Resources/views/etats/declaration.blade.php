@@ -44,11 +44,27 @@
 
 <page orientation="portrait" backcolor="#FEFEFE" backimgx="center" backimg="{{ public_path('tpl/back-border.png') }}"  backimgw="100%"
 	  backtop="5mm"
-	  backbottom="8mm"
+	  backbottom="10mm"
 	  backleft="8mm"
 	  backright="15mm">
 
 	<bookmark title="Lettre" level="0" ></bookmark>
+
+    <page_footer>
+        @php
+            $ctxMention = $contexteForcage ?? $dn->contexte_affichage ?? null;
+            if ($ctxMention === 'formation_sanitaire') {
+                $typeMentionLegale = 'certificat_naissance';
+            } elseif ($ctxMention === 'centre_etat_civil') {
+                $typeMentionLegale = 'declaration_naissance';
+            } else {
+                $typeMentionLegale = str_contains((string) ($dn->type_declaration ?? ''), 'CERTIFICAT')
+                    ? 'certificat_naissance'
+                    : 'declaration_naissance';
+            }
+        @endphp
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => $typeMentionLegale])
+    </page_footer>
 
     <page_header >
         <div style="width: 100%; position: relative; height: 80px;">
@@ -475,19 +491,27 @@
 
     <div style="bottom:0;margin-left:8px;margin-top:5px">
         @php
-            $ctxSig = $contexteForcage ?? $dn->contexte_affichage ?? null;
-            $prefixSig = $ctxSig === 'centre_etat_civil' ? 'sig_cec_' : 'sig_fs_';
-            $roleSig = $prefixSig === 'sig_cec_' ? "Responsable du centre d'état civil" : 'Chef de service';
+            use App\Support\GuotSignatureAffichage;
+
+            $ctxSig = GuotSignatureAffichage::contexteDeclarationNaissance(
+                $dn,
+                $contexteForcage ?? $dn->contexte_affichage ?? null
+            );
+            $prefixSig = $ctxSig === 'formation_sanitaire' ? 'sig_fs_' : 'sig_cec_';
+            $roleSigFallback = $prefixSig === 'sig_cec_' ? "Responsable du centre d'état civil" : 'Chef de service';
+            $roleSig = GuotSignatureAffichage::roleSignataire($dn, $prefixSig, $roleSigFallback);
             $signataireNom = $dn->{$prefixSig.'actor_nom'} ?? null;
             $signeLe = $dn->{$prefixSig.'signed_at'} ?? ($dn->{$prefixSig.'doc_sig_signed_at'} ?? null);
             $estSigne = filled($dn->{$prefixSig.'proof_id'} ?? null);
-            // Date du document : date de signature si signé, sinon date de création.
             $dateDocument = $signeLe ?: $dn->created_at;
             $mentionSignature = 'Signé électroniquement';
             if ($signeLe) {
                 $mentionSignature .= ' le '.\Carbon\Carbon::parse($signeLe)->format('d/m/Y à H:i');
             }
             $afficherQr = $estSigne || $dn->declarant_approuver == "OUI";
+
+            // Certificat FS → 1 bloc FS ; Déclaration CEC → FS (si présent) + CEC
+            $blocsPki = GuotSignatureAffichage::blocsPkiDeclarationNaissance($dn, $ctxSig);
         @endphp
         <table class="historique" cellspacing="0" style="width: 95%; font-size: 12px; table-layout: fixed;">
             <col style="width: 34%">
@@ -519,6 +543,7 @@
                   </tr>
             </tbody>
         </table>
+        @include('partials.guot.signature-pki-blocs', ['blocs' => $blocsPki])
     </div>
 
 </page>

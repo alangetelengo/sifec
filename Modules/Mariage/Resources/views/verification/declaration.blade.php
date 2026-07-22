@@ -110,6 +110,53 @@
                     <dt class="col-sm-5 col-md-4">Lieu de la cérémonie</dt>
                     <dd class="col-sm-7 col-md-8">{{ $declaration->lieu_ceremonie_mariage ?? '—' }}</dd>
                 </dl>
+
+                {{-- ── Signature électronique du centre d'état civil ── --}}
+                <hr class="my-3" style="border-color:#009E49; opacity:.3;">
+                <h6 class="fw-bold mb-3" style="color:#006B31;">
+                    <i class="fa fa-shield-alt me-2"></i>Signature &amp; Traçabilité (Centre d'état civil)
+                </h6>
+                @if(!filled($declaration->sig_cec_proof_id))
+                    <p class="text-muted fst-italic mb-0">Cette déclaration n'a pas encore été signée électroniquement.</p>
+                @else
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5 col-md-4">Signataire</dt>
+                        <dd class="col-sm-7 col-md-8">{{ $declaration->sig_cec_actor_nom ?: '—' }}</dd>
+
+                        <dt class="col-sm-5 col-md-4">Signé le</dt>
+                        <dd class="col-sm-7 col-md-8">
+                            @php $sigDeclDate = $declaration->sig_cec_signed_at ?? $declaration->sig_cec_doc_sig_signed_at; @endphp
+                            {{ $sigDeclDate ? \Carbon\Carbon::parse($sigDeclDate)->format('d/m/Y à H:i:s') : '—' }}
+                        </dd>
+
+                        @if(filled($declaration->sig_cec_doc_sig_id))
+                            <dt class="col-sm-5 col-md-4">Identifiant signature (L2)</dt>
+                            <dd class="col-sm-7 col-md-8"><code class="small">{{ $declaration->sig_cec_doc_sig_id }}</code></dd>
+                        @endif
+
+                        @if(filled($declaration->sig_cec_doc_seal_id))
+                            <dt class="col-sm-5 col-md-4">Cachet institutionnel (L3)</dt>
+                            <dd class="col-sm-7 col-md-8"><code class="small">{{ $declaration->sig_cec_doc_seal_id }}</code></dd>
+                        @endif
+
+                        @if(filled($declaration->sig_cec_certificate_ref))
+                            <dt class="col-sm-5 col-md-4">Réf. certificat</dt>
+                            <dd class="col-sm-7 col-md-8"><code class="small">{{ $declaration->sig_cec_certificate_ref }}</code></dd>
+                        @endif
+
+                        @php $empreinteDecl = $declaration->sig_cec_pdf_content_hash ?? $declaration->sig_cec_payload_hash; @endphp
+                        @if(filled($empreinteDecl))
+                            <dt class="col-sm-5 col-md-4">Empreinte document</dt>
+                            <dd class="col-sm-7 col-md-8">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa fa-check-circle text-success"></i>
+                                    <span class="small text-success fw-semibold">Empreinte SHA-256 enregistrée</span>
+                                </div>
+                                <code class="small" style="word-break:break-all;">{{ $empreinteDecl }}</code>
+                            </dd>
+                        @endif
+                    </dl>
+                @endif
             </div>
 
             <div class="card-footer bg-light py-3 text-center">

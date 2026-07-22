@@ -539,21 +539,32 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        <strong>Information :</strong> Cette action va confirmer que le dossier est conforme et prêt pour la suite du traitement.
+                        <strong>Information :</strong> La confirmation appose votre signature électronique sur la déclaration de mariage (prérequis à la génération de l'acte).
                     </div>
                     <div class="row">
                         <div class="mb-2 col-md-12">
                             <label class="form-label">Code de la déclaration</label>
                             <input type="text" readonly class="form-control" id="code-declaration-confirmation">
                         </div>
+                        <div class="mb-2 col-md-7">
+                            <label class="form-label small fw-semibold" for="decl_p12_file">Certificat électronique (.p12) <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control form-control-sm" id="decl_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                        </div>
+                        <div class="mb-2 col-md-5">
+                            <label class="form-label small fw-semibold" for="decl_p12_pin">Passphrase <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control form-control-sm" id="decl_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                        </div>
                         <div class="mb-2 col-md-12">
                             <label class="form-label">Observation (optionnel)</label>
                             <textarea id="observation-confirmation" name="observation" class="form-control" rows="3" placeholder="Ajoutez une observation..."></textarea>
                         </div>
                     </div>
+                    <div id="decl-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success" id="btn-confirmer-final">Confirmer</button>
+                    <button type="button" class="btn btn-success text-white" id="btn-confirmer-final">
+                        <i class="fas fa-signature me-1"></i> Signer et confirmer
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                 </div>
             </div>
@@ -599,6 +610,10 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
 @endsection
 
 @section('scripts')
+<!-- Signature électronique .p12 -->
+<script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+<script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+<script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260719a"></script>
 <script>
 $(function(){
     // Gestion modale pièce d'identité
@@ -709,40 +724,107 @@ $(function(){
         $("#code-declaration-confirmation").val(codeDeclaration);
         $("#input-code-declaration-confirmation").val(codeDeclaration);
         $("#observation-confirmation").val('');
+        $("#decl_p12_file").val('');
+        $("#decl_p12_pin").val('');
+        $("#decl-sign-feedback").addClass('d-none').empty();
         $("#modal-confirmation-document").modal('show');
     });
 
-    // Confirmation finale du document
-    $("#btn-confirmer-final").on("click", function(){
-        var codeDeclaration = $("#code-declaration-confirmation").val();
-        var observation = $("#observation-confirmation").val();
-        var route = "{{ route('declarationMariage.confirmer', ':id') }}";
-        route = route.replace(':id', codeDeclaration);
+    // Nettoyage du modal à la fermeture
+    $('#modal-confirmation-document').on('hidden.bs.modal', function() {
+        $("#decl-sign-feedback").addClass('d-none').empty();
+        $("#decl_p12_file").val('');
+        $("#decl_p12_pin").val('');
+        $('#btn-confirmer-final').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer et confirmer');
+    });
 
-        var data = {
-            code_declaration_mariage: codeDeclaration,
-            observation: observation,
-            _token: '{{ csrf_token() }}'
+    // Empêcher la soumission native du formulaire (Entrée) : on passe par la signature .p12
+    $('#form-confirmation-document').on('submit', function(e){ e.preventDefault(); return false; });
+
+    // Confirmation finale du document : signature électronique .p12 puis confirmation
+    $("#btn-confirmer-final").on("click", async function(){
+        var $btn = $(this);
+        var resetBtn = function() { $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer et confirmer'); };
+        var showErr = function(msg) {
+            $("#decl-sign-feedback").removeClass('d-none').text(msg);
+            flashAlert("Échec", "error", msg);
         };
 
-        var btn = this;
-        sifecBtnLoading(btn, "Enregistrement...");
+        var codeDeclaration = $("#code-declaration-confirmation").val();
+        var observation = $("#observation-confirmation").val();
+        var fileInput = document.getElementById('decl_p12_file');
+        var pin = $('#decl_p12_pin').val();
 
-        $.post(route, data, function(response){
-            sifecBtnReset(btn, "Confirmer");
+        if (!codeDeclaration) {
+            showErr('Formulaire type introuvable.');
+            return false;
+        }
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            showErr('Sélectionnez votre fichier certificat (.p12).');
+            return false;
+        }
+        if (!pin || !String(pin).trim()) {
+            showErr('Saisissez la passphrase de votre certificat.');
+            return false;
+        }
+        if (typeof window.SifecP12Sign === 'undefined') {
+            showErr('Bibliothèque de signature non chargée. Rechargez la page.');
+            return false;
+        }
 
-            if(response.code == "200"){
-                flashAlert("Réponse","success",response.message);
-                $("#modal-confirmation-document").modal('hide');
-                setTimeout(()=>location.reload(), 1000);
-            }else{
-                flashAlert("Réponse","error",response.message);
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Préparation…');
+        $("#decl-sign-feedback").addClass('d-none').empty();
+
+        try {
+            var prep = await $.ajax({
+                url: "{{ route('declarationMariage.sign.prepare') }}",
+                type: 'POST',
+                data: { code_declaration_mariage: codeDeclaration, _token: '{{ csrf_token() }}' }
+            });
+
+            if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+                resetBtn();
+                showErr((prep && prep.message) ? prep.message : 'Échec de la préparation.');
+                return false;
             }
-        }).fail(function(xhr){
-            sifecBtnReset(btn, "Confirmer");
-            flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de la confirmation');
 
-        });
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Signature locale…');
+            var p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+            var signatures = [];
+            for (var i = 0; i < prep.items.length; i++) {
+                var item = prep.items[i];
+                var signatureHex = await window.SifecP12Sign.signHashHex(
+                    p12Binary, pin, item.document_hash, prep.expected_serial || null
+                );
+                signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+            }
+
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Confirmation…');
+            var fin = await $.ajax({
+                url: "{{ route('declarationMariage.sign.finalize') }}",
+                type: 'POST',
+                data: { token: prep.token, signatures: signatures, observation: observation, _token: '{{ csrf_token() }}' }
+            });
+
+            resetBtn();
+            var msg = typeof fin.message === 'string' ? fin.message : 'Réponse inconnue';
+            if (String(fin.code) === '200') {
+                flashAlert("Succès", "success", msg);
+                $("#modal-confirmation-document").modal('hide');
+                setTimeout(() => location.reload(), 1200);
+                return false;
+            }
+            showErr(msg);
+        } catch (err) {
+            resetBtn();
+            var emsg = 'Erreur lors de la signature électronique';
+            if (err && err.responseJSON && err.responseJSON.message) {
+                emsg = typeof err.responseJSON.message === 'string' ? err.responseJSON.message : JSON.stringify(err.responseJSON.message);
+            } else if (err && err.message) {
+                emsg = err.message;
+            }
+            showErr(emsg);
+        }
 
         return false;
     });

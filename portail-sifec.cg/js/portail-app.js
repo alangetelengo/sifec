@@ -548,6 +548,12 @@
             return;
           }
           if (reponse.code === '200') {
+            if (reponse.etat) {
+              $('#iframeEtat').attr('src', reponse.etat);
+              hideModal(document.getElementById('modalDemande'));
+              showModal(document.getElementById('modalEtat'));
+              return;
+            }
             var html =
               '<p>Demande enregistrée.</p><p><strong>Code :</strong> ' +
               escapeHtml(reponse.code_demande || '') +
@@ -555,6 +561,8 @@
             if (reponse.montant !== undefined) {
               html += '<p><strong>Montant :</strong> ' + escapeHtml(String(reponse.montant)) + '</p>';
             }
+            html +=
+              '<p class="mb-0 small text-muted">Le document PDF signé vous sera envoyé par e-mail après validation au centre d\'état civil.</p>';
             flashAlert('Succès', 'success', html);
             hideModal(document.getElementById('modalDemande'));
             return;

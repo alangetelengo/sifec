@@ -41,11 +41,11 @@
     }
     /* Corps compact : tient sur une page A4 avec pied absolu (Html2Pdf) */
     table.acte-bi-colonne td.acte-texte table td {
-        font-size: 11.5px;
-        line-height: 1.1;
+        font-size: 10.5px;
+        line-height: 1.05;
     }
     table.acte-bi-colonne td.acte-texte b {
-        font-size: 11.5px;
+        font-size: 10.5px;
     }
     td.acte-ligne-institution {
         overflow-wrap: anywhere;
@@ -53,11 +53,9 @@
         word-break: normal;
     }
 </style>
-  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="52%" backimgw="55%" backtop="0" backbottom="14mm" style="font-size: 12px">
+  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="52%" backimgw="55%" backtop="0" backbottom="10mm" style="font-size: 12px">
     <page_footer>
-        <div style="width: 100%; text-align: center; font-size: 9px; color: #5a3d1e; line-height: 1.25; padding: 1mm 4mm 2mm 4mm;">
-            Cet acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.
-        </div>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'acte_naissance'])
     </page_footer>
     @php
     $infos = "";
@@ -229,7 +227,7 @@
                     <small>N&deg; ancien acte de naissance  <strong>{{ $acte->declaration->jugement->numero_ancien_acte }}</strong></small>
                     @endif
                 @endif
-                
+
                 {{-- Mention pour acte d'annulation --}}
                 @if($acte->declaration->jugement->type_jugement == "JUGEMENT D'ANNULATION D'ACTE" || ($acte->est_acte_annulation ?? false))
                     <small><strong style="color: red; font-size: 110%;">ACTE ANNULÉ</strong></small><br>
@@ -270,7 +268,7 @@
                 <tr style="width:100%; text-align: left;">
                     <td>Est informé le: <br> <strong>
 
-                        {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong>
+                        {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_declaration)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minutes</strong>
 
                     </td>
                 </tr>
@@ -278,7 +276,7 @@
                     <td>Est né(e), un enfant de sexe: <strong>{{ $acte->declaration->enfant->sexe=="M" ? "Masculin" : "Féminin"  }}</strong></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong> à </td>
+                    <td>{{ $acte->declaration->enfant->sexe=="M" ? "Né :" : "Née :"  }} le <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_naissance)))." ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_naissance))) ." ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_naissance))) }}</strong> à </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style=""> <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ \App\Sifec\Sifec::asLetters((int)date("H", strtotime( $acte->declaration->date_heure_naissance))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_naissance))) }} minute(s)</strong></td>
@@ -329,7 +327,7 @@
                 <tr style="width:100%; text-align: left;">
                     <td>Né le : <strong>
                         @if ($acte->declaration->pere != NULL)
-                            {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->pere->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) }}
+                            {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->pere->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->pere->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->pere->date_naissance))) }}
                         @endif
                     </strong></td>
                 </tr>
@@ -355,7 +353,7 @@
                 <tr style="width:100%; text-align: left;">
                     <td>Née le : <strong>
                         @if ($acte->declaration->mere != NULL)
-                            {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->mere->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) }}
+                            {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->mere->date_naissance)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->mere->date_naissance))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->mere->date_naissance))) }}
                         @endif
                     </strong></td>
                 </tr>
@@ -385,50 +383,107 @@
             </tr>
         </table>
     </div>
+    </nobreak>
 
-    {{-- Pied en flux : l’absolute bottom:0 faisait souvent une 2e page fantôme (filigrane seul) avec Html2Pdf/TCPDF. --}}
-    <div style="margin-top: 14mm; margin-left: 6px; margin-right: 10px;">
-        <table class="historique" cellspacing="0" style="width: 100%; table-layout: fixed; font-size: 12px;">
+    {{-- Pied hors nobreak : évite le report forcé de toute la page quand les blocs PKI allongent le document. --}}
+    <div style="margin-top: 3mm; margin-left: 4px; margin-right: 6px;">
+        @php
+            use App\Support\GuotSignatureAffichage;
+
+            $decl = $acte->declaration;
+            $roleActe = GuotSignatureAffichage::roleSignataire($acte, '', "L'officier de l'état civil");
+
+            $dateActe = $acte->signed_at
+                ?? $acte->doc_sig_signed_at
+                ?? $acte->date_heure_approbation_mairie
+                ?? $acte->date_emission;
+
+            $estSigneActe = filled($acte->approbation_mairie) || filled($acte->proof_id);
+
+            $sigNomActe = $acte->actor_nom
+                ?: (optional(optional(optional($acte->signataire)->user)->personne)->nomcomplet() ?? null);
+
+            $blocsPki = [];
+            if ($decl) {
+                $blocsPki = array_values(array_filter([
+                    GuotSignatureAffichage::blocPki(
+                        $decl,
+                        'sig_cec_',
+                        'PKI — DÉCLARATION',
+                        "Officier d'état civil",
+                        '#1a5fb4',
+                        '#f5f9fc',
+                    ),
+                    GuotSignatureAffichage::blocPki(
+                        $acte,
+                        '',
+                        'PKI — ACTE',
+                        "L'officier de l'état civil",
+                        '#006B31',
+                        '#f4faf6',
+                    ),
+                ]));
+            } else {
+                $blocActe = GuotSignatureAffichage::blocPki(
+                    $acte,
+                    '',
+                    'PKI — ACTE',
+                    "L'officier de l'état civil",
+                    '#006B31',
+                    '#f4faf6',
+                );
+                $blocsPki = $blocActe ? [$blocActe] : [];
+            }
+        @endphp
+        <table class="historique" cellspacing="0" style="width: 100%; table-layout: fixed; font-size: 11px;">
             <col style="width: 30%">
             <col style="width: 28%">
             <col style="width: 42%">
             <tbody>
                 <tr>
-                    <td style="text-align: center; vertical-align: top;">Le déclarant</td>
                     <td style="text-align: center; vertical-align: top;">
-                         @if($acte->approbation_mairie != "")
+                        Le déclarant
+                        @if($estSigneActe && $decl?->declarant)
+                            <br><span style="font-size: 9px; font-weight: bold;">{{ \App\Sifec\Sifec::formatNomPrenomPourActe($decl->declarant->nom, $decl->declarant->prenom) }}</span>
+                        @endif
+                    </td>
+                    <td style="text-align: center; vertical-align: top;">
+                         @if($estSigneActe)
                              @isset($qrCode)
-                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 24mm; border: none;"></qrcode>
+                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 18mm; border: none;"></qrcode>
                                 <br>
-                                <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                                <span style="font-size: 6px; color: #555;">Scanner pour authentifier</span>
                              @endisset
                          @endif
                     </td>
-                    <td style="text-align: right; vertical-align: top; padding-right: 3mm;">
-                     @php
-                         // Date du document : date de signature de l'officier si signé, sinon date d'émission.
-                         $dateActe = $acte->signed_at
-                             ?? $acte->doc_sig_signed_at
-                             ?? $acte->date_heure_approbation_mairie
-                             ?? $acte->date_emission;
-                     @endphp
-                     <p style="font-size: 12px; margin: 0 0 1mm 0;">
+                    <td style="text-align: right; vertical-align: top; padding-right: 2mm;">
+                     <p style="font-size: 11px; margin: 0 0 0.5mm 0;">
                          Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateActe)))}}<br>
-                         L'officier de l'état civil
+                         {{ $roleActe }}
                      </p>
-                         @if ($acte->approbation_mairie != "")
+                         @if ($estSigneActe)
                              @php
                                  $__pdfSignatureSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->signature_mairie);
                              @endphp
                              @if ($__pdfSignatureSrc)
-                             <img src="{{ $__pdfSignatureSrc }}" style="width: 28mm;"><br>
+                             <img src="{{ $__pdfSignatureSrc }}" style="width: 20mm;"><br>
                              @endif
-                             <span style="color:black; font-weight:bold">{{ \App\Sifec\Sifec::formatNomPrenomPourActe($acte->signataire->user->personne->nom, $acte->signataire->user->personne->prenom) }}</span>
+                             @php
+                                 $__personneSig = optional(optional($acte->signataire)->user)->personne;
+                             @endphp
+                             <span style="color:black; font-weight:bold; font-size: 10px;">
+                                 @if($__personneSig)
+                                     {{ \App\Sifec\Sifec::formatNomPrenomPourActe($__personneSig->nom, $__personneSig->prenom) }}
+                                 @else
+                                     {{ $sigNomActe }}
+                                 @endif
+                             </span>
                          @endif
                      </td>
                   </tr>
             </tbody>
         </table>
+
+        @include('partials.guot.signature-pki-blocs', ['blocs' => $blocsPki, 'compact' => true])
     </div>
-    </nobreak>
 </page>

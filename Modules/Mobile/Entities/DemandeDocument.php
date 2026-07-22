@@ -204,7 +204,9 @@ class DemandeDocument extends Model
 
     public function peutEtreGeneree(): bool
     {
-        return $this->estEnTraitement() && ! empty($this->numero_acte);
+        // Paiement temporairement désactivé : accepter aussi « En attente de paiement »
+        return ($this->estEnTraitement() || $this->estEnAttentePaiement())
+            && ! empty($this->numero_acte);
     }
 
     // ==========================================

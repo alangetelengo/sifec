@@ -40,4 +40,23 @@ class DemandeDocumentApiController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Accusé de réception HTML pour l'iframe du portail après création de demande.
+     *
+     * GET /api/v1/demande/{code}/accuse
+     */
+    public function accuseReception(string $code)
+    {
+        $demande = DemandeDocument::where('code_demande_document', $code)->first();
+
+        if (! $demande) {
+            return response('Demande non trouvée', 404)
+                ->header('Content-Type', 'text/plain; charset=UTF-8');
+        }
+
+        return response()
+            ->view('portail.accuse-demande', compact('demande'))
+            ->header('Content-Type', 'text/html; charset=UTF-8');
+    }
 }

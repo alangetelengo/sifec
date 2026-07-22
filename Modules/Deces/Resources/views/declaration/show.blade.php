@@ -106,7 +106,8 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
             </button>
             @endif
             @endif
-            <button class="btn btn-warning btn-envoyer-centre{{ $peutEnvoyer ? '' : ' disabled' }}" id="btn-envoyer-centre" title="Envoyer {{ $article }} {{ $typeDeclaration }} au centre d'état civil" data-code="{{ $declaration->code_declaration_deces }}" data-piece-declarant="{{ $declaration->piece_declarant }}" data-piece-defunt="{{ $declaration->piece_defunt }}" data-piece-pere="{{ $declaration->piece_pere }}" data-piece-mere="{{ $declaration->piece_mere }}" data-piece-conjoint="{{ $declaration->piece_conjoint }}" data-statut-pere="{{ optional($declaration->pere)->statut_personne ?? 'VIVANT' }}" data-statut-mere="{{ optional($declaration->mere)->statut_personne ?? 'VIVANT' }}" data-statut-conjoint="{{ optional($declaration->conjoint)->statut_personne ?? 'VIVANT' }}" data-identiteDeclarant="{{ $declaration->declarant ? $declaration->declarant->nomcomplet() : '' }}" data-identiteDefunt="{{ $declaration->defunt ? $declaration->defunt->nomcomplet() : '' }}" data-identitePere="{{ $declaration->pere ? $declaration->pere->nomcomplet() : '' }}" data-identiteMere="{{ $declaration->mere ? $declaration->mere->nomcomplet() : '' }}" data-identiteConjoint="{{ $declaration->conjoint ? $declaration->conjoint->nomcomplet() : '' }}">
+            @php $phaseSignatureEnvoi = $declaration->phaseSignatureOrigine(); @endphp
+            <button class="btn btn-warning btn-envoyer-centre{{ $peutEnvoyer ? '' : ' disabled' }}" id="btn-envoyer-centre" title="Envoyer {{ $article }} {{ $typeDeclaration }} au centre d'état civil" data-code="{{ $declaration->code_declaration_deces }}" data-phase="{{ $phaseSignatureEnvoi ?? '' }}" data-signe="{{ ($phaseSignatureEnvoi && $declaration->estSigneePhase($phaseSignatureEnvoi)) ? '1' : '0' }}" data-piece-declarant="{{ $declaration->piece_declarant }}" data-piece-defunt="{{ $declaration->piece_defunt }}" data-piece-pere="{{ $declaration->piece_pere }}" data-piece-mere="{{ $declaration->piece_mere }}" data-piece-conjoint="{{ $declaration->piece_conjoint }}" data-statut-pere="{{ optional($declaration->pere)->statut_personne ?? 'VIVANT' }}" data-statut-mere="{{ optional($declaration->mere)->statut_personne ?? 'VIVANT' }}" data-statut-conjoint="{{ optional($declaration->conjoint)->statut_personne ?? 'VIVANT' }}" data-identiteDeclarant="{{ $declaration->declarant ? $declaration->declarant->nomcomplet() : '' }}" data-identiteDefunt="{{ $declaration->defunt ? $declaration->defunt->nomcomplet() : '' }}" data-identitePere="{{ $declaration->pere ? $declaration->pere->nomcomplet() : '' }}" data-identiteMere="{{ $declaration->mere ? $declaration->mere->nomcomplet() : '' }}" data-identiteConjoint="{{ $declaration->conjoint ? $declaration->conjoint->nomcomplet() : '' }}">
                 <i class="fa fa-paper-plane"></i>
 
                 @if ($dejaEnvoye)
@@ -389,6 +390,23 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
                         <strong>Attention :</strong> Certaines pièces d'identité sont manquantes.
                         Il est recommandé de les ajouter avant l'envoi au centre d'état civil.
                     </div>
+                    <div id="bloc-signature-certificat" class="d-none">
+                        <div class="alert alert-secondary py-2 small mb-2">
+                            <i class="fas fa-file-signature me-1"></i>
+                            <span id="texte-signature-requise">La signature électronique est requise avant l'envoi.</span>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold" for="cert_p12_file">Certificat (.p12) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control form-control-sm" id="cert_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold" for="cert_p12_pin">Passphrase <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control form-control-sm" id="cert_p12_pin" autocomplete="off" placeholder="Passphrase">
+                            </div>
+                        </div>
+                        <div id="cert-sign-feedback" class="alert alert-warning py-2 small d-none mb-0"></div>
+                    </div>
                     <div class="mb-2">
                         <label for="observation-centre" class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-centre" name="observation" class="form-control" rows="3"></textarea>
@@ -404,7 +422,18 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
 </div>
 @endsection
 @section('scripts')
-@verbatim
+<script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+<script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+<script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260720a"></script>
+<script>
+    window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+    window.SIFEC_ROUTES_DECES = {
+        mouvement: @json(route('declarationDeces.mouvement')),
+        signPrepare: @json(route('declarationDeces.sign.prepare')),
+        signFinalize: @json(route('declarationDeces.sign.finalize')),
+        csrf: @json(csrf_token())
+    };
+</script>
 <script>
     $(function() {
         // Gestion modale pièce d'identité
@@ -466,10 +495,122 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
         });
 
         // Gestion modale envoi au centre d'état civil
+        let codeDeclarationEnvoi = null;
+        let phaseEnvoi = '';
+        let dejaSigneEnvoi = false;
+
+        function signatureEnvoiRequise() {
+            return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true && phaseEnvoi && !dejaSigneEnvoi;
+        }
+        function showCertSignError(msg) {
+            $('#cert-sign-feedback').removeClass('d-none').text(msg);
+            flashAlert('Échec', 'error', msg);
+        }
+        function envoyerDirect($btn, observation) {
+            $.ajax({
+                url: window.SIFEC_ROUTES_DECES.mouvement,
+                type: 'POST',
+                data: {
+                    code_declaration_deces: codeDeclarationEnvoi,
+                    observation: observation,
+                    _token: window.SIFEC_ROUTES_DECES.csrf
+                },
+                success: function(resp) {
+                    sifecBtnReset($btn[0], 'Envoyer');
+                    if (String(resp.code) === '200') {
+                        flashAlert('Réponse', 'success', resp.message);
+                        $('#modal-envoyer-centre').modal('hide');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        flashAlert('Réponse', 'error', resp.message);
+                    }
+                },
+                error: function(xhr) {
+                    sifecBtnReset($btn[0], 'Envoyer');
+                    flashAlert('Erreur', 'error', xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
+                }
+            });
+        }
+        async function signerPuisEnvoyer($btn, observation) {
+            var fileInput = document.getElementById('cert_p12_file');
+            var pin = $('#cert_p12_pin').val();
+            $('#cert-sign-feedback').addClass('d-none').empty();
+            try {
+                var prep = await $.ajax({
+                    url: window.SIFEC_ROUTES_DECES.signPrepare,
+                    type: 'POST',
+                    data: { phase: phaseEnvoi, codes: [codeDeclarationEnvoi], observation: observation, _token: window.SIFEC_ROUTES_DECES.csrf }
+                });
+                if (String(prep.code) === '200' && prep.completed) {
+                    sifecBtnReset($btn[0], 'Envoyer');
+                    flashAlert('Succès', 'success', prep.message);
+                    $('#modal-envoyer-centre').modal('hide');
+                    setTimeout(() => location.reload(), 1000);
+                    return;
+                }
+                if (String(prep.code) !== '200' || !prep.token || !prep.items?.length) {
+                    sifecBtnReset($btn[0], 'Envoyer');
+                    showCertSignError(prep?.message || 'Échec préparation.');
+                    return;
+                }
+                var needSign = prep.items.some(function(it){ return !it.already_signed; });
+                if (needSign) {
+                    if (!fileInput?.files?.[0]) { sifecBtnReset($btn[0], 'Envoyer'); showCertSignError('Sélectionnez votre fichier certificat (.p12).'); return; }
+                    if (!pin?.trim()) { sifecBtnReset($btn[0], 'Envoyer'); showCertSignError('Saisissez la passphrase.'); return; }
+                    if (typeof window.SifecP12Sign === 'undefined') { sifecBtnReset($btn[0], 'Envoyer'); showCertSignError('Bibliothèque de signature non chargée.'); return; }
+                }
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> Signature…');
+                var p12Binary = needSign ? await window.SifecP12Sign.readP12File(fileInput.files[0]) : null;
+                var signatures = [];
+                for (var i = 0; i < prep.items.length; i++) {
+                    var item = prep.items[i];
+                    if (item.already_signed) {
+                        signatures.push({ code_declaration: item.code_declaration, signature_hex: 'RESUME' });
+                    } else {
+                        signatures.push({
+                            code_declaration: item.code_declaration,
+                            signature_hex: await window.SifecP12Sign.signHashHex(p12Binary, pin, item.document_hash, prep.expected_serial || null)
+                        });
+                    }
+                }
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> Envoi…');
+                var fin = await $.ajax({
+                    url: window.SIFEC_ROUTES_DECES.signFinalize,
+                    type: 'POST',
+                    data: { phase: phaseEnvoi, token: prep.token, signatures: signatures, observation: observation, _token: window.SIFEC_ROUTES_DECES.csrf }
+                });
+                sifecBtnReset($btn[0], 'Envoyer');
+                if (String(fin.code) === '200') {
+                    flashAlert('Succès', 'success', fin.message);
+                    $('#modal-envoyer-centre').modal('hide');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showCertSignError(fin.message || 'Échec signature.');
+                }
+            } catch (err) {
+                sifecBtnReset($btn[0], 'Envoyer');
+                showCertSignError(err.message || 'Erreur signature électronique');
+            }
+        }
+
         $(document).on('click', '.btn-envoyer-centre', function() {
             if ($(this).hasClass('disabled')) {
                 toastr.warning('Cette déclaration a déjà été envoyée au centre d\'état civil.');
                 return;
+            }
+            codeDeclarationEnvoi = $(this).data('code');
+            phaseEnvoi = String($(this).data('phase') || '');
+            dejaSigneEnvoi = String($(this).data('signe')) === '1';
+            $('#cert-sign-feedback').addClass('d-none').empty();
+            $('#cert_p12_file').val('');
+            $('#cert_p12_pin').val('');
+            if (signatureEnvoiRequise()) {
+                $('#bloc-signature-certificat').removeClass('d-none');
+                $('#texte-signature-requise').text(phaseEnvoi === 'ch'
+                    ? 'La signature électronique du certificat de constatation est requise avant l\'envoi.'
+                    : 'La signature électronique du certificat de décès par le chef de service est requise avant l\'envoi.');
+            } else {
+                $('#bloc-signature-certificat').addClass('d-none');
             }
             // Remplir le tableau des pièces dans le modal
             const declarantNom = $(this).attr('data-identiteDeclarant');
@@ -530,34 +671,20 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
                 $('#alert-pieces-manquantes').addClass('d-none');
             }
             $('#btn-envoyer-final').prop('disabled', piecesManquantes);
+            $('#input-code-declaration').val(codeDeclarationEnvoi);
             $('#modal-envoyer-centre').modal('show');
-            $('#input-code-declaration').val($(this).data('code'));
         });
 
         $('#form-envoyer-centre').on('submit', function(e) {
             e.preventDefault();
             var $btn = $('#btn-envoyer-final');
-            sifecBtnLoading($btn[0], "Envoi...");
-            let url = "{{ route('declarationDeces.mouvement') }}";
-            $.ajax({
-                url: url
-                , type: 'POST'
-                , data: $(this).serialize()
-                , success: function(resp) {
-                    sifecBtnReset($btn[0], "Envoyer");
-                    if (resp.code == "200") {
-                        flashAlert("Réponse", "success", resp.message);
-                        $('#modal-envoyer-centre').modal('hide');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        flashAlert("Réponse", "error", resp.message);
-                    }
-                }
-                , error: function(xhr) {
-                    sifecBtnReset($btn[0], "Envoyer");
-                    flashAlert("Erreur", "error", xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
-                }
-            });
+            var observation = $('#observation-centre').val();
+            sifecBtnLoading($btn[0], 'Traitement…');
+            if (signatureEnvoiRequise()) {
+                signerPuisEnvoyer($btn, observation);
+            } else {
+                envoyerDirect($btn, observation);
+            }
         });
     });
 

@@ -171,7 +171,6 @@
             }
 
             soumission();
-            console.log(soumission())
         }
     }),$("#contactUsForm").validate({
         ignore: "input[type=hidden]",
@@ -508,6 +507,12 @@
     }
 
     function soumission(){
+        // Garde-fou anti double soumission (double-clic, ré-entrée du wizard, etc.)
+        if (window.__soumissionEnCours) {
+            return false;
+        }
+        window.__soumissionEnCours = true;
+
         mettreAJourTypeDeclarationFormulaire();
 
      // informations de l'époux
@@ -919,10 +924,12 @@
                 }, 2000);
             } else {
                 // Gestion améliorée des messages d'erreur
+                window.__soumissionEnCours = false;
                 var messageErreur = traiterMessageErreur(response);
                 flashAlert("Opération échouée","error",messageErreur);
             }
         }).fail(function(xhr) {
+            window.__soumissionEnCours = false;
             console.log('Erreur AJAX:', xhr); // Debug
             // Gestion des erreurs de connexion
             var messageErreur = "Erreur de connexion. Veuillez vérifier votre connexion internet et réessayer.";

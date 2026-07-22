@@ -142,6 +142,8 @@ Actes Décès
                                                         <button class="btn btn-warning btn-envoyer-centre shadow btn-xs sharp me-1"
                                                             title="Envoyer la déclaration au centre d'état civil"
                                                             data-code="{{ $dd->code_declaration_deces }}"
+                                                            data-phase="fs"
+                                                            data-signe="{{ filled($dd->sig_fs_proof_id) ? '1' : '0' }}"
                                                             data-piece-defunt="{{ $dd->piece_defunt }}"
                                                             data-piece-declarant="{{ $dd->piece_declarant }}"
                                                             data-piece-pere="{{ $dd->piece_pere }}"
@@ -280,6 +282,23 @@ Actes Décès
                         <strong>Attention :</strong> Certaines pièces d'identité sont manquantes.
                         Il est recommandé de les ajouter avant l'envoi au centre d'état civil.
                     </div>
+                    <div id="bloc-signature-certificat" class="d-none">
+                        <div class="alert alert-secondary py-2 small mb-2">
+                            <i class="fas fa-file-signature me-1"></i>
+                            La signature électronique du certificat de décès par le chef de service est requise avant l'envoi.
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold" for="cert_p12_file">Certificat (.p12) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control form-control-sm" id="cert_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold" for="cert_p12_pin">Passphrase <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control form-control-sm" id="cert_p12_pin" autocomplete="off" placeholder="Passphrase">
+                            </div>
+                        </div>
+                        <div id="cert-sign-feedback" class="alert alert-warning py-2 small d-none mb-0"></div>
+                    </div>
                     <div class="mb-2">
                         <label for="observation-centre" class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-centre" name="observation" class="form-control" rows="3"></textarea>
@@ -343,15 +362,100 @@ Actes Décès
 @endsection
 @section("scripts")
 
+<script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+<script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+<script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260720a"></script>
 <!-- Datatable -->
     <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
 
     <script>
+        window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+    </script>
+    <script>
         $(function(){
-            // Événement pour les boutons d'envoi au centre d'état civil
+            let codeDeclarationEnvoi = null;
+            let phaseEnvoi = 'fs';
+            let dejaSigneEnvoi = false;
+
+            function certificatSignatureRequise() {
+                return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true && phaseEnvoi === 'fs' && !dejaSigneEnvoi;
+            }
+            function showCertSignError(msg) {
+                $("#cert-sign-feedback").removeClass('d-none').text(msg);
+                flashAlert("Échec", "error", msg);
+            }
+            function envoyerDirect($btn, observation) {
+                $.ajax({
+                    url: "{{ route('declarationDeces.mouvement') }}",
+                    type: 'POST',
+                    data: { code_declaration_deces: codeDeclarationEnvoi, observation: observation, _token: '{{ csrf_token() }}' },
+                    success: function(resp){
+                        sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer');
+                        if(String(resp.code) === '200'){
+                            flashAlert("Réponse","success",resp.message);
+                            $("#modal-declaration-send").modal('hide');
+                            setTimeout(()=>location.reload(), 1200);
+                        } else {
+                            flashAlert("Réponse","error",resp.message);
+                        }
+                    },
+                    error: function(xhr){
+                        sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer');
+                        flashAlert("Erreur","error", xhr.responseJSON?.message || 'Erreur lors de l\'envoi');
+                    }
+                });
+            }
+            async function signerPuisEnvoyer($btn, observation) {
+                var fileInput = document.getElementById('cert_p12_file');
+                var pin = $('#cert_p12_pin').val();
+                $('#cert-sign-feedback').addClass('d-none').empty();
+                try {
+                    var prep = await $.ajax({ url: "{{ route('declarationDeces.sign.prepare') }}", type: 'POST', data: { phase: phaseEnvoi, codes: [codeDeclarationEnvoi], observation: observation, _token: '{{ csrf_token() }}' } });
+                    if (String(prep.code) === '200' && prep.completed) {
+                        sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer');
+                        flashAlert("Succès","success", prep.message);
+                        $("#modal-declaration-send").modal('hide');
+                        setTimeout(()=>location.reload(), 1200);
+                        return;
+                    }
+                    if (String(prep.code) !== '200' || !prep.token || !prep.items?.length) {
+                        sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer');
+                        showCertSignError(prep?.message || 'Échec préparation.');
+                        return;
+                    }
+                    var needSign = prep.items.some(function(it){ return !it.already_signed; });
+                    if (needSign) {
+                        if (!fileInput?.files?.[0]) { sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer'); showCertSignError('Sélectionnez votre fichier certificat (.p12).'); return; }
+                        if (!pin?.trim()) { sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer'); showCertSignError('Saisissez la passphrase.'); return; }
+                        if (typeof window.SifecP12Sign === 'undefined') { sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer'); showCertSignError('Bibliothèque de signature non chargée.'); return; }
+                    }
+                    $btn.html('<i class="fas fa-spinner fa-spin"></i> Signature…');
+                    var p12Binary = needSign ? await window.SifecP12Sign.readP12File(fileInput.files[0]) : null;
+                    var signatures = [];
+                    for (var i = 0; i < prep.items.length; i++) {
+                        var item = prep.items[i];
+                        if (item.already_signed) {
+                            signatures.push({ code_declaration: item.code_declaration, signature_hex: 'RESUME' });
+                        } else {
+                            signatures.push({ code_declaration: item.code_declaration, signature_hex: await window.SifecP12Sign.signHashHex(p12Binary, pin, item.document_hash, prep.expected_serial || null) });
+                        }
+                    }
+                    $btn.html('<i class="fas fa-spinner fa-spin"></i> Envoi…');
+                    var fin = await $.ajax({ url: "{{ route('declarationDeces.sign.finalize') }}", type: 'POST', data: { phase: phaseEnvoi, token: prep.token, signatures: signatures, observation: observation, _token: '{{ csrf_token() }}' } });
+                    sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer');
+                    if (String(fin.code) === '200') { flashAlert("Succès","success", fin.message); $("#modal-declaration-send").modal('hide'); setTimeout(()=>location.reload(), 1200); }
+                    else { showCertSignError(fin.message || 'Échec signature.'); }
+                } catch (err) {
+                    sifecBtnReset($btn[0], '<i class="fas fa-paper-plane"></i> Envoyer');
+                    showCertSignError(err.message || 'Erreur signature électronique');
+                }
+            }
+
             $(document).on("click", ".btn-envoyer-centre", function(){
-                var codeDeclaration = $(this).data('code');
+                codeDeclarationEnvoi = $(this).data('code');
+                phaseEnvoi = $(this).data('phase') || 'fs';
+                dejaSigneEnvoi = String($(this).data('signe')) === '1';
 
                 // Récupération des données du bouton
                 const defuntNom = $(this).data('identitedefunt') || '-';
@@ -366,10 +470,14 @@ Actes Décès
                 const statutPere = $(this).data('statut-pere') || 'VIVANT';
                 const statutMere = $(this).data('statut-mere') || 'VIVANT';
 
-                $("#codedeclaration").val(codeDeclaration);
-                $("#code-declaration-display").val(codeDeclaration);
+                $("#codedeclaration").val(codeDeclarationEnvoi);
+                $("#code-declaration-display").val(codeDeclarationEnvoi);
+                $('#cert-sign-feedback').addClass('d-none').empty();
+                $('#cert_p12_file').val('');
+                $('#cert_p12_pin').val('');
+                if (certificatSignatureRequise()) { $('#bloc-signature-certificat').removeClass('d-none'); }
+                else { $('#bloc-signature-certificat').addClass('d-none'); }
 
-                // Déclarant : obligatoire. Défunt/Père/Mère : optionnelles si décédé
                 $('#defunt-nom-centre').text(defuntNom);
                 $('#defunt-piece-centre').html(pieceDefunt ? `<a href="/${pieceDefunt}" target="_blank" class="text-success fw-bold">Afficher la pièce</a>` : '-');
                 $('#defunt-status-centre').html(pieceDefunt ? '<span class="badge badge-success">Présente</span>' : '<span class="badge bg-secondary">Optionnelle</span>');
@@ -391,49 +499,22 @@ Actes Décès
 
                 let piecesManquantes = false;
                 if (!pieceDeclarant || (statutPere === 'VIVANT' && !piecePere) || (statutMere === 'VIVANT' && !pieceMere)) {
-                    piecesManquantes = true;
                     $('#alert-pieces-manquantes-centre').removeClass('d-none');
                 } else {
                     $('#alert-pieces-manquantes-centre').addClass('d-none');
                 }
 
-                // Désactiver le bouton si pièces manquantes (optionnel - on peut permettre l'envoi avec avertissement)
-                // $('#btn-send').prop('disabled', piecesManquantes);
-
                 $("#modal-declaration-send").modal("show");
                 return false;
             });
 
-            // Gestion du formulaire d'envoi
             $('#form-envoyer-centre').on('submit', function(e){
                 e.preventDefault();
-
-                let url = "{{ route('declarationDeces.mouvement') }}";
-                var btn = document.getElementById('btn-send');
-                sifecBtnLoading(btn, "Envoi...");
-
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    data: $(this).serialize(),
-                    success: function(response){
-                        sifecBtnReset(btn, "Envoyer");
-
-                        if(response.code == "200"){
-                            flashAlert("Réponse","success",response.message);
-                            $("#modal-declaration-send").modal('hide');
-                            setTimeout(() => {
-                                location.reload();
-                            }, 2000);
-                        }else{
-                            flashAlert("Réponse","error",response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        sifecBtnReset(btn, "Envoyer");
-                        flashAlert("Erreur","error", xhr.responseJSON?.message || "Erreur lors de l'envoi: " + error);
-                    }
-                });
+                var $btn = $('#btn-send');
+                var observation = $('#observation-centre').val();
+                sifecBtnLoading($btn[0], 'Traitement…');
+                if (certificatSignatureRequise()) { signerPuisEnvoyer($btn, observation); }
+                else { envoyerDirect($btn, observation); }
             });
 
             $("a.show-detail-renvoie").on("click", function(){

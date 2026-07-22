@@ -891,18 +891,6 @@ function rechercherPersonneAvecVerification(numeroActe, typePersonne) {
                 afficherSituationMatrimoniale(typePersonne, data.situation_matrimoniale);
             }
         } else {
-
-            // Erreur de recherche
-            const resultatDiv = document.getElementById(`resultat_recherche_${typePersonne}`);
-            if (resultatDiv) {
-                resultatDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h6><i class="fa fa-exclamation-circle"></i> Erreur de recherche</h6>
-                        <p>${data.message}</p>
-                    </div>
-                `;
-            }
-        } else if (data && data.code) {
             // Autre erreur (code différent de 200 et pas d'erreur d'âge)
             const resultatDiv = document.getElementById(`resultat_recherche_${typePersonne}`);
             if (resultatDiv) {

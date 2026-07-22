@@ -266,38 +266,17 @@ class DeclarationDecesService
         $personne->save();
 
         // Mettre à jour le contact (téléphone, email) - principalement pour père/mère
-        $contact = \Modules\Referentiel\Entities\ContactPersonne::where('code_personne', $personne->code_personne)->first();
-        if ($contact) {
-            if (in_array($suffixe, ['_pere', '_mere', '_declarant', '_conjoint'], true) && $request->has("telephone" . $suffixe)) {
-                $contact->telephone = $request->input("telephone" . $suffixe);
-            }
-            if ($request->has("email" . $suffixe)) {
-                $contact->email_personnelle = $request->input("email" . $suffixe);
-            }
-            if ($request->has("email_professionnel" . $suffixe)) {
-                $contact->email_professionnelle = $request->input("email_professionnel" . $suffixe) ?: null;
-            }
-            if ($request->has("code_pays" . $suffixe)) {
-                $contact->indicatif = $request->input("code_pays" . $suffixe);
-            }
-            $contact->save();
-        } elseif (in_array($suffixe, ['_pere', '_mere', '_declarant', '_conjoint'], true)
-            && ($request->has("telephone" . $suffixe) || $request->has("email" . $suffixe) || $request->has("email_professionnel" . $suffixe))) {
-            $contact = new \Modules\Referentiel\Entities\ContactPersonne();
-            $contact->code_personne = $personne->code_personne;
-            if ($request->has("telephone" . $suffixe)) {
-                $contact->telephone = $request->input("telephone" . $suffixe);
-            }
-            if ($request->has("email" . $suffixe)) {
-                $contact->email_personnelle = $request->input("email" . $suffixe);
-            }
-            if ($request->has("email_professionnel" . $suffixe)) {
-                $contact->email_professionnelle = $request->input("email_professionnel" . $suffixe) ?: null;
-            }
-            if ($request->has("code_pays" . $suffixe)) {
-                $contact->indicatif = $request->input("code_pays" . $suffixe);
-            }
-            $contact->save();
+        $hasTel = in_array($suffixe, ['_pere', '_mere', '_declarant', '_conjoint'], true) && $request->has('telephone'.$suffixe);
+        $hasEmail = $request->has('email'.$suffixe) || $request->has('email_professionnel'.$suffixe);
+        if ($hasTel || $hasEmail || $request->has('code_pays'.$suffixe)) {
+            \App\Sifec\Sifec::upsertContactPersonne(
+                $personne->code_personne,
+                $request->input('code_pays'.$suffixe),
+                $request->has('telephone'.$suffixe) ? $request->input('telephone'.$suffixe) : null,
+                $request->has('email'.$suffixe) ? $request->input('email'.$suffixe) : null,
+                $request->has('email_professionnel'.$suffixe) ? $request->input('email_professionnel'.$suffixe) : null,
+                $request->has('email'.$suffixe) || $request->has('email_professionnel'.$suffixe)
+            );
         }
 
         return $personne;

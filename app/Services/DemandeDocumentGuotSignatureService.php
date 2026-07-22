@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Events\DemandeDocumentEvent;
 use App\Models\DemandeDocumentConfig;
 use App\Models\User;
+use App\Support\GuotSignatureAffichage;
 use App\Support\GuotSignataires;
 use Exception;
 use Illuminate\Support\Facades\Cache;
@@ -169,7 +169,6 @@ class DemandeDocumentGuotSignatureService
         foreach ($signedDemandes as $demande) {
             try {
                 $this->otpNotifier->notifierDemandeurApresSignature($demande);
-                event(new DemandeDocumentEvent($demande, 'En attente de signature', 'Traitée'));
             } catch (\Throwable $e) {
                 Log::channel('sifec')->warning('Notification demandeur après signature (non bloquant)', [
                     'code' => $demande->code_demande_document,
@@ -289,6 +288,7 @@ class DemandeDocumentGuotSignatureService
         if ($affectation !== null) {
             $demande->setRelation('signataire', $affectation);
         }
+        GuotSignatureAffichage::applySignerPreview($demande, $user);
 
         if ($demande->estCopie()) {
             $chemin = $this->documentPdfService->genererCopie($demande);
@@ -363,6 +363,7 @@ class DemandeDocumentGuotSignatureService
 
             $user->loadMissing('personne');
             $actorNom = trim(($user->personne?->nom ?? '').' '.($user->personne?->prenom ?? '')) ?: (string) $user->email;
+            $actorFonction = GuotSignatureAffichage::fonctionUtilisateur($user);
 
             $l2 = $this->guot->verifyClientDocumentSignature(
                 $hash,
@@ -398,6 +399,7 @@ class DemandeDocumentGuotSignatureService
             $demande->payload_hash = $hash;
             $demande->actor_id = $actorId;
             $demande->actor_nom = $actorNom;
+            $demande->actor_fonction = $actorFonction;
             $demande->certificate_ref = $l2['certificate_ref'] ?? null;
             $demande->signed_at = $l2['signed_at'] ?? $now;
             $demande->rfc3161_l1_serial = $l2['rfc3161_serial'] ?? ($l2['timestamp_serial'] ?? null);
@@ -413,16 +415,42 @@ class DemandeDocumentGuotSignatureService
             $nom = ($demande->estCopie() ? 'copie' : 'extrait').'_'.$code.'.pdf';
             $relPath = $dossier.'/'.$nom;
             \Illuminate\Support\Facades\Storage::disk('local')->makeDirectory($dossier);
+            // Binaire scellé (empreinte GUOT) — inchangé après signature.
             \Illuminate\Support\Facades\Storage::disk('local')->put($relPath, $pdfBinary);
-            $absolu = storage_path('app/'.$relPath);
-            $demande->chemin_document = $absolu;
+            $absoluScelle = storage_path('app/'.$relPath);
             $demande->pdf_path = $relPath;
+            $demande->chemin_document = $absoluScelle;
             $demande->save();
+
+            // PDF de consultation : régénéré avec certificat + empreinte (métadonnées post-L2).
+            $regenOk = false;
+            $lastRegenError = null;
+            for ($attempt = 1; $attempt <= 2; $attempt++) {
+                try {
+                    app(DemandeDocumentService::class)->regenererPdfApresSignature($demande);
+                    $regenOk = true;
+                    break;
+                } catch (\Throwable $e) {
+                    $lastRegenError = $e;
+                    Log::channel('sifec')->warning('Régénération PDF consultation après signature échouée', [
+                        'code' => $code,
+                        'attempt' => $attempt,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            if (! $regenOk) {
+                Log::channel('sifec')->error('PDF consultation indisponible après signature — binaire scellé conservé (réparation au 1er téléchargement)', [
+                    'code' => $code,
+                    'error' => $lastRegenError?->getMessage(),
+                ]);
+            }
 
             Log::channel('sifec')->info('Demande document .p12 OK', [
                 'code' => $code,
                 'doc_sig_id' => $demande->doc_sig_id,
                 'doc_seal_id' => $demande->doc_seal_id,
+                'pdf_consultation' => $regenOk,
                 'ip' => $ip,
             ]);
 

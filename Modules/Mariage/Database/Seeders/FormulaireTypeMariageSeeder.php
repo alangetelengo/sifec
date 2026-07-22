@@ -4,26 +4,23 @@ namespace Modules\Mariage\Database\Seeders;
 
 use App\Models\User;
 use Carbon\Carbon;
+use Database\Seeders\Concerns\PurgesDemoFaitData;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Mariage\Services\DeclarationMariageService;
-use Modules\Referentiel\Entities\Personne;
 
 /**
- * Formulaires type mariage enregistrés au CEC (MOUV_2007), sans confirmation ni acte.
- *
- * DECLARATION DE MARIAGE : cérémonie >= 60 j après déclaration + centre d'état civil.
- * DISPENSE : hors centre OU cérémonie < 60 j après déclaration.
+ * Formulaires type mariage enregistrés au CEC (MOUV_2007), en brouillon
+ * (sans confirmation ni acte).
  *
  * @see agentcec@sifec.cg (INS_0047)
  */
 class FormulaireTypeMariageSeeder extends Seeder
 {
-    private const TOTAL_DECLARATION = 20;
-
-    private const TOTAL_DISPENSE = 5;
+    use PurgesDemoFaitData;
+    private const TOTAL_DECLARATION = 5;
 
     private const CODE_LOCALITE = 'LOC_0026';
 
@@ -86,23 +83,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             $typeDocument
         );
 
-        $createdDispense = $this->seedBatch(
-            $service,
-            $user,
-            self::TOTAL_DISPENSE,
-            true,
-            10000,
-            $namesData,
-            $rangesMensuels,
-            $optionMariage,
-            $regime,
-            $situationMat,
-            $filiation,
-            $typeDocument
-        );
-
-        $this->command?->info("Formulaires DECLARATION DE MARIAGE (MOUV_2007) : {$createdDeclaration}");
-        $this->command?->info("Formulaires DISPENSE (MOUV_2007) : {$createdDispense}");
+        $this->command?->info("Formulaires DECLARATION DE MARIAGE (brouillon, MOUV_2007) : {$createdDeclaration}");
         $this->command?->info('Institution émettrice : '.$user->affectationActive()->code_institution.' (agentcec@sifec.cg)');
     }
 
@@ -272,6 +253,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             'lieu_naissance_epoux' => $lieuNaissance,
             'code_nationalite_epoux' => 'NAT_0001',
             'code_profession_epoux' => 'PROF_0010',
+            'profession_epoux' => 'PROF_0010',
             'code_type_document_epoux' => $typeDocument,
             'numero_document_epoux' => sprintf('SEED-E-%08d', $seed),
             'nom_epouse' => $epouse['nom'],
@@ -281,6 +263,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             'lieu_naissance_epouse' => $lieuNaissance,
             'code_nationalite_epouse' => 'NAT_0001',
             'code_profession_epouse' => 'PROF_0010',
+            'profession_epouse' => 'PROF_0010',
             'code_type_document_epouse' => $typeDocument,
             'numero_document_epouse' => sprintf('SEED-F-%08d', $seed),
             'nom_t_epoux_1' => $tEpoux1['nom'],
@@ -290,6 +273,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             'lieu_naissance_t_epoux_1' => $lieuNaissance,
             'code_nationalite_t_epoux_1' => 'NAT_0001',
             'code_profession_t_epoux_1' => 'PROF_0010',
+            'profession_t_epoux_1' => 'PROF_0010',
             'code_type_document_t_epoux_1' => $typeDocument,
             'numero_document_t_epoux_1' => sprintf('SEED-TE1-%08d', $seed),
             'nom_t_epoux_2' => $tEpoux2['nom'],
@@ -299,6 +283,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             'lieu_naissance_t_epoux_2' => $lieuNaissance,
             'code_nationalite_t_epoux_2' => 'NAT_0001',
             'code_profession_t_epoux_2' => 'PROF_0010',
+            'profession_t_epoux_2' => 'PROF_0010',
             'code_type_document_t_epoux_2' => $typeDocument,
             'numero_document_t_epoux_2' => sprintf('SEED-TE2-%08d', $seed),
             'nom_t_epouse_1' => $tEpouse1['nom'],
@@ -308,6 +293,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             'lieu_naissance_t_epouse_1' => $lieuNaissance,
             'code_nationalite_t_epouse_1' => 'NAT_0001',
             'code_profession_t_epouse_1' => 'PROF_0010',
+            'profession_t_epouse_1' => 'PROF_0010',
             'code_type_document_t_epouse_1' => $typeDocument,
             'numero_document_t_epouse_1' => sprintf('SEED-TF1-%08d', $seed),
             'nom_t_epouse_2' => $tEpouse2['nom'],
@@ -317,6 +303,7 @@ class FormulaireTypeMariageSeeder extends Seeder
             'lieu_naissance_t_epouse_2' => $lieuNaissance,
             'code_nationalite_t_epouse_2' => 'NAT_0001',
             'code_profession_t_epouse_2' => 'PROF_0010',
+            'profession_t_epouse_2' => 'PROF_0010',
             'code_type_document_t_epouse_2' => $typeDocument,
             'numero_document_t_epouse_2' => sprintf('SEED-TF2-%08d', $seed),
             'enfants' => 0,
@@ -370,41 +357,6 @@ class FormulaireTypeMariageSeeder extends Seeder
 
     private function resetTables(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
-
-        $personCodes = DB::table('t_declaration_mariage')
-            ->select(
-                'code_epoux',
-                'code_epouse',
-                'code_temoin_homme_epoux',
-                'code_temoin_femme_epoux',
-                'code_temoin_homme_epouse',
-                'code_temoin_femme_epouse'
-            )
-            ->get()
-            ->flatMap(function ($row) {
-                return [
-                    $row->code_epoux,
-                    $row->code_epouse,
-                    $row->code_temoin_homme_epoux,
-                    $row->code_temoin_femme_epoux,
-                    $row->code_temoin_homme_epouse,
-                    $row->code_temoin_femme_epouse,
-                ];
-            })
-            ->filter()
-            ->unique()
-            ->values();
-
-        DB::table('t_mouvement_mariage')->delete();
-        DB::table('t_acte_mariage')->delete();
-        DB::table('t_declaration_mariage')->delete();
-
-        if ($personCodes->isNotEmpty()) {
-            DB::table('t_document')->whereIn('code_personne', $personCodes)->delete();
-            Personne::whereIn('code_personne', $personCodes)->delete();
-        }
-
-        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+        $this->purgeMariageDemoData();
     }
 }

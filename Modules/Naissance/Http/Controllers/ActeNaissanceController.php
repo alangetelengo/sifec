@@ -22,6 +22,7 @@ use Modules\Naissance\Entities\Declarationnaissance;
 use Modules\Naissance\Entities\MouvementNaissance;
 use Modules\Naissance\Exceptions\ActeNaissanceOtpLockedException;
 use Modules\Naissance\Http\Requests\GenerateActeRequest;
+use Modules\Naissance\Services\ActeNaissanceAnnulationSignatureService;
 use Modules\Naissance\Services\ActeNaissanceGuotValidationService;
 use Modules\Naissance\Services\ActeNaissanceService;
 use Modules\Naissance\Services\ActeNaissanceSignatureFinalizer;
@@ -696,8 +697,8 @@ class ActeNaissanceController extends Controller
         }
 
         // Prérequis : déclaration signée électroniquement par le CEC.
-        $nonSignees = $dn->filter(fn ($d) => ! filled($d->sig_cec_proof_id));
-        if ($nonSignees->isNotEmpty()) {
+        $nbNonSignees = $dn->filter(fn ($d) => ! filled($d->sig_cec_proof_id))->count();
+        if ($nbNonSignees > 0) {
             $dn = $dn->filter(fn ($d) => filled($d->sig_cec_proof_id))->values();
         }
 
@@ -709,7 +710,9 @@ class ActeNaissanceController extends Controller
         }
 
         // Limiter le nombre d'actes à générer si le registre n'a pas assez de place
+        $nbReportesRegistre = 0;
         if ($regResteplace < $dn->count()) {
+            $nbReportesRegistre = $dn->count() - $regResteplace;
             $dn = $dn->take($regResteplace);
         }
 
@@ -730,9 +733,27 @@ class ActeNaissanceController extends Controller
             }
             DB::commit();
 
+            $nbGeneres = $dn->count();
+            $message = $nbGeneres.' acte(s) de naissance généré(s) avec succès.';
+            $avertissements = [];
+            if ($nbNonSignees > 0) {
+                $avertissements[] = $nbNonSignees." déclaration(s) ignorée(s) faute de signature électronique du centre d'état civil";
+            }
+            if ($nbReportesRegistre > 0) {
+                $avertissements[] = $nbReportesRegistre.' déclaration(s) reportée(s) faute de place dans le registre';
+            }
+            if ($avertissements !== []) {
+                $message .= ' ('.implode(' ; ', $avertissements).').';
+            }
+
             return response()->json([
                 'code' => '200',
-                'message' => ['reponse' => 'Actes des naissances générés avec succès'],
+                'message' => ['reponse' => $message],
+                'details' => [
+                    'generes' => $nbGeneres,
+                    'ignores_non_signes' => $nbNonSignees,
+                    'reportes_registre' => $nbReportesRegistre,
+                ],
             ]);
         } catch (Exception $e) {
             DB::rollBack();
@@ -743,64 +764,6 @@ class ActeNaissanceController extends Controller
                 'message' => ['error' => $e->getMessage()],
             ]);
         }
-    }
-
-    public function naissanceApprouver($id)
-    {
-
-        $acte = ActeNaissance::findByIdentifier($id);
-
-        if ($acte == null) {
-            flash()->error('Vous ne pouvez pas approuver cet acte de naissance');
-
-            return back();
-        }
-
-        if (Gate::allows('module.acteNaissance.signature')) {
-
-            try {
-                $result = app(ActeNaissanceGuotValidationService::class)->signerActes(
-                    Auth::user(),
-                    [$acte->code_declaration_naissance],
-                    request()->ip(),
-                    request()->userAgent()
-                );
-
-                if (! $result['ok']) {
-                    flash()->error($result['message']);
-
-                    return back();
-                }
-
-                flash()->success($result['message']);
-
-                return back();
-
-            } catch (Exception $e) {
-                flash()->error($e->getMessage());
-
-                return back();
-            }
-
-        }
-        // if ( Gate::allows("module.acteNaissance.sceau")) {
-
-        //    try{
-        //         $acte->approbation_tribunal = 1;
-        //         $acte->sceau = $acte->institutionUser->institution->institutionParent->sceau;
-        //         $acte->save();
-        //         flash()->success("Acte approuvé avec succès");
-        //         return back();
-
-        //     }catch(Exception $e){
-        //         flash()->error($e->getMessage());
-        //         return back();
-        //     }
-        // }
-        flash()->error("Vous n'avez pas la permission d'approuver cet acte de naissance");
-
-        return back();
-
     }
 
     public function searchActe()
@@ -842,104 +805,25 @@ class ActeNaissanceController extends Controller
         return $html2pdf->output($acte->code_acte_naissance.'.pdf');
     }
 
+    /**
+     * @deprecated Remplacé par signature/prepare + signature/finalize (.p12).
+     */
     public function sendOtp(Request $request, OtpService $otpService)
     {
-        $code = $request->code_declaration_naissance;
-        $an = ActeNaissance::where('code_declaration_naissance', $code)->first();
-        $user = Auth::user();
-        if (! $an) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé',
-            ]);
-        }
-
-        try {
-            $demandeRenvoi = $request->boolean('resend', false);
-            $result = $otpService->envoyerOtpValidationActes($user, [$an], $demandeRenvoi);
-
-            return response()->json([
-                'code' => '200',
-                'message' => $result['kind'] === 'reused'
-                    ? 'Le code déjà envoyé est toujours valide ; aucun nouvel SMS ou e-mail.'
-                    : 'Code OTP envoyé par SMS et par e-mail à l’officier.',
-                'otp_session' => $result['kind'],
-                'valid_for_seconds' => $result['valid_for_seconds'],
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-                'otp_lockout_minutes' => 3,
-            ]);
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => $e->getMessage()],
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'La validation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
+        ]);
     }
 
+    /**
+     * @deprecated Remplacé par signature/prepare + signature/finalize (.p12).
+     */
     public function validateOtp(Request $request, OtpService $otpService)
     {
-        $rules = [
-            'otp_approbation_mairie' => ['required', 'numeric'],
-            'code_declaration_naissance' => ['required', 'string'],
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé pour ce code',
-            ]);
-        }
-
-        if (! Gate::allows('module.acteNaissance.signature')) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => "Vous n'êtes pas autorisé à valider un acte de naissance"],
-            ]);
-        }
-
-        $code = $request->code_declaration_naissance;
-        $otp = $request->otp_approbation_mairie;
-
-        try {
-            [$ok, $result] = $otpService->validerOtpActes(
-                [$code],
-                $otp,
-                $request->ip(),
-                $request->userAgent()
-            );
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        }
-
-        if (! $ok) {
-            Log::channel('sifec')->info(is_array($result) ? json_encode($result) : $result);
-
-            return response()->json([
-                'code' => '183',
-                'message' => is_array($result) ? $result : ['error' => $result],
-            ]);
-        }
-
         return response()->json([
-            'code' => '200',
-            'message' => 'Acte de naissance validé avec succès',
+            'code' => '410',
+            'message' => 'La validation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
         ]);
     }
 
@@ -1013,6 +897,76 @@ class ActeNaissanceController extends Controller
     }
 
     /**
+     * Prépare l'annulation électronique (.p12) — empreinte de la demande d'annulation.
+     */
+    public function prepareAnnulationSignature(Request $request, ActeNaissanceAnnulationSignatureService $annulationSignature)
+    {
+        if (! Gate::allows('module.acteNaissance.signature')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à annuler un acte de naissance",
+            ]);
+        }
+
+        $codes = $request->input('codes', []);
+        if (! is_array($codes) || $codes === []) {
+            $single = (string) $request->input('code_declaration_naissance', '');
+            $codes = $single !== '' ? [$single] : [];
+        }
+        $codes = array_values(array_unique(array_filter(array_map('strval', $codes))));
+
+        $motif = trim((string) $request->input('motif', ''));
+        $observation = (string) $request->input('observation', '');
+
+        if ($codes === []) {
+            return response()->json(['code' => '180', 'message' => 'Aucun acte sélectionné']);
+        }
+
+        $result = $annulationSignature->prepare(Auth::user(), $codes, $motif, $observation);
+
+        return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'message' => $result['message'],
+            'token' => $result['token'] ?? null,
+            'expected_serial' => $result['expected_serial'] ?? null,
+            'items' => $result['items'] ?? [],
+        ]);
+    }
+
+    /**
+     * Finalise l'annulation après signature locale .p12.
+     */
+    public function finalizeAnnulationSignature(Request $request, ActeNaissanceAnnulationSignatureService $annulationSignature)
+    {
+        if (! Gate::allows('module.acteNaissance.signature')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à annuler un acte de naissance",
+            ]);
+        }
+
+        $token = (string) $request->input('token', '');
+        $signatures = $request->input('signatures', []);
+        if (! is_array($signatures)) {
+            $signatures = [];
+        }
+
+        $result = $annulationSignature->finalize(
+            Auth::user(),
+            $token,
+            $signatures,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        return response()->json([
+            'code' => $result['ok'] ? '200' : '183',
+            'message' => $result['message'],
+            'cancelled' => $result['cancelled'],
+        ]);
+    }
+
+    /**
      * @deprecated Remplacé par prepareSignature + finalizeSignature (.p12).
      */
     public function signGuot(Request $request, ActeNaissanceGuotValidationService $guotValidation)
@@ -1028,417 +982,70 @@ class ActeNaissanceController extends Controller
         return $this->prepareSignature($request, $guotValidation);
     }
 
+    /**
+     * @deprecated Remplacé par signature/prepare + signature/finalize (.p12).
+     */
     public function sendOtpBulk(Request $request, OtpService $otpService)
     {
-        $codes = $request->codes;
-        $an = ActeNaissance::whereIn('code_declaration_naissance', $codes)->get();
-        $user = Auth::user();
-        if ($an->count() == 0) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé',
-            ]);
-        }
-        try {
-            $demandeRenvoi = $request->boolean('resend', false);
-            $result = $otpService->envoyerOtpValidationActes($user, $an, $demandeRenvoi);
-
-            return response()->json([
-                'code' => '200',
-                'message' => $result['kind'] === 'reused'
-                    ? 'Le code déjà envoyé est toujours valide ; aucun nouvel SMS ou e-mail.'
-                    : 'Code OTP envoyé par SMS et par e-mail à l’officier.',
-                'otp_session' => $result['kind'],
-                'valid_for_seconds' => $result['valid_for_seconds'],
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-                'otp_lockout_minutes' => 3,
-            ]);
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => $e->getMessage()],
-            ]);
-        }
-    }
-
-    public function validateOtpBulk(Request $request, OtpService $otpService, MouvementService $mouvementService)
-    {
-        $codes = $request->codes;
-        $otp = $request->otp_approbation_mairie;
-        if (! Gate::allows('module.acteNaissance.signature')) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => "Vous n'êtes pas autorisé à valider un acte de naissance"],
-            ]);
-        }
-        // Vérification contact déclarant pour chaque acte
-        $actes = ActeNaissance::whereIn('code_declaration_naissance', $codes)->get();
-        foreach ($actes as $an) {
-            $contactDeclarant = $an->declaration->declarant->contacts->first();
-            if ($contactDeclarant == null) {
-                return response()->json([
-                    'code' => '186',
-                    'message' => ["Aucun contact trouvé pour le déclarant de l'acte ".$an->niupp],
-                ]);
-            }
-        }
-
-        try {
-            [$ok, $result] = $otpService->validerOtpActes(
-                $codes,
-                $otp,
-                $request->ip(),
-                $request->userAgent()
-            );
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        } catch (Exception $e) {
-            Log::channel('sifec')->info($e->getMessage());
-
-            return response()->json([
-                'code' => '500',
-                'message' => ["Erreur lors de la validation ou de l'enregistrement du mouvement : ".$e->getMessage()],
-            ]);
-        }
-
-        if (! $ok) {
-            Log::channel('sifec')->info(is_array($result) ? json_encode($result) : $result);
-
-            return response()->json([
-                'code' => '183',
-                'message' => is_array($result) ? $result : [$result],
-            ]);
-        }
-
         return response()->json([
-            'code' => '200',
-            'message' => ['Actes des naissances validés avec succès'],
+            'code' => '410',
+            'message' => 'La validation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
         ]);
     }
 
     /**
-     * Envoi du code OTP pour l'annulation d'un acte
+     * @deprecated Remplacé par signature/prepare + signature/finalize (.p12).
+     */
+    public function validateOtpBulk(Request $request, OtpService $otpService, MouvementService $mouvementService)
+    {
+        return response()->json([
+            'code' => '410',
+            'message' => 'La validation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
+        ]);
+    }
+
+    /**
+     * @deprecated Remplacé par annulation/prepare + annulation/finalize (.p12).
      */
     public function sendOtpAnnulation(Request $request, OtpService $otpService)
     {
-        $code = $request->code_declaration_naissance;
-        $an = ActeNaissance::where('code_declaration_naissance', $code)->first();
-        $user = Auth::user();
-        
-        if (! $an) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé',
-            ]);
-        }
-
-        if ($an->deleted_at) {
-            return response()->json([
-                'code' => '400',
-                'message' => 'Cet acte est déjà annulé',
-            ]);
-        }
-
-        try {
-            $demandeRenvoi = $request->boolean('resend', false);
-            $result = $otpService->envoyerOtpValidationActes($user, [$an], $demandeRenvoi);
-
-            return response()->json([
-                'code' => '200',
-                'message' => $result['kind'] === 'reused'
-                    ? 'Le code déjà envoyé est toujours valide ; aucun nouvel SMS ou e-mail.'
-                    : 'Code OTP envoyé par SMS et par e-mail à l\'officier pour valider l\'annulation.',
-                'otp_session' => $result['kind'],
-                'valid_for_seconds' => $result['valid_for_seconds'],
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-                'otp_lockout_minutes' => 3,
-            ]);
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => $e->getMessage()],
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'L\'annulation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
+        ]);
     }
 
     /**
-     * Validation du code OTP pour l'annulation d'un acte
+     * @deprecated Remplacé par annulation/prepare + annulation/finalize (.p12).
      */
     public function validateOtpAnnulation(Request $request, OtpService $otpService, MouvementService $mouvementService)
     {
-        $rules = [
-            'otp_annulation' => ['required', 'numeric'],
-            'code_declaration_naissance' => ['required', 'string'],
-            'motif' => ['required', 'string'],
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'code' => '180',
-                'message' => $validator->errors()->first(),
-            ]);
-        }
-
-        if (! Gate::allows('module.acteNaissance.signature')) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => "Vous n'êtes pas autorisé à annuler un acte de naissance"],
-            ]);
-        }
-
-        $code = $request->code_declaration_naissance;
-        $otp = $request->otp_annulation;
-
-        try {
-            [$ok, $result] = $otpService->validerOtpActes(
-                [$code],
-                $otp,
-                $request->ip(),
-                $request->userAgent()
-            );
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        }
-
-        if (! $ok) {
-            Log::channel('sifec')->info(is_array($result) ? json_encode($result) : $result);
-
-            return response()->json([
-                'code' => '183',
-                'message' => is_array($result) ? $result : ['error' => $result],
-            ]);
-        }
-
-        // OTP validé, procéder à l'annulation
-        try {
-            DB::beginTransaction();
-            $declaration = Declarationnaissance::findOrFail($code);
-            $acte = $declaration->acte;
-
-            if (! $acte) {
-                return response()->json([
-                    'code' => '404',
-                    'message' => 'Aucun acte trouvé pour cette déclaration',
-                ]);
-            }
-
-            if ($acte->deleted_at) {
-                return response()->json([
-                    'code' => '400',
-                    'message' => 'Cet acte a déjà été annulé',
-                ]);
-            }
-
-            // Annuler l'acte
-            $acte->deleted_at = Carbon::now();
-            $acte->motif_annulation = $request->motif;
-            $acte->observation_annulation = $request->observation;
-            $acte->statut = 1;
-            $acte->save();
-
-            // Créer un mouvement d'annulation
-            $user = Auth::user();
-            $mouvementService->envoyerDeclaration($user, $declaration, 'MOUV_0014', [], 'annulé');
-
-            DB::commit();
-
-            return response()->json([
-                'code' => '200',
-                'message' => 'Acte annulé avec succès',
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::channel('sifec')->error('Erreur annulation acte avec OTP : '.$e->getMessage());
-
-            return response()->json([
-                'code' => '500',
-                'message' => 'Erreur lors de l\'annulation de l\'acte: '.$e->getMessage(),
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'L\'annulation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
+        ]);
     }
 
     /**
-     * Envoi du code OTP pour l'annulation groupée d'actes
+     * @deprecated Remplacé par annulation/prepare + annulation/finalize (.p12).
      */
     public function sendOtpAnnulationBulk(Request $request, OtpService $otpService)
     {
-        $codes = $request->codes;
-        $an = ActeNaissance::whereIn('code_declaration_naissance', $codes)->get();
-        $user = Auth::user();
-        
-        if ($an->count() == 0) {
-            return response()->json([
-                'code' => '180',
-                'message' => 'Aucun acte trouvé',
-            ]);
-        }
-        
-        try {
-            $demandeRenvoi = $request->boolean('resend', false);
-            $result = $otpService->envoyerOtpValidationActes($user, $an, $demandeRenvoi);
-
-            return response()->json([
-                'code' => '200',
-                'message' => $result['kind'] === 'reused'
-                    ? 'Le code déjà envoyé est toujours valide ; aucun nouvel SMS ou e-mail.'
-                    : 'Code OTP envoyé par SMS et par e-mail à l\'officier pour valider l\'annulation.',
-                'otp_session' => $result['kind'],
-                'valid_for_seconds' => $result['valid_for_seconds'],
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-                'otp_lockout_minutes' => 3,
-            ]);
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => $e->getMessage()],
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'L\'annulation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
+        ]);
     }
 
     /**
-     * Validation du code OTP pour l'annulation groupée d'actes
+     * @deprecated Remplacé par annulation/prepare + annulation/finalize (.p12).
      */
     public function validateOtpAnnulationBulk(Request $request, OtpService $otpService)
     {
-        $codes = $request->codes;
-        $otp = $request->otp_annulation;
-        $motif = $request->motif;
-        
-        if (! Gate::allows('module.acteNaissance.signature')) {
-            return response()->json([
-                'code' => '181',
-                'message' => ['error' => "Vous n'êtes pas autorisé à annuler des actes de naissance"],
-            ]);
-        }
-
-        try {
-            [$ok, $result] = $otpService->validerOtpActes(
-                $codes,
-                $otp,
-                $request->ip(),
-                $request->userAgent()
-            );
-        } catch (ActeNaissanceOtpLockedException $e) {
-            return response()->json([
-                'code' => '184',
-                'message' => $e->getMessage(),
-                'retry_after_seconds' => $e->retryAfterSeconds,
-                'otp_max_resend' => 3,
-                'otp_max_validate' => 3,
-            ]);
-        } catch (Exception $e) {
-            Log::channel('sifec')->info($e->getMessage());
-
-            return response()->json([
-                'code' => '500',
-                'message' => ["Erreur lors de la validation : ".$e->getMessage()],
-            ]);
-        }
-
-        if (! $ok) {
-            Log::channel('sifec')->info(is_array($result) ? json_encode($result) : $result);
-
-            return response()->json([
-                'code' => '183',
-                'message' => is_array($result) ? $result : [$result],
-            ]);
-        }
-
-        // OTP validé, procéder à l'annulation groupée
-        try {
-            $user = Auth::user();
-            $affectation = $user->affectationActive();
-            $observation = $request->observation;
-
-            $declarations = Declarationnaissance::whereIn('code_declaration_naissance', $codes)
-                ->whereHas('acte', function ($query) {
-                    $query->whereNull('deleted_at');
-                })
-                ->get();
-
-            if ($declarations->count() !== count($codes)) {
-                return response()->json([
-                    'code' => '400',
-                    'message' => 'Certains actes ne peuvent pas être annulés',
-                ]);
-            }
-
-            DB::beginTransaction();
-
-            foreach ($declarations as $declaration) {
-                $acte = $declaration->acte;
-                if ($acte && ! $acte->deleted_at) {
-                    $acte->motif_annulation = $motif;
-                    $acte->observation_annulation = $observation;
-                    $acte->deleted_at = now();
-                    $acte->save();
-
-                    // Historique mouvement
-                    $mouvement = new MouvementNaissance;
-                    $mouvement->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($mouvement, 'code_mouvement_naissance', 8, 'MOUV_');
-                    $mouvement->code_declaration_naissance = $declaration->code_declaration_naissance;
-                    $mouvement->motif_renvoi = 'Annulation d\'acte: '.$motif;
-                    $mouvement->observation = $observation;
-                    $mouvement->cui = $affectation->cui;
-                    $mouvement->save();
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'code' => '200',
-                'message' => 'Actes annulés avec succès',
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'code' => '500',
-                'message' => 'Erreur lors de l\'annulation des actes: '.$e->getMessage(),
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'L\'annulation par OTP n\'est plus disponible. Utilisez la signature électronique (.p12).',
+        ]);
     }
 
     public function repertoire()
@@ -1795,57 +1402,14 @@ class ActeNaissanceController extends Controller
     }
 
     /**
-     * Annuler un acte de naissance
+     * @deprecated Remplacé par annulation/prepare + annulation/finalize (.p12).
      */
     public function annulerActe(Request $request, MouvementService $mouvementService)
     {
-
-        try {
-            DB::beginTransaction();
-            $declaration = Declarationnaissance::findOrFail($request->code_declaration_naissance);
-            $acte = $declaration->acte;
-
-            if (! $acte) {
-                return response()->json([
-                    'code' => '404',
-                    'message' => 'Aucun acte trouvé pour cette déclaration',
-                ]);
-            }
-
-            if ($acte->deleted_at) {
-                return response()->json([
-                    'code' => '400',
-                    'message' => 'Cet acte a déjà été annulé',
-                ]);
-            }
-
-            // Annuler l'acte
-            $acte->deleted_at = Carbon::now();
-            $acte->motif_annulation = $request->motif;
-            $acte->statut = 1;
-            $acte->save();
-
-            // Créer un mouvement d'annulation
-            if ($acte && $declaration) {
-                $user = Auth::user();
-                $mouvementService->envoyerDeclaration($user, $declaration, 'MOUV_0014', [], 'annulé');
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'code' => '200',
-                'message' => 'Acte annulé avec succès',
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::channel('sifec')->error('Erreur annulation acte : '.$e->getMessage());
-
-            return response()->json([
-                'code' => '500',
-                'message' => 'Erreur lors de l\'annulation de l\'acte: '.$e->getMessage(),
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'L\'annulation sans signature électronique n\'est plus disponible. Utilisez la signature (.p12).',
+        ]);
     }
 
     /**
@@ -2094,63 +1658,15 @@ class ActeNaissanceController extends Controller
         }
     }
 
+    /**
+     * @deprecated Remplacé par annulation/prepare + annulation/finalize (.p12).
+     */
     public function annulerActesBulk(Request $request)
     {
-        try {
-            $codes = $request->codes;
-            $motif = $request->motif;
-            $observation = $request->observation;
-            $user = Auth::user();
-            $affectation = $user->affectationActive();
-
-            $declarations = Declarationnaissance::whereIn('code_declaration_naissance', $codes)
-                ->whereHas('acte', function ($query) {
-                    $query->whereNull('deleted_at');
-                })
-                ->get();
-
-            if ($declarations->count() !== count($codes)) {
-                return response()->json([
-                    'code' => '400',
-                    'message' => 'Certains actes ne peuvent pas être annulés',
-                ]);
-            }
-
-            DB::beginTransaction();
-
-            foreach ($declarations as $declaration) {
-                $acte = $declaration->acte;
-                if ($acte && ! $acte->deleted_at) {
-                    $acte->motif_annulation = $motif;
-                    $acte->observation_annulation = $observation;
-                    $acte->deleted_at = now();
-                    $acte->save();
-
-                    // Historique mouvement
-                    $mouvement = new MouvementNaissance;
-                    $mouvement->code_mouvement_naissance = Sifec::genererCodeUniqueReferentiel($mouvement, 'code_mouvement_naissance', 8, 'MOUV_');
-                    $mouvement->code_declaration_naissance = $declaration->code_declaration_naissance;
-                    $mouvement->motif_renvoi = 'Annulation d\'acte: '.$motif;
-                    $mouvement->observation = $observation;
-                    $mouvement->cui = $affectation->cui;
-                    $mouvement->save();
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'code' => '200',
-                'message' => 'Actes annulés avec succès',
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'code' => '500',
-                'message' => 'Erreur lors de l\'annulation des actes: '.$e->getMessage(),
-            ]);
-        }
+        return response()->json([
+            'code' => '410',
+            'message' => 'L\'annulation sans signature électronique n\'est plus disponible. Utilisez la signature (.p12).',
+        ]);
     }
 
     /**

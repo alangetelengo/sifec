@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Modules\Naissance\Entities\Declarationnaissance;
 use Modules\Naissance\Services\DeclarationNaissanceSignatureService;
@@ -35,6 +36,13 @@ class DeclarationSignatureController extends Controller
             return response()->json(['code' => '180', 'message' => 'Phase de signature invalide.']);
         }
 
+        if (! $this->userCanSignPhase($phase)) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer ce document.",
+            ]);
+        }
+
         $codes = $this->resolveCodes($request);
         if ($codes === []) {
             return response()->json(['code' => '180', 'message' => 'Aucun document sélectionné.']);
@@ -60,6 +68,13 @@ class DeclarationSignatureController extends Controller
         $phase = $this->resolvePhase($request);
         if ($phase === null) {
             return response()->json(['code' => '180', 'message' => 'Phase de signature invalide.']);
+        }
+
+        if (! $this->userCanSignPhase($phase)) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer ce document.",
+            ]);
         }
 
         $token = (string) $request->input('token', '');
@@ -157,6 +172,13 @@ class DeclarationSignatureController extends Controller
         if (! $ok) {
             throw new Exception($result ?: 'Échec de la confirmation du dossier.');
         }
+    }
+
+    private function userCanSignPhase(string $phase): bool
+    {
+        return $phase === DeclarationNaissanceSignatureService::PHASE_FS
+            ? Gate::allows('module.ActeNaissance.declarationNaissance.create')
+            : Gate::allows('module.acteNaissance.generate');
     }
 
     private function resolvePhase(Request $request): ?string

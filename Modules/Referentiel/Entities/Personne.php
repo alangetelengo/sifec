@@ -49,7 +49,14 @@ class Personne extends Model
     }
 
     public function nomcomplet(){
-        return $this->nom ." ".$this->prenom;
+        $nom = trim((string) ($this->nom ?? ''));
+        $prenom = trim((string) ($this->prenom ?? ''));
+        // Placeholders / tirets Unicode souvent saisis quand le prénom est inconnu
+        if ($prenom === '' || in_array($prenom, ['—', '–', '-', 'N/A', 'n/a', 'XXXX', 'XXXXXXXXXXXXXXXX'], true)) {
+            return $nom;
+        }
+
+        return trim($nom.' '.$prenom);
     }
 
 

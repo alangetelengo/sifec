@@ -37,9 +37,17 @@ class TwoFactorBulkMailable extends Mailable
             ? '🔐 Votre double authentification (2FA) a été activée — SIFEC'
             : '🔓 Votre double authentification (2FA) a été désactivée — SIFEC';
 
+        $fromAddress = config('mail.from.address') ?: config('mail.mailers.smtp.username');
+        $fromName = config('mail.from.name') ?: 'SIFEC — État Civil';
+        // SUBJECT dans .env (ex. "ETAT CIVIL") prime s'il est défini hors cache de config
+        $subjectName = env('SUBJECT');
+        if (is_string($subjectName) && trim($subjectName) !== '') {
+            $fromName = trim($subjectName);
+        }
+
         $mail = $this
             ->subject($subject)
-            ->from(env('MAIL_USERNAME'), env('SUBJECT', 'SIFEC — État Civil'))
+            ->from($fromAddress, $fromName)
             ->view('emails.two-factor-bulk');
 
         // Joindre le fichier de codes de récupération uniquement à l'activation

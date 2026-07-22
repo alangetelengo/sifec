@@ -1194,6 +1194,7 @@ class RegistreController extends Controller
         $actesRegistre = ActeNaissance::where('code_registre', $id)
             ->join('t_feuillet_registre', 't_acte_naissance.niupp', '=', 't_feuillet_registre.code_acte')
             ->select('t_acte_naissance.*')
+            ->with(['declaration', 'signataire.fonction', 'signataire.user.personne'])
             ->orderByRaw('CAST(RIGHT(t_feuillet_registre.code_acte, 4) AS UNSIGNED) ASC')
             ->get();
 
@@ -1203,6 +1204,7 @@ class RegistreController extends Controller
     public function feuilletRN($id)
     {
         $acte = ActeNaissance::findByIdentifier($id);
+        $acte?->load(['declaration', 'signataire.fonction', 'signataire.user.personne', 'registre']);
         $dummy = 'XXXXXXXXXXXXXXXX';
 
         return view('referentiel::registre.feuillet_acte_naissance', compact('acte', 'dummy'));

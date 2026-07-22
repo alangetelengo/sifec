@@ -89,7 +89,7 @@ Actes de décès
                         <div>
                             <strong>Étape 1 — Validation au centre d'état civil.</strong>
                             Confirmez le dossier (certificat → déclaration de décès), puis passez à l’onglet
-                            <em>Gestion des actes</em> pour générer l’acte et la signature (OTP).
+                            <em>Gestion des actes</em> pour générer l’acte et appliquer la signature électronique.
                             Au chargement, aperçu des <strong>20 dossiers les plus récents</strong> ; utilisez le filtre pour en voir davantage.
                             Les dossiers déjà validés restent listés ici : utilisez les actions pour ouvrir les PDF (certificat d’origine, déclaration générée).
                         </div>
@@ -185,7 +185,7 @@ Actes de décès
                         <span class="an-hint__icon" aria-hidden="true"><span class="fw-bold small">2–3</span></span>
                         <div>
                             <strong>Étapes 2 et 3 — Acte et signature.</strong>
-                            Colonne <em>Étape</em> : génération de l’acte, puis validation par l’officier (OTP).
+                            Colonne <em>Étape</em> : génération de l’acte, puis validation par l’officier via signature électronique.
                             Les dossiers les plus urgents (sans acte, puis acte non validé) apparaissent en tête sur l’accueil (20 derniers).
                         </div>
                     </div>
@@ -368,29 +368,36 @@ Actes de décès
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Validation de l'acte de deces</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal">
-                </button>
+                <h5 class="modal-title">Signature électronique de l'acte de décès</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="mb-2 col-md-6">
-                        <input type="hidden" id="code_declaration_deces_validate">
-                        <input type="hidden" id="validation_type">
-                        <label class="form-label">Code de validation<span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-lg text-center fw-bold" id="otp_approbation_pompe_funebre" name="otp_approbation_pompe_funebre" placeholder="_ _ _ _ _ _ _ _" maxlength="8" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="one-time-code" required>
-                    </div>
-                    <span class="text-success"><i>Veuillez saisir le code de validation reçu par SMS.</i> </span>
+                <input type="hidden" id="code_declaration_deces_validate">
+                <input type="hidden" id="validation_type">
+                <div class="alert alert-secondary py-2 small mb-3">
+                    <i class="fas fa-file-signature me-1"></i>
+                    Sélectionnez votre certificat <strong>.p12</strong> et saisissez sa passphrase pour signer l'acte électroniquement.
                 </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-7">
+                        <label class="form-label small fw-semibold" for="acte_p12_file">Certificat électronique (.p12) <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control form-control-sm" id="acte_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold" for="acte_p12_pin">Passphrase <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control form-control-sm" id="acte_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                    </div>
+                </div>
+                <div id="guot-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-info btn-sm text-white" id="btn-validate">Valider</button>
+                <button type="button" class="btn btn-info btn-sm text-white" id="btn-validate"><i class="fas fa-signature me-1"></i> Signer électroniquement</button>
                 <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Fermer</button>
             </div>
         </div>
     </div>
 </div>
-{{-- FIN MODAL VALIDATION ACTE DE NAISSACE --}}
+{{-- FIN MODAL VALIDATION ACTE DE deces --}}
 {{-- DEBUT MODAL RETRAIT ACTE DE deces --}}
 <div class="modal fade" id="modal-retrait-acte" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
@@ -489,13 +496,30 @@ Actes de décès
                 </div>
                 <div class="row">
                     <div class="mb-2 col-md-12">
+                        <div class="alert alert-secondary py-2 small mb-2">
+                            <i class="fas fa-file-signature me-1"></i>
+                            Signature électronique requise pour chaque dossier sélectionné.
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold" for="decl_p12_file_bulk">Certificat (.p12) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control form-control-sm" id="decl_p12_file_bulk" accept=".p12,.pfx,application/x-pkcs12">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold" for="decl_p12_pin_bulk">Passphrase <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control form-control-sm" id="decl_p12_pin_bulk" autocomplete="off" placeholder="Passphrase">
+                            </div>
+                        </div>
+                        <div id="decl-sign-feedback-bulk" class="alert alert-warning py-2 small d-none mb-2" role="status"></div>
+                    </div>
+                    <div class="mb-2 col-md-12">
                         <label class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-confirmation-bulk" class="form-control" rows="3" placeholder="Ajoutez une observation pour tous les dossiers..."></textarea>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-bulk-final">Confirmer</button>
+                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-bulk-final"><i class="fas fa-signature me-1"></i> Signer et confirmer</button>
                 <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Annuler</button>
             </div>
         </div>
@@ -642,13 +666,31 @@ Actes de décès
                         <input type="text" readonly class="form-control" id="code-declaration-confirmation">
                     </div>
                     <div class="mb-2 col-md-12">
+                        <div class="alert alert-secondary py-2 small mb-2">
+                            <i class="fas fa-file-signature me-1"></i>
+                            La signature électronique est requise avant confirmation :
+                            certificat FS → déclaration de décès ; constatation CH → validation du certificat.
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold" for="decl_p12_file">Certificat électronique (.p12) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control form-control-sm" id="decl_p12_file" accept=".p12,.pfx,application/x-pkcs12">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold" for="decl_p12_pin">Passphrase <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control form-control-sm" id="decl_p12_pin" autocomplete="off" placeholder="Passphrase du certificat">
+                            </div>
+                        </div>
+                        <div id="decl-sign-feedback" class="alert alert-warning py-2 small d-none mb-2" role="status"></div>
+                    </div>
+                    <div class="mb-2 col-md-12">
                         <label class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-confirmation" class="form-control" rows="3" placeholder="Ajoutez une observation..."></textarea>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-final">Confirmer</button>
+                <button type="submit" class="btn btn-success btn-sm text-white" id="btn-confirmer-final"><i class="fas fa-signature me-1"></i> Signer et confirmer</button>
                 <button type="button" class="btn btn-sm btn-danger text-white" data-bs-dismiss="modal">Annuler</button>
             </div>
         </div>
@@ -747,31 +789,12 @@ Actes de décès
     </div>
 </div>
 
-<!-- Modal de validation OTP -->
-<div class="modal fade" id="modal-validate-otp" tabindex="-1">
-    <div class="modal-dialog">
-        <form id="form-validate-otp">
-            @csrf
-            <input type="hidden" id="otp_code_declaration_deces" name="code_declaration_deces">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Validation de l'acte</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <label for="otp_approbation_pompe_funebre" class="form-label">Code OTP reçu</label>
-                    <input type="text" class="form-control" id="otp_approbation_pompe_funebre" name="otp_approbation_pompe_funebre" required>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Valider</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 @endsection
 @section("scripts")
+<!-- Signature électronique .p12 -->
+    <script src="{{ asset('js/vendor/forge.min.js') }}"></script>
+    <script src="{{ asset('js/vendor/elliptic.min.js') }}"></script>
+    <script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260720a"></script>
 <!-- Datatable -->
     <script src="{{ asset('tpl/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('tpl/js/plugins-init/datatables.init.js') }}"></script>
@@ -1206,6 +1229,9 @@ Actes de décès
         var codeDeclaration = $(this).data('id');
         $("#code-declaration-confirmation").val(codeDeclaration);
         $("#observation-confirmation").val('');
+        $("#decl_p12_file").val('');
+        $("#decl_p12_pin").val('');
+        $("#decl-sign-feedback").addClass('d-none').empty();
         $("#modal-confirmation-dossier").modal('show');
     });
 
@@ -1215,6 +1241,9 @@ Actes de décès
             flashAlert("Attention", "warning", "Veuillez sélectionner au moins un document à confirmer.");
             return;
         }
+        $("#decl_p12_file_bulk").val('');
+        $("#decl_p12_pin_bulk").val('');
+        $("#decl-sign-feedback-bulk").addClass('d-none').empty();
         $("#modal-confirmation-dossiers-bulk").modal('show');
     });
 
@@ -1287,43 +1316,19 @@ Actes de décès
 
 
 
-    // Validation d'actes en lot
+    // Validation d'actes en lot — ouvre le modal de signature .p12
     $("button.validate-actes").on("click", function(){
         if(actesGeneres.length > 0){
-            var url = "{{ route('acteDeces.send.otp.bulk') }}";
-            var data = { codes: actesGeneres, _token: '{{ csrf_token() }}' };
-            var btnBulkOtpD = this;
-            sifecBtnLoading(btnBulkOtpD, 'Envoi OTP...');
-            $.post(url,data,function(response){
-            console.log(response);
-            if(response.code == "200"){
-
-                $(".over-loader-page").fadeOut(600);
-                $("#validation_type").val("bulk");
-
-                $("#modal-validate-acte").modal('show');
-
-            }else{
-                $(".over-loader-page").fadeOut(600);
-                //notification("error",response.message);
-                var outString = "<ul>";
-                for (const [key, value] of Object.entries(response.message))
-                {
-                outString+= `<li style='text-align:left;color:red; list-style:disc !important; font-size:12px'>${value}</li>`;
-                }
-                outString += "</ul>";
-                 flashAlert("ALERTE","error",outString);
-                //flashAlert("Une erreur est suvernue","error",outString);
-
-            }
-        }).always(function() {
-                sifecBtnReset(btnBulkOtpD);
-            });
+            $("#validation_type").val("bulk");
+            $("#code_declaration_deces_validate").val("");
+            $("#guot-sign-feedback").addClass('d-none').empty();
+            $("#acte_p12_file").val('');
+            $("#acte_p12_pin").val('');
+            $("#modal-validate-acte").modal('show');
         }
         return false;
     });
 
-    // Validation OTP (singleton ou bulk)
     function extraireMsgDeces(message) {
         if (!message) return 'Réponse inconnue du serveur.';
         if (typeof message === 'string')  return message;
@@ -1335,87 +1340,87 @@ Actes de décès
         return JSON.stringify(message);
     }
 
-    $("#btn-validate").on("click", function(){
-        var otp = $("#otp_approbation_pompe_funebre").val().trim();
-        if (!otp) {
-            flashAlert("Attention", "warning", "Veuillez saisir le code reçu par SMS.");
-            return false;
+    async function signerActesDecesP12(codes) {
+        const fileInput = document.getElementById('acte_p12_file');
+        const pin = $('#acte_p12_pin').val();
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            throw new Error('Sélectionnez votre fichier certificat (.p12).');
         }
-        if (!/^\d{4,8}$/.test(otp)) {
-            flashAlert("Attention", "warning", "Le code doit être composé de chiffres uniquement.");
-            return false;
+        if (!pin || !String(pin).trim()) {
+            throw new Error('Saisissez la passphrase de votre certificat.');
         }
+        if (typeof window.SifecP12Sign === 'undefined') {
+            throw new Error('Bibliothèque de signature non chargée. Rechargez la page.');
+        }
+        const prep = await $.ajax({
+            url: "{{ route('acteDeces.sign.prepare') }}",
+            type: 'POST',
+            data: { codes: codes, _token: '{{ csrf_token() }}' }
+        });
+        if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+            throw new Error((prep && prep.message) ? prep.message : 'Échec de la préparation.');
+        }
+        const p12Binary = await window.SifecP12Sign.readP12File(fileInput.files[0]);
+        const signatures = [];
+        for (let i = 0; i < prep.items.length; i++) {
+            const item = prep.items[i];
+            const signatureHex = await window.SifecP12Sign.signHashHex(
+                p12Binary, pin, item.document_hash, prep.expected_serial || null
+            );
+            signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+        }
+        return await $.ajax({
+            url: "{{ route('acteDeces.sign.finalize') }}",
+            type: 'POST',
+            data: { token: prep.token, signatures: signatures, _token: '{{ csrf_token() }}' }
+        });
+    }
 
-        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validation...');
-
-        var code_declaration_deces = $("#code_declaration_deces_validate").val();
-        var validation_type = $("#validation_type").val();
-        var inputs = {
-            codes : actesGeneres,
-            code_declaration_deces: code_declaration_deces,
-            otp_approbation_pompe_funebre: otp
+    $("#btn-validate").on("click", async function(){
+        const $btn = $(this);
+        const resetBtn = () => $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
+        const showErr = (msg) => {
+            $("#guot-sign-feedback").removeClass('d-none').text(msg);
+            flashAlert("Échec", "error", msg);
         };
 
-        if(validation_type=="simple"){
-            $.ajax({
-                url: "{{ route('acteDeces.validate.otp') }}",
-                type: 'POST',
-                data: {
-                    code_declaration_deces: inputs.code_declaration_deces,
-                    otp_approbation_pompe_funebre: inputs.otp_approbation_pompe_funebre
-                },
-                success: function(response){
-                    var msg = extraireMsgDeces(response.message);
-                    if (response.code === '200') {
-                        flashAlert("Succès", "success", msg);
-                        $('#modal-validate-acte').modal('hide');
-                        setTimeout(function(){ location.reload(); }, 1500);
-                    } else {
-                        flashAlert("Échec", "error", msg);
-                        $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-check me-1"></i> Valider');
-                    }
-                },
-                error: function(xhr){
-                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
-                        ? extraireMsgDeces(xhr.responseJSON.message)
-                        : 'Erreur lors de la validation de l\'acte.';
-                    flashAlert("Erreur", "error", msg);
-                    $('#btn-validate').prop('disabled', false)
-                                     .html('<i class="fas fa-check me-1"></i> Valider');
-                }
-            });
-        }else{
-            $.ajax({
-                url: "{{ route('acteDeces.validate.otp.bulk') }}",
-                type: 'POST',
-                data: {
-                    codes: inputs.codes,
-                    otp_approbation_pompe_funebre: inputs.otp_approbation_pompe_funebre
-                },
-                success: function(response){
-                    var msg = extraireMsgDeces(response.message);
-                    if (response.code === '200') {
-                        flashAlert("Succès", "success", msg);
-                        $('#modal-validate-acte').modal('hide');
-                        setTimeout(function(){ location.reload(); }, 1500);
-                    } else {
-                        flashAlert("Échec", "error", msg);
-                        $('#btn-validate').prop('disabled', false)
-                                         .html('<i class="fas fa-check me-1"></i> Valider');
-                    }
-                },
-                error: function(xhr){
-                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
-                        ? extraireMsgDeces(xhr.responseJSON.message)
-                        : 'Erreur lors de la validation des actes.';
-                    flashAlert("Erreur", "error", msg);
-                    $('#btn-validate').prop('disabled', false)
-                                     .html('<i class="fas fa-check me-1"></i> Valider');
-                }
-            });
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signature…');
+        $("#guot-sign-feedback").addClass('d-none').empty();
+
+        const validationType = $("#validation_type").val();
+        const codes = validationType === "bulk"
+            ? actesGeneres.slice()
+            : [$("#code_declaration_deces_validate").val()].filter(Boolean);
+
+        if (!codes.length) {
+            resetBtn();
+            showErr('Aucun acte à signer.');
+            return false;
+        }
+
+        try {
+            const fin = await signerActesDecesP12(codes);
+            resetBtn();
+            const msg = extraireMsgDeces(fin.message);
+            if (String(fin.code) === '200') {
+                flashAlert("Succès", "success", msg);
+                $('#modal-validate-acte').modal('hide');
+                setTimeout(() => location.reload(), 1200);
+                return false;
+            }
+            showErr(msg);
+        } catch (err) {
+            resetBtn();
+            showErr(err.message || 'Erreur lors de la signature électronique');
         }
         return false;
+    });
+
+    $('#modal-validate-acte').on('hidden.bs.modal', function() {
+        $("#guot-sign-feedback").addClass('d-none').empty();
+        $("#acte_p12_file").val('');
+        $("#acte_p12_pin").val('');
+        $('#btn-validate').prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer électroniquement');
     });
 
     // Renvoi individuel (modale)
@@ -1461,33 +1466,77 @@ Actes de décès
         updateActeButtons();
     });
 
-    // Remplacement du JS de confirmation groupée
-    $("#btn-confirmer-bulk-final").on("click", function(){
-        var observation = $("#observation-confirmation-bulk").val();
-        var btnConfBulkD = this;
-        sifecBtnLoading(btnConfBulkD, 'Confirmation...');
-        $.ajax({
-            url: "{{ route('acteDeces.confirmer.bulk') }}",
+    async function signerConfirmationDecesP12(codes, observation, fileInputId, pinInputId, feedbackId) {
+        const fileInput = document.getElementById(fileInputId);
+        const pin = $('#' + pinInputId).val();
+        const prep = await $.ajax({
+            url: "{{ route('declarationDeces.sign.prepare') }}",
             type: 'POST',
-            data: {
-                codes: codesDocuments,
-                observation: observation,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response){
-                let msg = Array.isArray(response.message) ? response.message[0] : (typeof response.message === 'object' && response.message.reponse) ? response.message.reponse : response.message;
-                flashAlert("Réponse","success",msg);
-                $('#modal-confirmation-dossiers-bulk').modal('hide');
-                setTimeout(()=>location.reload(), 1000);
-            },
-            error: function(xhr){
-                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation des documents';
-                flashAlert("Réponse","error",msg);
-            },
-            complete: function() {
-                sifecBtnReset(btnConfBulkD);
-            }
+            data: { phase: 'cec', codes: codes, observation: observation, _token: '{{ csrf_token() }}' }
         });
+        if (String(prep.code) === '200' && prep.completed) {
+            return prep;
+        }
+        if (String(prep.code) !== '200' || !prep.token || !prep.items || !prep.items.length) {
+            throw new Error((prep && prep.message) ? prep.message : 'Échec de la préparation.');
+        }
+        const needSign = prep.items.some(function(it){ return !it.already_signed; });
+        if (needSign) {
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                throw new Error('Sélectionnez votre fichier certificat (.p12).');
+            }
+            if (!pin || !String(pin).trim()) {
+                throw new Error('Saisissez la passphrase de votre certificat.');
+            }
+            if (typeof window.SifecP12Sign === 'undefined') {
+                throw new Error('Bibliothèque de signature non chargée. Rechargez la page.');
+            }
+        }
+        const p12Binary = needSign ? await window.SifecP12Sign.readP12File(fileInput.files[0]) : null;
+        const signatures = [];
+        for (let i = 0; i < prep.items.length; i++) {
+            const item = prep.items[i];
+            if (item.already_signed) {
+                signatures.push({ code_declaration: item.code_declaration, signature_hex: 'RESUME' });
+            } else {
+                const signatureHex = await window.SifecP12Sign.signHashHex(
+                    p12Binary, pin, item.document_hash, prep.expected_serial || null
+                );
+                signatures.push({ code_declaration: item.code_declaration, signature_hex: signatureHex });
+            }
+        }
+        return await $.ajax({
+            url: "{{ route('declarationDeces.sign.finalize') }}",
+            type: 'POST',
+            data: { phase: 'cec', token: prep.token, signatures: signatures, observation: observation, _token: '{{ csrf_token() }}' }
+        });
+    }
+
+    // Confirmation groupée : signature .p12 puis validation CEC/PF
+    $("#btn-confirmer-bulk-final").on("click", async function(){
+        var observation = $("#observation-confirmation-bulk").val();
+        var $btn = $(this);
+        var resetBtn = () => $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer et confirmer');
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signature…');
+        $("#decl-sign-feedback-bulk").addClass('d-none').empty();
+        try {
+            const fin = await signerConfirmationDecesP12(codesDocuments, observation, 'decl_p12_file_bulk', 'decl_p12_pin_bulk', 'decl-sign-feedback-bulk');
+            resetBtn();
+            const msg = typeof fin.message === 'string' ? fin.message : extraireMsgDeces(fin.message);
+            if (String(fin.code) === '200') {
+                flashAlert("Succès", "success", msg);
+                $('#modal-confirmation-dossiers-bulk').modal('hide');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                $("#decl-sign-feedback-bulk").removeClass('d-none').text(msg);
+                flashAlert("Échec", "error", msg);
+            }
+        } catch (err) {
+            resetBtn();
+            const emsg = err.message || 'Erreur lors de la signature';
+            $("#decl-sign-feedback-bulk").removeClass('d-none').text(emsg);
+            flashAlert("Échec", "error", emsg);
+        }
     });
 
     // Remplacement du JS de renvoi groupé
@@ -1569,39 +1618,32 @@ Actes de décès
         });
     });
 
-    // Ajout du JS pour la confirmation singleton
-    $("#btn-confirmer-final").on("click", function(){
+    // Confirmation singleton : signature .p12 puis validation CEC/PF
+    $("#btn-confirmer-final").on("click", async function(){
         var codeDeclaration = $("#code-declaration-confirmation").val();
         var observation = $("#observation-confirmation").val();
-        var btnConfOneD = this;
-        sifecBtnLoading(btnConfOneD, 'Confirmation...');
-        $.ajax({
-            url: "{{ route('acteDeces.confirmer') }}",
-            type: 'POST',
-            data: {
-                code_declaration_deces: codeDeclaration,
-                observation: observation,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(resp){
-                if(resp.code == "200"){
-                    let msg = Array.isArray(resp.message) ? resp.message[0] : (typeof resp.message === 'object' && resp.message.reponse) ? resp.message.reponse : resp.message;
-                    flashAlert("Réponse","success",msg);
-                    $('#modal-confirmation-dossier').modal('hide');
-                    setTimeout(()=>location.reload(), 1000);
-                }else{
-                    let msg = Array.isArray(resp.message) ? resp.message[0] : resp.message;
-                    flashAlert("Réponse","error",msg);
-                }
-            },
-            error: function(xhr){
-                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Erreur lors de la confirmation du dossier';
-                flashAlert("Erreur","error",msg);
-            },
-            complete: function() {
-                sifecBtnReset(btnConfOneD);
+        var $btn = $(this);
+        var resetBtn = () => $btn.prop('disabled', false).html('<i class="fas fa-signature me-1"></i> Signer et confirmer');
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signature…');
+        $("#decl-sign-feedback").addClass('d-none').empty();
+        try {
+            const fin = await signerConfirmationDecesP12([codeDeclaration], observation, 'decl_p12_file', 'decl_p12_pin', 'decl-sign-feedback');
+            resetBtn();
+            const msg = typeof fin.message === 'string' ? fin.message : extraireMsgDeces(fin.message);
+            if (String(fin.code) === '200') {
+                flashAlert("Succès", "success", msg);
+                $('#modal-confirmation-dossier').modal('hide');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                $("#decl-sign-feedback").removeClass('d-none').text(msg);
+                flashAlert("Échec", "error", msg);
             }
-        });
+        } catch (err) {
+            resetBtn();
+            const emsg = err.message || 'Erreur lors de la signature';
+            $("#decl-sign-feedback").removeClass('d-none').text(emsg);
+            flashAlert("Échec", "error", emsg);
+        }
     });
 
      // Génération d'actes en lot
@@ -1768,28 +1810,15 @@ Actes de décès
         });
     });
 
-    // Ouvre la modale de validation OTP — délégation pour lignes dynamiques
+    // Ouvre la modale de signature .p12 — délégation pour lignes dynamiques
     $(document).on('click', '.btn-validate-single', function() {
         var code = $(this).data('id');
-        var btnValSingleD = this;
-        sifecBtnLoading(btnValSingleD, 'Envoi OTP...');
-        $.post("{{ route('acteDeces.send.otp') }}", {code_declaration_deces: code, _token: '{{ csrf_token() }}'}, function(response){
-            if(response.code == "200"){
-                // flashAlert("Succès", "success", "Un code de validation a été envoyé par SMS.");
-                $('#code_declaration_deces_validate').val(code);
-                $('#otp_approbation_pompe_funebre').val('');
-                $("#validation_type").val("simple");
-                $("#modal-validate-acte").modal('show');
-            }else{
-                let msg = response.message && response.message.error ? response.message.error : response.message;
-                flashAlert("Erreur", "error", msg);
-            }
-        }).fail(function(xhr){
-            let msg = xhr.responseJSON?.message || 'Erreur lors de l\'envoi du code OTP';
-            flashAlert("Erreur", "error", msg);
-        }).always(function() {
-            sifecBtnReset(btnValSingleD);
-        });
+        $('#code_declaration_deces_validate').val(code);
+        $("#validation_type").val("simple");
+        $("#guot-sign-feedback").addClass('d-none').empty();
+        $("#acte_p12_file").val('');
+        $("#acte_p12_pin").val('');
+        $("#modal-validate-acte").modal('show');
     });
 });
 </script>

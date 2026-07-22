@@ -71,8 +71,9 @@ Route::post('statutPaiementMomo', [PayementController::class, 'statutPaiementMom
 // statut paiement rdc
 Route::post('rdcPaiement', [PayementController::class, 'rdcpaiement'])->name('rdcpaiement');
 
-// Consultation statut demande
+// Consultation statut demande + accusé de réception (iframe portail)
 Route::get('demande/{code}/statut', [DemandeDocumentApiController::class, 'consulterStatut'])->name('demande.statut');
+Route::get('demande/{code}/accuse', [DemandeDocumentApiController::class, 'accuseReception'])->name('demande.accuse');
 
 // route d'accès au controlleur du paiement
 Route::get('paiement', [PayementController::class, 'paiement'])->name('paiement');

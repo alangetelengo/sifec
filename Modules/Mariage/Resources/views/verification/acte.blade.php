@@ -129,24 +129,40 @@
                         @endif
                     </dd>
 
-                    <dt class="col-sm-5 col-md-4">Date de validation</dt>
+                    <dt class="col-sm-5 col-md-4">Date de signature</dt>
                     <dd class="col-sm-7 col-md-8">
-                        {{ $acte->date_heure_approbation_mairie
-                            ? \Carbon\Carbon::parse($acte->date_heure_approbation_mairie)->format('d/m/Y \à H:i:s')
+                        @php $sigDate = $acte->signed_at ?? $acte->doc_sig_signed_at ?? $acte->date_heure_approbation_mairie; @endphp
+                        {{ $sigDate
+                            ? \Carbon\Carbon::parse($sigDate)->format('d/m/Y \à H:i:s')
                             : '—' }}
                     </dd>
 
-                    <dt class="col-sm-5 col-md-4">Code OTP utilisé</dt>
-                    <dd class="col-sm-7 col-md-8">
-                        @if($acte->otp_approbation_mairie)
-                            <span class="badge text-white font-monospace px-3 py-2"
-                                  style="background:#009E49; letter-spacing:.15em; font-size:.9rem;">
-                                {{ $acte->otp_approbation_mairie }}
-                            </span>
-                        @else
-                            <span class="text-muted fst-italic">—</span>
-                        @endif
-                    </dd>
+                    @if(filled($acte->doc_sig_id))
+                        <dt class="col-sm-5 col-md-4">Identifiant signature (L2)</dt>
+                        <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->doc_sig_id }}</code></dd>
+                    @endif
+
+                    @if(filled($acte->doc_seal_id))
+                        <dt class="col-sm-5 col-md-4">Cachet institutionnel (L3)</dt>
+                        <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->doc_seal_id }}</code></dd>
+                    @endif
+
+                    @if(filled($acte->certificate_ref))
+                        <dt class="col-sm-5 col-md-4">Réf. certificat</dt>
+                        <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->certificate_ref }}</code></dd>
+                    @endif
+
+                    @php $empreinteActe = $acte->pdf_content_hash ?? $acte->payload_hash; @endphp
+                    @if(filled($empreinteActe))
+                        <dt class="col-sm-5 col-md-4">Empreinte document</dt>
+                        <dd class="col-sm-7 col-md-8">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="fa fa-check-circle text-success"></i>
+                                <span class="small text-success fw-semibold">Empreinte SHA-256 enregistrée</span>
+                            </div>
+                            <code class="small" style="word-break:break-all;">{{ $empreinteActe }}</code>
+                        </dd>
+                    @endif
 
                     <dt class="col-sm-5 col-md-4">Adresse IP</dt>
                     <dd class="col-sm-7 col-md-8">

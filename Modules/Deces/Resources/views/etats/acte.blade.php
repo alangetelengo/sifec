@@ -9,8 +9,12 @@
         font-size: 120%;
     }
 </style>
-<page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="30mm" style="font-size: 12pt">
+<page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="100%" backimgw="100%" backtop="0"  backbottom="14mm" style="font-size: 12pt">
 {{-- <page orientation="portrait" backimg="{{ asset("tpl/armoirie_congo.png") }}" backcolor="#FEFEFE" backimgx="center" backimgy="50%" backimgw="70%" backtop="0"  backbottom="30mm" style="font-size: 12pt"> --}}
+
+    <page_footer>
+        @include('partials.guot.mention-legale-pied', ['typeDocument' => 'acte_deces'])
+    </page_footer>
 
     @php
     setlocale(LC_TIME, "fr_FR", "French");
@@ -92,7 +96,7 @@
                 </tr>
                 <tr style="width:100%; text-align: left;">
                     <td style="height: 15px;"><strong> Le
-                        {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_declaration))). " ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) . " ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date( "H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minute(s)
+                        {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_declaration))). " ". \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_declaration))) . " ". \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_declaration))) ." à ".\App\Sifec\Sifec::asLetters((int)date( "H", strtotime( $acte->declaration->date_heure_declaration))). " heure(s) ".\App\Sifec\Sifec::asLetters((int)date("i", strtotime( $acte->declaration->date_heure_declaration))) }} minute(s)
                     </strong></td>
                 </tr>
                 {{-- @php
@@ -112,7 +116,7 @@
                     <td>qui a déclaré le décès de: <b style="color: red">{{ $acte->declaration->defunt->nom." ".$acte->declaration->defunt->prenom }}</b></td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
-                    <td style="height: 15px;">Date de décès: <strong> {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_heure_deces))). " " . \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) . " " . \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters(( (int)date("H", strtotime( $acte->declaration->date_heure_deces))))}} heure(s) {{ \App\Sifec\Sifec::asLetters( (int) date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
+                    <td style="height: 15px;">Date de décès: <strong> {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_heure_deces))). " " . \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_heure_deces))) . " " . \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_heure_deces))) ." à ".\App\Sifec\Sifec::asLetters(( (int)date("H", strtotime( $acte->declaration->date_heure_deces))))}} heure(s) {{ \App\Sifec\Sifec::asLetters( (int) date("i", strtotime( $acte->declaration->date_heure_deces))) }} minute(s)</strong>
                 </td>
                 </tr>
                 <tr style="width:100%; text-align: left;">
@@ -194,7 +198,7 @@
                     </tr>
                     <tr style="width:100%; text-align: left;">
                         <td style="height: 15px;">Date de mariage: <strong>
-                            {{ \App\Sifec\Sifec::asLetters((int)date("d", strtotime($acte->declaration->date_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_mariage))) ." à ".date("H", strtotime( $acte->declaration->date_mariage)). " heure(s) ".date("i", strtotime( $acte->declaration->date_mariage)) }} minute(s)
+                            {{ \App\Sifec\Sifec::jourEnLettres((int)date("d", strtotime($acte->declaration->date_mariage)))}} {{ \App\Sifec\Sifec::mois(date("m", strtotime($acte->declaration->date_mariage))) }} {{ \App\Sifec\Sifec::asLetters(date("Y", strtotime($acte->declaration->date_mariage))) ." à ".date("H", strtotime( $acte->declaration->date_mariage)). " heure(s) ".date("i", strtotime( $acte->declaration->date_mariage)) }} minute(s)
                         </strong></td>
                     </tr>
                     <tr style="width:100%; text-align: left;">
@@ -232,6 +236,7 @@
                                 <div style="width: 30mm;">
                                     <qrcode value="{{ $qrCode }}" ec="H" style="width: 100%;"></qrcode>
                                 </div>
+                                <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
                              @endisset
                          </div>
                          @endif
@@ -241,11 +246,27 @@
                        <p>Fait à {{ ucfirst(strtolower($localisationActe)) }}, le {{utf8_encode(strftime("%d %B %Y", strtotime( $acte->date_emission)))}}</p>
 
                        @if ($acte->approbation_pompe_funebre != "")
-                        <!-- {{-- <p>  {{ $acte->signataire->user->fonction->lib_fonction }},<br></p> --}} -->
-                         <p>L'officier de l'état civil</p>
-                        <!-- <p>  {{ $acte->signataire->user->affectationActive()->fonction->lib_fonction }},<br></p> -->
-                            <img src='{{ public_path('app/'.$acte->signature_pompe_funebre) }}'><br>
-                            {{ $acte->signataire->user->personne->nomcomplet() }}
+                        <p>L'officier de l'état civil</p>
+                            @if (filled($acte->signature_pompe_funebre))
+                                @php
+                                    $pathSigDeces = public_path('app/'.ltrim(trim((string) $acte->signature_pompe_funebre), '/'));
+                                    $srcSigDecesPdf = (is_file($pathSigDeces) && is_readable($pathSigDeces))
+                                        ? str_replace('\\', '/', $pathSigDeces)
+                                        : '';
+                                @endphp
+                                @if ($srcSigDecesPdf !== '')
+                                    <img src="{{ $srcSigDecesPdf }}" width="100" height="100" alt=""><br>
+                                @endif
+                            @endif
+                            @if (optional(optional($acte->signataire)->user)->personne)
+                                <span style="color:black; font-weight:bold">{{ $acte->signataire->user->personne->nomcomplet() }}</span>
+                            @endif
+                            @php
+                                $__signeLeActeDeces = $acte->signed_at ?? $acte->doc_sig_signed_at ?? $acte->date_heure_approbation_pompe_funebre ?? null;
+                            @endphp
+                            @if ($__signeLeActeDeces)
+                                <br><span style="font-size: 8px; color:#006B31;">Signé électroniquement le {{ \Carbon\Carbon::parse($__signeLeActeDeces)->format('d/m/Y à H:i') }}</span>
+                            @endif
                         @endif <br>
 
                     </td>

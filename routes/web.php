@@ -135,6 +135,18 @@ Route::middleware(['signed', 'throttle:10,1'])
     ->name('verification.acte.deces');
 
 Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/certificat/deces/{code}', [DecesController::class, 'verificationCertificatDeces'])
+    ->name('verification.certificat.deces');
+
+Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/constatation/deces/{code}', [DecesController::class, 'verificationConstatationDeces'])
+    ->name('verification.constatation.deces');
+
+Route::middleware(['signed', 'throttle:10,1'])
+    ->get('/verification/declaration/deces/{code}', [DecesController::class, 'verificationDeclarationDeces'])
+    ->name('verification.declaration.deces');
+
+Route::middleware(['signed', 'throttle:10,1'])
     ->get('/verification/acte/mariage/{code}', [MariageController::class, 'verificationActe'])
     ->name('verification.acte.mariage');
 

@@ -4,7 +4,7 @@ namespace Modules\Naissance\Services;
 
 use App\Models\User;
 use App\Services\GuotDocumentSignatureService;
-use App\Sifec\SifecFacade;
+use App\Support\GuotSignatureAffichage;
 use App\Support\GuotSignataires;
 use Exception;
 use Illuminate\Support\Facades\Cache;
@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\Naissance\Entities\ActeNaissance;
-use Modules\Notification\Jobs\DeclarantActeDisponibleInformationJob;
 use PkiSdk\TrustException;
 
 /**
@@ -26,6 +25,7 @@ class ActeNaissanceGuotValidationService
         private ActeNaissanceSignatureFinalizer $finalizer,
         private ActeNaissancePdfRenderer $pdfRenderer,
         private MouvementService $mouvementService,
+        private DeclarantActeNaissanceNotificationService $declarantNotification,
     ) {}
 
     /**
@@ -195,21 +195,6 @@ class ActeNaissanceGuotValidationService
     }
 
     /**
-     * @deprecated Conservé pour compat ; préfère prepare + finalize (.p12).
-     *
-     * @param  list<string>  $codesDeclaration
-     * @return array{ok: bool, message: string, signed: int}
-     */
-    public function signerActes(User $user, array $codesDeclaration, ?string $ip = null, ?string $userAgent = null): array
-    {
-        return [
-            'ok' => false,
-            'message' => 'La signature serveur n’est pas disponible pour votre certificat. Utilisez votre fichier .p12 dans le formulaire de validation.',
-            'signed' => 0,
-        ];
-    }
-
-    /**
      * @return array{ok: bool, message?: string, actor_id?: string, institution_id?: string, cui?: string, cert_serial?: string|null}
      */
     private function assertSignerContext(User $user): array
@@ -272,11 +257,13 @@ class ActeNaissanceGuotValidationService
             throw new Exception('Acte déjà signé électroniquement.');
         }
 
-        DB::transaction(function () use ($acte, $user) {
-            $this->finalizer->assignNiuppFeuilletRegistre($acte, $user);
-        });
+        // NIUPP prévisionnel pour le rendu du PDF à signer uniquement. L'allocation réelle
+        // (incrément du registre + création du feuillet) est différée à la finalisation, une fois
+        // la signature .p12 vérifiée, afin de ne pas consommer de numéro en cas d'abandon.
+        if (! filled($acte->niupp)) {
+            $acte->niupp = $this->finalizer->previewNiupp($acte);
+        }
 
-        $acte->refresh();
         $user->loadMissing('personne');
 
         // Attributs en mémoire uniquement (pour le rendu PDF) — persistés à la finalisation.
@@ -286,6 +273,7 @@ class ActeNaissanceGuotValidationService
         $acte->approbation_mairie = $cui;
         $acte->signature_mairie = $signatureMairie;
         $acte->date_heure_approbation_mairie = now();
+        GuotSignatureAffichage::applySignerPreview($acte, $user);
 
         $pdfBinary = $this->pdfRenderer->renderBinary($acte);
         $hash = hash('sha256', $pdfBinary);
@@ -351,8 +339,19 @@ class ActeNaissanceGuotValidationService
                 $acte->refresh();
             }
 
+            // Le PDF signé (préparé) a été rendu avec un NIUPP prévisionnel : quelle que soit la
+            // façon dont le NIUPP a finalement été attribué (préparation, OTP ou autre flux entre
+            // la préparation et la finalisation), on s'assure qu'il correspond à celui du document
+            // signé, sinon on annule (rollback) pour éviter d'enregistrer un acte dont le numéro
+            // diffère de celui du PDF signé.
+            $niuppAttendu = (string) ($prepared['payload']['niupp'] ?? '');
+            if ($niuppAttendu !== '' && (string) $acte->niupp !== $niuppAttendu) {
+                throw new Exception('Le NIUPP a changé depuis la préparation (registre modifié entre-temps). Veuillez relancer la signature.');
+            }
+
             $user->loadMissing('personne');
             $actorNom = trim(($user->personne?->nom ?? '').' '.($user->personne?->prenom ?? '')) ?: (string) $user->email;
+            $actorFonction = GuotSignatureAffichage::fonctionUtilisateur($user);
 
             $l2 = $this->guot->verifyClientDocumentSignature(
                 $hash,
@@ -384,6 +383,7 @@ class ActeNaissanceGuotValidationService
             $acte->payload_hash = $hash;
             $acte->actor_id = $actorId;
             $acte->actor_nom = $actorNom;
+            $acte->actor_fonction = $actorFonction;
             $acte->certificate_ref = $l2['certificate_ref'] ?? null;
             $acte->signed_at = $l2['signed_at'] ?? now();
             $acte->rfc3161_l1_serial = $l2['rfc3161_serial'] ?? ($l2['timestamp_serial'] ?? null);
@@ -446,42 +446,7 @@ class ActeNaissanceGuotValidationService
 
     private function notifyDeclarant(ActeNaissance $acte): void
     {
-        $contactDeclarant = $acte->declaration?->declarant?->contacts?->first();
-        if ($contactDeclarant === null) {
-            return;
-        }
-
-        $temp = config('sifec.sms.templates.actions.acte_naissance');
-        $temp = str_replace(':declarant', $acte->declaration->declarant->nomcomplet(), $temp);
-        $temp = str_replace(':code_acte_naissance', $acte->niupp ?? '', $temp);
-        $temp = str_replace(':libCec', $acte->institutionUser->institution->lib_institution ?? '', $temp);
-
-        try {
-            SifecFacade::sendSms($contactDeclarant->indicatif.$contactDeclarant->telephone, $temp);
-        } catch (\Throwable $e) {
-            Log::channel('sifec')->warning('SMS déclarant après signature échoué', [
-                'code' => $acte->code_declaration_naissance,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        $emailsDecl = $contactDeclarant->adressesEmailPourNotification();
-        if ($emailsDecl === []) {
-            return;
-        }
-
-        try {
-            dispatch(new DeclarantActeDisponibleInformationJob(
-                $emailsDecl,
-                $temp,
-                'SIFEC — Acte de naissance disponible'
-            ));
-        } catch (\Throwable $e) {
-            Log::channel('sifec')->warning('E-mail déclarant après signature échoué', [
-                'code' => $acte->code_declaration_naissance,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        $this->declarantNotification->notify($acte);
     }
 
     private function simplifyUa(?string $ua): ?string

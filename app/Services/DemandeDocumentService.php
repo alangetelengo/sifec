@@ -8,7 +8,9 @@ use App\Models\User;
 use App\Notifications\DocumentPretPourSignature;
 use App\Notifications\NouvelleDemandeCentre;
 use App\Sifec\Sifec;
+use App\Support\GuotSignataires;
 use Exception;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -112,8 +114,11 @@ class DemandeDocumentService
                 $demande->code_institution
             );
 
-            $demande->statut = 'En attente de paiement';
+            // Paiement portail temporairement désactivé : passage direct en traitement
+            // $demande->statut = 'En attente de paiement';
+            $demande->statut = 'En traitement';
             $demande->date_demande = now();
+            $demande->date_traitement = now();
 
             $demande->save();
 
@@ -191,7 +196,53 @@ class DemandeDocumentService
     }
 
     /**
+     * Indique si le PDF de consultation (avec bloc PKI complet) est déjà distinct du binaire scellé.
+     */
+    public function estPdfConsultationPret(DemandeDocument $demande): bool
+    {
+        $chemin = (string) ($demande->chemin_document ?? '');
+        if ($chemin === '' || ! is_file($chemin)) {
+            return false;
+        }
+
+        if (filled($demande->pdf_path)) {
+            $scelle = storage_path('app/'.$demande->pdf_path);
+            if (is_file($scelle)) {
+                $realChemin = realpath($chemin) ?: $chemin;
+                $realScelle = realpath($scelle) ?: $scelle;
+                if ($realChemin === $realScelle) {
+                    return false;
+                }
+            }
+        }
+
+        // Même contenu que le PDF hashé à la signature = encore le binaire scellé.
+        if (filled($demande->pdf_content_hash)) {
+            $hashFichier = @hash_file('sha256', $chemin);
+            if (is_string($hashFichier) && hash_equals((string) $demande->pdf_content_hash, $hashFichier)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Garantit un PDF de consultation (certificat + empreinte affichés).
+     * Ne régénère que si le fichier servi est encore le binaire scellé ou absent.
+     */
+    public function assurerPdfConsultation(DemandeDocument $demande): string
+    {
+        if ($this->estPdfConsultationPret($demande)) {
+            return (string) $demande->chemin_document;
+        }
+
+        return $this->regenererPdfApresSignature($demande);
+    }
+
+    /**
      * Régénère le PDF après signature (même emplacement logique : le modèle inclut signature_officier / date_signature).
+     * Le binaire scellé (pdf_path / pdf_content_hash) n'est pas modifié.
      */
     public function regenererPdfApresSignature(DemandeDocument $demande): string
     {
@@ -247,7 +298,8 @@ class DemandeDocumentService
      */
     public function passerEnAttenteSignature(DemandeDocument $demande): bool
     {
-        if (! $demande->estEnTraitement()) {
+        // Paiement temporairement désactivé : accepter aussi « En attente de paiement »
+        if (! $demande->estEnTraitement() && ! $demande->estEnAttentePaiement()) {
             return false;
         }
 
@@ -463,8 +515,67 @@ class DemandeDocumentService
     }
 
     /**
-     * Notifier les agents du centre (gestion des demandes) et l’officier d’état civil
-     * (permission de signature du type de document concerné), pour l’institution destinataire.
+     * Utilisateurs affectés activement à une institution et disposant d'une permission
+     * (via tr_uf OU via la fonction de l'affectation / tr_ff — même logique que Gate).
+     *
+     * @return Collection<int, User>
+     */
+    protected function usersInstitutionAvecPermission(string $codeInstitution, string $libTechnique): Collection
+    {
+        return User::query()
+            ->whereHas('affectations', function ($query) use ($codeInstitution) {
+                $query->where('code_institution', $codeInstitution)
+                    ->where('active', 1);
+            })
+            ->where(function ($query) use ($codeInstitution, $libTechnique) {
+                $query->whereHas('fonctionnalites', function ($q) use ($libTechnique) {
+                    $q->where('lib_technique', $libTechnique);
+                })->orWhereHas('affectations', function ($q) use ($codeInstitution, $libTechnique) {
+                    $q->where('code_institution', $codeInstitution)
+                        ->where('active', 1)
+                        ->whereHas('fonction.fonctionnalites', function ($fq) use ($libTechnique) {
+                            $fq->where('lib_technique', $libTechnique);
+                        });
+                });
+            })
+            ->get();
+    }
+
+    /**
+     * Officiers / signataires GUOT affectés activement à l'institution (ex. FONC_0002).
+     *
+     * @return Collection<int, User>
+     */
+    protected function officiersInstitution(string $codeInstitution): Collection
+    {
+        $codes = GuotSignataires::codes();
+        if ($codes === []) {
+            $codes = ['FONC_0002'];
+        }
+
+        return User::query()
+            ->whereHas('affectations', function ($query) use ($codeInstitution, $codes) {
+                $query->where('code_institution', $codeInstitution)
+                    ->where('active', 1)
+                    ->whereIn('code_fonction', $codes);
+            })
+            ->get();
+    }
+
+    protected function emailNotificationUser(User $user): ?string
+    {
+        foreach ([$user->email ?? null, $user->email_professionnel ?? null] as $candidate) {
+            $email = trim((string) $candidate);
+            if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return $email;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Notifier les agents du centre et l’officier d’état civil à chaque nouvelle demande.
      */
     protected function notifierAgentsCentre(DemandeDocument $demande): void
     {
@@ -481,45 +592,38 @@ class DemandeDocumentService
             $demande->loadMissing('institution');
 
             $libInstitution = $demande->institution?->lib_institution;
+            $codeInstitution = (string) $demande->code_institution;
 
-            // Agents habilités à traiter les demandes document au centre
-            $agentsDemande = User::whereHas('affectations', function ($query) use ($demande) {
-                $query->where('code_institution', $demande->code_institution)
-                    ->where('active', 1);
-            })
-                ->whereHas('fonctionnalites', function ($query) {
-                    $query->where('lib_technique', 'module.demande_document');
-                })
-                ->get();
+            $agentsDemande = $this->usersInstitutionAvecPermission($codeInstitution, 'module.demande_document');
 
-            // Officiers d’état civil (signature copie / extrait selon le type d’acte)
             $permissionSignature = $demande->getPermissionSignature();
-            $officiers = User::whereHas('affectations', function ($query) use ($demande) {
-                $query->where('code_institution', $demande->code_institution)
-                    ->where('active', 1);
-            })
-                ->whereHas('fonctionnalites', function ($query) use ($permissionSignature) {
-                    $query->where('lib_technique', $permissionSignature);
-                })
-                ->get();
+            $officiersPermission = $this->usersInstitutionAvecPermission($codeInstitution, $permissionSignature);
 
-            $recipients = $agentsDemande->merge($officiers)->unique('code_user')->values();
+            // Garantie : toujours notifier l'officier d'état civil du centre
+            $officiersFonction = $this->officiersInstitution($codeInstitution);
+
+            $recipients = $agentsDemande
+                ->merge($officiersPermission)
+                ->merge($officiersFonction)
+                ->unique('code_user')
+                ->values();
 
             Log::channel('sifec')->info('[DemandeDocument][Notification] Destinataires pour nouvelle demande (centre + officier).', [
                 'code_demande' => $demande->code_demande_document,
-                'code_institution' => $demande->code_institution,
+                'code_institution' => $codeInstitution,
                 'lib_institution' => $libInstitution,
                 'nb_agents_module_demande_document' => $agentsDemande->count(),
                 'permission_signature' => $permissionSignature,
-                'nb_officiers_permission_signature' => $officiers->count(),
+                'nb_officiers_permission_signature' => $officiersPermission->count(),
+                'nb_officiers_fonction' => $officiersFonction->count(),
                 'nb_destinataires_uniques' => $recipients->count(),
                 'code_users' => $recipients->pluck('code_user')->all(),
             ]);
 
             if ($recipients->isEmpty()) {
-                Log::channel('sifec')->warning('[DemandeDocument][Notification] Aucun destinataire — vérifier les affectations actives et les permissions « module.demande_document » et signature document au centre.', [
+                Log::channel('sifec')->warning('[DemandeDocument][Notification] Aucun destinataire — vérifier les affectations actives et la fonction officier au centre.', [
                     'code_demande' => $demande->code_demande_document,
-                    'code_institution' => $demande->code_institution,
+                    'code_institution' => $codeInstitution,
                     'permission_signature' => $permissionSignature,
                 ]);
 
@@ -534,8 +638,8 @@ class DemandeDocumentService
             foreach ($recipients as $user) {
                 $user->notify(new NouvelleDemandeCentre($demande));
 
-                $to = trim((string) ($user->email ?? ''));
-                if ($to !== '' && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                $to = $this->emailNotificationUser($user);
+                if ($to !== null) {
                     Log::channel('sifec')->info('Envoi e-mail nouvelle demande document (centre / officier)', [
                         'code_demande' => $demande->code_demande_document,
                         'code_user' => $user->code_user,
@@ -607,30 +711,39 @@ class DemandeDocumentService
 
             // Récupérer la permission lib_technique appropriée pour cette demande
             $permissionLibTechnique = $demande->getPermissionSignature();
+            $codeInstitution = (string) $demande->code_institution;
 
-            // Récupérer tous les utilisateurs autorisés à signer ce type de document
-            $signataires = User::whereHas('affectations', function ($query) use ($demande) {
-                $query->where('code_institution', $demande->code_institution)
-                    ->where('active', 1);
-            })
-                ->whereHas('fonctionnalites', function ($query) use ($permissionLibTechnique) {
-                    $query->where('lib_technique', $permissionLibTechnique);
-                })
-                ->get();
+            // Signataires : permission (tr_uf + tr_ff) + officiers de fonction du centre
+            $signataires = $this->usersInstitutionAvecPermission($codeInstitution, $permissionLibTechnique)
+                ->merge($this->officiersInstitution($codeInstitution))
+                ->unique('code_user')
+                ->values();
 
             Log::channel('sifec')->info('Notification signataires', [
                 'code_demande' => $demande->code_demande_document,
                 'permission' => $permissionLibTechnique,
                 'nb_signataires' => $signataires->count(),
+                'code_users' => $signataires->pluck('code_user')->all(),
             ]);
 
+            if ($signataires->isEmpty()) {
+                Log::channel('sifec')->warning('[DemandeDocument][Notification] Aucun signataire à notifier.', [
+                    'code_demande' => $demande->code_demande_document,
+                    'code_institution' => $codeInstitution,
+                    'permission' => $permissionLibTechnique,
+                ]);
+
+                return;
+            }
+
+            $signataires->loadMissing('personne');
             $sifec = app(Sifec::class);
 
             foreach ($signataires as $signataire) {
                 $signataire->notify(new DocumentPretPourSignature($demande));
 
-                $to = trim((string) ($signataire->email ?? ''));
-                if ($to !== '' && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                $to = $this->emailNotificationUser($signataire);
+                if ($to !== null) {
                     Log::channel('sifec')->info('Envoi e-mail document prêt pour signature (signataire)', [
                         'code_demande' => $demande->code_demande_document,
                         'code_user' => $signataire->code_user,

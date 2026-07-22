@@ -29,6 +29,12 @@ class DeclarationMariage extends Model
     protected $primaryKey = "code_declaration_mariage";
     public $incrementing = false;
 
+    protected $casts = [
+        'sig_cec_signed_at' => 'datetime',
+        'sig_cec_doc_sig_signed_at' => 'datetime',
+        'sig_cec_doc_seal_sealed_at' => 'datetime',
+    ];
+
 
 
 

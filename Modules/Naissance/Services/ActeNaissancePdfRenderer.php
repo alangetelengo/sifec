@@ -38,6 +38,7 @@ class ActeNaissancePdfRenderer
             'institutionUser.institution.institutionParent.lieu.localiteParent',
             'registre',
             'signataire.user.personne',
+            'signataire.fonction',
             'rectifications',
         ]);
 

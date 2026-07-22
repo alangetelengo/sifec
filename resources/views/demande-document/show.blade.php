@@ -162,10 +162,12 @@ Détail demande {{ $demande->code_demande_document }}
                                 <div class="col-7"><strong>{{ $demande->numero_acte }}</strong></div>
                             </div>
                             
+                            {{-- Paiement temporairement désactivé
                             <div class="info-row row">
                                 <div class="col-5 info-label">Prix:</div>
                                 <div class="col-7"><strong>{{ number_format($demande->prix, 0, ',', ' ') }} FCFA</strong></div>
                             </div>
+                            --}}
                             
                             <div class="info-row row">
                                 <div class="col-5 info-label">Date demande:</div>
@@ -270,7 +272,8 @@ Détail demande {{ $demande->code_demande_document }}
                                     <i class="fas fa-tools text-primary"></i> Actions disponibles
                                 </h5>
                                 <div class="d-flex flex-wrap gap-2">
-                                    @if($demande->estEnTraitement())
+                                    {{-- Paiement désactivé : autoriser aussi le statut « En attente de paiement » --}}
+                                    @if($demande->estEnTraitement() || $demande->estEnAttentePaiement())
                                         <button type="button" class="btn btn-info text-white btn-lg" data-bs-toggle="modal" data-bs-target="#modal-generer-pdf">
                                             <i class="fas fa-file-pdf me-2"></i> Générer le PDF
                                         </button>
@@ -336,10 +339,12 @@ Détail demande {{ $demande->code_demande_document }}
                                     <div class="alert alert-danger mt-3" role="alert">
                                         <i class="fas fa-ban"></i> Cette demande a été rejetée. Aucune action supplémentaire n'est possible.
                                     </div>
+                                {{-- Paiement temporairement désactivé
                                 @elseif($demande->estEnAttentePaiement())
                                     <div class="alert alert-warning mt-3" role="alert">
                                         <i class="fas fa-hourglass-half"></i> Cette demande est en attente de paiement.
                                     </div>
+                                --}}
                                 @endif
                             </div>
                         </div>

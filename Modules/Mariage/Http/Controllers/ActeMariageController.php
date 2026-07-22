@@ -31,8 +31,9 @@ class ActeMariageController extends Controller
         $affectation = $user->affectationActive();
         $institution = $affectation->institution;
 
-        $registre = Registre::where('statut', 1)->where('code_type_registre', 'TPRG_0002')->first();
-        // $registre = Registre::where("code_type_registre","TPRG_0002")->first();
+        // Registre réellement utilisable pour ce centre (même logique que la génération),
+        // afin que le modal n'affiche pas un registre d'un autre CEC ou déjà complet.
+        $registre = $this->resolveRegistreMariageDisponible($affectation);
 
         // $declarations = Auth::user()->affectationActive()->institution->declarationsMariages()->where("cec_approuver","OUI");
 
@@ -88,7 +89,25 @@ class ActeMariageController extends Controller
     public function generateActe(Request $request, ActeMariageService $service)
     {
         $user = Auth::user();
+        $affectation = $user->affectationActive();
         $declaration = DeclarationMariage::findOrFail($request->code_declaration_mariage);
+
+        // Prérequis : la déclaration doit être signée électroniquement par le centre d'état civil
+        // ET confirmée. On exige les deux pour éviter qu'un dossier signé mais dont la confirmation
+        // a échoué (état incohérent) puisse tout de même donner lieu à un acte.
+        if (! filled($declaration->sig_cec_proof_id)) {
+            return response()->json([
+                'code' => '403',
+                'message' => "La déclaration doit d'abord être signée électroniquement lors de la confirmation du dossier avant de générer l'acte.",
+            ], 403);
+        }
+
+        if ($declaration->cec_approuver !== 'OUI') {
+            return response()->json([
+                'code' => '403',
+                'message' => "Le dossier doit être confirmé par le centre d'état civil avant de générer l'acte.",
+            ], 403);
+        }
 
         // Vérifier si un acte existe déjà pour cette déclaration
         $acteExistant = $service->obtenirActeParDeclaration($declaration->code_declaration_mariage);
@@ -111,18 +130,27 @@ class ActeMariageController extends Controller
         // Marquer qu'une génération est en cours (expire après 30 secondes)
         cache()->put($cacheKey, true, 30);
 
-        $registre = $user->affectationActive()->registres()->where('code_type_registre', 'TPRG_0002')->where('statut', 1)->first();
-
         if (! Gate::allows('module.acteMariage.generate')) {
+            // Libérer le verrou avant de sortir.
+            cache()->forget($cacheKey);
+
             return response()->json([
                 'code' => '403',
                 'message' => "Vous n'êtes pas autorisé à générer un acte",
             ], 403);
         }
-        if (! $registre || $registre->statut == 0 || ($registre->nombre_acte_prevu - $registre->nombre_acte_transcrit) == 0) {
+
+        // Résolution robuste du registre : d'abord par CUI de l'agent, sinon par le CEC de
+        // l'affectation, avec statut actif et feuillets restants (cf. module Naissance).
+        $registre = $this->resolveRegistreMariageDisponible($affectation);
+
+        if (! $registre) {
+            // Libérer le verrou avant de sortir.
+            cache()->forget($cacheKey);
+
             return response()->json([
                 'code' => '400',
-                'message' => 'Registre non disponible ou complet',
+                'message' => $this->messageRegistreMariageIndisponible($affectation),
             ], 400);
         }
         DB::beginTransaction();
@@ -200,37 +228,6 @@ class ActeMariageController extends Controller
     public function destroy($id)
     {
         //
-    }
-
-    public function mariageApprouver($id)
-    {
-        $am = ActeMariage::find($id);
-
-        if ($am == null) {
-            flash()->error('Vous ne pouvez pas approuver cet acte de mariage');
-
-            return back();
-        }
-
-        if (Gate::allows('module.acteMariage.signature')) {
-            try {
-                $otp = substr(time(), 2);
-
-                $am->approbation_mairie = Auth::user()->affectationActive()->cui;
-                $am->signature_maire = Auth::user()->personne->signature;
-                $am->otp_approbation_mairie = $otp;
-                $am->save();
-
-                flash()->success('Acte approuvé avec succès');
-
-                return back();
-
-            } catch (Exception $e) {
-                flash()->error($e->getMessage());
-
-                return back();
-            }
-        }
     }
 
     /**
@@ -565,6 +562,28 @@ class ActeMariageController extends Controller
     }
 
     /**
+     * Affiche la copie de l'acte de mariage dans une page SIFEC (visualiseur intégré),
+     * comme le bouton « Voir l'acte » et conformément au module Naissance.
+     */
+    public function printCopie($id)
+    {
+        $acte = ActeMariage::where('code_declaration_mariage', $id)->orWhere('code_acte_mariage', $id)->first();
+
+        return view('mariage::acte.copie', compact('acte'));
+    }
+
+    /**
+     * Affiche l'extrait de l'acte de mariage dans une page SIFEC (visualiseur intégré),
+     * comme le bouton « Voir l'acte » et conformément au module Naissance.
+     */
+    public function printExtrait($id)
+    {
+        $acte = ActeMariage::where('code_declaration_mariage', $id)->orWhere('code_acte_mariage', $id)->first();
+
+        return view('mariage::acte.extrait', compact('acte'));
+    }
+
+    /**
      * Annule un acte de mariage
      */
     public function annuler(Request $request)
@@ -677,6 +696,17 @@ class ActeMariageController extends Controller
                 ], 400);
             }
 
+            // Prérequis : l'acte doit être validé/signé par l'officier avant tout retrait.
+            // On se base sur approbation_mairie (renseignée aussi bien par la signature GUOT que
+            // par l'ancien flux OTP) afin de ne pas rendre irrétirables les actes déjà validés en
+            // production avant la bascule vers la signature électronique.
+            if (! filled($acte->approbation_mairie)) {
+                return response()->json([
+                    'code' => '403',
+                    'message' => "L'acte doit être signé électroniquement par l'officier d'état civil avant d'être retiré.",
+                ], 403);
+            }
+
             // Logique de retrait (à adapter selon vos besoins)
             $acte->update([
                 'retire' => true,
@@ -712,7 +742,11 @@ class ActeMariageController extends Controller
             abort(404, 'Acte non trouvé');
         }
 
-        return view('mariage::etats.copie', compact('acte'));
+        $html2pdf = new Html2Pdf('P', 'A4', 'fr', true, 'UTF-8');
+        $html2pdf->setDefaultFont('Arial');
+        $html2pdf->writeHTML(view('mariage::etats.copie', compact('acte'))->render());
+
+        return $html2pdf->output('CopieActeMariage.pdf');
     }
 
     /**
@@ -726,6 +760,90 @@ class ActeMariageController extends Controller
             abort(404, 'Acte non trouvé');
         }
 
-        return view('mariage::etats.extrait', compact('acte'));
+        $html2pdf = new Html2Pdf('P', 'A4', 'fr', true, 'UTF-8');
+        $html2pdf->setDefaultFont('Arial');
+        $html2pdf->writeHTML(view('mariage::etats.extrait', compact('acte'))->render());
+
+        return $html2pdf->output('ExtraitActeMariage.pdf');
+    }
+
+    /**
+     * Registre de mariage utilisable pour générer un acte : actif (statut = 1) et disposant
+     * encore de feuillets. Recherche d'abord sur le CUI de l'agent, sinon sur le CEC de
+     * l'affectation (alignée sur le module Naissance).
+     */
+    private function resolveRegistreMariageDisponible($affectation): ?Registre
+    {
+        if ($affectation === null) {
+            return null;
+        }
+
+        $base = Registre::query()
+            ->where('code_type_registre', 'TPRG_0002')
+            ->where('statut', 1)
+            ->whereColumn('nombre_acte_transcrit', '<', 'nombre_acte_prevu')
+            ->orderByDesc('updated_at');
+
+        $byCui = (clone $base)->where('cui', $affectation->cui)->first();
+        if ($byCui !== null) {
+            return $byCui;
+        }
+
+        $codeInstitution = $affectation->code_institution ?? $affectation->institution?->code_institution;
+        if (! filled($codeInstitution)) {
+            return null;
+        }
+
+        return (clone $base)
+            ->whereHas('institutionUser', function ($q) use ($codeInstitution) {
+                $q->where('code_institution', $codeInstitution);
+            })
+            ->first();
+    }
+
+    /**
+     * Message de diagnostic lorsqu'aucun registre de mariage n'est utilisable.
+     */
+    private function messageRegistreMariageIndisponible($affectation): string
+    {
+        if ($affectation === null) {
+            return 'Aucune affectation active : impossible de déterminer le registre.';
+        }
+
+        $candidats = Registre::query()
+            ->where('code_type_registre', 'TPRG_0002')
+            ->where(function ($q) use ($affectation) {
+                $q->where('cui', $affectation->cui);
+                $codeInstitution = $affectation->code_institution ?? $affectation->institution?->code_institution;
+                if (filled($codeInstitution)) {
+                    $q->orWhereHas('institutionUser', function ($q2) use ($codeInstitution) {
+                        $q2->where('code_institution', $codeInstitution);
+                    });
+                }
+            })
+            ->orderByDesc('updated_at')
+            ->get();
+
+        if ($candidats->isEmpty()) {
+            return 'Aucun registre de mariage trouvé pour ce centre. Créez un registre puis faites-le parapher par le tribunal.';
+        }
+
+        $enAttente = $candidats->first(function (Registre $r) {
+            return (int) $r->statut === 0;
+        });
+
+        $plein = $candidats->first(function (Registre $r) {
+            return (int) $r->statut === 1
+                && ((int) $r->nombre_acte_prevu - (int) $r->nombre_acte_transcrit) <= 0;
+        });
+        if ($plein !== null) {
+            return 'Le registre de mariage est plein. Ajoutez des feuillets ou ouvrez un nouveau registre.';
+        }
+
+        if ($enAttente !== null) {
+            return 'Le registre de mariage est en attente de paraphe/activation. Impossible de générer un acte tant qu\'il n\'est pas actif.';
+        }
+
+        return 'Aucun registre de mariage actif et disponible pour générer un acte.';
     }
 }

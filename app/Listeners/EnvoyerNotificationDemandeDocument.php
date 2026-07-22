@@ -15,6 +15,11 @@ class EnvoyerNotificationDemandeDocument
     {
         $demande = $event->demande;
 
+        // La notification avec PDF est gérée par OtpDemandeDocumentService::notifierDemandeurApresSignature().
+        if ($event->nouveauStatut === 'Traitée' && filled($demande->chemin_document)) {
+            return;
+        }
+
         // Envoyer notification selon le nouveau statut
         if ($event->nouveauStatut === 'Traitée' && ! empty($demande->email_demandeur)) {
             Notification::route('mail', $demande->email_demandeur)

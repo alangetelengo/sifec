@@ -135,6 +135,13 @@
                     <i class="fa fa-shield-alt me-2"></i>Signature électronique
                 </h6>
                 <dl class="row mb-0">
+                    @php
+                        $sigFonction = \App\Support\GuotSignatureAffichage::roleSignataire($acte, '', null);
+                    @endphp
+                    @if(filled($sigFonction))
+                        <dt class="col-sm-5 col-md-4">Fonction</dt>
+                        <dd class="col-sm-7 col-md-8">{{ $sigFonction }}</dd>
+                    @endif
                     <dt class="col-sm-5 col-md-4">Signataire</dt>
                     <dd class="col-sm-7 col-md-8">
                         @if($sigNom)

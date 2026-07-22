@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Naissance\Entities\ActeNaissance;
 use Modules\Naissance\Exceptions\ActeNaissanceOtpLockedException;
-use Modules\Notification\Jobs\DeclarantActeDisponibleInformationJob;
 use Modules\Notification\Jobs\ValidationacteNaissanceJob;
 
 class OtpService
@@ -298,25 +297,6 @@ class OtpService
 
         $user = Auth::user();
         $actes = ActeNaissance::whereIn('code_declaration_naissance', $out['codes'])->get();
-
-        foreach ($actes as $an) {
-            $contactDeclarant = $an->declaration->declarant->contacts->first();
-            if ($contactDeclarant !== null) {
-                $temp = config('sifec.sms.templates.actions.acte_naissance');
-                $temp = str_replace(':declarant', $an->declaration->declarant->nomcomplet(), $temp);
-                $temp = str_replace(':code_acte_naissance', $an->niupp ?? '', $temp);
-                $temp = str_replace(':libCec', $an->institutionUser->institution->lib_institution, $temp);
-                SifecFacade::sendSms($contactDeclarant->indicatif.$contactDeclarant->telephone, $temp);
-                $emailsDecl = $contactDeclarant->adressesEmailPourNotification();
-                if ($emailsDecl !== []) {
-                    dispatch(new DeclarantActeDisponibleInformationJob(
-                        $emailsDecl,
-                        $temp,
-                        'SIFEC — Acte de naissance disponible'
-                    ));
-                }
-            }
-        }
 
         return [true, $actes];
     }

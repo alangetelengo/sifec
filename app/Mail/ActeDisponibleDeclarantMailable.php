@@ -28,10 +28,10 @@ class ActeDisponibleDeclarantMailable extends Mailable
             ]);
 
         if ($this->attachmentPath !== null && $this->attachmentPath !== '' && is_file($this->attachmentPath)) {
-            $mail->attachFromPath(
-                $this->attachmentPath,
-                $this->attachmentName ?? basename($this->attachmentPath)
-            );
+            $mail->attach($this->attachmentPath, [
+                'as' => $this->attachmentName ?? basename($this->attachmentPath),
+                'mime' => 'application/pdf',
+            ]);
         }
 
         return $mail;
