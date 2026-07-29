@@ -19,7 +19,7 @@
     <div class="card-body">
         <div id="guot-enroll-agents-notice" class="alert alert-light border small mb-3 py-2 d-none">
             <i class="fas fa-info-circle me-1" style="color:#006B31;"></i>
-            L’activation du certificat est réservée aux <strong>responsables</strong>
+            La génération du certificat est réservée aux <strong>responsables</strong>
             ({{ $signataireDescription }}).
             Les agents de saisie n’ont pas de certificat numérique.
         </div>
@@ -30,7 +30,7 @@
                        id="enroll_now" name="enroll_now" value="1"
                        {{ $enrollNow ? 'checked' : '' }}>
                 <label class="form-check-label fw-semibold" for="enroll_now">
-                    Activer le certificat numérique immédiatement
+                    Générer le certificat immédiatement
                 </label>
             </div>
             <p class="small text-muted mb-0">

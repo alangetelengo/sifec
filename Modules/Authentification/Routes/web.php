@@ -18,6 +18,7 @@ Route::middleware('auth')->prefix('utilisateur')->group(function() {
     Route::get('{id}/edit', [UserController::class, 'edit'])->name('utilisateur.edit');//->middleware("can:module.users.edit");
     Route::get('{id}/profile', [UserController::class, 'profile'])->name('utilisateur.profile');//->middleware("can:module.users.profile");
     Route::post('{id}/profile/guot-enroll', [UserController::class, 'enrollGuot'])->name('utilisateur.guot.enroll');
+    Route::post('{id}/profile/guot-revoke', [UserController::class, 'revokeGuot'])->name('utilisateur.guot.revoke');
     Route::match(['get', 'post'], '{id}/profile/guot-p12', [UserController::class, 'downloadGuotP12'])->name('utilisateur.guot.p12');
     Route::get('{id}/profile/guot-p12/ready/{token}', [UserController::class, 'readyGuotP12'])->name('utilisateur.guot.p12.ready');
     Route::get('{id}/profile/guot-p12/file/{token}', [UserController::class, 'fileGuotP12'])->name('utilisateur.guot.p12.file');

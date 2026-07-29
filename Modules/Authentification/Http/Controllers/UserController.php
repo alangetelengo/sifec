@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Modules\Authentification\Entities\Fonctionnalite;
 use Modules\Authentification\Entities\Module;
@@ -32,6 +33,7 @@ use Modules\Referentiel\Entities\Localite;
 use Modules\Referentiel\Entities\Nationalite;
 use Modules\Referentiel\Entities\Personne;
 use Modules\Referentiel\Entities\Profession;
+use Modules\Referentiel\Entities\RaisonRevocation;
 use Modules\Referentiel\Entities\SituationMatrimoniale;
 use Modules\Referentiel\Entities\TypeDocument;
 use Modules\Referentiel\Entities\TypeInstitution;
@@ -535,9 +537,94 @@ class UserController extends Controller
                 'profile' => $request->input('guot_profile', session('guot_enroll_params.profile', 'user_auth_enc')),
             ], Auth::user());
 
-            flash()->success('Certificat numérique activé avec succès.');
+            flash()->success('Certificat numérique généré avec succès.');
         } catch (Exception $e) {
-            flash()->error('Échec d’activation du certificat : '.$e->getMessage());
+            flash()->error('Échec de génération du certificat : '.$e->getMessage());
+        }
+
+        return redirect()->route('utilisateur.profile', $user->code_user);
+    }
+
+    /**
+     * Révocation PKI GUOT depuis le profil (guide §11.3).
+     */
+    public function revokeGuot(Request $request, string $id, GuotEnrollmentService $enrollment)
+    {
+        $raisonRule = Schema::hasTable('tr_raison_revocation')
+            ? ['required', 'string', 'exists:tr_raison_revocation,code_raison_revocation']
+            : ['required', 'string'];
+
+        $request->validate([
+            'code_raison_revocation' => $raisonRule,
+            'justificatif' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ], [
+            'code_raison_revocation.required' => 'Veuillez sélectionner une raison de révocation.',
+            'code_raison_revocation.exists' => 'Raison de révocation invalide.',
+            'justificatif.mimes' => 'Le justificatif doit être un fichier PDF, JPG ou PNG.',
+            'justificatif.max' => 'Le justificatif ne doit pas dépasser 5 Mo.',
+        ]);
+
+        $user = User::with(['personne', 'affectations'])->find($id);
+        if ($user === null) {
+            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
+
+            return back();
+        }
+
+        $this->authorizeGuotProfileAccess($user);
+
+        $affectation = $user->affectationActive() ?? $user->affectations->firstWhere('active', 1);
+        if ($affectation === null || ! filled($affectation->guot_user_id)) {
+            flash()->error('Aucun certificat numérique à révoquer.');
+
+            return back();
+        }
+
+        $codeRaison = (string) $request->input('code_raison_revocation');
+        $raisonGuot = 'cessation_of_operation';
+
+        if (Schema::hasTable('tr_raison_revocation')) {
+            $raison = RaisonRevocation::query()
+                ->where('code_raison_revocation', $codeRaison)
+                ->where('actif', true)
+                ->first();
+            if ($raison === null) {
+                flash()->error('Raison de révocation introuvable ou inactive.');
+
+                return back()->withInput();
+            }
+            $raisonGuot = (string) $raison->code_guot;
+        }
+
+        try {
+            $justificatifChemin = null;
+            if ($request->hasFile('justificatif')) {
+                $file = $request->file('justificatif');
+                if (! $file->isValid()) {
+                    throw new Exception('Le fichier justificatif est corrompu ou inaccessible.');
+                }
+                $destDir = public_path('app/guot-revocations');
+                if (! is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                if (! empty($affectation->guot_revoke_justificatif)) {
+                    $ancienAbsolu = public_path('app/'.$affectation->guot_revoke_justificatif);
+                    if (is_file($ancienAbsolu)) {
+                        @unlink($ancienAbsolu);
+                    }
+                }
+                $filename = $file->hashName();
+                $file->move($destDir, $filename);
+                $justificatifChemin = 'guot-revocations/'.$filename;
+            }
+
+            $enrollment->revokeInstitutionUser($affectation, $raisonGuot, [
+                'code_raison_revocation' => $codeRaison,
+                'justificatif_chemin' => $justificatifChemin ?? $affectation->guot_revoke_justificatif,
+            ]);
+            flash()->success('Certificat numérique révoqué. Vous pouvez en générer un nouveau si nécessaire.');
+        } catch (Exception $e) {
+            flash()->error('Échec de révocation du certificat : '.$e->getMessage());
         }
 
         return redirect()->route('utilisateur.profile', $user->code_user);

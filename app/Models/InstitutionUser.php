@@ -38,6 +38,7 @@ class InstitutionUser extends Model
         'active' => 'boolean',
         'guot_user_cert_not_before' => 'datetime',
         'guot_user_cert_not_after' => 'datetime',
+        'guot_revoked_at' => 'datetime',
     ];
 
 

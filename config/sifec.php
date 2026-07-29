@@ -37,14 +37,14 @@ return [
                 'paraphage_registre_bulk' => 'M (Mme) :tribunal, votre code :code_otp paraphe :nombre registre(s) d\'état civil (validité :minutes min).',
 
                 'declaration_naissance' => 'M.(Mme) :declarant, une declaration de naissance de :enfant, dont vous etes declarant a ete emis avec succes, le numero de la declaration est :code_declaration',
-                'acte_naissance' => "M.(Mme) :declarant, l'acte de la declaration de naissance :code_acte_naissance dont vous etes declarant est disponible. Priere de vous rapprocher du centre d'etat civil :libCec",
+                'acte_naissance' => "M.(Mme) :declarant, l'acte de la declaration de naissance :code_acte_naissance dont vous etes declarant est disponible. Priere de vous rapprocher du centre d'etat civil :libCec pour le retrait.",
                 'validation_acte_naissance' => 'M (Mme) :maire, votre code pour valider :nombre acte de naissance est :code_otp',
 
                 'declaration_deces' => 'M.(Mme) :declarant, une declaration de deces de :defunt, dont vous etes declarant a ete emis avec succes, le numero de la declaration est :code_declaration',
                 'acte_deces' => "M.(Mme) :declarant, l'acte de la declaration de deces :code_acte_deces de :defunt,  dont vous etes declarant est disponible,priere de vous rapprocher du centre d'etat civil :libCec",
                 'validation_acte_deces' => "M (Mme) :pompe_funebre, votre code pour valider l'acte de deces :code_acte_deces est :code_otp",
                 'validation_acte_mariages' => "M (Mme) :maire, votre code pour valider l'acte de mariage :code_declaration_mariages est :code_otp",
-                'acte_mariage' => "M.(Mme) :declarant, l'acte de la declaration de mariage :code_acte_mariage dont vous etes declarant est disponible. Priere de vous rapprocher du centre d'etat civil :libCec",
+                'acte_mariage' => "M.(Mme) :declarant, l'acte de la declaration de mariage :code_acte_mariage dont vous etes declarant est disponible. Priere de vous rapprocher du centre d'etat civil :libCec pour le retrait.",
 
                 'validation_multiples_acte_naissances' => 'M (Mme) :maire, votre code pour valider :nombre actes de naissance  est :code_otp',
                 'validation_multiples_acte_deces' => 'M (Mme) :pompe_funebre, votre code pour valider :nombre actes de deces  est :code_otp',

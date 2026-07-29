@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use PkiSdk\SignerClient;
 use PkiSdk\TrustException;
 use RuntimeException;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Enrôlement PKI GUOT pour les responsables SIFEC (affectation tr_ins_user).
@@ -131,5 +132,82 @@ class GuotEnrollmentService
             'p12_binary' => base64_decode($p12Base64, true) ?: '',
             'serial_number' => $response['serial_number'] ?? null,
         ];
+    }
+
+    /**
+     * Révocation PKI définitive (guide GUOT §11.3).
+     * Les signatures passées restent valides ; un nouvel enrôlement crée un nouvel actor_id.
+     *
+     * @param  array{code_raison_revocation?: string|null, justificatif_chemin?: string|null}  $meta
+     *
+     * @throws TrustException
+     * @throws RuntimeException
+     */
+    public function revokeInstitutionUser(
+        InstitutionUser $affectation,
+        string $reason = 'cessation_of_operation',
+        array $meta = []
+    ): InstitutionUser {
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('trust-api non configuré (PKI_TRUST_API_URL / PKI_API_KEY).');
+        }
+
+        if (! filled($affectation->guot_user_id)) {
+            throw new RuntimeException('Aucun certificat GUOT à révoquer sur cette affectation.');
+        }
+
+        $allowed = [
+            'unspecified',
+            'key_compromise',
+            'affiliation_changed',
+            'superseded',
+            'cessation_of_operation',
+        ];
+        if (! in_array($reason, $allowed, true)) {
+            throw new RuntimeException('Raison de révocation invalide.');
+        }
+
+        $actorId = (string) $affectation->guot_user_id;
+
+        try {
+            $this->signerClient->revoke($actorId, $reason);
+        } catch (TrustException $e) {
+            Log::channel('sifec')->error('Révocation GUOT échouée', [
+                'cui' => $affectation->cui,
+                'actor_id' => $actorId,
+                'reason' => $reason,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+
+        if (Schema::hasColumn('tr_ins_user', 'code_raison_revocation')) {
+            $affectation->code_raison_revocation = $meta['code_raison_revocation'] ?? null;
+        }
+        if (Schema::hasColumn('tr_ins_user', 'guot_revoke_justificatif') && array_key_exists('justificatif_chemin', $meta)) {
+            $affectation->guot_revoke_justificatif = $meta['justificatif_chemin'];
+        }
+        if (Schema::hasColumn('tr_ins_user', 'guot_revoked_at')) {
+            $affectation->guot_revoked_at = now();
+        }
+        if (Schema::hasColumn('tr_ins_user', 'guot_revoked_actor_id')) {
+            $affectation->guot_revoked_actor_id = $actorId;
+        }
+
+        $affectation->guot_user_id = null;
+        $affectation->guot_user_cert_serial = null;
+        $affectation->guot_user_cert_not_before = null;
+        $affectation->guot_user_cert_not_after = null;
+        $affectation->guot_user_verifier_url = null;
+        $affectation->save();
+
+        Log::channel('sifec')->info('Révocation GUOT terminée', [
+            'cui' => $affectation->cui,
+            'actor_id' => $actorId,
+            'reason' => $reason,
+            'code_raison_revocation' => $meta['code_raison_revocation'] ?? null,
+        ]);
+
+        return $affectation->fresh();
     }
 }
