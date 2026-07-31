@@ -138,8 +138,17 @@
                 </tbody>
             </table>
         </div>
-        @if($signataires->hasPages())
-            <div class="card-footer">{{ $signataires->links() }}</div>
+        @if($signataires->total() > 0)
+            <div class="card-footer sl-pagination d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span class="small text-muted mb-0">
+                    Affichage de <strong>{{ $signataires->firstItem() }}</strong>
+                    à <strong>{{ $signataires->lastItem() }}</strong>
+                    sur <strong>{{ $signataires->total() }}</strong>
+                </span>
+                @if($signataires->hasPages())
+                    <div class="sl-pagination-links">{{ $signataires->links('pagination::bootstrap-4') }}</div>
+                @endif
+            </div>
         @endif
     </div>
 </div>

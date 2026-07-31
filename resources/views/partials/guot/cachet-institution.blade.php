@@ -63,12 +63,12 @@
                                 class="btn btn-outline-secondary"
                                 style="border-radius:10px;"
                                 onclick="return confirmGuotInstitutionEnroll(
-                                    'guot-institution-enroll-form',
-                                    'Réparer le cachet institutionnel ?',
-                                    'Tenter une récupération / réactivation du cachet institutionnel ?',
-                                    'Oui, réparer'
+                                    'guot-institution-revoke-form',
+                                    'Révoquer le cachet institutionnel ?',
+                                    'Cette action est <strong>définitive</strong> côté GUOT. Les cachets déjà apposés restent valides, mais cette structure ne pourra plus sceller de nouveaux documents tant qu’un nouveau cachet n’aura pas été activé.',
+                                    'Oui, révoquer'
                                 );">
-                            <i class="fas fa-redo me-1"></i> Réactiver / réparer
+                            <i class="fas fa-ban me-1"></i> Révoquer
                         </button>
                     @endunless
                 </div>
@@ -76,7 +76,7 @@
                     <div class="alert alert-warning border-0 small mb-3">
                         <i class="fas fa-exclamation-triangle me-1"></i>
                         Identifiant lié, mais informations du certificat incomplètes.
-                        Cliquez sur <strong>Réactiver / réparer</strong>.
+                        Cliquez sur <strong>Actualiser le cachet</strong>, ou révoquez puis réactivez si nécessaire.
                     </div>
                 @endif
             @endif

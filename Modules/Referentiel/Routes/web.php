@@ -48,6 +48,7 @@ Route::middleware('auth')->prefix('institution')->group(function() {
     Route::get('{id}/edit', [InstitutionController::class,'edit'])->name('institution.edit');
     Route::post('{id}/guot-enroll', [InstitutionController::class, 'enrollGuot'])->name('institution.guot.enroll');
     Route::post('{id}/guot-sync', [InstitutionController::class, 'syncGuot'])->name('institution.guot.sync');
+    Route::post('{id}/guot-revoke', [InstitutionController::class, 'revokeGuot'])->name('institution.guot.revoke');
     Route::get('getInstitution', [InstitutionController::class,'getInstitution'])->name('institution.get.institution');
     Route::put('{id}/update', [InstitutionController::class,'update'])->name('institution.update');
     Route::delete('{id}/destroy', [InstitutionController::class,'destroy'])->name('institution.destroy');

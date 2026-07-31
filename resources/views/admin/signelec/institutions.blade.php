@@ -123,8 +123,17 @@
                 </tbody>
             </table>
         </div>
-        @if($institutions->hasPages())
-            <div class="card-footer">{{ $institutions->links() }}</div>
+        @if($institutions->total() > 0)
+            <div class="card-footer sl-pagination d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span class="small text-muted mb-0">
+                    Affichage de <strong>{{ $institutions->firstItem() }}</strong>
+                    à <strong>{{ $institutions->lastItem() }}</strong>
+                    sur <strong>{{ $institutions->total() }}</strong>
+                </span>
+                @if($institutions->hasPages())
+                    <div class="sl-pagination-links">{{ $institutions->links('pagination::bootstrap-4') }}</div>
+                @endif
+            </div>
         @endif
     </div>
 </div>

@@ -24,10 +24,12 @@ Formulaires types
             <p>Consultez et pilotez les dossiers de déclaration de mariage (statuts, confirmation, envoi au tribunal).</p>
         </div>
         <div class="an-toolbar">
-            <a href="{{ route('declarationMariage.create') }}" class="an-hero-btn-primary">
-                <i class="fa fa-plus-circle" aria-hidden="true"></i>
-                <span>Créer un formulaire type</span>
-            </a>
+            @can('module.acteMariage.formulaireType.create')
+                <a href="{{ route('declarationMariage.create') }}" class="an-hero-btn-primary">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                    <span>Créer un formulaire type</span>
+                </a>
+            @endcan
         </div>
     </header>
 <div class="an-body">
@@ -215,13 +217,15 @@ Formulaires types
                                                 @endif
 
                                                 {{-- Confirmer/Valider --}}
-                                                @if($peutConfirmer)
-                                                    <button class="btn btn-success btn-confirmer-document shadow btn-xs sharp me-1"
-                                                        title="Confirmer le formulaire type"
-                                                        data-code="{{ $dm->code_declaration_mariage }}">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                @endif
+                                                @can('module.acteMariage.formulaireType.signature')
+                                                    @if($peutConfirmer)
+                                                        <button class="btn btn-success btn-confirmer-document shadow btn-xs sharp me-1"
+                                                            title="Confirmer le formulaire type"
+                                                            data-code="{{ $dm->code_declaration_mariage }}">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    @endif
+                                                @endcan
 
                                                 {{-- Envoyer au tribunal (pour les dispenses et renvois) --}}
                                                 @if($peutEnvoyer && $isDispense && !$dejaEnvoyeAuTribunal)

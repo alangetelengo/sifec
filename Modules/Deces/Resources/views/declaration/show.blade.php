@@ -427,6 +427,10 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
 <script src="{{ asset('js/sifec-p12-sign.js') }}?v=20260720a"></script>
 <script>
     window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+    window.SIFEC_PEUT_SIGNER_CERTIFICAT = {{ (
+        Gate::allows('module.certificat.deces.signature')
+        || Gate::allows('module.certificat.signature')
+    ) ? 'true' : 'false' }};
     window.SIFEC_ROUTES_DECES = {
         mouvement: @json(route('declarationDeces.mouvement')),
         signPrepare: @json(route('declarationDeces.sign.prepare')),
@@ -500,7 +504,10 @@ $codeMouvementEnvoi = $mappingMouvement[$typeDeclaration];
         let dejaSigneEnvoi = false;
 
         function signatureEnvoiRequise() {
-            return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true && phaseEnvoi && !dejaSigneEnvoi;
+            return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true
+                && window.SIFEC_PEUT_SIGNER_CERTIFICAT === true
+                && phaseEnvoi
+                && !dejaSigneEnvoi;
         }
         function showCertSignError(msg) {
             $('#cert-sign-feedback').removeClass('d-none').text(msg);

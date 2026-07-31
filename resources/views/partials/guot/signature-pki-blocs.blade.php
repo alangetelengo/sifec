@@ -1,7 +1,7 @@
 {{--
   Blocs de traçabilité PKI pour PDF Html2Pdf.
   Variables :
-    $blocs   = list of [titre, couleur, role, nom, date, empreinte, certificat]
+    $blocs   = list of [titre, couleur, role, nom, date, empreinte, certificat, proof_id]
     $compact = bool (optionnel) : version densifiée pour actes / pages courtes
 --}}
 @if(! empty($blocs))
@@ -49,6 +49,13 @@
                             @endif
                         </td>
                     </tr>
+                    @if(filled($bloc['proof_id'] ?? null))
+                    <tr>
+                        <td style="font-size: {{ $fsBody }}; color: #000000; padding-bottom: 0.15mm;">
+                            <b>Identifiant de preuve (proof_id) :</b> {{ $bloc['proof_id'] }}
+                        </td>
+                    </tr>
+                    @endif
                     <tr>
                         <td style="font-size: {{ $fsBody }}; color: #000000; padding-bottom: 0.15mm;">
                             <b>Algorithme :</b> SHA256withRSA

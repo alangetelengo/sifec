@@ -177,7 +177,8 @@ class DeclarationSignatureController extends Controller
     private function userCanSignPhase(string $phase): bool
     {
         return $phase === DeclarationNaissanceSignatureService::PHASE_FS
-            ? Gate::allows('module.ActeNaissance.declarationNaissance.create')
+            ? (Gate::allows('module.certificat.naissance.signature')
+                || Gate::allows('module.certificat.signature'))
             : Gate::allows('module.acteNaissance.generate');
     }
 

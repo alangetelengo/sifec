@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Modules\Referentiel\Entities\Regime;
@@ -47,6 +48,10 @@ class MariageController extends Controller
      */
     public function create()
     {
+        if (! Gate::allows('module.acteMariage.formulaireType.create')) {
+            abort(403, "Vous n'êtes pas autorisé à créer un formulaire type.");
+        }
+
         $situationMatrimoniales = SituationMatrimoniale::all();
         $filiations = Filiation::all();
         $typedocuments = TypeDocument::all();
@@ -72,6 +77,13 @@ class MariageController extends Controller
      */
     public function store(Request $request)
     {
+        if (! Gate::allows('module.acteMariage.formulaireType.create')) {
+            return response()->json([
+                'code' => '403',
+                'message' => ["Vous n'êtes pas autorisé à créer un formulaire type."],
+            ], 403);
+        }
+
         // Log::channel("sifec")->info($request->all());
         // dd($request->all());
         // Validation des données

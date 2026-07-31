@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Modules\Mariage\Entities\DeclarationMariage;
 use Modules\Mariage\Services\DeclarationMariageSignatureService;
@@ -28,6 +29,13 @@ class DeclarationMariageSignatureController extends Controller
      */
     public function prepare(Request $request)
     {
+        if (! Gate::allows('module.acteMariage.formulaireType.signature')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer un formulaire type.",
+            ]);
+        }
+
         $codes = $this->resolveCodes($request);
         if ($codes === []) {
             return response()->json(['code' => '180', 'message' => 'Aucun document sélectionné.']);
@@ -49,6 +57,13 @@ class DeclarationMariageSignatureController extends Controller
      */
     public function finalize(Request $request)
     {
+        if (! Gate::allows('module.acteMariage.formulaireType.signature')) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer un formulaire type.",
+            ]);
+        }
+
         $token = (string) $request->input('token', '');
         $signatures = $request->input('signatures', []);
         if (! is_array($signatures)) {

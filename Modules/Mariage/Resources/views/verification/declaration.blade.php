@@ -129,6 +129,9 @@
                             {{ $sigDeclDate ? \Carbon\Carbon::parse($sigDeclDate)->format('d/m/Y à H:i:s') : '—' }}
                         </dd>
 
+                        <dt class="col-sm-5 col-md-4">Identifiant de preuve (proof_id)</dt>
+                        <dd class="col-sm-7 col-md-8"><code class="small" style="word-break:break-all;">{{ $declaration->sig_cec_proof_id }}</code></dd>
+
                         @if(filled($declaration->sig_cec_doc_sig_id))
                             <dt class="col-sm-5 col-md-4">Identifiant signature (L2)</dt>
                             <dd class="col-sm-7 col-md-8"><code class="small">{{ $declaration->sig_cec_doc_sig_id }}</code></dd>

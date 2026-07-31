@@ -77,7 +77,7 @@ class GuotSignatureAffichage
     /**
      * Construit un descripteur de bloc PKI pour le PDF (null si rien à afficher).
      *
-     * @return array{titre: string, couleur: string, fond: string, role: string, nom: ?string, date: mixed, empreinte: ?string, certificat: ?string}|null
+     * @return array{titre: string, couleur: string, fond: string, role: string, nom: ?string, date: mixed, empreinte: ?string, certificat: ?string, proof_id: ?string}|null
      */
     public static function blocPki(
         object $document,
@@ -106,6 +106,7 @@ class GuotSignatureAffichage
         $hashKey = $prefix === '' ? 'pdf_content_hash' : $prefix.'pdf_content_hash';
         $hashKeyAlt = $prefix === '' ? 'payload_hash' : $prefix.'payload_hash';
         $certKey = $prefix === '' ? 'certificate_ref' : $prefix.'certificate_ref';
+        $proofKey = $prefix === '' ? 'proof_id' : $prefix.'proof_id';
 
         $nom = $document->{$nomKey} ?? null;
         $date = $document->{$dateKey}
@@ -113,6 +114,7 @@ class GuotSignatureAffichage
             ?? ($prefix === '' ? ($document->date_signature ?? $document->date_heure_approbation_mairie ?? null) : null);
         $empreinte = $document->{$hashKey} ?? $document->{$hashKeyAlt} ?? null;
         $certificat = $document->{$certKey} ?? null;
+        $proofId = $document->{$proofKey} ?? null;
         $role = self::roleSignataire($document, $prefix, $roleFallback) ?? $roleFallback;
 
         return [
@@ -124,6 +126,7 @@ class GuotSignatureAffichage
             'date' => $date,
             'empreinte' => filled($empreinte) ? (string) $empreinte : null,
             'certificat' => filled($certificat) ? (string) $certificat : null,
+            'proof_id' => filled($proofId) ? (string) $proofId : null,
         ];
     }
 
@@ -147,7 +150,7 @@ class GuotSignatureAffichage
      * - formation_sanitaire (certificat) : uniquement le signataire FS ;
      * - centre_etat_civil (déclaration) : FS si présent + CEC.
      *
-     * @return list<array{titre: string, couleur: string, fond: string, role: string, nom: ?string, date: mixed, empreinte: ?string, certificat: ?string}>
+     * @return list<array{titre: string, couleur: string, fond: string, role: string, nom: ?string, date: mixed, empreinte: ?string, certificat: ?string, proof_id: ?string}>
      */
     public static function blocsPkiDeclarationNaissance(object $dn, ?string $contexte): array
     {

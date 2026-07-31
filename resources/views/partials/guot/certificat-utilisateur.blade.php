@@ -137,63 +137,65 @@
                 </div>
 
                 <div class="col-lg-6">
-                    @if($pkiConfigured && $user?->code_user)
-                        <div class="sifec-guot-revoke-panel rounded-3 p-3 h-100">
-                            <div class="fw-semibold small mb-2 sifec-guot-revoke-title">
-                                <i class="fas fa-ban me-1"></i>Révocation du certificat
+                    @can('module.users.guot.revoke')
+                        @if($pkiConfigured && $user?->code_user)
+                            <div class="sifec-guot-revoke-panel rounded-3 p-3 h-100">
+                                <div class="fw-semibold small mb-2 sifec-guot-revoke-title">
+                                    <i class="fas fa-ban me-1"></i>Révocation du certificat
+                                </div>
+                                <p class="small text-muted mb-3">
+                                    Action définitive côté GUOT. Les signatures déjà émises restent valides.
+                                    Pour un remplaçant, générez un nouveau certificat après révocation.
+                                </p>
+                                <form method="POST"
+                                      action="{{ route('utilisateur.guot.revoke', $user->code_user) }}"
+                                      id="{{ $formRevokeId }}"
+                                      class="m-0"
+                                      enctype="multipart/form-data">
+                                    @csrf
+                                    <label class="form-label small fw-semibold text-muted mb-1" for="guot-revoke-reason-{{ $affectation->cui }}">
+                                        Raison de révocation <span class="sifec-guot-required">*</span>
+                                    </label>
+                                    <select name="code_raison_revocation"
+                                            id="guot-revoke-reason-{{ $affectation->cui }}"
+                                            class="form-select form-select-sm mb-2 @error('code_raison_revocation') is-invalid @enderror"
+                                            required>
+                                        <option value="">— Choisir —</option>
+                                        @forelse($raisonsRevocation as $raison)
+                                            <option value="{{ $raison->code_raison_revocation }}"
+                                                @selected(old('code_raison_revocation') === $raison->code_raison_revocation)>
+                                                {{ $raison->lib_raison_revocation }}
+                                            </option>
+                                        @empty
+                                            <option value="" disabled>Aucune raison configurée (migration tr_raison_revocation)</option>
+                                        @endforelse
+                                    </select>
+                                    @error('code_raison_revocation')
+                                        <div class="invalid-feedback d-block mb-2">{{ $message }}</div>
+                                    @enderror
+
+                                    <label class="form-label small fw-semibold text-muted mb-1" for="guot-revoke-file-{{ $affectation->cui }}">
+                                        Document justificatif <span class="text-muted fw-normal">(optionnel)</span>
+                                    </label>
+                                    <input type="file"
+                                           name="justificatif"
+                                           id="guot-revoke-file-{{ $affectation->cui }}"
+                                           class="form-control form-control-sm mb-1 @error('justificatif') is-invalid @enderror"
+                                           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+                                    <div class="form-text small mb-2">PDF, JPG ou PNG — 5&nbsp;Mo max</div>
+                                    @error('justificatif')
+                                        <div class="invalid-feedback d-block mb-2">{{ $message }}</div>
+                                    @enderror
+
+                                    <button type="button"
+                                            class="btn btn-sm w-100 sifec-guot-revoke-btn fw-semibold"
+                                            onclick="confirmGuotRevoke('{{ $formRevokeId }}')">
+                                        <i class="fas fa-ban me-1"></i>Révoquer le certificat
+                                    </button>
+                                </form>
                             </div>
-                            <p class="small text-muted mb-3">
-                                Action définitive côté GUOT. Les signatures déjà émises restent valides.
-                                Pour un remplaçant, générez un nouveau certificat après révocation.
-                            </p>
-                            <form method="POST"
-                                  action="{{ route('utilisateur.guot.revoke', $user->code_user) }}"
-                                  id="{{ $formRevokeId }}"
-                                  class="m-0"
-                                  enctype="multipart/form-data">
-                                @csrf
-                                <label class="form-label small fw-semibold text-muted mb-1" for="guot-revoke-reason-{{ $affectation->cui }}">
-                                    Raison de révocation <span class="sifec-guot-required">*</span>
-                                </label>
-                                <select name="code_raison_revocation"
-                                        id="guot-revoke-reason-{{ $affectation->cui }}"
-                                        class="form-select form-select-sm mb-2 @error('code_raison_revocation') is-invalid @enderror"
-                                        required>
-                                    <option value="">— Choisir —</option>
-                                    @forelse($raisonsRevocation as $raison)
-                                        <option value="{{ $raison->code_raison_revocation }}"
-                                            @selected(old('code_raison_revocation') === $raison->code_raison_revocation)>
-                                            {{ $raison->lib_raison_revocation }}
-                                        </option>
-                                    @empty
-                                        <option value="" disabled>Aucune raison configurée (migration tr_raison_revocation)</option>
-                                    @endforelse
-                                </select>
-                                @error('code_raison_revocation')
-                                    <div class="invalid-feedback d-block mb-2">{{ $message }}</div>
-                                @enderror
-
-                                <label class="form-label small fw-semibold text-muted mb-1" for="guot-revoke-file-{{ $affectation->cui }}">
-                                    Document justificatif <span class="text-muted fw-normal">(optionnel)</span>
-                                </label>
-                                <input type="file"
-                                       name="justificatif"
-                                       id="guot-revoke-file-{{ $affectation->cui }}"
-                                       class="form-control form-control-sm mb-1 @error('justificatif') is-invalid @enderror"
-                                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
-                                <div class="form-text small mb-2">PDF, JPG ou PNG — 5&nbsp;Mo max</div>
-                                @error('justificatif')
-                                    <div class="invalid-feedback d-block mb-2">{{ $message }}</div>
-                                @enderror
-
-                                <button type="button"
-                                        class="btn btn-sm w-100 sifec-guot-revoke-btn fw-semibold"
-                                        onclick="confirmGuotRevoke('{{ $formRevokeId }}')">
-                                    <i class="fas fa-ban me-1"></i>Révoquer le certificat
-                                </button>
-                            </form>
-                        </div>
-                    @endif
+                        @endif
+                    @endcan
                 </div>
             </div>
         </div>

@@ -318,6 +318,10 @@ Constatation de décès
 
     <script>
         window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+        window.SIFEC_PEUT_SIGNER_CERTIFICAT = {{ (
+            Gate::allows('module.certificat.deces.signature')
+            || Gate::allows('module.certificat.signature')
+        ) ? 'true' : 'false' }};
     </script>
     <script>
         $(function(){
@@ -326,7 +330,9 @@ Constatation de décès
             let dejaSigneEnvoi = false;
 
             function constatationSignatureRequise() {
-                return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true && !dejaSigneEnvoi;
+                return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true
+                    && window.SIFEC_PEUT_SIGNER_CERTIFICAT === true
+                    && !dejaSigneEnvoi;
             }
             function showCertSignError(msg) {
                 $("#cert-sign-feedback").removeClass('d-none').text(msg);

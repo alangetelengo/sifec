@@ -239,16 +239,24 @@ Détail du formulaire type d N° {{ $declaration->code_declaration_mariage }}
                 @endif
             @else
                 {{-- Pour les autres types : confirmation du dossier --}}
-                @if($peutConfirmer)
-                    <button class="btn btn-success btn-confirmer-document"
-                        id="btn-confirmer-document"
-                        title="Confirmer le dossier de mariage"
-                        data-code="{{ $declaration->code_declaration_mariage }}">
-                        <i class="fa fa-check"></i> Confirmer le dossier
-                    </button>
+                @can('module.acteMariage.formulaireType.signature')
+                    @if($peutConfirmer)
+                        <button class="btn btn-success btn-confirmer-document"
+                            id="btn-confirmer-document"
+                            title="Confirmer le dossier de mariage"
+                            data-code="{{ $declaration->code_declaration_mariage }}">
+                            <i class="fa fa-check"></i> Confirmer le dossier
+                        </button>
+                    @else
+                        <span class="text-success ms-2">Dossier validé et complet.</span>
+                    @endif
                 @else
-                    <span class="text-success ms-2">Dossier validé et complet.</span>
-                @endif
+                    @if($peutConfirmer)
+                        <span class="text-muted ms-2">Confirmation réservée aux signataires habilités.</span>
+                    @else
+                        <span class="text-success ms-2">Dossier validé et complet.</span>
+                    @endif
+                @endcan
             @endif
         </div>
         <div class="card">

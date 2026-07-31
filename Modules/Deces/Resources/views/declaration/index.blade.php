@@ -371,6 +371,10 @@ Actes Décès
 
     <script>
         window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+        window.SIFEC_PEUT_SIGNER_CERTIFICAT = {{ (
+            Gate::allows('module.certificat.deces.signature')
+            || Gate::allows('module.certificat.signature')
+        ) ? 'true' : 'false' }};
     </script>
     <script>
         $(function(){
@@ -379,7 +383,10 @@ Actes Décès
             let dejaSigneEnvoi = false;
 
             function certificatSignatureRequise() {
-                return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true && phaseEnvoi === 'fs' && !dejaSigneEnvoi;
+                return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true
+                    && window.SIFEC_PEUT_SIGNER_CERTIFICAT === true
+                    && phaseEnvoi === 'fs'
+                    && !dejaSigneEnvoi;
             }
             function showCertSignError(msg) {
                 $("#cert-sign-feedback").removeClass('d-none').text(msg);

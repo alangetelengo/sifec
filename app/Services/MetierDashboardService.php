@@ -9,7 +9,7 @@ use Modules\Referentiel\Entities\Institution;
 
 /**
  * Choix du tableau de bord « métier » après connexion.
- * Formation sanitaire (cat. TCINS_0003 ou FONC_0006 / FONC_0020) → {@see FormationSanitaireDashboardService::buildPourFormationSanitaire}.
+ * Formation sanitaire (cat. TCINS_0003 ou FONC_0006 / FONC_0016 / FONC_0020) → {@see FormationSanitaireDashboardService::buildPourFormationSanitaire}.
  * Centre d’hygiène (TPINS_0019 ou FONC_0007) → {@see FormationSanitaireDashboardService::buildPourCentreHygiene}.
  */
 class MetierDashboardService
@@ -21,7 +21,7 @@ class MetierDashboardService
         'FONC_0004',
         'FONC_0014',
         'FONC_0015',
-        'FONC_0016',
+        'FONC_0024',
     ];
 
     /** Mairies Brazzaville : pas de parcours décès pour ces fonctions (CEC). */
@@ -32,7 +32,7 @@ class MetierDashboardService
         'FONC_0004',
         'FONC_0014',
         'FONC_0015',
-        'FONC_0016',
+        'FONC_0024',
     ];
 
     public function __construct(
@@ -133,7 +133,7 @@ class MetierDashboardService
             return true;
         }
 
-        return $codeFonc !== null && in_array($codeFonc, ['FONC_0006', 'FONC_0020'], true);
+        return $codeFonc !== null && in_array($codeFonc, ['FONC_0006', 'FONC_0016', 'FONC_0020'], true);
     }
 
     /**
@@ -218,7 +218,8 @@ class MetierDashboardService
                 'FONC_0005', 'FONC_0012' => 'Pompes funèbres',
                 'FONC_0007' => 'Centre d’hygiène',
                 'FONC_0014' => 'Mairie centrale',
-                'FONC_0015', 'FONC_0016' => 'Service état civil',
+                'FONC_0015', 'FONC_0024' => 'Service état civil',
+                'FONC_0016' => 'Chef de service gestion des malades',
                 'FONC_0017' => 'Bureau d’enregistrement des décès',
                 'FONC_0019', 'FONC_0021' => 'Ambassade / consulat',
                 default => null,

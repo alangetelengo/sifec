@@ -25,6 +25,21 @@
                 </div>
             </div>
             <div class="card-body pb-2">
+                @if(session('success'))
+                    <div class="alert alert-success border-0">
+                        <i class="fas fa-check-circle me-1"></i>{{ session('success') }}
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div class="alert alert-danger border-0">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ session('error') }}
+                    </div>
+                @endif
+                @if($errors->any())
+                    <div class="alert alert-danger border-0">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ $errors->first() }}
+                    </div>
+                @endif
                 <div class="ligne">
                     <h4 class="mb-3">INFORMATIONS D’ÉTAT CIVIL
                         <small class="text-muted ms-2" style="font-size:0.75rem;">

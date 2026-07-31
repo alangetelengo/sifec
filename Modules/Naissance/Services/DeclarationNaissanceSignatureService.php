@@ -183,7 +183,7 @@ class DeclarationNaissanceSignatureService
                     'code' => $code,
                     'error' => $e->getMessage(),
                 ]);
-                $errors[] = $code.': '.$e->getMessage();
+                $errors[] = $code.': '.$this->humanizeTrustException($e);
             } catch (Exception $e) {
                 Log::channel('sifec')->error('Signature '.$cfg['label'].' naissance', [
                     'code' => $code,
@@ -415,5 +415,22 @@ class DeclarationNaissanceSignatureService
     private function cacheKey(User $user, string $phase, string $token): string
     {
         return 'declaration_naissance_'.$phase.'_p12:'.$user->code_user.':'.$token;
+    }
+
+    private function humanizeTrustException(TrustException $e): string
+    {
+        $msg = $e->getMessage();
+        $lower = mb_strtolower($msg);
+
+        if (
+            str_contains($lower, 'institution')
+            && (str_contains($lower, 'revoked') || str_contains($lower, 'not active'))
+        ) {
+            return 'Le cachet institutionnel GUOT est révoqué (Trust API). '
+                .'Ouvrez la fiche de l’institution (ex. Hôpital Makelekele), '
+                .'régénérez / réactivez le cachet, puis réessayez l’envoi.';
+        }
+
+        return $msg;
     }
 }

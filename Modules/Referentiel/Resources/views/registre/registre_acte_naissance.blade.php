@@ -295,14 +295,6 @@
                                 {!! $registre->getTexteParapheRegistre('naissance') !!}<br><br>
                             </h2>
 
-                            @php
-                                $villeParapheNaissance = mb_strtoupper((string) ($registre->institutionUser->institution->lieu->localiteparent->lib_localite ?? ''), 'UTF-8');
-                            @endphp
-                            <h2><span style="margin-left: 730px;">Fait à <strong>{{ $villeParapheNaissance }}</strong>, le <strong>{{ date('d-m-Y', strtotime($registre->updated_at)) }}</strong></span></h2>
-                            <b style="margin-left: 730px;">
-                                <img src='{{ asset("app/".$registre->sceau) }}' alt="">
-                                @include('referentiel::registre.partials.registre-paraphe-qrcode', ['registre' => $registre])
-                            </b>
                             @include('referentiel::registre.partials.registre-paraphe-signature-pki', [
                                 'registre' => $registre,
                                 'contexte' => 'naissance',
@@ -560,44 +552,6 @@
                                         @endif
                                     </div><br><br>
                                     <div class="col-xl-12" style="margin-top: 28px;">
-                                        <div class="d-flex align-items-start justify-content-between" style="gap: 12px; width: 100%;">
-                                            <div style="min-width: 90px; padding-top: 8px;">Le déclarant,</div>
-                                            <div class="text-center">
-                                                @include('referentiel::registre.partials.acte-naissance-qrcode', ['acte' => $acte])
-                                            </div>
-                                            <div class="text-end" style="min-width: 200px; flex: 1;">
-                                                @php
-                                                    $dateActeRegistre = $acte->signed_at
-                                                        ?? $acte->doc_sig_signed_at
-                                                        ?? $acte->date_heure_approbation_mairie
-                                                        ?? $acte->date_emission;
-                                                    $roleActeRegistre = \App\Support\GuotSignatureAffichage::roleSignataire(
-                                                        $acte,
-                                                        '',
-                                                        "L'officier de l'état civil"
-                                                    );
-                                                @endphp
-                                                <p class="mb-1">
-                                                    Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateActeRegistre)))}}<br>
-                                                    {{ $roleActeRegistre }}
-                                                </p>
-                                                @if ($acte->approbation_mairie != "")
-                                                    @php
-                                                        $sigRel = ltrim(str_replace('\\', '/', (string) ($acte->signature_mairie ?? '')), '/');
-                                                        if (str_starts_with($sigRel, 'app/')) {
-                                                            $sigRel = substr($sigRel, 4);
-                                                        }
-                                                        $sigUrl = ($sigRel !== '' && is_file(public_path('app/'.$sigRel)))
-                                                            ? asset('app/'.$sigRel)
-                                                            : null;
-                                                    @endphp
-                                                    @if ($sigUrl)
-                                                        <img src="{{ $sigUrl }}" alt="" style="max-height: 56px; max-width: 120px;"><br>
-                                                    @endif
-                                                    <strong>{{ $acte->signataire?->user?->personne?->nomcomplet() }}</strong>
-                                                @endif
-                                            </div>
-                                        </div>
                                         @include('referentiel::registre.partials.acte-naissance-signature-pki', ['acte' => $acte])
                                         <p class="text-center mb-0 mt-3" style="font-size: 10px; color: #5a3d1e; line-height: 1.25;">
                                             Cet acte de naissance est un document officiel de l'état civil de la République du Congo. Toute falsification ou usage frauduleux est puni par la loi.

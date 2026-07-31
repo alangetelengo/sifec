@@ -491,6 +491,7 @@
 
     <div style="bottom:0;margin-left:8px;margin-top:5px">
         @php
+            use App\Models\InstitutionUser;
             use App\Support\GuotSignatureAffichage;
 
             $ctxSig = GuotSignatureAffichage::contexteDeclarationNaissance(
@@ -498,52 +499,97 @@
                 $contexteForcage ?? $dn->contexte_affichage ?? null
             );
             $prefixSig = $ctxSig === 'formation_sanitaire' ? 'sig_fs_' : 'sig_cec_';
-            $roleSigFallback = $prefixSig === 'sig_cec_' ? "Responsable du centre d'état civil" : 'Chef de service';
+            $roleSigFallback = $prefixSig === 'sig_cec_'
+                ? "Officier d'état civil"
+                : 'Chef de service';
             $roleSig = GuotSignatureAffichage::roleSignataire($dn, $prefixSig, $roleSigFallback);
             $signataireNom = $dn->{$prefixSig.'actor_nom'} ?? null;
-            $signeLe = $dn->{$prefixSig.'signed_at'} ?? ($dn->{$prefixSig.'doc_sig_signed_at'} ?? null);
-            $estSigne = filled($dn->{$prefixSig.'proof_id'} ?? null);
-            $dateDocument = $signeLe ?: $dn->created_at;
-            $mentionSignature = 'Signé électroniquement';
-            if ($signeLe) {
-                $mentionSignature .= ' le '.\Carbon\Carbon::parse($signeLe)->format('d/m/Y à H:i');
-            }
-            $afficherQr = $estSigne || $dn->declarant_approuver == "OUI";
+            $signeLe = $dn->{$prefixSig.'signed_at'}
+                ?? ($dn->{$prefixSig.'doc_sig_signed_at'} ?? null);
+            $estSigne = filled($dn->{$prefixSig.'proof_id'} ?? null) || filled($signeLe);
+            $afficherQr = $estSigne || $dn->declarant_approuver == 'OUI';
 
-            // Certificat FS → 1 bloc FS ; Déclaration CEC → FS (si présent) + CEC
-            $blocsPki = GuotSignatureAffichage::blocsPkiDeclarationNaissance($dn, $ctxSig);
+            $__pdfSignatureSrc = null;
+            $__pdfSceauSrc = null;
+            $lieuFait = 'Brazzaville';
+
+            if ($estSigne) {
+                $cuiSig = $dn->{$prefixSig.'cui'} ?? null;
+                if (filled($cuiSig)) {
+                    $iuSig = InstitutionUser::with('user.personne')->find($cuiSig);
+                    $__pdfSignatureSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf(
+                        $iuSig?->user?->personne?->signature
+                    );
+                    if (! filled($signataireNom) && $iuSig?->user?->personne) {
+                        $signataireNom = \App\Sifec\Sifec::formatNomPrenomPourActe(
+                            $iuSig->user->personne->nom,
+                            $iuSig->user->personne->prenom
+                        );
+                    }
+                }
+
+                $institutionSceau = $institutionAffichage
+                    ?? optional($dn)->institutionDestinataire
+                    ?? optional($dn)->institution;
+                $__pdfSceauSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf(
+                    optional($institutionSceau)->sceau
+                );
+
+                if ($institutionSceau) {
+                    $loc = \App\Sifec\Sifec::getLocalisationInstitution($institutionSceau);
+                    $commune = $loc['localite'] ?? null;
+                    if (filled($commune)) {
+                        // Ex. "COMMUNE DE BRAZZAVILLE" → "Brazzaville"
+                        $lieuFait = ucfirst(strtolower(trim(preg_replace('/^commune\s+de\s+/i', '', (string) $commune))));
+                    }
+                }
+            }
         @endphp
         <table class="historique" cellspacing="0" style="width: 95%; font-size: 12px; table-layout: fixed;">
-            <col style="width: 34%">
-            <col style="width: 32%">
+            <col style="width: 30%">
+            <col style="width: 36%">
             <col style="width: 34%">
             <tbody>
                 <tr>
-                    <td style="text-align: left; vertical-align: top;"> Lu et approuvé <br><strong>(<span style="color: red;">{{ $dn->declarant_approuver }}</span>)</strong>
-
+                    <td style="text-align: left; vertical-align: top;">
+                        Lu et approuvé <br><strong>(<span style="color: red;">{{ $dn->declarant_approuver }}</span>)</strong>
                         <br> Le déclarant
-                     </td>
+                    </td>
                     <td style="text-align: center; vertical-align: top;">
                         @if($afficherQr)
-                            @isset($qrCode)
-                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 24mm; border: none;"></qrcode>
-                                <br>
-                                <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
-                            @endisset
+                            <table cellspacing="0" cellpadding="0" style="margin: 0 auto; border: none;">
+                                <tr>
+                                    <td style="text-align: center; vertical-align: middle; padding: 0 2mm 0 0; border: none;">
+                                        @isset($qrCode)
+                                            <qrcode value="{{ $qrCode }}" ec="H" style="width: 22mm; border: none;"></qrcode>
+                                            <br>
+                                            <span style="font-size: 6.5px; color: #555;">Scanner pour authentifier</span>
+                                        @endisset
+                                    </td>
+                                    <td style="text-align: center; vertical-align: middle; padding: 0; border: none;">
+                                        @if ($estSigne && $__pdfSceauSrc)
+                                            <img src="{{ $__pdfSceauSrc }}" alt="Sceau de l'institution" style="width: 22mm; height: 22mm;">
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
                         @endif
-                     </td>
-                    <td style="text-align: center; vertical-align: top;">
-                        Fait à Brazzaville, le {{ utf8_encode(strftime("%d %B %Y", strtotime((string) $dateDocument))) }}<br>
-                        {{ $roleSig }}
-                        @if($estSigne)
-                            <br><span style="font-size: 9px;">{{ $signataireNom ?: '' }}</span>
-                            <br><span style="font-size: 8px; color:#006B31;">{{ $mentionSignature }}</span>
+                    </td>
+                    <td style="text-align: right; vertical-align: top; padding-right: 2mm;">
+                        @if ($estSigne && filled($signeLe))
+                            <p style="font-size: 11px; margin: 0 0 1mm 0;">
+                                Fait à {{ $lieuFait }}, le {{ utf8_encode(strftime('%d %B %Y', strtotime((string) $signeLe))) }}
+                            </p>
+                            @if ($__pdfSignatureSrc)
+                                <img src="{{ $__pdfSignatureSrc }}" alt="Signature du signataire" style="width: 28mm; margin: 1mm 0;"><br>
+                            @endif
+                            <span style="font-size: 11px;">{{ $roleSig }}</span><br>
+                            <span style="color:black; font-weight:bold; font-size: 10px;">{{ $signataireNom }}</span>
                         @endif
-                     </td>
-                  </tr>
+                    </td>
+                </tr>
             </tbody>
         </table>
-        @include('partials.guot.signature-pki-blocs', ['blocs' => $blocsPki])
     </div>
 
 </page>

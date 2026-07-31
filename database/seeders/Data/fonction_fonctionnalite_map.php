@@ -3,7 +3,6 @@
 /**
  * Attachements tr_ff : code_fonction (FONC_*) → codes fonctionnalité (FNC_*).
  * Aligné sur FonctionSeeder et database/seeders/Data/fonctionnalites_definitions.php.
- * Les FNC_0035–FNC_0037 (visa d’acte) peuvent rester absents : ils sont « Désactivé » et filtrés côté Gate.
  */
 // Permissions CEC communes (SANS signature de documents)
 $cecEtatCivilBase = [
@@ -13,11 +12,14 @@ $cecEtatCivilBase = [
     'FNC_0016', 'FNC_0017', 'FNC_0019', 'FNC_0020',
     'FNC_0023', 'FNC_0024', 'FNC_0025', 'FNC_0026', 'FNC_0027',
     'FNC_0028', 'FNC_0030', 'FNC_0031', 'FNC_0046',
-    'FNC_0040', 'FNC_0041', 'FNC_0044', 'FNC_0047',
-    'FNC_0021', 'FNC_0022', 'FNC_0045',
+    'FNC_0040', 'FNC_0041',
+    'FNC_0021',
     'FNC_0049',
     'FNC_0057', // Gestion des demandes de documents (SANS signature)
     'FNC_0071', // Rapport d'exploitation des actes de naissance
+    'FNC_0075', // Créer un formulaire type
+    'FNC_0079', // Générer déclaration naissance à partir d'un certificat
+    'FNC_0081', // Générer déclaration décès à partir d'un certificat
 ];
 
 // Permissions de l'Officier d'État Civil (avec signature de documents)
@@ -25,6 +27,10 @@ $officierEtatCivil = array_merge($cecEtatCivilBase, [
     'FNC_0058', 'FNC_0061', // Signer extraits et copies de naissance
     'FNC_0062', 'FNC_0063', // Signer extraits et copies de mariage
     'FNC_0064', 'FNC_0065', // Signer extraits et copies de décès
+    'FNC_0073', 'FNC_0077', // Signer certificat naissance / décès
+    'FNC_0074', // Signer formulaire type
+    'FNC_0078', // Signer déclaration de naissance
+    'FNC_0080', // Signer déclaration de décès
 ]);
 
 $formationSanitaire = [
@@ -32,6 +38,8 @@ $formationSanitaire = [
     'FNC_0012', 'FNC_0013',
     'FNC_0016', 'FNC_0019',
     'FNC_0040',
+    'FNC_0073', // Signer certificat de naissance
+    'FNC_0077', // Signer certificat de décès
 ];
 
 $centreHygiene = [
@@ -39,6 +47,7 @@ $centreHygiene = [
     'FNC_0003', 'FNC_0034',
     'FNC_0018',
     'FNC_0016', 'FNC_0019',
+    'FNC_0077', // Signer certificat de constatation de décès
 ];
 
 $pompesFunebres = [
@@ -46,22 +55,35 @@ $pompesFunebres = [
     'FNC_0003', 'FNC_0034',
     'FNC_0016', 'FNC_0017', 'FNC_0019', 'FNC_0020',
     'FNC_0026', 'FNC_0027',
-    'FNC_0022', 'FNC_0045',
     'FNC_0028', 'FNC_0021',
+    'FNC_0077', // Signer certificat de décès
+    'FNC_0080', // Signer déclaration de décès
+    'FNC_0081', // Générer déclaration décès à partir d'un certificat
 ];
+
+// Chef de service gestion des malades (FONC_0016) — formation sanitaire
+$chefGestionMalades = array_values(array_unique(array_merge($formationSanitaire, [
+    'FNC_0003', 'FNC_0034',
+])));
+
+// Chef de service état civil (FONC_0024) — CEC
+$chefEtatCivil = array_values(array_unique(array_merge($cecEtatCivilBase, [
+    'FNC_0073', // Signer certificat de naissance
+    'FNC_0077', // Signer certificat de décès
+    'FNC_0078', // Signer déclaration de naissance
+    'FNC_0080', // Signer déclaration de décès
+])));
 
 $tribunal = [
     'FNC_0010',
-    'FNC_0042', 'FNC_0022', 'FNC_0045',
-    'FNC_0047',
+    'FNC_0042',
     'FNC_0070', // Créer et importer un jugement au tribunal
 ];
 
 $tribunalPresident = [
     'FNC_0010',
     'FNC_0021', 'FNC_0028',
-    'FNC_0042', 'FNC_0022',
-    'FNC_0047',
+    'FNC_0042',
     'FNC_0070', // Créer et importer un jugement au tribunal
 ];
 
@@ -79,8 +101,9 @@ $hautFonctionnaire = array_values(array_unique(array_merge(
     ['FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034', 'FNC_0002', 'FNC_0003', 'FNC_0029'],
     ['FNC_0012', 'FNC_0013', 'FNC_0014', 'FNC_0015', 'FNC_0016', 'FNC_0017', 'FNC_0019', 'FNC_0020'],
     ['FNC_0023', 'FNC_0024', 'FNC_0025', 'FNC_0026', 'FNC_0027', 'FNC_0028', 'FNC_0030', 'FNC_0031', 'FNC_0046'],
-    ['FNC_0042', 'FNC_0044', 'FNC_0022', 'FNC_0047', 'FNC_0049'],
-    ['FNC_0057', 'FNC_0068', 'FNC_0069'] // Demandes documents + param. validité (profils direction)
+    ['FNC_0042', 'FNC_0049'],
+    ['FNC_0057', 'FNC_0068', 'FNC_0069'], // Demandes documents + param. validité (profils direction)
+    ['FNC_0075']
 )));
 
 return [
@@ -88,12 +111,13 @@ return [
     'FONC_0001' => array_values(array_unique(array_merge(
         ['FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0034', 'FNC_0002', 'FNC_0003', 'FNC_0012', 'FNC_0013', 'FNC_0016', 'FNC_0019']
     ))),
-    // 2–4 Officier / délégué / agent mairie + 15 DEC + 16 Chef de service
+    // 2–4 Officier / délégué / agent mairie + 15 DEC
     'FONC_0002' => $officierEtatCivil,  // Officier d'état civil (AVEC signature)
     'FONC_0003' => $cecEtatCivilBase,   // Délégué d'état civil (SANS signature)
     'FONC_0004' => $cecEtatCivilBase,   // Agent mairie (SANS signature)
     'FONC_0015' => $cecEtatCivilBase,   // DEC (SANS signature)
-    'FONC_0016' => $cecEtatCivilBase,   // Chef de service (SANS signature)
+    // 16 Chef de service gestion des malades (formation sanitaire)
+    'FONC_0016' => $chefGestionMalades,
     // 5 Agent pompes funèbres
     'FONC_0005' => $pompesFunebres,
     // 6 Agent formation sanitaire
@@ -111,7 +135,7 @@ return [
     // 12 Directeur pompes funèbres
     'FONC_0012' => array_values(array_unique(array_merge($pompesFunebres, ['FNC_0011']))),
     // 13 DGAT
-    'FONC_0013' => ['FNC_0011', 'FNC_0004', 'FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034', 'FNC_0071'],
+    'FONC_0013' => ['FNC_0011', 'FNC_0004', 'FNC_0005', 'FNC_0009', 'FNC_0032', 'FNC_0033', 'FNC_0034', 'FNC_0071', 'FNC_0076'],
     // 14 Agent mairie centrale
     'FONC_0014' => [
         'FNC_0043', 'FNC_0032', 'FNC_0002',
@@ -120,6 +144,7 @@ return [
         'FNC_0028',
         'FNC_0049',
         'FNC_0057', // Gestion des demandes de documents (SANS signature par défaut)
+        'FNC_0075', // Créer un formulaire type
     ],
     // 17 Agent bureau d'enregistrement de décès
     'FONC_0017' => [
@@ -141,4 +166,6 @@ return [
     // 22–23 Gouverneur, Ministre
     'FONC_0022' => $hautFonctionnaire,
     'FONC_0023' => $hautFonctionnaire,
+    // 24 Chef de service état civil
+    'FONC_0024' => $chefEtatCivil,
 ];

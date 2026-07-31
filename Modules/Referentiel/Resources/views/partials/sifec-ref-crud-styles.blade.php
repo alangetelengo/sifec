@@ -146,6 +146,28 @@
 .sifec-ref-crud-page .sl-btn-action-delete:hover {
     background: rgba(176, 42, 55, .08); border-color: #b02a37; color: #9e1f2b;
 }
+.sifec-ref-crud-page .sl-pagination {
+    background: #fafbfa;
+    border-top: 1px solid rgba(0, 107, 49, .1);
+    padding: .85rem 1.25rem;
+}
+.sifec-ref-crud-page .sl-pagination-links .pagination {
+    margin-bottom: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.sifec-ref-crud-page .sl-pagination-links .page-link {
+    color: var(--sl-green);
+    border-color: rgba(0, 107, 49, .2);
+}
+.sifec-ref-crud-page .sl-pagination-links .page-item.active .page-link {
+    background-color: var(--sl-mid);
+    border-color: var(--sl-mid);
+    color: #fff;
+}
+.sifec-ref-crud-page .sl-pagination-links .page-item.disabled .page-link {
+    color: #adb5bd;
+}
 .swal2-popup.sl-swal-referentiel {
     border-radius: 14px !important;
     padding: 1.5rem 1.35rem 1.35rem !important;

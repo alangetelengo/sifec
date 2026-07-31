@@ -178,6 +178,9 @@
                     <form id="guot-institution-sync-form" action="{{ route('institution.guot.sync', $institution->code_institution) }}" method="post" class="d-none">
                         @csrf
                     </form>
+                    <form id="guot-institution-revoke-form" action="{{ route('institution.guot.revoke', $institution->code_institution) }}" method="post" class="d-none">
+                        @csrf
+                    </form>
                 </div>
             </div>
         </div>

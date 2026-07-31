@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -302,9 +303,7 @@ class UserController extends Controller
             ->find($id);
 
         if ($user == null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des modules');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $situationMatrimoniales = SituationMatrimoniale::all();
@@ -327,9 +326,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if ($user === null || $user->personne === null) {
-            flash()->error('Utilisateur ou personne introuvable.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Utilisateur ou personne introuvable.');
         }
 
         $request->validate([
@@ -347,15 +344,15 @@ class UserController extends Controller
             $document->save();
 
             DB::commit();
-            flash()->success('Nouveau document d’identité enregistré.');
         } catch (Exception $e) {
             DB::rollBack();
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('utilisateur.edit', $user->code_user);
+        return redirect()
+            ->route('utilisateur.edit', $user->code_user)
+            ->with('success', 'Nouveau document d’identité enregistré.');
     }
 
     /**
@@ -365,23 +362,17 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if ($user === null) {
-            flash()->error('Utilisateur introuvable.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Utilisateur introuvable.');
         }
 
         $aff = $user->affectationActive();
         if ($aff === null) {
-            flash()->error('Aucune affectation active : impossible de modifier le poste ou le centre.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Aucune affectation active : impossible de modifier le poste ou le centre.');
         }
 
         $insUser = InstitutionUser::find($aff->cui);
         if ($insUser === null) {
-            flash()->error('Enregistrement d’affectation introuvable.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Enregistrement d’affectation introuvable.');
         }
 
         $request->validate([
@@ -396,15 +387,15 @@ class UserController extends Controller
             $insUser->save();
 
             DB::commit();
-            flash()->success('Affectation mise à jour.');
         } catch (Exception $e) {
             DB::rollBack();
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('utilisateur.edit', $user->code_user);
+        return redirect()
+            ->route('utilisateur.edit', $user->code_user)
+            ->with('success', 'Affectation mise à jour.');
     }
 
     /**
@@ -414,16 +405,12 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if ($user === null) {
-            flash()->error('Utilisateur introuvable.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Utilisateur introuvable.');
         }
 
         $personne = Personne::find($user->code_personne);
         if ($personne === null) {
-            flash()->error('Personne introuvable pour cet utilisateur.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Personne introuvable pour cet utilisateur.');
         }
 
         $request->validate([
@@ -431,7 +418,7 @@ class UserController extends Controller
             'adresse' => ['required', 'string'],
             'telephone' => ['nullable', 'string', 'max:32'],
             'niveau_instruction' => ['nullable', 'string'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', [], 'email')->ignore($user->code_user, 'code_user')],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', 'email')->ignore($user->code_user, 'code_user')],
             'email_professionnel' => ['nullable', 'email', 'max:255', Rule::unique('tr_user', 'email_professionnel')->ignore($user->code_user, 'code_user')],
             'active' => ['required', 'in:0,1'],
         ]);
@@ -452,15 +439,15 @@ class UserController extends Controller
             $user->save();
 
             DB::commit();
-            flash()->success('Compte et coordonnées mis à jour.');
         } catch (Exception $e) {
             DB::rollBack();
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('utilisateur.edit', $user->code_user);
+        return redirect()
+            ->route('utilisateur.edit', $user->code_user)
+            ->with('success', 'Compte et coordonnées mis à jour.');
     }
 
     public function profile($id)
@@ -476,9 +463,7 @@ class UserController extends Controller
         // charger les permissions
         $permissions = Fonctionnalite::all();
         if ($user == null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         return view('authentification::utilisateur.profile', compact('user', 'permissions'));
@@ -515,18 +500,14 @@ class UserController extends Controller
 
         $user = User::with(['personne', 'affectations'])->find($id);
         if ($user === null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $this->authorizeGuotProfileAccess($user);
 
         $affectation = $user->affectationActive() ?? $user->affectations->firstWhere('active', 1);
         if ($affectation === null) {
-            flash()->error('Aucune affectation active pour cet utilisateur.');
-
-            return back();
+            return back()->with('error', 'Aucune affectation active pour cet utilisateur.');
         }
 
         try {
@@ -537,12 +518,14 @@ class UserController extends Controller
                 'profile' => $request->input('guot_profile', session('guot_enroll_params.profile', 'user_auth_enc')),
             ], Auth::user());
 
-            flash()->success('Certificat numérique généré avec succès.');
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('success', 'Certificat numérique généré avec succès.');
         } catch (Exception $e) {
-            flash()->error('Échec de génération du certificat : '.$e->getMessage());
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('error', 'Échec de génération du certificat : '.$e->getMessage());
         }
-
-        return redirect()->route('utilisateur.profile', $user->code_user);
     }
 
     /**
@@ -566,18 +549,18 @@ class UserController extends Controller
 
         $user = User::with(['personne', 'affectations'])->find($id);
         if ($user === null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $this->authorizeGuotProfileAccess($user);
 
+        if (! Gate::allows('module.users.guot.revoke')) {
+            return back()->with('error', "Vous n'êtes pas autorisé à révoquer un certificat numérique.");
+        }
+
         $affectation = $user->affectationActive() ?? $user->affectations->firstWhere('active', 1);
         if ($affectation === null || ! filled($affectation->guot_user_id)) {
-            flash()->error('Aucun certificat numérique à révoquer.');
-
-            return back();
+            return back()->with('error', 'Aucun certificat numérique à révoquer.');
         }
 
         $codeRaison = (string) $request->input('code_raison_revocation');
@@ -589,9 +572,7 @@ class UserController extends Controller
                 ->where('actif', true)
                 ->first();
             if ($raison === null) {
-                flash()->error('Raison de révocation introuvable ou inactive.');
-
-                return back()->withInput();
+                return back()->withInput()->with('error', 'Raison de révocation introuvable ou inactive.');
             }
             $raisonGuot = (string) $raison->code_guot;
         }
@@ -622,12 +603,15 @@ class UserController extends Controller
                 'code_raison_revocation' => $codeRaison,
                 'justificatif_chemin' => $justificatifChemin ?? $affectation->guot_revoke_justificatif,
             ]);
-            flash()->success('Certificat numérique révoqué. Vous pouvez en générer un nouveau si nécessaire.');
-        } catch (Exception $e) {
-            flash()->error('Échec de révocation du certificat : '.$e->getMessage());
-        }
 
-        return redirect()->route('utilisateur.profile', $user->code_user);
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('success', 'Certificat numérique révoqué. Vous pouvez en générer un nouveau si nécessaire.');
+        } catch (Exception $e) {
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('error', 'Échec de révocation du certificat : '.$e->getMessage());
+        }
     }
 
     /**
@@ -637,18 +621,14 @@ class UserController extends Controller
     {
         $user = User::with(['personne', 'affectations'])->find($id);
         if ($user === null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $this->authorizeGuotProfileAccess($user);
 
         $affectation = $user->affectationActive() ?? $user->affectations->first(fn (InstitutionUser $a) => (int) $a->active === 1);
         if ($affectation === null || ! filled($affectation->guot_user_id)) {
-            flash()->error('Aucun certificat numérique disponible.');
-
-            return back();
+            return back()->with('error', 'Aucun certificat numérique disponible.');
         }
 
         try {
@@ -683,9 +663,10 @@ class UserController extends Controller
                 'actor_id' => $affectation->guot_user_id ?? null,
                 'error' => $e->getMessage(),
             ]);
-            flash()->error('Téléchargement .p12 impossible : '.$e->getMessage());
 
-            return redirect()->route('utilisateur.profile', $user->code_user);
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('error', 'Téléchargement .p12 impossible : '.$e->getMessage());
         }
     }
 
@@ -701,11 +682,10 @@ class UserController extends Controller
         $payload = cache()->get('guot_p12:'.$token);
 
         if ($user === null || ! is_array($payload) || ($payload['code_user'] ?? null) !== $user->code_user) {
-            flash()->error('Lien de téléchargement .p12 invalide ou expiré. Relancez le téléchargement.');
-
             return $user
                 ? redirect()->route('utilisateur.profile', $user->code_user)
-                : back();
+                    ->with('error', 'Lien de téléchargement .p12 invalide ou expiré. Relancez le téléchargement.')
+                : back()->with('error', 'Lien de téléchargement .p12 invalide ou expiré. Relancez le téléchargement.');
         }
 
         return view('partials.guot.p12-download', [
@@ -729,11 +709,10 @@ class UserController extends Controller
         $payload = cache()->pull('guot_p12:'.$token);
 
         if ($user === null || ! is_array($payload) || ($payload['code_user'] ?? null) !== $user->code_user) {
-            flash()->error('Fichier .p12 introuvable ou déjà téléchargé. Relancez le téléchargement.');
-
             return $user
                 ? redirect()->route('utilisateur.profile', $user->code_user)
-                : back();
+                    ->with('error', 'Fichier .p12 introuvable ou déjà téléchargé. Relancez le téléchargement.')
+                : back()->with('error', 'Fichier .p12 introuvable ou déjà téléchargé. Relancez le téléchargement.');
         }
 
         return response()->streamDownload(
@@ -787,9 +766,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if ($user === null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $nationalites = Nationalite::all();
@@ -829,30 +806,22 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if ($user === null) {
-            flash()->error("Impossible d'effectuer cette opération", [], 'Gestion des utilisateurs');
-
-            return back();
+            return back()->with('error', "Impossible d'effectuer cette opération.");
         }
 
         $personne = Personne::find($user->code_personne);
         if ($personne === null) {
-            flash()->error('Personne introuvable pour cet utilisateur.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Personne introuvable pour cet utilisateur.');
         }
 
         $aff = $user->affectationActive();
         if ($aff === null) {
-            flash()->error('Aucune affectation active : impossible de mettre à jour le poste ou le centre.');
-
-            return redirect()->back();
+            return redirect()->back()->with('error', 'Aucune affectation active : impossible de mettre à jour le poste ou le centre.');
         }
 
         $insUser = InstitutionUser::find($aff->cui);
         if ($insUser === null) {
-            flash()->error("L'enregistrement d'affectation (institution) est introuvable.");
-
-            return redirect()->back();
+            return redirect()->back()->with('error', "L'enregistrement d'affectation (institution) est introuvable.");
         }
 
         $affectationModifiee = $request->code_fonction !== $insUser->code_fonction
@@ -871,7 +840,7 @@ class UserController extends Controller
             'telephone' => ['nullable', 'string', 'max:32'],
             'code_fonction' => ['required'],
             'code_institution' => ['required'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', [], 'email')->ignore($user->code_user, 'code_user')],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tr_user', 'email')->ignore($user->code_user, 'code_user')],
             'email_professionnel' => ['nullable', 'email', 'max:255', Rule::unique('tr_user', 'email_professionnel')->ignore($user->code_user, 'code_user')],
             'active' => ['required', 'in:0,1'],
             'niveau_instruction' => ['nullable', 'string'],
@@ -971,14 +940,14 @@ class UserController extends Controller
             );
 
             DB::commit();
-            flash()->success('Les informations ont été mises à jour.');
 
-            return redirect()->route('utilisateur.profile', $user->code_user);
+            return redirect()
+                ->route('utilisateur.profile', $user->code_user)
+                ->with('success', 'Les informations ont été mises à jour.');
         } catch (Exception $e) {
             DB::rollBack();
-            flash()->error($e->getMessage());
 
-            return redirect()->back()->withInput();
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 

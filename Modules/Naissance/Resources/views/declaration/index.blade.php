@@ -346,6 +346,11 @@ Déclaration
                         </div>
                         <div id="cert-sign-feedback" class="alert alert-warning py-2 small d-none mb-0" role="status"></div>
                     </div>
+                    <div id="bloc-signature-non-autorisee" class="alert alert-danger border-0 small d-none mb-3">
+                        <i class="fas fa-ban me-1"></i>
+                        La signature électronique est <strong>obligatoire</strong>, mais votre profil n’a pas le droit
+                        « Signer un certificat de naissance ». Demandez à un responsable habilité de procéder à l’envoi.
+                    </div>
                     <div class="mb-2">
                         <label for="observation-centre" class="form-label">Observation (optionnel)</label>
                         <textarea id="observation-centre" name="observation" class="form-control" rows="3" placeholder="Ajoutez une observation pour le centre d'état civil..."></textarea>
@@ -378,6 +383,10 @@ Déclaration
 
     <script>
         window.SIFEC_CERT_SIGN_OBLIGATOIRE = {{ \App\Models\GuotSignelecConfig::certificatSignatureObligatoire() ? 'true' : 'false' }};
+        window.SIFEC_PEUT_SIGNER_CERTIFICAT = {{ (
+            Gate::allows('module.certificat.naissance.signature')
+            || Gate::allows('module.certificat.signature')
+        ) ? 'true' : 'false' }};
     </script>
 
     <script>
@@ -450,11 +459,14 @@ Déclaration
             let typeDeclarationEnvoi = null;
             let dejaSigneEnvoi = false;
 
-            // Signature du certificat requise ? (paramètre admin + type certificat + non déjà signé)
-            function certificatSignatureRequise() {
+            // Signature attendue (paramètre admin) vs autorisée (permission Gate).
+            function certificatSignatureAttendue() {
                 return window.SIFEC_CERT_SIGN_OBLIGATOIRE === true
                     && typeDeclarationEnvoi === 'CERTIFICAT DE NAISSANCE'
                     && !dejaSigneEnvoi;
+            }
+            function certificatSignatureRequise() {
+                return certificatSignatureAttendue() && window.SIFEC_PEUT_SIGNER_CERTIFICAT === true;
             }
 
             function showCertSignError(msg) {
@@ -513,8 +525,16 @@ Déclaration
                 $('#cert_p12_pin').val('');
                 if (certificatSignatureRequise()) {
                     $('#bloc-signature-certificat').removeClass('d-none');
+                    $('#bloc-signature-non-autorisee').addClass('d-none');
+                    $('#btn-envoyer-final').prop('disabled', piecesManquantes);
+                } else if (certificatSignatureAttendue()) {
+                    $('#bloc-signature-certificat').addClass('d-none');
+                    $('#bloc-signature-non-autorisee').removeClass('d-none');
+                    $('#btn-envoyer-final').prop('disabled', true);
                 } else {
                     $('#bloc-signature-certificat').addClass('d-none');
+                    $('#bloc-signature-non-autorisee').addClass('d-none');
+                    $('#btn-envoyer-final').prop('disabled', piecesManquantes);
                 }
                 $('#modal-envoyer-centre').modal('show');
                 $('#input-code-declaration').val(codeDeclaration);
@@ -627,6 +647,9 @@ Déclaration
                 sifecBtnLoading($btn[0], "Traitement…");
                 if (certificatSignatureRequise()) {
                     signerPuisEnvoyer($btn, observation);
+                } else if (certificatSignatureAttendue()) {
+                    sifecBtnReset($btn[0], "Envoyer");
+                    flashAlert("Signature requise", "error", "Vous n'êtes pas habilité à signer ce certificat. Un responsable doit procéder à l'envoi.");
                 } else {
                     envoyerDirect($btn, observation);
                 }

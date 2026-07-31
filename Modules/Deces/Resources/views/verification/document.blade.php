@@ -73,6 +73,8 @@
                             @php $sigDate = $declaration->{$prefix.'signed_at'} ?? $declaration->{$prefix.'doc_sig_signed_at'}; @endphp
                             {{ $sigDate ? \Carbon\Carbon::parse($sigDate)->format('d/m/Y à H:i:s') : '—' }}
                         </dd>
+                        <dt class="col-sm-5 col-md-4">Identifiant de preuve (proof_id)</dt>
+                        <dd class="col-sm-7 col-md-8"><code class="small" style="word-break:break-all;">{{ $declaration->{$prefix.'proof_id'} }}</code></dd>
                         @if(filled($declaration->{$prefix.'doc_sig_id'}))
                             <dt class="col-sm-5 col-md-4">Identifiant signature (L2)</dt>
                             <dd class="col-sm-7 col-md-8"><code class="small">{{ $declaration->{$prefix.'doc_sig_id'} }}</code></dd>

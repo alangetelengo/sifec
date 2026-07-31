@@ -127,6 +127,11 @@
                         {{ $sigDate ? \Carbon\Carbon::parse($sigDate)->format('d/m/Y à H:i:s') : '—' }}
                     </dd>
 
+                    @if(filled($acte->proof_id))
+                        <dt class="col-sm-5 col-md-4">Identifiant de preuve (proof_id)</dt>
+                        <dd class="col-sm-7 col-md-8"><code class="small" style="word-break:break-all;">{{ $acte->proof_id }}</code></dd>
+                    @endif
+
                     @if(filled($acte->doc_sig_id))
                         <dt class="col-sm-5 col-md-4">Identifiant signature (L2)</dt>
                         <dd class="col-sm-7 col-md-8"><code class="small">{{ $acte->doc_sig_id }}</code></dd>

@@ -275,4 +275,16 @@
         </table>
     </div>
 
+    @php
+        $blocActeDeces = \App\Support\GuotSignatureAffichage::blocPki(
+            $acte,
+            '',
+            'RÉFÉRENCES DE LA SIGNATURE ÉLECTRONIQUE PKI — ACTE',
+            "L'officier de l'état civil",
+        );
+    @endphp
+    @if($blocActeDeces)
+        @include('partials.guot.signature-pki-blocs', ['blocs' => [$blocActeDeces], 'compact' => true])
+    @endif
+
 </page>

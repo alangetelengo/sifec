@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Modules\Deces\Entities\DeclarationDeces;
 use Modules\Deces\Services\DeclarationDecesSignatureService;
@@ -30,6 +31,13 @@ class DeclarationDecesSignatureController extends Controller
         $phase = $this->resolvePhase($request);
         if ($phase === null) {
             return response()->json(['code' => '180', 'message' => 'Phase de signature invalide.']);
+        }
+
+        if (! $this->userCanSignPhase($phase)) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer ce document.",
+            ]);
         }
 
         $codes = $this->resolveCodes($request);
@@ -82,6 +90,13 @@ class DeclarationDecesSignatureController extends Controller
         $phase = $this->resolvePhase($request);
         if ($phase === null) {
             return response()->json(['code' => '180', 'message' => 'Phase de signature invalide.']);
+        }
+
+        if (! $this->userCanSignPhase($phase)) {
+            return response()->json([
+                'code' => '181',
+                'message' => "Vous n'êtes pas autorisé à signer ce document.",
+            ]);
         }
 
         $token = (string) $request->input('token', '');
@@ -236,6 +251,19 @@ class DeclarationDecesSignatureController extends Controller
                 );
             }
         });
+    }
+
+    private function userCanSignPhase(string $phase): bool
+    {
+        if (in_array($phase, [
+            DeclarationDecesSignatureService::PHASE_FS,
+            DeclarationDecesSignatureService::PHASE_CH,
+        ], true)) {
+            return Gate::allows('module.certificat.deces.signature')
+                || Gate::allows('module.certificat.signature');
+        }
+
+        return Gate::allows('module.acteDeces.generate');
     }
 
     private function resolvePhase(Request $request): ?string

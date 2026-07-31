@@ -588,5 +588,19 @@ $localisation = $localisationData['localisation'];
     </div>
 @endif
 
+@php
+    $blocMariage = \App\Support\GuotSignatureAffichage::blocPki(
+        $dm,
+        'sig_cec_',
+        'RÉFÉRENCES DE LA SIGNATURE ÉLECTRONIQUE PKI — DÉCLARATION',
+        "Responsable du centre d'état civil",
+    );
+@endphp
+@if($blocMariage)
+    <div style="margin-top: 8mm;">
+        @include('partials.guot.signature-pki-blocs', ['blocs' => [$blocMariage], 'compact' => true])
+    </div>
+@endif
+
 
 </page>

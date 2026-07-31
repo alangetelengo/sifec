@@ -36,6 +36,30 @@
     .sifec-profile-inline-flash .alert {
         border-radius: 10px;
         box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+        font-size: 0.95rem;
+        font-weight: 500;
+        opacity: 1 !important;
+    }
+    .sifec-profile-inline-flash .alert.fade { opacity: 1 !important; }
+    .sifec-profile-inline-flash .alert-success {
+        color: #0f5132 !important;
+        background-color: #d1e7dd !important;
+        border: 1px solid #a3cfbb !important;
+    }
+    .sifec-profile-inline-flash .alert-danger {
+        color: #842029 !important;
+        background-color: #f8d7da !important;
+        border: 1px solid #f1aeb5 !important;
+    }
+    .sifec-profile-inline-flash .alert-warning {
+        color: #664d03 !important;
+        background-color: #fff3cd !important;
+        border: 1px solid #ffe69c !important;
+    }
+    .sifec-profile-inline-flash .alert-info {
+        color: #055160 !important;
+        background-color: #cff4fc !important;
+        border: 1px solid #9eeaf9 !important;
     }
 
     /* Liens profil : toute la page est dans .sifec-profile-page ; la grille des cartes
@@ -932,11 +956,94 @@
         </div>
 
         <div class="row g-3 g-lg-4 mb-4">
-            <div class="col-12">
+            <div class="col-lg-8">
                 @include('partials.guot.certificat-utilisateur', ['affectation' => $aff, 'user' => $user])
+            </div>
+            <div class="col-lg-4">
+                <div class="sifec-profile-card">
+                    <div class="sifec-profile-card-h"><i class="fas fa-signature"></i> Signature de l’agent</div>
+                    <div class="p-3">
+                        <div class="sifec-profile-sig-zone mb-3">
+                            @if($p && $p->signature)
+                                <img src="{{ asset('app/'.$p->signature) }}"
+                                     alt="Signature"
+                                     id="sig-preview"
+                                     class="sifec-profile-sig-preview">
+                                <div class="small text-success fw-semibold mt-2"><i class="fas fa-check-circle me-1"></i>Signature enregistrée</div>
+                            @else
+                                <div id="sig-placeholder">
+                                    <i class="fas fa-pen-fancy fa-2x text-muted mb-2 d-block opacity-50"></i>
+                                    <span class="text-muted small">Aucune signature — importez une image PNG ou JPG</span>
+                                </div>
+                                <img src="" alt="" id="sig-preview" class="sifec-profile-sig-preview d-none">
+                            @endif
+                        </div>
+
+                        <form id="form-signature-agent"
+                              action="{{ route('utilisateur.signature', $user->code_user) }}"
+                              method="POST"
+                              enctype="multipart/form-data">
+                            @csrf
+                            @method('PUT')
+                            <label class="form-label small fw-semibold text-muted mb-1" for="sig-input">
+                                {{ ($p && $p->signature) ? 'Remplacer la signature' : 'Ajouter une signature' }}
+                            </label>
+                            <input type="file"
+                                   class="form-control form-control-sm @error('signature') is-invalid @enderror"
+                                   name="signature"
+                                   id="sig-input"
+                                   accept="image/png,image/jpeg">
+                            <div class="form-text small">PNG ou JPG — 2&nbsp;Mo max</div>
+                            @error('signature')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                            <button type="submit" id="btn-signature-submit" class="btn btn-sm w-100 text-white mt-2 fw-semibold" style="background: linear-gradient(135deg, #006B31, #009E49); border: none;">
+                                <i class="fas fa-save me-1"></i>Enregistrer
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+(function () {
+    var input = document.getElementById('sig-input');
+    var form = document.getElementById('form-signature-agent');
+    var btn = document.getElementById('btn-signature-submit');
+
+    if (input) {
+        input.addEventListener('change', function () {
+            var file = this.files[0];
+            if (!file) return;
+            var preview = document.getElementById('sig-preview');
+            var placeholder = document.getElementById('sig-placeholder');
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (form && btn) {
+        form.addEventListener('submit', function () {
+            if (btn.getAttribute('data-loading') === '1') {
+                return;
+            }
+            btn.setAttribute('data-loading', '1');
+            btn.disabled = true;
+            btn.innerHTML =
+                '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enregistrement…';
+        });
+    }
+})();
+</script>
 @endsection
 

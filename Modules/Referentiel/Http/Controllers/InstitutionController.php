@@ -594,6 +594,34 @@ class InstitutionController extends Controller
         }
     }
 
+    /**
+     * Révocation du cachet institutionnel GUOT.
+     */
+    public function revokeGuot(string $id, GuotInstitutionService $guot)
+    {
+        $institution = Institution::find($id);
+        if ($institution === null) {
+            return redirect()->route('institution.index')->with('error', 'Institution introuvable.');
+        }
+
+        try {
+            $guot->revoke($institution);
+
+            return redirect()
+                ->route('institution.edit', $institution->code_institution)
+                ->with('success', 'Cachet institutionnel révoqué. Vous pouvez en activer un nouveau.');
+        } catch (TrustException|RuntimeException|Exception $e) {
+            Log::channel('sifec')->error('Révocation cachet institution GUOT', [
+                'code_institution' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('institution.edit', $institution->code_institution)
+                ->with('error', 'Échec de la révocation du cachet : '.$e->getMessage());
+        }
+    }
+
     private function institutionsTribunauxPourLiens(?string $exclureCode = null)
     {
         $q = Institution::with('typeInstitution')

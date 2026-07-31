@@ -53,7 +53,7 @@
         word-break: normal;
     }
 </style>
-  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="52%" backimgw="55%" backtop="0" backbottom="10mm" style="font-size: 12px">
+  <page orientation="portrait" backimg="{{ public_path('tpl/back-border.png') }}" backcolor="#FEFEFE" backimgx="center" backimgy="30%" backimgw="55%" backtop="0" backbottom="10mm" style="font-size: 12px">
     <page_footer>
         @include('partials.guot.mention-legale-pied', ['typeDocument' => 'acte_naissance'])
     </page_footer>
@@ -97,6 +97,8 @@
         $infos = 'ACTE TRANSCRIT SUIVANT REQUISITION  N° '.$numeroRequisitionAffiche." ".$num;
     }
 
+    // Sceaux (tribunal / CEC) et signature officier : uniquement si l'acte est signé
+    $estSigneActe = filled($acte->approbation_mairie) || filled($acte->proof_id);
 
     @endphp
     {{-- Html2Pdf : regroupe en-tête + corps + pied sur une page si la hauteur le permet (évite 2e page quasi vide avec seul le filigrane). --}}
@@ -141,7 +143,7 @@
     <table align="center" style="border-radius: 1mm; border: none;">
         <tr style="">
             <td style="width:100%; text-align: center;">
-                @if ((int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
+                @if ($estSigneActe && (int) $acte->approbation_tribunal === 1 && filled($acte->sceau_tribunal))
                     @php
                         $__pdfSceauSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->sceau_tribunal);
                     @endphp
@@ -385,7 +387,7 @@
     </div>
     </nobreak>
 
-    {{-- Pied hors nobreak : évite le report forcé de toute la page quand les blocs PKI allongent le document. --}}
+    {{-- Pied : déclarant | QR + sceau CEC | date + signature officier --}}
     <div style="margin-top: 3mm; margin-left: 4px; margin-right: 6px;">
         @php
             use App\Support\GuotSignatureAffichage;
@@ -393,52 +395,37 @@
             $decl = $acte->declaration;
             $roleActe = GuotSignatureAffichage::roleSignataire($acte, '', "L'officier de l'état civil");
 
-            $dateActe = $acte->signed_at
+            $dateSignatureActe = $acte->signed_at
                 ?? $acte->doc_sig_signed_at
-                ?? $acte->date_heure_approbation_mairie
-                ?? $acte->date_emission;
+                ?? $acte->date_heure_approbation_mairie;
 
-            $estSigneActe = filled($acte->approbation_mairie) || filled($acte->proof_id);
+            $__personneSig = null;
+            $sigNomActe = null;
+            $__pdfSignatureSrc = null;
+            $__pdfSceauCecSrc = null;
 
-            $sigNomActe = $acte->actor_nom
-                ?: (optional(optional(optional($acte->signataire)->user)->personne)->nomcomplet() ?? null);
+            if ($estSigneActe) {
+                $__personneSig = optional(optional($acte->signataire)->user)->personne;
+                $sigNomActe = $acte->actor_nom
+                    ?: ($__personneSig ? $__personneSig->nomcomplet() : null);
 
-            $blocsPki = [];
-            if ($decl) {
-                $blocsPki = array_values(array_filter([
-                    GuotSignatureAffichage::blocPki(
-                        $decl,
-                        'sig_cec_',
-                        'PKI — DÉCLARATION',
-                        "Officier d'état civil",
-                        '#1a5fb4',
-                        '#f5f9fc',
-                    ),
-                    GuotSignatureAffichage::blocPki(
-                        $acte,
-                        '',
-                        'PKI — ACTE',
-                        "L'officier de l'état civil",
-                        '#006B31',
-                        '#f4faf6',
-                    ),
-                ]));
-            } else {
-                $blocActe = GuotSignatureAffichage::blocPki(
-                    $acte,
-                    '',
-                    'PKI — ACTE',
-                    "L'officier de l'état civil",
-                    '#006B31',
-                    '#f4faf6',
+                $__signaturePath = filled($acte->signature_mairie)
+                    ? $acte->signature_mairie
+                    : ($__personneSig?->signature);
+                $__pdfSignatureSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($__signaturePath);
+
+                $__institutionCec = optional(optional($acte->institutionUser)->institution)
+                    ?? optional(optional($decl)->institutionUser)->institution
+                    ?? optional($decl)->institution;
+                $__pdfSceauCecSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf(
+                    optional($__institutionCec)->sceau
                 );
-                $blocsPki = $blocActe ? [$blocActe] : [];
             }
         @endphp
         <table class="historique" cellspacing="0" style="width: 100%; table-layout: fixed; font-size: 11px;">
-            <col style="width: 30%">
             <col style="width: 28%">
-            <col style="width: 42%">
+            <col style="width: 36%">
+            <col style="width: 36%">
             <tbody>
                 <tr>
                     <td style="text-align: center; vertical-align: top;">
@@ -448,42 +435,45 @@
                         @endif
                     </td>
                     <td style="text-align: center; vertical-align: top;">
-                         @if($estSigneActe)
-                             @isset($qrCode)
-                                <qrcode value="{{ $qrCode }}" ec="H" style="width: 18mm; border: none;"></qrcode>
-                                <br>
-                                <span style="font-size: 6px; color: #555;">Scanner pour authentifier</span>
-                             @endisset
-                         @endif
+                        @if($estSigneActe)
+                            <table cellspacing="0" cellpadding="0" style="margin: 0 auto; border: none;">
+                                <tr>
+                                    <td style="text-align: center; vertical-align: middle; padding: 0 2mm 0 0; border: none;">
+                                        @isset($qrCode)
+                                            <qrcode value="{{ $qrCode }}" ec="H" style="width: 18mm; border: none;"></qrcode>
+                                            <br>
+                                            <span style="font-size: 6px; color: #555;">Scanner pour authentifier</span>
+                                        @endisset
+                                    </td>
+                                    <td style="text-align: center; vertical-align: middle; padding: 0; border: none;">
+                                        @if ($__pdfSceauCecSrc)
+                                            <img src="{{ $__pdfSceauCecSrc }}" alt="Sceau du CEC" style="width: 22mm; height: 22mm;">
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
+                        @endif
                     </td>
                     <td style="text-align: right; vertical-align: top; padding-right: 2mm;">
-                     <p style="font-size: 11px; margin: 0 0 0.5mm 0;">
-                         Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateActe)))}}<br>
-                         {{ $roleActe }}
-                     </p>
-                         @if ($estSigneActe)
-                             @php
-                                 $__pdfSignatureSrc = \App\Support\SifecPdfLocalImagePath::imgSrcForHtml2Pdf($acte->signature_mairie);
-                             @endphp
-                             @if ($__pdfSignatureSrc)
-                             <img src="{{ $__pdfSignatureSrc }}" style="width: 20mm;"><br>
-                             @endif
-                             @php
-                                 $__personneSig = optional(optional($acte->signataire)->user)->personne;
-                             @endphp
-                             <span style="color:black; font-weight:bold; font-size: 10px;">
-                                 @if($__personneSig)
-                                     {{ \App\Sifec\Sifec::formatNomPrenomPourActe($__personneSig->nom, $__personneSig->prenom) }}
-                                 @else
-                                     {{ $sigNomActe }}
-                                 @endif
-                             </span>
-                         @endif
-                     </td>
-                  </tr>
+                        @if ($estSigneActe && filled($dateSignatureActe))
+                            <p style="font-size: 11px; margin: 0 0 1mm 0;">
+                                Fait à {{ ucfirst(strtolower(trans($communeDistrict->lib_localite)))}}, le {{utf8_encode(strftime("%d %B %Y", strtotime((string) $dateSignatureActe)))}}
+                            </p>
+                            @if ($__pdfSignatureSrc)
+                                <img src="{{ $__pdfSignatureSrc }}" alt="Signature de l'officier" style="width: 28mm; margin: 1mm 0;"><br>
+                            @endif
+                            <span style="font-size: 11px;">{{ $roleActe }}</span><br>
+                            <span style="color:black; font-weight:bold; font-size: 10px;">
+                                @if($__personneSig)
+                                    {{ \App\Sifec\Sifec::formatNomPrenomPourActe($__personneSig->nom, $__personneSig->prenom) }}
+                                @else
+                                    {{ $sigNomActe }}
+                                @endif
+                            </span>
+                        @endif
+                    </td>
+                </tr>
             </tbody>
         </table>
-
-        @include('partials.guot.signature-pki-blocs', ['blocs' => $blocsPki, 'compact' => true])
     </div>
 </page>

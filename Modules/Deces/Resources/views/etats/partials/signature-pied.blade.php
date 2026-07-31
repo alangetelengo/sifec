@@ -41,6 +41,20 @@
     }
     $afficherQr = ($forceSignatureQr ?? false) || $estSigne || ($ddc->declarant_approuver ?? '') === 'OUI';
     $locAffichage = $localisation ?? 'Brazzaville';
+
+    $titrePki = match ($prefixSig) {
+        'sig_fs_' => 'RÉFÉRENCES DE LA SIGNATURE ÉLECTRONIQUE PKI — CERTIFICAT',
+        'sig_ch_' => 'RÉFÉRENCES DE LA SIGNATURE ÉLECTRONIQUE PKI — CONSTAT',
+        default => 'RÉFÉRENCES DE LA SIGNATURE ÉLECTRONIQUE PKI — DÉCLARATION',
+    };
+    $blocPkiDeces = GuotSignatureAffichage::blocPki(
+        $ddc,
+        $prefixSig,
+        $titrePki,
+        $roleSigFallback,
+        $prefixSig === 'sig_fs_' ? '#1a5fb4' : '#006B31',
+        $prefixSig === 'sig_fs_' ? '#f5f9fc' : '#f4faf6',
+    );
 @endphp
 <div style="bottom:0;margin-left:8px;margin-top:5px">
     <table class="historique" cellspacing="0" style="width: 95%; font-size: 12px; table-layout: fixed;">
@@ -72,4 +86,7 @@
             </tr>
         </tbody>
     </table>
+    @if($blocPkiDeces)
+        @include('partials.guot.signature-pki-blocs', ['blocs' => [$blocPkiDeces], 'compact' => true])
+    @endif
 </div>
